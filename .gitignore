@@ -1,0 +1,27 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Large binaries — keep model weights and recorded video out of git
+*.pt
+*.pth
+*.onnx
+*.engine
+*.trt
+*.weights
+*.mp4
+*.avi
+*.mov
+
+# Benchmark artifacts that shouldn't be versioned by default
+U-SCAR/jetson_orin_nano_benchmarks/models/
+U-SCAR/jetson_orin_nano_benchmarks/videos/

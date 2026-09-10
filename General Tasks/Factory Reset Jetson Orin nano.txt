@@ -1,0 +1,12 @@
+Task: Factory reset the Jetson Orin Nano
+
+Tried:
+- Shorting pins 9 and 10 on the button header to force a factory reset / enter recovery mode, as suggested by an AI assistant and by the official NVIDIA Jetson documentation.
+
+Result:
+- Did not work. Jetson did not factory reset or drop into recovery mode as expected.
+
+Next steps / ideas:
+- Double-check the exact pin numbering for this specific carrier board revision (button header pinouts differ between Jetson Nano and Jetson Orin Nano dev kits).
+- Confirm whether this board uses a Force Recovery button/jumper instead of a header short.
+- Try the official NVIDIA SDK Manager recovery-mode flash procedure instead of the manual pin-short method.
