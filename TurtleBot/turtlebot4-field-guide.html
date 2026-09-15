@@ -1,0 +1,573 @@
+<title>TurtleBot 4 Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root{
+    --bg:#EEF2F4;
+    --panel:#FFFFFF;
+    --panel-alt:#E3EAED;
+    --text:#16232F;
+    --text-dim:#54636F;
+    --border:#C6D2D7;
+    --accent:#0C8C82;
+    --accent-strong:#075F58;
+    --warn:#B85B26;
+    --code-bg:#DDE6E9;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316;
+      --panel:#111C20;
+      --panel-alt:#16232A;
+      --text:#E4EDEE;
+      --text-dim:#8FA3A9;
+      --border:#233238;
+      --accent:#3BDCC9;
+      --accent-strong:#7CF0E1;
+      --warn:#E2985D;
+      --code-bg:#0E191C;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316;
+    --panel:#111C20;
+    --panel-alt:#16232A;
+    --text:#E4EDEE;
+    --text-dim:#8FA3A9;
+    --border:#233238;
+    --accent:#3BDCC9;
+    --accent-strong:#7CF0E1;
+    --warn:#E2985D;
+    --code-bg:#0E191C;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.label-font{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  }
+  code, .mono, table.cmds td, table.cmds th{
+    font-family:"IBM Plex Mono", "Courier New", monospace;
+  }
+  h1,h2,h3{text-wrap:balance; margin:0;}
+
+  a{color:var(--accent-strong);}
+  a:focus-visible, button:focus-visible, [tabindex]:focus-visible{
+    outline:2px solid var(--accent); outline-offset:3px;
+  }
+
+  .page{
+    display:grid;
+    grid-template-columns:230px minmax(0,1fr);
+    gap:0 48px;
+    max-width:1180px;
+    margin:0 auto;
+    padding:0 28px 80px;
+  }
+
+  /* ---- Nav ---- */
+  nav.toc{
+    position:sticky;
+    top:0;
+    align-self:start;
+    padding-top:48px;
+    max-height:100vh;
+    overflow-y:auto;
+  }
+  nav.toc .eyebrow{
+    font-family:"IBM Plex Sans Condensed", sans-serif;
+    font-size:0.7rem;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin:0 0 10px;
+  }
+  nav.toc ul{list-style:none; margin:0 0 28px; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.toc a{
+    display:block;
+    padding:6px 10px;
+    border-radius:3px;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-family:"IBM Plex Sans Condensed", sans-serif;
+    font-size:0.86rem;
+    font-weight:500;
+    border-left:2px solid transparent;
+  }
+  nav.toc a:hover{color:var(--text); background:var(--panel-alt);}
+
+  /* ---- Main column ---- */
+  main{min-width:0; padding-top:48px;}
+
+  header.hero{margin-bottom:44px;}
+  .eyebrow{
+    font-family:"IBM Plex Sans Condensed", sans-serif;
+    font-size:0.72rem;
+    font-weight:600;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--accent-strong);
+    margin:0 0 12px;
+  }
+  h1.title{font-size:clamp(2.4rem,6vw,3.4rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{
+    font-size:1.12rem;
+    color:var(--text-dim);
+    max-width:62ch;
+    margin:0 0 32px;
+  }
+
+  section{
+    max-width:700px;
+    padding:46px 0;
+    border-top:1px solid var(--border);
+  }
+  section:first-of-type{border-top:none; padding-top:0;}
+
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:18px;}
+  .section-tag{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.72rem;
+    color:var(--text-dim);
+    white-space:nowrap;
+  }
+  h2{font-size:1.5rem; font-weight:600;}
+  h3{font-size:1.05rem; font-weight:600; margin:26px 0 8px;}
+
+  p{margin:0 0 16px;}
+  section > p:last-child{margin-bottom:0;}
+
+  ul.reasons{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:16px;}
+  ul.reasons li{padding-left:22px; position:relative;}
+  ul.reasons li::before{
+    content:"";
+    position:absolute; left:0; top:0.55em;
+    width:9px; height:9px;
+    border:1.5px solid var(--accent-strong);
+    transform:rotate(45deg);
+  }
+  ul.reasons b{font-family:"IBM Plex Sans Condensed", sans-serif; font-weight:600; color:var(--text);}
+
+  figure{margin:0 0 8px;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{
+    font-family:"IBM Plex Sans Condensed", sans-serif;
+    font-size:0.82rem;
+    color:var(--text-dim);
+    margin-top:10px;
+    max-width:60ch;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+  }
+
+  /* spec sheet table */
+  table.spec{width:100%; border-collapse:collapse; font-size:0.95rem;}
+  table.spec th, table.spec td{
+    text-align:left;
+    padding:12px 14px;
+    border-top:1px solid var(--border);
+    vertical-align:top;
+  }
+  table.spec tr:first-child th, table.spec tr:first-child td{border-top:none;}
+  table.spec th{
+    font-family:"IBM Plex Sans Condensed", sans-serif;
+    font-weight:600;
+    font-size:0.78rem;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    width:34%;
+    white-space:nowrap;
+  }
+
+  /* compare table */
+  table.compare{width:100%; border-collapse:collapse; font-size:0.92rem; margin-bottom:8px;}
+  table.compare th, table.compare td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left;}
+  table.compare thead th{
+    font-family:"IBM Plex Sans Condensed", sans-serif;
+    font-size:0.78rem;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    border-bottom:1px solid var(--border);
+  }
+  table.compare thead th:not(:first-child){color:var(--accent-strong);}
+  table.compare tbody th{
+    font-family:"IBM Plex Sans Condensed", sans-serif;
+    font-weight:500;
+    color:var(--text-dim);
+    white-space:nowrap;
+  }
+
+  dl.glossary{margin:0; display:flex; flex-direction:column; gap:16px;}
+  dl.glossary dt{
+    font-family:"IBM Plex Mono", monospace;
+    font-weight:600;
+    font-size:0.95rem;
+    color:var(--accent-strong);
+  }
+  dl.glossary dd{margin:4px 0 0; color:var(--text);}
+
+  .pkg-table{width:100%; border-collapse:collapse; font-size:0.88rem; margin-top:6px;}
+  .pkg-table td{padding:9px 0; border-top:1px solid var(--border); vertical-align:top;}
+  .pkg-table tr:first-child td{border-top:none;}
+  .pkg-table td:first-child{font-family:"IBM Plex Mono",monospace; white-space:nowrap; padding-right:18px; color:var(--accent-strong);}
+
+  ol.steps{list-style:none; margin:0; padding:0; counter-reset:step; display:flex; flex-direction:column;}
+  ol.steps li{
+    counter-increment:step;
+    display:grid;
+    grid-template-columns:34px 1fr;
+    gap:14px;
+    padding:16px 0;
+    border-top:1px solid var(--border);
+  }
+  ol.steps li:first-child{border-top:none; padding-top:0;}
+  ol.steps li::before{
+    content:counter(step,decimal-leading-zero);
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.8rem;
+    color:var(--accent-strong);
+    padding-top:2px;
+  }
+  ol.steps h3{margin:0 0 4px; font-size:1rem;}
+  ol.steps p{margin:0; font-size:0.96rem;}
+
+  .cards{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .card{
+    padding:16px 18px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+  }
+  .card h3{margin:0 0 6px; font-size:0.98rem;}
+  .card p{margin:0; font-size:0.92rem; color:var(--text-dim);}
+
+  table.cmds{width:100%; border-collapse:collapse; font-size:0.84rem;}
+  table.cmds td{padding:10px 12px; border-top:1px solid var(--border); vertical-align:top;}
+  table.cmds tr:first-child td{border-top:none;}
+  table.cmds td:first-child{
+    white-space:nowrap;
+    background:var(--code-bg);
+    border-radius:4px;
+    color:var(--accent-strong);
+  }
+  table.cmds td:last-child{font-family:"IBM Plex Serif", serif; color:var(--text-dim); font-size:0.92rem;}
+
+  .resources{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px;}
+  .resources a{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.88rem;
+    text-decoration:none;
+  }
+  .resources a:hover{text-decoration:underline;}
+  .resources span{display:block; color:var(--text-dim); font-family:"IBM Plex Serif", serif; font-size:0.9rem; margin-top:2px;}
+
+  .note{
+    display:flex; gap:12px;
+    padding:14px 16px;
+    background:var(--panel-alt);
+    border-left:3px solid var(--warn);
+    border-radius:0 4px 4px 0;
+    font-size:0.92rem;
+    margin:20px 0;
+  }
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed", sans-serif;}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:1fr; padding:0 18px 60px;}
+    nav.toc{
+      position:sticky; top:0; z-index:5;
+      padding-top:0;
+      background:var(--bg);
+      max-height:none;
+      border-bottom:1px solid var(--border);
+    }
+    nav.toc .eyebrow{display:none;}
+    nav.toc ul{
+      flex-direction:row; overflow-x:auto; gap:4px;
+      padding:14px 0; margin:0;
+    }
+    nav.toc a{white-space:nowrap; padding:6px 10px;}
+    main{padding-top:20px;}
+    .cards{grid-template-columns:1fr;}
+  }
+</style>
+
+<div class="page">
+
+  <nav class="toc" aria-label="Table of contents">
+    <p class="eyebrow">Contents</p>
+    <ul>
+      <li><a href="#what-it-is">What it actually is</a></li>
+      <li><a href="#why">Why this platform</a></li>
+      <li><a href="#hardware">Hardware</a></li>
+      <li><a href="#software">The ROS 2 stack</a></li>
+      <li><a href="#concepts">Concepts glossary</a></li>
+      <li><a href="#start">Getting started</a></li>
+      <li><a href="#assignments">Likely assignments</a></li>
+      <li><a href="#commands">Command reference</a></li>
+      <li><a href="#resources">Going deeper</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">ROS 2 mobile robot — field reference</p>
+      <h1 class="title">TurtleBot 4</h1>
+      <p class="dek">The robot your professor handed you is a stack, not a single gadget — an iRobot drive base, a Raspberry Pi, a spinning lidar, a depth camera, and ROS&nbsp;2 tying all of it together. Here's what each layer does and how to get it moving.</p>
+
+      <figure>
+        <svg viewBox="0 0 600 500" role="img" aria-label="Top-down schematic of a TurtleBot 4 showing the OAK-D camera mounted forward on a mast, the RPLIDAR puck below it with its 360-degree scan radius, the Raspberry Pi compute inside the enclosure, and the Create 3 base with its wheels and bump sensor arc.">
+          <defs>
+            <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+              <path d="M24 0 L0 0 0 24" fill="none" stroke="currentColor" stroke-width="0.5" opacity="0.25"/>
+            </pattern>
+            <marker id="lead" markerWidth="6" markerHeight="6" refX="3" refY="3">
+              <circle cx="3" cy="3" r="2.4" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <rect x="0" y="0" width="600" height="500" fill="url(#grid)"/>
+
+          <!-- base -->
+          <circle cx="300" cy="320" r="150" fill="none" stroke="currentColor" stroke-width="2"/>
+          <!-- bump arc -->
+          <path d="M158,258 A150,150 0 0 1 300,170 A150,150 0 0 1 442,258" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="2 6" stroke-linecap="round"/>
+          <!-- wheels -->
+          <rect x="132" y="298" width="26" height="70" rx="6" fill="currentColor" opacity="0.14" stroke="currentColor"/>
+          <rect x="442" y="298" width="26" height="70" rx="6" fill="currentColor" opacity="0.14" stroke="currentColor"/>
+
+          <!-- mast -->
+          <line x1="300" y1="252" x2="300" y2="150" stroke="currentColor" stroke-width="2"/>
+          <!-- camera -->
+          <rect x="258" y="112" width="84" height="38" rx="6" fill="none" stroke="currentColor" stroke-width="2"/>
+          <circle cx="280" cy="131" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+          <circle cx="320" cy="131" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+
+          <!-- lidar -->
+          <circle cx="300" cy="230" r="70" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="1 5" opacity="0.6"/>
+          <circle cx="300" cy="230" r="22" fill="var(--panel)" stroke="currentColor" stroke-width="2"/>
+          <circle cx="300" cy="230" r="4" fill="currentColor"/>
+
+          <!-- leaders -->
+          <line x1="342" y1="131" x2="450" y2="112" stroke="currentColor" stroke-width="1" marker-start="url(#lead)"/>
+          <line x1="322" y1="230" x2="450" y2="240" stroke="currentColor" stroke-width="1" marker-start="url(#lead)"/>
+          <line x1="255" y1="205" x2="150" y2="150" stroke="currentColor" stroke-width="1" marker-start="url(#lead)"/>
+          <line x1="200" y1="392" x2="120" y2="420" stroke="currentColor" stroke-width="1" marker-start="url(#lead)"/>
+
+          <!-- labels -->
+          <text x="452" y="103" font-family="IBM Plex Sans Condensed" font-size="14" font-weight="600" fill="currentColor">OAK-D CAMERA</text>
+          <text x="452" y="120" font-family="IBM Plex Serif" font-size="12" fill="var(--text-dim)">stereo depth · onboard AI</text>
+
+          <text x="452" y="231" font-family="IBM Plex Sans Condensed" font-size="14" font-weight="600" fill="currentColor">RPLIDAR A1</text>
+          <text x="452" y="248" font-family="IBM Plex Serif" font-size="12" fill="var(--text-dim)">360° scan · ~12 m range</text>
+
+          <text x="30" y="140" font-family="IBM Plex Sans Condensed" font-size="14" font-weight="600" fill="currentColor">RASPBERRY PI 4</text>
+          <text x="30" y="157" font-family="IBM Plex Serif" font-size="12" fill="var(--text-dim)">ROS 2 compute · Ubuntu</text>
+
+          <text x="20" y="440" font-family="IBM Plex Sans Condensed" font-size="14" font-weight="600" fill="currentColor">CREATE 3 BASE</text>
+          <text x="20" y="457" font-family="IBM Plex Serif" font-size="12" fill="var(--text-dim)">drive · IMU · cliff &amp; bump · auto-dock</text>
+        </svg>
+        <figcaption>Top-down view: a camera mast and spinning lidar sit on top of an iRobot Create&nbsp;3 base, all driven by a Raspberry Pi 4 running ROS&nbsp;2.</figcaption>
+      </figure>
+    </header>
+
+    <section id="what-it-is">
+      <div class="section-head"><span class="section-tag">01</span><h2>What it actually is</h2></div>
+      <p>TurtleBot 4 isn't built by one company. Open Robotics designed the reference platform; Clearpath Robotics manufactures and sells it; the wheeled base underneath is an actual <b>iRobot Create&nbsp;3</b> — the same drivetrain family as a Roomba, repurposed as a programmable robot. <b>ROS&nbsp;2</b> (Robot Operating System 2) is the software layer that makes every part talk to every other part, and to your code.</p>
+      <p>It ships in two builds. Check which one your lab has before you go looking for hardware that isn't there:</p>
+
+      <table class="compare">
+        <thead><tr><th></th><th>Standard</th><th>Lite</th></tr></thead>
+        <tbody>
+          <tr><th>Camera</th><td>OAK-D Pro — longer range, more onboard AI</td><td>OAK-D Lite — shorter range, lighter compute</td></tr>
+          <tr><th>Enclosure</th><td>Full stacked shell with light strip</td><td>Open frame, easier to bolt things onto</td></tr>
+          <tr><th>Typical use</th><td>Standard course kit, closer to "out of the box"</td><td>Cheaper fleets, projects that add custom hardware</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="why">
+      <div class="section-head"><span class="section-tag">02</span><h2>Why this platform, specifically</h2></div>
+      <p>Whatever the assignment is — mapping, navigation, obstacle avoidance, a custom node — the reason it runs on real TurtleBot hardware instead of simulation alone comes down to four things:</p>
+      <ul class="reasons">
+        <li><b>ROS 2 is what the industry actually runs.</b> This isn't a classroom dialect — code you write here looks like code written at an actual robotics company.</li>
+        <li><b>Sim-to-real is a real workflow.</b> Gazebo simulates the same robot model and the same topic names, so you can develop and debug an algorithm for free, then point it at the physical robot with little to no code change.</li>
+        <li><b>Real sensors are noisy on purpose.</b> A simulated lidar scan is clean; a real RPLIDAR gives you dropouts, reflective surfaces, and drift. That mess is the actual lesson — it's what separates an algorithm that works on paper from one that works.</li>
+        <li><b>It's built to survive students.</b> Bump sensors, cliff sensors, and a top speed under 1&nbsp;m/s mean a bad line of code produces a stall against a wall, not a broken robot.</li>
+      </ul>
+    </section>
+
+    <section id="hardware">
+      <div class="section-head"><span class="section-tag">03</span><h2>Hardware</h2></div>
+      <p>Four subsystems, stacked on top of each other. Each one publishes or consumes ROS&nbsp;2 topics — that thread is what ties the rest of this guide together.</p>
+      <div class="panel">
+        <table class="spec">
+          <tr><th>Mobile base</th><td>iRobot Create 3 — differential drive, wheel encoders, bump / cliff / IR sensors, auto-dock charging, RGB light ring, speaker.</td></tr>
+          <tr><th>Compute</th><td>Raspberry Pi 4B, running Ubuntu and ROS&nbsp;2. Confirm the exact distro your lab image uses — most kits shipped on Humble, some labs have since moved to a newer LTS release.</td></tr>
+          <tr><th>Lidar</th><td>Slamtec RPLIDAR A1 — continuously spinning, 360° coverage, roughly 12&nbsp;m range. This is what SLAM and obstacle avoidance read from.</td></tr>
+          <tr><th>Camera</th><td>OAK-D Pro / OAK-D Lite (Luxonis) — stereo depth plus RGB, with an onboard VPU that can run AI inference without taxing the Pi.</td></tr>
+          <tr><th>IMU</th><td>Built into the Create 3 base — feeds orientation into odometry, no separate module to wire up.</td></tr>
+          <tr><th>Runtime</th><td>Roughly a couple of hours of active driving per charge, then it can return to its dock on its own.</td></tr>
+          <tr><th>Connectivity</th><td>Wi-Fi only. Most coursework runs your code on a separate networked "remote PC," though you can also SSH straight onto the robot's Pi.</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <section id="software">
+      <div class="section-head"><span class="section-tag">04</span><h2>The ROS 2 stack</h2></div>
+      <p>Every piece of hardware above talks to the rest of the system by publishing or subscribing to a named topic. This publish/subscribe graph <em>is</em> ROS&nbsp;2 — the TurtleBot is just a robot to learn it on.</p>
+
+      <figure>
+        <svg viewBox="0 0 760 380" role="img" aria-label="Diagram showing the RPLIDAR, OAK-D camera, and Create 3 base each publishing sensor topics onto the ROS 2 graph, which RViz2 and SLAM Toolbox read from, and which Nav2 or a custom node reads from and writes velocity commands back to the base, closing the control loop.">
+          <defs>
+            <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <polygon points="0,0 8,4 0,8" fill="currentColor"/>
+            </marker>
+            <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <polygon points="0,0 8,4 0,8" fill="var(--accent-strong)"/>
+            </marker>
+          </defs>
+
+          <!-- bus -->
+          <line x1="380" y1="50" x2="380" y2="310" stroke="currentColor" stroke-width="2"/>
+          <text x="380" y="34" text-anchor="middle" font-family="IBM Plex Sans Condensed" font-size="13" font-weight="600" fill="currentColor">ROS 2 GRAPH</text>
+
+          <!-- left publisher boxes -->
+          <g font-family="IBM Plex Sans Condensed" font-size="13" font-weight="600" fill="currentColor">
+            <rect x="30" y="60" width="160" height="40" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="110" y="85" text-anchor="middle">RPLIDAR A1</text>
+
+            <rect x="30" y="150" width="160" height="40" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="110" y="175" text-anchor="middle">OAK-D CAMERA</text>
+
+            <rect x="30" y="240" width="160" height="40" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="110" y="265" text-anchor="middle">CREATE 3 BASE</text>
+          </g>
+
+          <line x1="190" y1="80" x2="374" y2="80" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <text x="282" y="72" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--text-dim)">/scan</text>
+
+          <line x1="190" y1="170" x2="374" y2="170" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <text x="282" y="162" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--text-dim)">/oakd/*</text>
+
+          <line x1="190" y1="260" x2="374" y2="260" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <text x="282" y="252" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--text-dim)">/odom · /imu</text>
+
+          <!-- right subscriber boxes -->
+          <g font-family="IBM Plex Sans Condensed" font-size="13" font-weight="600" fill="currentColor">
+            <rect x="570" y="60" width="160" height="40" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="650" y="85" text-anchor="middle">RVIZ2</text>
+
+            <rect x="570" y="150" width="160" height="40" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="650" y="171" text-anchor="middle" font-size="12">SLAM TOOLBOX</text>
+
+            <rect x="570" y="240" width="160" height="40" rx="4" fill="var(--accent)" fill-opacity="0.12" stroke="var(--accent-strong)" stroke-width="1.8"/>
+            <text x="650" y="261" text-anchor="middle" font-size="12" fill="var(--accent-strong)">NAV2 / YOUR NODE</text>
+          </g>
+
+          <line x1="386" y1="80" x2="566" y2="80" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <line x1="386" y1="170" x2="566" y2="170" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <line x1="386" y1="260" x2="566" y2="260" stroke="var(--accent-strong)" stroke-width="1.8" marker-end="url(#arrowAccent)"/>
+
+          <!-- loop back -->
+          <path d="M650,280 L650,330 L110,330 L110,282" fill="none" stroke="var(--accent-strong)" stroke-width="1.8" marker-end="url(#arrowAccent)"/>
+          <text x="380" y="348" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--accent-strong)">/cmd_vel — closes the control loop</text>
+        </svg>
+        <figcaption>Sensors publish onto the ROS&nbsp;2 graph; visualization and mapping tools read from it; Nav2 or your own node reads it too and writes velocity commands back to the base — the loop that actually drives the robot.</figcaption>
+      </figure>
+
+      <h3>Packages you'll actually launch</h3>
+      <table class="pkg-table">
+        <tr><td>turtlebot4_viz</td><td>Pre-built RViz2 configuration for the robot's sensors.</td></tr>
+        <tr><td>turtlebot4_navigation</td><td>Launch files for SLAM mapping and for running Nav2 against a saved map.</td></tr>
+        <tr><td>nav2 (nav2_bringup)</td><td>The navigation stack itself — planners, controllers, costmaps, recovery behaviors.</td></tr>
+        <tr><td>slam_toolbox</td><td>Builds an occupancy-grid map from lidar scans as you drive.</td></tr>
+        <tr><td>irobot_create_msgs</td><td>Message and action types specific to the Create 3 base (dock, undock, bump events).</td></tr>
+      </table>
+    </section>
+
+    <section id="concepts">
+      <div class="section-head"><span class="section-tag">05</span><h2>Concepts glossary</h2></div>
+      <p>The vocabulary that shows up in every assignment, regardless of topic:</p>
+      <dl class="glossary">
+        <div><dt>Node</dt><dd>One running program. A lidar driver is a node; your obstacle-avoidance script is a node. A running robot is dozens of nodes at once.</dd></div>
+        <div><dt>Topic</dt><dd>A named, typed stream of messages any node can publish to or subscribe to, with no direct link between them. <code>/scan</code>, <code>/odom</code>, <code>/cmd_vel</code> are topics.</dd></div>
+        <div><dt>Service</dt><dd>A one-shot request/response call between exactly two nodes — "clear the costmap," for example.</dd></div>
+        <div><dt>Action</dt><dd>Like a service, but for something that takes time and reports progress. <code>navigate_to_pose</code> is an action, so you get feedback while the robot is still driving there, not just a final result.</dd></div>
+        <div><dt>TF (transform tree)</dt><dd>The chain of coordinate frames — <code>map → odom → base_link → laser_frame</code> — that lets ROS&nbsp;2 answer "where is this lidar point, in map coordinates?" Most navigation bugs trace back to a broken or missing transform.</dd></div>
+        <div><dt>Launch file</dt><dd>A script that starts a whole set of nodes with matching configuration at once, instead of running each by hand.</dd></div>
+        <div><dt>Package</dt><dd>The unit ROS&nbsp;2 code ships in: a folder with a manifest, some nodes, and usually a launch file.</dd></div>
+        <div><dt>ROS_DOMAIN_ID</dt><dd>An environment variable that has to match between your remote PC and the robot or they never see each other's topics — the single most common "why isn't anything showing up" bug.</dd></div>
+      </dl>
+    </section>
+
+    <section id="start">
+      <div class="section-head"><span class="section-tag">06</span><h2>Getting started</h2></div>
+      <p>The order actually matters here — each step is what you use to verify the previous one worked.</p>
+      <ol class="steps">
+        <li><h3>Match your remote PC to the robot</h3><p>Same ROS&nbsp;2 distro installed, same <code>ROS_DOMAIN_ID</code> exported in your shell. Nothing else works until this is true.</p></li>
+        <li><h3>Drive it by hand</h3><p><code>teleop_twist_keyboard</code> publishes to <code>/cmd_vel</code> from your keyboard. If the robot moves, your networking is correct — that's the whole point of this step.</p></li>
+        <li><h3>Look at what it senses</h3><p>Open RViz2 and add the <code>/scan</code>, <code>/odom</code>, and camera displays. This is how you'll debug everything downstream — trust the visualization over your assumptions about what the sensors "should" see.</p></li>
+        <li><h3>Build a map</h3><p>Drive the robot around the space with SLAM Toolbox running; it stitches consecutive lidar scans into an occupancy grid.</p></li>
+        <li><h3>Save the map</h3><p>Write it to disk once it's complete. Nav2 needs a finished map, not a live SLAM session, to plan routes.</p></li>
+        <li><h3>Let Nav2 drive</h3><p>Launch navigation against the saved map, set an estimated starting pose, then send a goal pose in RViz2 and watch it plan a path and avoid obstacles along the way.</p></li>
+        <li><h3>Write your own node</h3><p>Usually the actual assignment: a Python (<code>rclpy</code>) or C++ (<code>rclcpp</code>) node that subscribes to sensor topics, does something with the data, and publishes back to <code>/cmd_vel</code>.</p></li>
+      </ol>
+
+      <div class="note"><span><b>Before you start:</b> confirm your lab's ROS&nbsp;2 distro and whether you're expected to code on the robot's own Pi or on a separate remote PC — that answer changes almost every command below.</span></div>
+    </section>
+
+    <section id="assignments">
+      <div class="section-head"><span class="section-tag">07</span><h2>What the assignment probably is</h2></div>
+      <p>Coursework built on TurtleBot 4 tends to fall into one of these, whatever the specific brief says:</p>
+      <div class="cards">
+        <div class="card"><h3>Reactive control</h3><p>Read <code>/scan</code> directly, react with no map involved — wall following, obstacle avoidance, a bang-bang or PID controller on distance.</p></div>
+        <div class="card"><h3>Mapping</h3><p>Run SLAM Toolbox, evaluate the resulting map quality, tune scan-matching parameters.</p></div>
+        <div class="card"><h3>Autonomous navigation</h3><p>Work inside Nav2 — costmaps, planners, waypoint sequences, sometimes a custom recovery behavior.</p></div>
+        <div class="card"><h3>Perception</h3><p>Use the OAK-D's RGB or depth stream — object detection, color tracking, depth-based avoidance.</p></div>
+        <div class="card"><h3>Custom node development</h3><p>The "write ROS 2 code" assignment underlying most of the above: subscribe, compute, publish, on a timer or callback.</p></div>
+      </div>
+    </section>
+
+    <section id="commands">
+      <div class="section-head"><span class="section-tag">08</span><h2>Command reference</h2></div>
+      <div class="panel">
+        <table class="cmds">
+          <tr><td>ros2 topic list</td><td>See every live topic on the graph.</td></tr>
+          <tr><td>ros2 topic echo /scan</td><td>Print live lidar messages to the terminal.</td></tr>
+          <tr><td>ros2 topic hz /scan</td><td>Check how fast a topic is actually publishing.</td></tr>
+          <tr><td>ros2 node list</td><td>See every node currently running.</td></tr>
+          <tr><td>ros2 run teleop_twist_keyboard teleop_twist_keyboard</td><td>Drive the robot with your keyboard.</td></tr>
+          <tr><td>ros2 launch turtlebot4_viz view_robot.launch.py</td><td>Open RViz2 pre-configured for the robot's sensors.</td></tr>
+          <tr><td>ros2 launch turtlebot4_navigation slam.launch.py</td><td>Start SLAM mapping.</td></tr>
+          <tr><td>ros2 run nav2_map_server map_saver_cli -f my_map</td><td>Save the current map to disk.</td></tr>
+          <tr><td>ros2 launch turtlebot4_navigation nav2.launch.py</td><td>Start Nav2 against a saved map.</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <section id="resources">
+      <div class="section-head"><span class="section-tag">09</span><h2>Going deeper</h2></div>
+      <p>When something breaks and this guide doesn't cover it, these are the primary sources worth checking first:</p>
+      <ul class="resources">
+        <li><a href="https://turtlebot.github.io/turtlebot4-user-manual/" target="_blank" rel="noopener">turtlebot.github.io/turtlebot4-user-manual</a><span>The official TurtleBot 4 manual — setup, exact specs, tutorials.</span></li>
+        <li><a href="https://docs.ros.org/" target="_blank" rel="noopener">docs.ros.org</a><span>ROS 2 documentation — pick the distro your lab actually runs.</span></li>
+        <li><a href="https://docs.nav2.org/" target="_blank" rel="noopener">docs.nav2.org</a><span>Nav2 navigation stack reference — planners, costmaps, behavior trees.</span></li>
+      </ul>
+    </section>
+  </main>
+</div>
