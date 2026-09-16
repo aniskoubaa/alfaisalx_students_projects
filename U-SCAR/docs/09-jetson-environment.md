@@ -35,6 +35,34 @@ is blocked so pip cannot break apt-managed packages. The venv above is the fix.
 **Do not use `--break-system-packages`.** It works, and it is how people corrupt a JetPack
 install. Reflashing costs an afternoon.
 
+## What does not survive a reboot
+
+| Lost | Restore with |
+|---|---|
+| Venv activation | `source ~/raptor-venv/bin/activate` |
+| `jetson_clocks` | `sudo jetson_clocks` — never persists, by design |
+| Static IP for the camera | `sudo ip addr add 192.168.144.30/24 dev eth0`, or a netplan entry |
+
+`nvpmodel -m 0` **does** persist — the power mode is saved across reboots.
+
+Downloaded model weights (`.pt`, `.engine`) are ordinary files and persist. Nothing about
+the model needs re-installing; only the shell environment needs re-entering.
+
+Back-to-work sequence after a reboot:
+
+```bash
+source ~/raptor-venv/bin/activate
+sudo ip addr add 192.168.144.30/24 dev eth0
+sudo jetson_clocks                     # benchmarking runs only
+```
+
+To auto-activate the venv in every shell, append `source ~/raptor-venv/bin/activate` to
+`~/.bashrc`.
+
+**Autostart on boot** — launching perception automatically when the aircraft powers up — is
+a `systemd` unit, and it belongs in Phase 5–6. When we get there the thing to autostart is
+the ROS 2 launch file for the whole node graph, not YOLO on its own.
+
 ## Installing packages that depend on PyTorch
 
 Ultralytics lists `torch` as a dependency, so pip may quietly replace the CUDA build with a
