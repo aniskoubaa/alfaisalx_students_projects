@@ -239,7 +239,42 @@ labelling workflow all take longer than the code.
 
 ---
 
-## 8. Scope boundary
+## 8. Environment bring-up — started
+
+Work begun on the Jetson the same day, ahead of the camera arriving on power.
+
+**Resolved: `externally-managed-environment` (PEP 668).** JetPack 6 is Ubuntu 22.04, which
+blocks `pip install` into the system Python. Fixed with a virtualenv:
+
+```bash
+python3 -m venv --system-site-packages ~/raptor-venv
+source ~/raptor-venv/bin/activate
+```
+
+`--system-site-packages` is **mandatory**, not stylistic: JetPack's CUDA-enabled PyTorch,
+TensorRT and OpenCV live in the system site-packages and cannot be reinstalled from PyPI on
+aarch64, where the `torch` wheel is CPU-only. A sealed venv imports cleanly and silently
+never touches the GPU. `--break-system-packages` was rejected as a way to corrupt the install.
+
+**Standing check after any install that pulls torch** (Ultralytics does):
+
+```bash
+python -c "import torch; print(torch.cuda.is_available())"
+```
+
+Must print `True`. Ultralytics lists `torch` as a dependency and pip can quietly substitute a
+CPU wheel.
+
+**Reboot behaviour recorded.** Venv activation, `jetson_clocks` and the camera static IP are
+all lost on reboot; `nvpmodel` and model weights persist. Full table and the back-to-work
+sequence in [`docs/09-jetson-environment.md`](../U-SCAR/docs/09-jetson-environment.md).
+
+**Next measurement:** `yolo benchmark model=yolo11n-pose.pt imgsz=640` at MAXN with
+`tegrastats` sampling, giving the FP16 PyTorch baseline for experiment E1. Not yet run.
+
+---
+
+## 9. Scope boundary
 
 U-SCAR **perceives and reports**. It does not fly the aircraft, plan paths, or command the
 flight controller — the Jetson reads telemetry from MAVROS and never writes control commands.

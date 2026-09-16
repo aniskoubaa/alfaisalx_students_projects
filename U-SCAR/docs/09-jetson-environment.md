@@ -76,6 +76,56 @@ Expected: `True`. If installing something flipped it to `False`, pip swapped you
 reinstall NVIDIA's Jetson wheel before going further. A CPU-only torch will appear to work
 and run the detector at a few frames per second.
 
+## Verifying Ultralytics actually uses the GPU
+
+After `pip install ultralytics`, run these in order. Do not skip step 1.
+
+```bash
+python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+yolo checks                              # versions, CUDA status, selected device
+```
+
+`torch.cuda.is_available()` must print `True` and `yolo checks` must name the GPU, not
+`cpu`. If either fails, stop and reinstall NVIDIA's Jetson PyTorch wheel — a CPU-only torch
+runs the detector at a few frames per second while appearing to work correctly.
+
+Then a real inference and a baseline measurement:
+
+```bash
+yolo predict model=yolo11n-pose.pt source='https://ultralytics.com/images/bus.jpg'
+# output lands in runs/pose/predict/ — confirm boxes AND keypoints are drawn
+
+sudo nvpmodel -m 0
+sudo jetson_clocks
+yolo benchmark model=yolo11n-pose.pt imgsz=640
+```
+
+Use the **pose** weights, not plain detect — tier 2 needs the keypoints
+(see [02 — Detection & pose](./02-detection-and-pose.md)).
+
+Record the benchmark result. It is the FP16 PyTorch baseline that every later optimisation
+is measured against (experiment E1 in [06](./06-benchmark-plan.md)). Run `sudo tegrastats`
+in a second terminal throughout — power and thermals matter as much as FPS.
+
+Then export and compare:
+
+```bash
+yolo export model=yolo11n-pose.pt format=engine half=True
+```
+
+**Do not attempt INT8 yet.** It needs calibration images from our own aerial footage.
+Calibrating on COCO and deploying on drone imagery silently loses accuracy.
+
+### `yolo` is a command, not a service
+
+Every `yolo` invocation is one-shot: it loads weights, runs, and exits. Nothing persists in
+the background, and there is nothing to "start" after a reboot beyond activating the venv.
+The startup cost is paid on every call.
+
+This is why the production system is a **long-running ROS 2 node** that loads the model once
+and then processes frames continuously, rather than repeated CLI calls. See
+[04 — ROS 2 architecture](./04-ros2-architecture.md).
+
 ## Containers — the alternative worth considering
 
 NVIDIA's [`jetson-containers`](https://github.com/dusty-nv/jetson-containers) (dusty-nv)
