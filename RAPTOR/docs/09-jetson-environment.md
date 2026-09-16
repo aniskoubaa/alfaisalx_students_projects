@@ -170,7 +170,7 @@ ping 192.168.144.25
 
 `.30` is SIYI's own documented example for a host on this subnet. Avoid `.20`, which SIYI
 reserves for its handheld ground station. Full harness detail in
-[`uscar-wiring-map.html`](./uscar-wiring-map.html).
+[`raptor-wiring-map.html`](./raptor-wiring-map.html).
 
 Note this `ip addr add` does not survive a reboot. Make it permanent with a netplan entry
 once the bring-up is stable.

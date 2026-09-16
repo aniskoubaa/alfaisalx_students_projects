@@ -27,7 +27,7 @@ person, which person is it, and what posture are they in.*
 - Very large body of published work on aerial/VisDrone fine-tuning to copy from.
 
 **Licensing caveat, read this:** Ultralytics YOLO (v8/v10/v11) is **AGPL-3.0**. For an
-academic project published openly this is fine. If U-SCAR is ever commercialised or
+academic project published openly this is fine. If RAPTOR is ever commercialised or
 shipped to a third party without source, AGPL is contagious and we would need an
 Ultralytics commercial licence or a permissive alternative. Decide this **before** we
 build on it, not after. Permissive escape hatches: YOLOX (Apache-2.0), RT-DETR

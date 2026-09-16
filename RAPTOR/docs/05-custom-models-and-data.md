@@ -23,7 +23,7 @@ images, because the pretrained backbone already encodes generic visual features 
 textures, human shape priors — that we cannot learn from a small dataset.
 
 This is not a compromise or a shortcut. Transfer learning from a strong pretrained
-backbone is what a professional team would also do. The novelty in U-SCAR is not the
+backbone is what a professional team would also do. The novelty in RAPTOR is not the
 detector architecture; it is the **aerial SAR domain adaptation, the gravity-aware
 posture reasoning, and the triggered-VLM pipeline**. Spend the effort there.
 
@@ -86,7 +86,7 @@ Detailed in [02](./02-detection-and-pose.md). Recapping why it is the right cust
 - **It is explainable** — we can show the operator the keypoints and the torso angle that
   produced the decision. That matters enormously for a system a rescuer must trust.
 
-This is the piece of U-SCAR that is genuinely novel and publishable.
+This is the piece of RAPTOR that is genuinely novel and publishable.
 
 ## Activity recognition: start simple, escalate only if needed
 

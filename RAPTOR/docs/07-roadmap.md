@@ -13,7 +13,7 @@ Get the board into a known-good state and the workflow in place.
 - [ ] Flash **JetPack 6.x**, confirm CUDA / cuDNN / TensorRT versions, record them.
 - [ ] Install **ROS 2 Humble**; `talker`/`listener` working.
 - [ ] Set up `jetson-containers`, confirm a CUDA container runs.
-- [ ] Bring up the camera in ROS 2; `/uscar/image_raw` visible in rviz2 or Foxglove.
+- [ ] Bring up the camera in ROS 2; `/raptor/image_raw` visible in rviz2 or Foxglove.
 - [ ] Bring up `mavros`; GPS, attitude and altitude arriving as ROS topics.
 - [ ] Verify Jetson clock is synced with flight-controller time.
 - [ ] Record a first rosbag and replay it.
@@ -125,4 +125,4 @@ detector holds >= 25 FPS, and we can state our hallucination rate as a number.
 | Detector and VLM contend for GPU | E7 is scheduled specifically to find this early; DLA offload is the planned mitigation. |
 | Thermal throttling in the airframe | Measure in Phase 1, not after integration. May force a lower `nvpmodel` mode or a duty-cycled VLM. |
 | Prone people missed from altitude | The reason Phase 2 fine-tuning data is non-negotiable; E3 gives the operational altitude limit. |
-| Scope creep into autonomy / path planning | Out of scope. U-SCAR perceives and reports; the flight controller flies. Say no. |
+| Scope creep into autonomy / path planning | Out of scope. RAPTOR perceives and reports; the flight controller flies. Say no. |

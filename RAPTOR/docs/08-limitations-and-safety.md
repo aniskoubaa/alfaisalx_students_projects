@@ -1,14 +1,14 @@
 # 08 — Limitations, Safety and Responsible Use
 
-This document exists because U-SCAR points a camera and an AI model at injured people.
+This document exists because RAPTOR points a camera and an AI model at injured people.
 Getting this section right is part of the engineering, not paperwork around it.
 
-## What U-SCAR is
+## What RAPTOR is
 
 A **search aid**. It helps a human operator find people faster and prioritise where to
 look, over an area too large to search by eye.
 
-## What U-SCAR is not
+## What RAPTOR is not
 
 - **Not a medical device and not a triage system.** It does not diagnose, does not assess
   severity, and must never be described as doing so — not in the UI, not in a paper, not
@@ -81,7 +81,7 @@ intent.
 
 ## Scope boundary
 
-U-SCAR **perceives and reports**. It does not fly the aircraft, plan paths, or command the
+RAPTOR **perceives and reports**. It does not fly the aircraft, plan paths, or command the
 flight controller. The Jetson reads telemetry from MAVROS; it does not write control
 commands to it. Keeping this boundary means a perception bug can never become a flight
 safety incident, and it should be enforced in code (read-only MAVROS usage), not just by

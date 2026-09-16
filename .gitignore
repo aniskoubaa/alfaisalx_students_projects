@@ -23,5 +23,5 @@ env/
 *.mov
 
 # Benchmark artifacts that shouldn't be versioned by default
-U-SCAR/jetson_orin_nano_benchmarks/models/
-U-SCAR/jetson_orin_nano_benchmarks/videos/
+RAPTOR/jetson_orin_nano_benchmarks/models/
+RAPTOR/jetson_orin_nano_benchmarks/videos/

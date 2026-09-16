@@ -29,24 +29,24 @@ Isaac ROS target it.
 
 ```
  ┌────────────────┐   sensor_msgs/Image        ┌─────────────────────┐
- │ camera_node    │───/uscar/image_raw────────>│ detector_node       │
+ │ camera_node    │───/raptor/image_raw────────>│ detector_node       │
  │ (argus/v4l2/   │                            │  YOLO11-pose (TRT)  │
  │  gscam/rtsp)   │                            │  ByteTrack          │
  └────────────────┘                            │  posture classifier │
                                                └──────┬──────────────┘
                                                       │
-              /uscar/tracks  (uscar_msgs/TrackArray)  │
+              /raptor/tracks  (raptor_msgs/TrackArray)  │
                      ┌────────────────────────────────┤
-                     │                                │ /uscar/vlm_request
+                     │                                │ /raptor/vlm_request
                      ▼                                ▼   (crop + context)
  ┌────────────────────────────┐            ┌─────────────────────────┐
  │ triage_aggregator_node     │            │ vlm_node                │
  │  - fuse tracks + VLM       │<───────────│  Qwen2.5-VL-3B INT4     │
- │  - geolocate               │ /uscar/    │  action server          │
+ │  - geolocate               │ /raptor/    │  action server          │
  │  - dedupe across passes    │ descriptions│  bounded job queue     │
  │  - rule-based triage_flag  │            └─────────────────────────┘
  └───────┬────────────────────┘
-         │ /uscar/victim_reports (uscar_msgs/VictimReport)
+         │ /raptor/victim_reports (raptor_msgs/VictimReport)
          │
          ├──> rosbag2 recorder        (evidence, replay, benchmarking)
          ├──> foxglove_bridge / rosbridge  ──> ground station UI
@@ -80,16 +80,16 @@ classifier. Subscribes to the drone attitude so keypoints can be rotated into a
 gravity-aligned frame before classification (see [02](./02-detection-and-pose.md)).
 
 Publishes:
-- `/uscar/detections` — `vision_msgs/Detection2DArray` (standard, so rviz/Foxglove render it)
-- `/uscar/tracks` — `uscar_msgs/TrackArray` (our type: track id, posture, immobility timer, keypoints)
-- `/uscar/image_annotated` — optional, throttled to ~5 Hz, for the operator view only
+- `/raptor/detections` — `vision_msgs/Detection2DArray` (standard, so rviz/Foxglove render it)
+- `/raptor/tracks` — `raptor_msgs/TrackArray` (our type: track id, posture, immobility timer, keypoints)
+- `/raptor/image_annotated` — optional, throttled to ~5 Hz, for the operator view only
 
 Must hold its frame budget regardless of what any other node is doing.
 
 ### `vlm_node`
 An **action server**, not a topic subscriber — descriptions are long-running tasks that
 should be cancellable and report status. Owns the model, the bounded priority queue, and
-the JSON schema validation. Publishes `/uscar/descriptions`.
+the JSON schema validation. Publishes `/raptor/descriptions`.
 
 Runs the model on a separate CUDA stream. If it dies, `detector_node` keeps working and
 the system degrades to posture-only reporting, which is still operationally useful.
@@ -110,10 +110,10 @@ The part that turns perception into a product:
 Telemetry links are narrow. Send compact JSON victim reports and thumbnails, not video.
 Retry and queue when the link drops; the report must survive a link outage.
 
-## Custom messages (`uscar_msgs`)
+## Custom messages (`raptor_msgs`)
 
 ```
-# uscar_msgs/Track.msg
+# raptor_msgs/Track.msg
 uint32                      track_id
 vision_msgs/BoundingBox2D   bbox
 float32                     detection_confidence
@@ -126,7 +126,7 @@ builtin_interfaces/Time     first_seen
 ```
 
 ```
-# uscar_msgs/VictimReport.msg
+# raptor_msgs/VictimReport.msg
 std_msgs/Header             header
 uint32                      victim_id          # stable across passes, not the track id
 geographic_msgs/GeoPoint    position

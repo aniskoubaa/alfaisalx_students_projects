@@ -1,16 +1,16 @@
-# U-SCAR — Onboard Perception Design
+# RAPTOR — Onboard Perception Design
 
 **Progress report · 2026-09-16**
-Author: Majd Awad · Project: U-SCAR · Phase: design (no pipeline code yet)
+Author: Majd Awad · Project: RAPTOR · Phase: design (no pipeline code yet)
 
 ---
 
 ## 1. Summary
 
-This session took U-SCAR from a one-paragraph README to a complete, argued design for the
+This session took RAPTOR from a one-paragraph README to a complete, argued design for the
 onboard compute stack, and resolved the hardware unknowns that were blocking it.
 
-**What the system does.** U-SCAR is a search-and-rescue quadcopter. For every person it
+**What the system does.** RAPTOR is a search-and-rescue quadcopter. For every person it
 finds it produces a geolocated victim report carrying a snapshot, a posture, a free-text
 description, and a triage flag for a human operator to review.
 
@@ -68,7 +68,7 @@ Data:  A8 mini ──Ethernet──> Jetson        [RTSP video + gimbal UDP, one
        A8 mini UART ────────> TELEM2        [optional: attitude feed + photo EXIF geotag]
 ```
 
-Interactive version: [`U-SCAR/docs/uscar-wiring-map.html`](../U-SCAR/docs/uscar-wiring-map.html)
+Interactive version: [`RAPTOR/docs/raptor-wiring-map.html`](../RAPTOR/docs/raptor-wiring-map.html)
 
 ---
 
@@ -86,7 +86,7 @@ but the fallback if licensing forces it), NVIDIA PeopleNet (ground-level viewpoi
 any cloud API (violates the offline constraint).
 
 **Open licensing risk:** Ultralytics YOLO is AGPL-3.0. Acceptable for an open academic
-project, contagious if U-SCAR ships to a third party without source. This must be decided
+project, contagious if RAPTOR ships to a third party without source. This must be decided
 before code is built on it.
 
 ### 3.2 Posture — a small model we build ourselves
@@ -182,17 +182,17 @@ which may be below 1920 px.
 
 | File | Contents |
 |---|---|
-| `U-SCAR/docs/README.md` | Index and short version |
-| `U-SCAR/docs/01-system-overview.md` | Mission, hardware, constraints, data flow |
-| `U-SCAR/docs/02-detection-and-pose.md` | Detector and posture choices, rejected alternatives |
-| `U-SCAR/docs/03-scene-understanding-vlm.md` | VLM selection, prompting, output schema |
-| `U-SCAR/docs/04-ros2-architecture.md` | Node graph, topics, custom messages |
-| `U-SCAR/docs/05-custom-models-and-data.md` | Build vs. fine-tune vs. use; datasets; evaluation |
-| `U-SCAR/docs/06-benchmark-plan.md` | Experiments E1–E8, performance budget, method |
-| `U-SCAR/docs/07-roadmap.md` | Phases 0–6, milestones, risks |
-| `U-SCAR/docs/08-limitations-and-safety.md` | Failure modes, privacy, GACA, model card |
-| `U-SCAR/docs/uscar-explainer.html` | Animated explainer — live pipeline sim, interactive figures |
-| `U-SCAR/docs/uscar-wiring-map.html` | Interactive harness diagram and connector reference |
+| `RAPTOR/docs/README.md` | Index and short version |
+| `RAPTOR/docs/01-system-overview.md` | Mission, hardware, constraints, data flow |
+| `RAPTOR/docs/02-detection-and-pose.md` | Detector and posture choices, rejected alternatives |
+| `RAPTOR/docs/03-scene-understanding-vlm.md` | VLM selection, prompting, output schema |
+| `RAPTOR/docs/04-ros2-architecture.md` | Node graph, topics, custom messages |
+| `RAPTOR/docs/05-custom-models-and-data.md` | Build vs. fine-tune vs. use; datasets; evaluation |
+| `RAPTOR/docs/06-benchmark-plan.md` | Experiments E1–E8, performance budget, method |
+| `RAPTOR/docs/07-roadmap.md` | Phases 0–6, milestones, risks |
+| `RAPTOR/docs/08-limitations-and-safety.md` | Failure modes, privacy, GACA, model card |
+| `RAPTOR/docs/raptor-explainer.html` | Animated explainer — live pipeline sim, interactive figures |
+| `RAPTOR/docs/raptor-wiring-map.html` | Interactive harness diagram and connector reference |
 
 ---
 
@@ -231,7 +231,7 @@ Steps 5–8 need no camera and can start immediately.
 `python3 -m venv --system-site-packages ~/raptor-venv`. The flag is mandatory — JetPack's
 CUDA PyTorch, TensorRT and OpenCV live in the system site-packages and cannot be reinstalled
 from PyPI on aarch64, so a sealed venv silently loses GPU acceleration. Details in
-[`docs/09-jetson-environment.md`](../U-SCAR/docs/09-jetson-environment.md).
+[`docs/09-jetson-environment.md`](../RAPTOR/docs/09-jetson-environment.md).
 
 **Start data collection planning in parallel.** It is the long pole for Phases 3–5: the
 consent form, the flight plan across three altitudes and three lighting conditions, and the
@@ -267,7 +267,7 @@ CPU wheel.
 
 **Reboot behaviour recorded.** Venv activation, `jetson_clocks` and the camera static IP are
 all lost on reboot; `nvpmodel` and model weights persist. Full table and the back-to-work
-sequence in [`docs/09-jetson-environment.md`](../U-SCAR/docs/09-jetson-environment.md).
+sequence in [`docs/09-jetson-environment.md`](../RAPTOR/docs/09-jetson-environment.md).
 
 **Next measurement:** `yolo benchmark model=yolo11n-pose.pt imgsz=640` at MAXN with
 `tegrastats` sampling, giving the FP16 PyTorch baseline for experiment E1. Not yet run.
@@ -276,7 +276,7 @@ sequence in [`docs/09-jetson-environment.md`](../U-SCAR/docs/09-jetson-environme
 
 ## 9. Scope boundary
 
-U-SCAR **perceives and reports**. It does not fly the aircraft, plan paths, or command the
+RAPTOR **perceives and reports**. It does not fly the aircraft, plan paths, or command the
 flight controller — the Jetson reads telemetry from MAVROS and never writes control commands.
 Enforced in code, so a perception bug can never become a flight safety incident.
 

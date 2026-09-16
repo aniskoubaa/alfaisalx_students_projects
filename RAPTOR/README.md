@@ -1,4 +1,4 @@
-# U-SCAR
+# RAPTOR
 
 A search-and-rescue quadcopter that finds people from the air and reports **where they
 are, what posture they are in, and whether they show visible signs of injury** to a

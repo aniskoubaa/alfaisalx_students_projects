@@ -2,7 +2,7 @@
 
 ## Mission
 
-U-SCAR is a search-and-rescue-style UAV. It flies a search pattern over an area and,
+RAPTOR is a search-and-rescue-style UAV. It flies a search pattern over an area and,
 for every person it finds, produces a **victim report**:
 
 ```
@@ -35,7 +35,7 @@ own** — see [08 — Limitations & safety](./08-limitations-and-safety.md).
 | Link | Telemetry + video downlink to ground station |
 
 Full harness wiring, including the four ways to damage hardware, is in
-[`uscar-wiring-map.html`](./uscar-wiring-map.html).
+[`raptor-wiring-map.html`](./raptor-wiring-map.html).
 
 ### Why the Orin NX is the right board here
 

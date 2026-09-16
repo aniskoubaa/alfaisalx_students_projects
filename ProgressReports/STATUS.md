@@ -1,9 +1,9 @@
-# U-SCAR — Current Status
+# RAPTOR — Current Status
 
 **Last updated: 2026-09-16**
 Living document. Update it at the end of every session, before closing the laptop.
 For the full design argument see the
-[2026-09-16 progress report](./2026-09-16-uscar-jetson-perception-design.md).
+[2026-09-16 progress report](./2026-09-16-raptor-jetson-perception-design.md).
 
 ---
 
@@ -16,7 +16,7 @@ Jetson has started. No pipeline code written yet, and the camera has never been 
 
 ## Done
 
-- [x] Full design documented — `U-SCAR/docs/01`–`09`, plus two interactive HTML explainers
+- [x] Full design documented — `RAPTOR/docs/01`–`09`, plus two interactive HTML explainers
 - [x] Hardware identified and specified (see table below)
 - [x] A8 mini User Manual v1.10 read; voltages, RTSP paths and optics verified against it
 - [x] Jetson confirmed as the **16 GB** SKU, which settles the VLM choice
@@ -34,7 +34,7 @@ Jetson has started. No pipeline code written yet, and the camera has never been 
 
 - [ ] Flash / verify JetPack 6.x; record CUDA, TensorRT, cuDNN versions
 - [ ] Install ROS 2 Humble
-- [ ] Camera node publishing `/uscar/image_raw`
+- [ ] Camera node publishing `/raptor/image_raw`
 - [ ] MAVROS link to the Pixhawk 6C
 - [ ] First rosbag recorded and replayed — **this is the Phase 0 finish line**
 
@@ -104,7 +104,7 @@ That is the FP16 PyTorch baseline for experiment E1. **It has not been measured 
 | Camera power | 11–25.2 V (3S–6S), 5 W avg / 12 W peak | **Blocked — no supply yet** |
 | Jetson network | `192.168.144.30/24` on `eth0` | Not configured |
 
-Full harness: [`U-SCAR/docs/uscar-wiring-map.html`](../U-SCAR/docs/uscar-wiring-map.html)
+Full harness: [`RAPTOR/docs/raptor-wiring-map.html`](../RAPTOR/docs/raptor-wiring-map.html)
 
 ---
 
@@ -118,7 +118,6 @@ Full harness: [`U-SCAR/docs/uscar-wiring-map.html`](../U-SCAR/docs/uscar-wiring-
 | 4 | H.264 or H.265 on the stream? | GStreamer pipeline elements |
 | 5 | Is **AGPL-3.0** (Ultralytics) acceptable for this project? | Whether we build on YOLO11 at all |
 | 6 | Rename `jetson_orin_nano_benchmarks/`? | Flight computer is an NX |
-| 7 | What does "raptor" refer to (venv name)? | Nothing — just naming consistency |
 
 ---
 

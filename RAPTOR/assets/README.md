@@ -1,6 +1,6 @@
 # Assets
 
-Photos, diagrams, and logos for the U-SCAR project — drop image files in here and reference them from any README with standard markdown:
+Photos, diagrams, and logos for the RAPTOR project — drop image files in here and reference them from any README with standard markdown:
 
 ```markdown
 ![description](../assets/your-image.png)

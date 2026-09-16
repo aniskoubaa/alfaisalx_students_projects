@@ -1,6 +1,6 @@
-# U-SCAR — Jetson Orin NX Software Documentation
+# RAPTOR — Jetson Orin NX Software Documentation
 
-Design documents for the onboard compute side of U-SCAR: a quadcopter that searches
+Design documents for the onboard compute side of RAPTOR: a quadcopter that searches
 for people, works out **where they are, what posture they are in, and whether they
 show signs of injury**, and reports that to a ground operator.
 
