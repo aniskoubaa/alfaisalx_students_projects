@@ -1,0 +1,1752 @@
+<title>U-SCAR Perception Stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --ground:      #EBEEEF;
+    --surface:     #FFFFFF;
+    --surface-alt: #F4F6F7;
+    --ink:         #0F171B;
+    --ink-mid:     #46555D;
+    --ink-soft:    #6E7D85;
+    --rule:        #CBD4D8;
+    --rule-soft:   #E1E7E9;
+    --accent:      #0E7C86;
+    --accent-ink:  #0A5F67;
+    --accent-wash: #E0F0F1;
+    --ok:          #24704A;
+    --ok-wash:     #DDEEE4;
+    --warn:        #9A6206;
+    --warn-wash:   #F6EBD6;
+    --urgent:      #B03227;
+    --urgent-wash: #F7E2DF;
+    --shadow:      0 1px 2px rgba(15,23,27,.06), 0 8px 24px -16px rgba(15,23,27,.28);
+
+    --f-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    --f-body:    'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --f-mono:    'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+    --measure: 66ch;
+    --pad: clamp(16px, 4vw, 40px);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0C1317;
+      --surface:     #131D22;
+      --surface-alt: #18242A;
+      --ink:         #E4ECEF;
+      --ink-mid:     #A9B9C1;
+      --ink-soft:    #7E8F98;
+      --rule:        #273740;
+      --rule-soft:   #1D2A31;
+      --accent:      #3DD6E3;
+      --accent-ink:  #7FE7F0;
+      --accent-wash: #10333A;
+      --ok:          #5BC48B;
+      --ok-wash:     #12301F;
+      --warn:        #E0A63C;
+      --warn-wash:   #33260D;
+      --urgent:      #F0796C;
+      --urgent-wash: #3A1714;
+      --shadow:      0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #0C1317;
+    --surface:     #131D22;
+    --surface-alt: #18242A;
+    --ink:         #E4ECEF;
+    --ink-mid:     #A9B9C1;
+    --ink-soft:    #7E8F98;
+    --rule:        #273740;
+    --rule-soft:   #1D2A31;
+    --accent:      #3DD6E3;
+    --accent-ink:  #7FE7F0;
+    --accent-wash: #10333A;
+    --ok:          #5BC48B;
+    --ok-wash:     #12301F;
+    --warn:        #E0A63C;
+    --warn-wash:   #33260D;
+    --urgent:      #F0796C;
+    --urgent-wash: #3A1714;
+    --shadow:      0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.9);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding-inline: var(--pad);
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 20;
+    background: color-mix(in srgb, var(--ground) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .masthead-in {
+    display: flex; align-items: center; gap: 16px;
+    padding-block: 10px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    font-family: var(--f-display);
+    font-weight: 800;
+    font-size: 17px;
+    letter-spacing: -.02em;
+    margin-right: auto;
+  }
+  .brand span { color: var(--accent); }
+  .navlinks { display: flex; gap: 14px; flex-wrap: wrap; }
+  .navlinks a {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding-block: 2px;
+    border-bottom: 1px solid transparent;
+  }
+  .navlinks a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero { padding-block: clamp(36px, 7vw, 76px) 8px; }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 18px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::after {
+    content: ""; flex: 1; height: 1px; background: var(--rule);
+    max-width: 220px;
+  }
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 800;
+    font-size: clamp(34px, 6.6vw, 62px);
+    line-height: 1.02;
+    letter-spacing: -.035em;
+    margin: 0 0 20px;
+    text-wrap: balance;
+    max-width: 16ch;
+  }
+  .standfirst {
+    font-size: clamp(17px, 2.2vw, 20px);
+    line-height: 1.55;
+    color: var(--ink-mid);
+    max-width: 58ch;
+    margin: 0 0 28px;
+  }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+
+  .specstrip {
+    display: flex; flex-wrap: wrap; gap: 0;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .spec {
+    padding: 12px 18px;
+    border-right: 1px solid var(--rule-soft);
+    flex: 1 1 140px;
+  }
+  .spec:last-child { border-right: 0; }
+  .spec dt {
+    font-family: var(--f-mono);
+    font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-soft); margin: 0 0 3px;
+  }
+  .spec dd {
+    margin: 0; font-family: var(--f-mono); font-size: 14px;
+    font-weight: 500; color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- sections ---------- */
+  section { padding-block: clamp(40px, 7vw, 72px); }
+  section + section { border-top: 1px solid var(--rule); }
+
+  .sechead { margin-bottom: 26px; }
+  h2 {
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: clamp(25px, 3.6vw, 36px);
+    letter-spacing: -.025em;
+    line-height: 1.12;
+    margin: 0 0 10px;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: -.012em;
+    margin: 32px 0 8px;
+  }
+  p { margin: 0 0 15px; max-width: var(--measure); }
+  .lede { font-size: 17.5px; color: var(--ink-mid); max-width: 60ch; }
+  a { color: var(--accent-ink); }
+  code {
+    font-family: var(--f-mono);
+    font-size: .89em;
+    background: var(--surface-alt);
+    border: 1px solid var(--rule-soft);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+  strong { font-weight: 600; }
+
+  /* ---------- pipeline sim ---------- */
+  .sim {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .sim-bar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 9px 14px;
+    background: var(--surface-alt);
+    border-bottom: 1px solid var(--rule);
+    flex-wrap: wrap;
+  }
+  .sim-title {
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-soft); margin-right: auto;
+  }
+  .btn {
+    font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .06em;
+    text-transform: uppercase;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 3px;
+    padding: 5px 12px; cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .readout { display: flex; gap: 16px; flex-wrap: wrap; }
+  .ro { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .ro b { color: var(--ink); font-weight: 600; }
+
+  .pipeline {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 20px var(--pad) 24px;
+  }
+  @media (min-width: 860px) {
+    .pipeline { grid-template-columns: 1fr 52px 1.15fr 52px 1fr; align-items: stretch; }
+  }
+
+  .stage {
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--surface);
+    padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 8px;
+    transition: border-color .25s, background .25s;
+    min-width: 0;
+  }
+  .stage.hot { border-color: var(--accent); background: var(--accent-wash); }
+  .stage-tag {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--accent); font-weight: 600;
+  }
+  .stage-name {
+    font-family: var(--f-display); font-weight: 700; font-size: 15.5px;
+    letter-spacing: -.01em; line-height: 1.25;
+  }
+  .stage-note { font-size: 13px; color: var(--ink-mid); line-height: 1.45; }
+  .stage-rate {
+    font-family: var(--f-mono); font-size: 11px; color: var(--ink-soft);
+    border-top: 1px dashed var(--rule); padding-top: 7px; margin-top: auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* connectors */
+  .conn { position: relative; display: flex; align-items: center; justify-content: center; }
+  .conn-line {
+    background-image: repeating-linear-gradient(90deg,
+      var(--accent) 0 3px, transparent 3px 11px);
+    background-size: 11px 100%;
+  }
+  .conn-h { display: none; }
+  @media (min-width: 860px) {
+    .conn-h { display: block; width: 100%; height: 2px; }
+    .conn-v { display: none; }
+  }
+  .conn-v { width: 2px; height: 26px; margin: 4px auto; }
+  .flowing { animation: flow .55s linear infinite; }
+  @keyframes flow { to { background-position: 11px 0; } }
+  .conn-gate .conn-line { background-image: repeating-linear-gradient(90deg,
+      var(--ink-soft) 0 3px, transparent 3px 11px); opacity: .45; }
+  .conn-gate.open .conn-line { background-image: repeating-linear-gradient(90deg,
+      var(--warn) 0 3px, transparent 3px 11px); opacity: 1; }
+  .gate-label {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-soft);
+    background: var(--surface); padding: 2px 5px; white-space: nowrap;
+  }
+  @media (max-width: 859px) { .gate-label { transform: translate(-50%,-50%); } }
+
+  /* track + description panels */
+  .panelrow {
+    display: grid; grid-template-columns: 1fr; gap: 14px;
+    padding: 0 var(--pad) 22px;
+  }
+  @media (min-width: 760px) { .panelrow { grid-template-columns: 1fr 1.25fr; } }
+
+  .panel {
+    border: 1px solid var(--rule); border-radius: 4px;
+    background: var(--surface-alt); padding: 14px 16px;
+    min-height: 168px;
+  }
+  .panel-h {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-soft);
+    margin: 0 0 10px; display: flex; justify-content: space-between; gap: 8px;
+  }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-family: var(--f-mono); font-size: 12.5px; }
+  .kv dt { color: var(--ink-soft); }
+  .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+  .pill {
+    display: inline-block; font-family: var(--f-mono); font-size: 10.5px;
+    letter-spacing: .07em; text-transform: uppercase; font-weight: 600;
+    padding: 2px 8px; border-radius: 2px; border: 1px solid;
+  }
+  .pill.ok     { color: var(--ok);     background: var(--ok-wash);     border-color: var(--ok); }
+  .pill.warn   { color: var(--warn);   background: var(--warn-wash);   border-color: var(--warn); }
+  .pill.urgent { color: var(--urgent); background: var(--urgent-wash); border-color: var(--urgent); }
+  .pill.idle   { color: var(--ink-soft); background: transparent; border-color: var(--rule); }
+
+  .vlmtext {
+    font-size: 14px; line-height: 1.6; color: var(--ink);
+    min-height: 4.8em;
+  }
+  .vlmtext .cursor {
+    display: inline-block; width: 7px; height: 15px;
+    background: var(--accent); vertical-align: -2px;
+    animation: blink 1s steps(2) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .vlm-idle { color: var(--ink-soft); font-style: italic; }
+
+  .bar-track {
+    height: 5px; background: var(--rule-soft); border-radius: 3px; overflow: hidden;
+    margin-top: 10px;
+  }
+  .bar-fill { height: 100%; width: 0%; background: var(--accent); transition: width .12s linear; }
+
+  /* ---------- figures ---------- */
+  figure { margin: 26px 0; }
+  figcaption {
+    font-size: 13.5px; color: var(--ink-soft); line-height: 1.5;
+    margin-top: 10px; max-width: 62ch;
+  }
+  figcaption b { color: var(--ink-mid); font-weight: 600; }
+  .figbox {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 4px; padding: 18px; box-shadow: var(--shadow);
+  }
+  svg { max-width: 100%; height: auto; display: block; }
+
+  .ctrl {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rule-soft);
+  }
+  .ctrl label {
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--ink-soft);
+  }
+  input[type="range"] {
+    flex: 1 1 180px; min-width: 140px; accent-color: var(--accent); height: 22px;
+  }
+  input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .ctrl output {
+    font-family: var(--f-mono); font-size: 13.5px; font-weight: 600;
+    font-variant-numeric: tabular-nums; color: var(--ink); min-width: 6ch;
+  }
+
+  .verdictrow { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 14px; }
+  @media (min-width: 620px) { .verdictrow { grid-template-columns: 1fr 1fr; } }
+  .verdict {
+    border: 1px solid var(--rule); border-radius: 4px; padding: 11px 14px;
+    background: var(--surface-alt);
+  }
+  .verdict-h {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--ink-soft); margin-bottom: 5px;
+  }
+  .verdict-v {
+    font-family: var(--f-display); font-weight: 700; font-size: 21px;
+    letter-spacing: -.01em;
+  }
+  .verdict-v small {
+    display: block; font-family: var(--f-mono); font-weight: 400;
+    font-size: 11.5px; letter-spacing: 0; color: var(--ink-soft); margin-top: 3px;
+  }
+  .verdict.bad  { border-color: var(--urgent); background: var(--urgent-wash); }
+  .verdict.bad  .verdict-v { color: var(--urgent); }
+  .verdict.good { border-color: var(--ok); background: var(--ok-wash); }
+  .verdict.good .verdict-v { color: var(--ok); }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; margin: 20px 0; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  thead th {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-soft); font-weight: 500;
+    background: var(--surface-alt); border-bottom: 1px solid var(--rule);
+    position: sticky; top: 0;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.pick { font-weight: 600; color: var(--accent-ink); }
+  .why { color: var(--ink-mid); }
+
+  /* ---------- tier rail ---------- */
+  .tier { display: grid; grid-template-columns: 1fr; gap: 0; }
+  @media (min-width: 840px) { .tier { grid-template-columns: 82px 1fr; gap: 28px; } }
+  .tier-mark {
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--accent); font-weight: 600;
+    padding-top: 8px;
+  }
+  .tier-mark b {
+    display: block; font-family: var(--f-display); font-size: 40px;
+    font-weight: 800; letter-spacing: -.04em; color: var(--ink);
+    line-height: .9; margin-bottom: 4px;
+  }
+  @media (max-width: 839px) { .tier-mark { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; } .tier-mark b { font-size: 30px; margin: 0; } }
+
+  /* ---------- callout ---------- */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 16px 20px;
+    margin: 24px 0;
+    border-radius: 0 4px 4px 0;
+    border-top: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout-h {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .11em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 7px;
+  }
+  .callout.caution { border-left-color: var(--urgent); }
+  .callout.caution .callout-h { color: var(--urgent); }
+
+  /* ---------- roadmap ---------- */
+  .phases { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; margin-top: 18px; }
+  .phase { background: var(--surface); padding: 14px 18px; display: grid; grid-template-columns: 1fr; gap: 4px; }
+  @media (min-width: 720px) { .phase { grid-template-columns: 116px 1fr 118px; align-items: baseline; gap: 18px; } }
+  .phase-id { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .phase-b { font-family: var(--f-display); font-weight: 600; font-size: 16px; letter-spacing: -.01em; }
+  .phase-d { font-size: 13.5px; color: var(--ink-mid); margin-top: 2px; }
+  .phase-t { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-soft); }
+
+  /* ---------- not-list ---------- */
+  .notlist { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; }
+  .notlist li {
+    display: grid; grid-template-columns: 22px 1fr; gap: 12px;
+    font-size: 15px; line-height: 1.5; align-items: start;
+  }
+  .notlist .x {
+    font-family: var(--f-mono); color: var(--urgent); font-weight: 600;
+    font-size: 15px; line-height: 1.5;
+  }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-block: 30px 46px;
+    font-size: 13.5px; color: var(--ink-soft);
+  }
+  footer p { max-width: var(--measure); }
+
+  /* ---------- hero scene ---------- */
+  .scene {
+    margin-top: 26px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    padding: 14px 14px 10px;
+  }
+  .scene-cap {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-soft);
+    display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .drone-rig { animation: sweep 11s linear infinite; }
+  @keyframes sweep {
+    0%   { transform: translateX(-90px); }
+    100% { transform: translateX(660px); }
+  }
+  .lock { animation: lockon 11s linear infinite; }
+  @keyframes lockon {
+    0%, 52%   { opacity: 0; }
+    54%, 72%  { opacity: 1; }
+    74%, 100% { opacity: 0; }
+  }
+  .scanline { animation: scan 1.7s ease-in-out infinite alternate; }
+  @keyframes scan { from { opacity: .15; } to { opacity: .6; } }
+  .rotor { animation: spin 1.1s linear infinite; transform-origin: center; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- ros graph pulses ---------- */
+  .pulse-a  { animation: runA 1.5s linear infinite; }
+  .pulse-a2 { animation: runA 1.5s linear infinite .75s; }
+  .pulse-c  { animation: runC 1.5s linear infinite .3s; }
+  .pulse-c2 { animation: runC 1.5s linear infinite 1.05s; }
+  .pulse-b  { animation: runB 7s linear infinite; }
+  @keyframes runA { 0% { transform: translateX(0); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateX(104px); opacity: 0; } }
+  @keyframes runC { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(90px); opacity: 0; } }
+  @keyframes runB { 0% { transform: translateX(0); opacity: 0; } 3% { opacity: 1; } 16% { opacity: 1; } 19%, 100% { transform: translateX(90px); opacity: 0; } }
+
+  /* ---------- photo slots ---------- */
+  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 20px; }
+  .shot {
+    border: 1px dashed var(--rule);
+    border-radius: 4px;
+    background: var(--surface-alt);
+    padding: 14px 15px;
+    display: flex; flex-direction: column; gap: 6px;
+    min-height: 122px;
+  }
+  .shot-n {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--accent); font-weight: 600;
+  }
+  .shot-t { font-family: var(--f-display); font-weight: 600; font-size: 14.5px; letter-spacing: -.005em; }
+  .shot-d { font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; margin-top: auto; }
+  .shot code { font-size: 11px; background: transparent; border: 0; padding: 0; color: var(--ink-mid); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+    .drone-rig, .lock, .scanline, .rotor,
+    .pulse-a, .pulse-b, .pulse-c { animation: none !important; }
+  }
+</style>
+
+<header class="masthead">
+  <div class="wrap masthead-in">
+    <div class="brand">U&#8209;SCAR<span>.</span></div>
+    <nav class="navlinks" aria-label="Sections">
+      <a href="#pipeline">Pipeline</a>
+      <a href="#gate">The gate</a>
+      <a href="#posture">Posture</a>
+      <a href="#altitude">Altitude</a>
+      <a href="#models">Models</a>
+      <a href="#wiring">Wiring</a>
+      <a href="#build">Build vs. use</a>
+      <a href="#photos">Photos</a>
+      <a href="#limits">Limits</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<div class="wrap hero">
+  <p class="eyebrow">Jetson Orin NX &middot; Onboard perception</p>
+  <h1>Finding people from the air, in three tiers.</h1>
+  <p class="standfirst">
+    U&#8209;SCAR is a search-and-rescue quadcopter. Its onboard computer has to answer three
+    questions about every person it sees &mdash; <strong>is someone there</strong>,
+    <strong>what posture are they in</strong>, and <strong>what is happening to them</strong>.
+    Those three questions cost wildly different amounts of compute, so they get three
+    different answers. Everything runs on the aircraft, with no network.
+  </p>
+  <dl class="specstrip">
+    <div class="spec"><dt>Compute</dt><dd>Orin NX &middot; 100 TOPS</dd></div>
+    <div class="spec"><dt>Middleware</dt><dd>ROS 2 Humble</dd></div>
+    <div class="spec"><dt>Detector</dt><dd>YOLO11 &middot; INT8 TRT</dd></div>
+    <div class="spec"><dt>Describer</dt><dd>3B VLM &middot; INT4</dd></div>
+    <div class="spec"><dt>Link</dt><dd>Not required</dd></div>
+  </dl>
+
+  <div class="scene">
+    <svg viewBox="0 0 700 250" role="img" aria-label="A drone sweeping a search lane. Its camera footprint moves across the terrain, and when the footprint reaches a standing person a detection box locks onto them and a track identifier appears.">
+      <defs>
+        <linearGradient id="cone" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="currentColor" stop-opacity=".22"/>
+          <stop offset="100%" stop-color="currentColor" stop-opacity=".04"/>
+        </linearGradient>
+      </defs>
+
+      <!-- sky band -->
+      <rect x="0" y="0" width="700" height="200" fill="currentColor" opacity=".025"/>
+
+      <!-- terrain -->
+      <line x1="0" y1="200" x2="700" y2="200" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5"/>
+      <g stroke="currentColor" stroke-opacity=".14" stroke-width="1">
+        <line x1="18"  y1="208" x2="52"  y2="208"/><line x1="96"  y1="214" x2="142" y2="214"/>
+        <line x1="178" y1="206" x2="214" y2="206"/><line x1="248" y1="219" x2="292" y2="219"/>
+        <line x1="330" y1="209" x2="366" y2="209"/><line x1="470" y1="213" x2="516" y2="213"/>
+        <line x1="548" y1="206" x2="580" y2="206"/><line x1="612" y1="217" x2="662" y2="217"/>
+      </g>
+      <g fill="currentColor" opacity=".12">
+        <ellipse cx="205" cy="200" rx="26" ry="5"/>
+        <ellipse cx="596" cy="200" rx="34" ry="6"/>
+        <ellipse cx="88"  cy="200" rx="18" ry="4"/>
+      </g>
+
+      <!-- the person on the ground -->
+      <g stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".75">
+        <circle cx="430" cy="174" r="3.6" fill="currentColor" stroke="none"/>
+        <line x1="430" y1="178" x2="430" y2="190"/>
+        <line x1="430" y1="181" x2="424" y2="187"/>
+        <line x1="430" y1="181" x2="436" y2="187"/>
+        <line x1="430" y1="190" x2="426" y2="200"/>
+        <line x1="430" y1="190" x2="434" y2="200"/>
+      </g>
+
+      <!-- detection lock -->
+      <g class="lock" opacity="1">
+        <rect x="415" y="164" width="30" height="42" fill="none" stroke="#0E7C86" stroke-width="2"/>
+        <path d="M415 172 L415 164 L423 164 M437 164 L445 164 L445 172 M445 198 L445 206 L437 206 M423 206 L415 206 L415 198"
+              fill="none" stroke="#0E7C86" stroke-width="3.5"/>
+        <rect x="415" y="146" width="92" height="15" fill="#0E7C86"/>
+        <text x="420" y="157" font-family="IBM Plex Mono, monospace" font-size="10" fill="#fff">PERSON 07 0.94</text>
+      </g>
+
+      <!-- drone + camera footprint -->
+      <g class="drone-rig" transform="translate(330 0)">
+        <polygon points="100,50 30,200 170,200" fill="url(#cone)"/>
+        <line x1="100" y1="50" x2="30" y2="200" stroke="currentColor" stroke-opacity=".3" stroke-width="1"/>
+        <line x1="100" y1="50" x2="170" y2="200" stroke="currentColor" stroke-opacity=".3" stroke-width="1"/>
+        <line class="scanline" x1="30" y1="200" x2="170" y2="200" stroke="#0E7C86" stroke-width="3"/>
+
+        <!-- airframe -->
+        <g stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="76" y1="34" x2="124" y2="34"/>
+          <line x1="82" y1="40" x2="118" y2="40"/>
+        </g>
+        <rect x="88" y="34" width="24" height="11" rx="2" fill="currentColor"/>
+        <circle cx="100" cy="49" r="4.5" fill="#0E7C86"/>
+        <g stroke="currentColor" stroke-width="2" opacity=".55">
+          <line class="rotor" x1="66" y1="34" x2="86" y2="34" style="transform-origin:76px 34px"/>
+          <line class="rotor" x1="114" y1="34" x2="134" y2="34" style="transform-origin:124px 34px"/>
+        </g>
+        <text x="100" y="24" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".55" text-anchor="middle">32 m AGL</text>
+        <text x="100" y="216" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity=".45" text-anchor="middle">55 m swath</text>
+      </g>
+
+      <text x="0" y="240" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".45">SEARCH LANE 03 &middot; NADIR &middot; 30 FPS</text>
+      <text x="700" y="240" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".45" text-anchor="end">TIER 1 ACTIVE</text>
+    </svg>
+    <div class="scene-cap">
+      <span>Camera footprint sweeping a search lane</span>
+      <span>Detection fires on every frame &mdash; description does not</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PIPELINE SIM ============ -->
+<section id="pipeline">
+  <div class="wrap">
+    <div class="sechead">
+      <h2>Watch one person move through the stack</h2>
+      <p class="lede">
+        The simulation below runs a compressed 24-second flight. A person enters frame,
+        stays upright for a while, then goes down &mdash; and only <em>then</em> does the
+        expensive model wake up.
+      </p>
+    </div>
+
+    <div class="sim">
+      <div class="sim-bar">
+        <span class="sim-title">Live pipeline &mdash; simulated</span>
+        <div class="readout">
+          <span class="ro">T <b id="ro-clock">00.0</b>s</span>
+          <span class="ro">DET <b id="ro-fps">30.0</b> fps</span>
+          <span class="ro">p95 <b id="ro-lat">21.4</b> ms</span>
+          <span class="ro">TRACKS <b id="ro-tracks">0</b></span>
+          <span class="ro">VLM Q <b id="ro-queue">0</b>/4</span>
+        </div>
+        <button class="btn" id="btn-play" type="button">Pause</button>
+        <button class="btn" id="btn-reset" type="button">Restart</button>
+      </div>
+
+      <div class="pipeline">
+        <div class="stage hot" id="st-cam">
+          <span class="stage-tag">Source</span>
+          <span class="stage-name">Gimbal camera</span>
+          <span class="stage-note">1920&times;1080 frames straight into GPU memory.</span>
+          <span class="stage-rate" id="rate-cam">30 fps &middot; frame 000000</span>
+        </div>
+
+        <div class="conn">
+          <div class="conn-line conn-h flowing"></div>
+          <div class="conn-line conn-v flowing"></div>
+          <span class="gate-label">30 Hz</span>
+        </div>
+
+        <div class="stage" id="st-det">
+          <span class="stage-tag">Tier 1 + 2 &middot; every frame</span>
+          <span class="stage-name">Detector node</span>
+          <span class="stage-note">YOLO11-pose &rarr; ByteTrack &rarr; gravity-aligned posture classifier.</span>
+          <span class="stage-rate" id="rate-det">idle &middot; no tracks</span>
+        </div>
+
+        <div class="conn conn-gate" id="st-gate">
+          <div class="conn-line conn-h"></div>
+          <div class="conn-line conn-v"></div>
+          <span class="gate-label" id="gate-label">gate</span>
+        </div>
+
+        <div class="stage" id="st-vlm">
+          <span class="stage-tag">Tier 3 &middot; on event</span>
+          <span class="stage-name">VLM node</span>
+          <span class="stage-note">Qwen2.5-VL-3B at INT4. Crop in, structured JSON out.</span>
+          <span class="stage-rate" id="rate-vlm">idle &middot; 0 jobs</span>
+        </div>
+      </div>
+
+      <div class="panelrow">
+        <div class="panel">
+          <p class="panel-h"><span>Track 07</span><span id="track-state" class="pill idle">no target</span></p>
+          <dl class="kv">
+            <dt>posture</dt><dd id="tk-posture">&mdash;</dd>
+            <dt>conf</dt><dd id="tk-conf">&mdash;</dd>
+            <dt>immobile</dt><dd id="tk-immobile">&mdash;</dd>
+            <dt>position</dt><dd id="tk-pos">&mdash;</dd>
+            <dt>altitude</dt><dd id="tk-alt">&mdash;</dd>
+          </dl>
+        </div>
+        <div class="panel">
+          <p class="panel-h"><span>VLM output</span><span id="vlm-state" class="pill idle">idle</span></p>
+          <div class="vlmtext" id="vlm-out"><span class="vlm-idle">Waiting for a trigger. The detector is running at full rate regardless.</span></div>
+          <div class="bar-track"><div class="bar-fill" id="vlm-bar"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p class="callout-h">The one decision everything hangs on</p>
+      <p>
+        A 3B vision-language model on an Orin NX produces tens of tokens per second. A
+        60-token description costs seconds, not milliseconds. It <em>cannot</em> run at
+        30&nbsp;fps &mdash; so we never ask it to. Tiers&nbsp;1 and 2 run on every frame and
+        decide <strong>when it is worth spending those seconds</strong>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE GATE ============ -->
+<section id="gate">
+  <div class="wrap">
+    <div class="sechead">
+      <h2>Why the expensive model is gated</h2>
+      <p class="lede">
+        The difference between running the VLM on every frame and running it on events is
+        not a tuning detail. It is the difference between a system that works and one that
+        falls over in the first second.
+      </p>
+    </div>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 700 300" role="img" aria-label="Two timelines. Running the vision-language model on every frame builds an unbounded backlog within one second. Running it on events keeps the queue at zero or one and the detector at full rate.">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <!-- OPTION A -->
+          <text x="0" y="16" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.2" fill="currentColor" opacity=".6">OPTION A &mdash; VLM ON EVERY FRAME</text>
+
+          <line x1="0" y1="40" x2="640" y2="40" stroke="currentColor" stroke-opacity=".28" stroke-width="1"/>
+          <g fill="currentColor" opacity=".45">
+            <rect x="0"   y="34" width="2" height="12"/><rect x="22"  y="34" width="2" height="12"/>
+            <rect x="44"  y="34" width="2" height="12"/><rect x="66"  y="34" width="2" height="12"/>
+            <rect x="88"  y="34" width="2" height="12"/><rect x="110" y="34" width="2" height="12"/>
+            <rect x="132" y="34" width="2" height="12"/><rect x="154" y="34" width="2" height="12"/>
+            <rect x="176" y="34" width="2" height="12"/><rect x="198" y="34" width="2" height="12"/>
+            <rect x="220" y="34" width="2" height="12"/><rect x="242" y="34" width="2" height="12"/>
+            <rect x="264" y="34" width="2" height="12"/><rect x="286" y="34" width="2" height="12"/>
+            <rect x="308" y="34" width="2" height="12"/><rect x="330" y="34" width="2" height="12"/>
+            <rect x="352" y="34" width="2" height="12"/><rect x="374" y="34" width="2" height="12"/>
+            <rect x="396" y="34" width="2" height="12"/><rect x="418" y="34" width="2" height="12"/>
+            <rect x="440" y="34" width="2" height="12"/><rect x="462" y="34" width="2" height="12"/>
+            <rect x="484" y="34" width="2" height="12"/><rect x="506" y="34" width="2" height="12"/>
+            <rect x="528" y="34" width="2" height="12"/><rect x="550" y="34" width="2" height="12"/>
+            <rect x="572" y="34" width="2" height="12"/><rect x="594" y="34" width="2" height="12"/>
+            <rect x="616" y="34" width="2" height="12"/><rect x="638" y="34" width="2" height="12"/>
+          </g>
+          <text x="648" y="44" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".6">30 frames</text>
+
+          <rect x="0" y="62" width="176" height="20" rx="2" fill="#B03227" fill-opacity=".85"/>
+          <text x="8" y="76" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#fff">inference 1 &mdash; 4.0 s</text>
+          <rect x="176" y="62" width="176" height="20" rx="2" fill="#B03227" fill-opacity=".62"/>
+          <text x="184" y="76" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#fff">inference 2</text>
+          <rect x="352" y="62" width="176" height="20" rx="2" fill="#B03227" fill-opacity=".45"/>
+          <text x="360" y="76" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#fff">inference 3</text>
+          <rect x="528" y="62" width="150" height="20" rx="2" fill="#B03227" fill-opacity=".3"/>
+
+          <path d="M 0 104 L 660 104" stroke="#B03227" stroke-width="2" marker-end="url(#ah)" fill="none"/>
+          <text x="0" y="122" font-family="IBM Plex Mono, monospace" font-size="11" fill="#B03227">queue depth after 1 s: 29 frames &mdash; and growing forever</text>
+
+          <!-- divider -->
+          <line x1="0" y1="150" x2="700" y2="150" stroke="currentColor" stroke-opacity=".18" stroke-dasharray="3 5"/>
+
+          <!-- OPTION B -->
+          <text x="0" y="176" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.2" fill="currentColor" opacity=".6">OPTION B &mdash; VLM ON EVENTS</text>
+
+          <line x1="0" y1="200" x2="640" y2="200" stroke="currentColor" stroke-opacity=".28" stroke-width="1"/>
+          <g fill="currentColor" opacity=".45">
+            <rect x="0"   y="194" width="2" height="12"/><rect x="22"  y="194" width="2" height="12"/>
+            <rect x="44"  y="194" width="2" height="12"/><rect x="66"  y="194" width="2" height="12"/>
+            <rect x="88"  y="194" width="2" height="12"/><rect x="110" y="194" width="2" height="12"/>
+            <rect x="132" y="194" width="2" height="12"/><rect x="154" y="194" width="2" height="12"/>
+            <rect x="176" y="194" width="2" height="12"/><rect x="198" y="194" width="2" height="12"/>
+            <rect x="220" y="194" width="2" height="12"/><rect x="242" y="194" width="2" height="12"/>
+            <rect x="264" y="194" width="2" height="12"/><rect x="286" y="194" width="2" height="12"/>
+            <rect x="308" y="194" width="2" height="12"/><rect x="330" y="194" width="2" height="12"/>
+            <rect x="352" y="194" width="2" height="12"/><rect x="374" y="194" width="2" height="12"/>
+            <rect x="396" y="194" width="2" height="12"/><rect x="418" y="194" width="2" height="12"/>
+            <rect x="440" y="194" width="2" height="12"/><rect x="462" y="194" width="2" height="12"/>
+            <rect x="484" y="194" width="2" height="12"/><rect x="506" y="194" width="2" height="12"/>
+            <rect x="528" y="194" width="2" height="12"/><rect x="550" y="194" width="2" height="12"/>
+            <rect x="572" y="194" width="2" height="12"/><rect x="594" y="194" width="2" height="12"/>
+            <rect x="616" y="194" width="2" height="12"/><rect x="638" y="194" width="2" height="12"/>
+          </g>
+
+          <!-- trigger marks -->
+          <path d="M 132 206 L 132 224" stroke="#9A6206" stroke-width="2"/>
+          <circle cx="132" cy="206" r="3.5" fill="#9A6206"/>
+          <text x="126" y="240" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#9A6206">new track</text>
+
+          <path d="M 440 206 L 440 224" stroke="#9A6206" stroke-width="2"/>
+          <circle cx="440" cy="206" r="3.5" fill="#9A6206"/>
+          <text x="416" y="240" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#9A6206">posture &rarr; lying</text>
+
+          <rect x="132" y="252" width="176" height="20" rx="2" fill="#24704A" fill-opacity=".85"/>
+          <text x="140" y="266" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#fff">inference &mdash; 4.0 s</text>
+          <rect x="440" y="252" width="176" height="20" rx="2" fill="#24704A" fill-opacity=".85"/>
+          <text x="448" y="266" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#fff">inference &mdash; 4.0 s</text>
+
+          <text x="0" y="292" font-family="IBM Plex Mono, monospace" font-size="11" fill="#24704A">queue depth: 0 or 1 &mdash; detector never blocked</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>The same 30 frames, two policies.</b> Running the VLM per frame adds roughly four
+        seconds of work per 33&nbsp;ms of input, so the backlog grows without bound from the
+        first second. Gating on events &mdash; a new track, a posture change, prolonged
+        immobility, an operator request &mdash; spends the same model two or three times a
+        minute, exactly where it carries information.
+      </figcaption>
+    </figure>
+
+    <p>
+      The gate is a bounded priority queue, four jobs deep. When it is full we drop the
+      low-value refreshes and keep the new-person and posture-change events. The detector
+      node and the VLM node are separate ROS 2 nodes on separate CUDA streams, so a slow
+      inference can never stall perception &mdash; and if the VLM node dies outright, the
+      system degrades to posture-only reporting, which is still operationally useful.
+    </p>
+  </div>
+</section>
+
+<!-- ============ TIERS 1 AND 2 ============ -->
+<section id="posture">
+  <div class="wrap">
+
+    <div class="tier">
+      <div class="tier-mark"><b>01</b> Detect</div>
+      <div>
+        <h2 style="margin-top:0">Is there a person?</h2>
+        <p class="lede">
+          YOLO11-pose, exported to TensorRT at INT8, with ByteTrack for identity. Every
+          frame, around 30&nbsp;fps, no exceptions.
+        </p>
+        <p>
+          One model, not two: the pose model already emits person boxes, so running a
+          separate detector alongside it would double the cost for nothing. ByteTrack was
+          chosen over re-ID-based trackers because it keeps low-confidence boxes alive
+          &mdash; which is precisely the regime small aerial targets live in.
+        </p>
+        <div class="callout caution">
+          <p class="callout-h">Licence check, before we build on it</p>
+          <p>
+            Ultralytics YOLO is <strong>AGPL-3.0</strong>. Fine for an open academic
+            project; contagious the moment U&#8209;SCAR ships to anyone without source. If
+            that is a possibility, the permissive escape hatches are YOLOX, RT-DETR, or
+            NVIDIA TAO &mdash; and the time to decide is now, not after a semester of work.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier" style="margin-top:46px">
+      <div class="tier-mark"><b>02</b> Posture</div>
+      <div>
+        <h2 style="margin-top:0">Standing, or lying down?</h2>
+        <p class="lede">
+          This is a geometry question, and we answer it with geometry &mdash; not by asking a
+          language model.
+        </p>
+        <p>
+          Given 17&nbsp;COCO keypoints, the angle of the torso vector (shoulder midpoint to
+          hip midpoint) tells you the posture directly. That computation costs effectively
+          nothing on top of the pose model, is stable frame to frame, is explainable to an
+          operator, and <strong>cannot hallucinate</strong>. Asking a 3B VLM the same
+          question costs seconds and occasionally invents a confident wrong answer.
+        </p>
+        <p>
+          But there is a catch, and it is the reason this tier needs a model of our own.
+        </p>
+
+        <figure>
+          <div class="figbox">
+            <svg viewBox="0 0 640 260" role="img" aria-label="A standing person seen from a banking drone. In the raw image frame the torso appears tilted by the bank angle, so a naive classifier reads lying down. Rotating the keypoints by the drone's measured roll restores the true vertical.">
+              <!-- left: camera view -->
+              <text x="0" y="14" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.1" fill="currentColor" opacity=".6">RAW IMAGE FRAME</text>
+              <rect x="0" y="24" width="250" height="180" rx="3" fill="none" stroke="currentColor" stroke-opacity=".3"/>
+              <g id="scene-rot">
+                <!-- horizon -->
+                <line x1="10" y1="150" x2="240" y2="150" stroke="currentColor" stroke-opacity=".22" stroke-width="1.5"/>
+                <!-- standing figure -->
+                <g stroke="#0E7C86" stroke-width="3.5" stroke-linecap="round" fill="none">
+                  <circle cx="125" cy="86" r="10" fill="#0E7C86" stroke="none"/>
+                  <line x1="125" y1="96" x2="125" y2="130"/>
+                  <line x1="125" y1="106" x2="108" y2="120"/>
+                  <line x1="125" y1="106" x2="142" y2="120"/>
+                  <line x1="125" y1="130" x2="113" y2="150"/>
+                  <line x1="125" y1="130" x2="137" y2="150"/>
+                </g>
+                <!-- torso vector -->
+                <line x1="125" y1="96" x2="125" y2="130" stroke="#9A6206" stroke-width="2" stroke-dasharray="4 3"/>
+              </g>
+              <!-- gravity reference -->
+              <line x1="222" y1="44" x2="222" y2="96" stroke="currentColor" stroke-opacity=".45" stroke-width="1.5" stroke-dasharray="3 3"/>
+              <text x="212" y="110" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity=".55">g</text>
+
+              <text x="0" y="224" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".6">drone roll</text>
+              <text x="0" y="242" font-family="IBM Plex Mono, monospace" font-size="15" font-weight="600" fill="currentColor"><tspan id="svg-bank">0</tspan>&#176;</text>
+
+              <!-- right: two classifiers -->
+              <text x="300" y="14" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="1.1" fill="currentColor" opacity=".6">TORSO ANGLE FROM VERTICAL</text>
+
+              <rect x="300" y="26" width="340" height="72" rx="3" fill="none" stroke="#B03227" stroke-opacity=".55"/>
+              <text x="314" y="48" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".65">NAIVE &mdash; measured in image frame</text>
+              <text x="314" y="76" font-family="Archivo, sans-serif" font-size="21" font-weight="700" fill="#B03227"><tspan id="svg-naive-a">0&#176;</tspan> <tspan id="svg-naive-l" font-size="15">&rarr; STANDING</tspan></text>
+
+              <rect x="300" y="112" width="340" height="72" rx="3" fill="none" stroke="#24704A" stroke-opacity=".55"/>
+              <text x="314" y="134" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".65">GRAVITY-ALIGNED &mdash; IMU roll subtracted</text>
+              <text x="314" y="162" font-family="Archivo, sans-serif" font-size="21" font-weight="700" fill="#24704A"><tspan id="svg-corr-a">0&#176;</tspan> <tspan font-size="15">&rarr; STANDING</tspan></text>
+
+              <text x="300" y="212" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".6">classifier threshold: 45&#176; from vertical &rarr; LYING</text>
+              <text x="300" y="232" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".6">the person is standing upright the whole time</text>
+            </svg>
+
+            <div class="ctrl">
+              <label for="bank">Bank the drone</label>
+              <input type="range" id="bank" min="0" max="60" value="0" step="1" aria-describedby="bank-help">
+              <output id="bank-out" for="bank">0&deg;</output>
+            </div>
+            <p id="bank-help" style="font-size:12.5px;color:var(--ink-soft);margin:8px 0 0;">
+              Drag through a banked turn and watch the naive classifier report a casualty
+              that is not there.
+            </p>
+          </div>
+          <figcaption>
+            <b>The failure a public model cannot fix for us.</b> During a banked turn the whole
+            image rotates, so a standing person's torso reads as horizontal and a naive
+            classifier calls a false casualty. We rotate the keypoints into a gravity-aligned
+            frame using the flight controller's own roll estimate, arriving over MAVROS, before
+            classifying. No off-the-shelf action model does this &mdash; because no
+            off-the-shelf model has our IMU stream.
+          </figcaption>
+        </figure>
+
+        <p>
+          That is the argument for training this one small model ourselves. Normalise the
+          keypoints (origin at the hip midpoint, scaled by torso length, rotated by measured
+          roll), add per-keypoint visibility because occlusion is informative, and train a
+          two-layer MLP on <code>{standing, sitting, crouching, lying, unknown}</code>. It is
+          under 100&nbsp;KB, runs in microseconds on the CPU, needs only a few thousand
+          labelled frames &mdash; and it is the genuinely novel, publishable piece of the project.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ ALTITUDE ============ -->
+<section id="altitude">
+  <div class="wrap">
+    <div class="sechead">
+      <h2>Why we have to fine-tune on aerial data</h2>
+      <p class="lede">
+        A person lying down, seen from 50&nbsp;metres up, is about ten pixels of
+        dust-coloured texture. COCO has no idea what that is.
+      </p>
+    </div>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 640 220" role="img" aria-label="Apparent pixel height of a standing versus prone person as flight altitude increases. The prone person falls below the practical detection floor well before the standing person does.">
+          <!-- axis -->
+          <line x1="52" y1="180" x2="600" y2="180" stroke="currentColor" stroke-opacity=".3"/>
+          <line x1="52" y1="20" x2="52" y2="180" stroke="currentColor" stroke-opacity=".3"/>
+          <text x="52" y="204" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".6">20 m</text>
+          <text x="300" y="204" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".6" text-anchor="middle">40 m</text>
+          <text x="600" y="204" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".6" text-anchor="end">60 m</text>
+          <text x="46" y="24" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".6" text-anchor="end">100</text>
+          <text x="46" y="184" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".6" text-anchor="end">0</text>
+          <text x="10" y="106" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".6" text-anchor="middle" transform="rotate(-90 10 106)">px height</text>
+
+          <!-- detection floor -->
+          <line x1="52" y1="159" x2="600" y2="159" stroke="#B03227" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <text x="596" y="154" font-family="IBM Plex Mono, monospace" font-size="10" fill="#B03227" text-anchor="end">practical floor &asymp; 20 px</text>
+
+          <!-- curves -->
+          <path id="curve-stand" d="" fill="none" stroke="#0E7C86" stroke-width="2.5"/>
+          <path id="curve-prone" d="" fill="none" stroke="#9A6206" stroke-width="2.5"/>
+
+          <circle id="dot-stand" cx="52" cy="0" r="5" fill="#0E7C86"/>
+          <circle id="dot-prone" cx="52" cy="0" r="5" fill="#9A6206"/>
+          <line id="scrub" x1="52" y1="20" x2="52" y2="180" stroke="currentColor" stroke-opacity=".35" stroke-width="1"/>
+
+          <text x="70" y="40" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#0E7C86">standing &mdash; 1.7 m extent</text>
+          <text x="70" y="56" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#9A6206">prone from overhead &mdash; 0.45 m extent</text>
+        </svg>
+
+        <div class="ctrl">
+          <label for="alt">Flight altitude</label>
+          <input type="range" id="alt" min="20" max="60" value="40" step="1">
+          <output id="alt-out" for="alt">40 m</output>
+        </div>
+
+        <div class="verdictrow">
+          <div class="verdict good" id="v-stand">
+            <div class="verdict-h">Standing person</div>
+            <div class="verdict-v"><span id="px-stand">71</span> px<small id="s-stand">well above the floor</small></div>
+          </div>
+          <div class="verdict bad" id="v-prone">
+            <div class="verdict-h">Prone person</div>
+            <div class="verdict-v"><span id="px-prone">19</span> px<small id="s-prone">below the floor &mdash; likely missed</small></div>
+          </div>
+        </div>
+        <p style="font-family:var(--f-mono);font-size:12.5px;color:var(--ink-soft);margin:12px 0 0;">
+          Ground swath at this altitude: <b id="swath" style="color:var(--ink);font-variant-numeric:tabular-nums;">46</b> m
+          &mdash; every metre of altitude buys coverage and costs pixels. That trade is the
+          whole altitude decision.
+        </p>
+      </div>
+      <figcaption>
+        <b>Measured optics: the SIYI A8 mini is 81&deg; horizontal field of view</b> (focal length
+        &asymp;&nbsp;1124&nbsp;px across 1920), nadir view, no zoom. The wide lens buys coverage
+        and costs pixels — a prone casualty falls below the floor at roughly 25&nbsp;m. Exact numbers still depend on the streamed resolution &mdash; measuring this curve on our own airframe is experiment&nbsp;E3, and its
+        output is an operational rule: <em>search at or below X&nbsp;metres if you expect
+        casualties to be prone.</em>
+      </figcaption>
+    </figure>
+
+    <p>
+      This is also why fine-tuning is not optional. Stock YOLO trained on ground-level
+      photographs will systematically miss prone people from above &mdash; the exact failure
+      we can least afford. The fix is a few thousand labelled frames from datasets built for
+      this view (HERIDAL, SARD, Okutama-Action, VisDrone) plus our own flight footage over
+      our own terrain, which is also what we calibrate the INT8 engine on.
+    </p>
+  </div>
+</section>
+
+<!-- ============ MODELS ============ -->
+<section id="models">
+  <div class="wrap">
+    <div class="tier">
+      <div class="tier-mark"><b>03</b> Describe</div>
+      <div>
+        <h2 style="margin-top:0">It has to be a VLM, not an LLM</h2>
+        <p class="lede">
+          A text-only language model cannot see the camera. The best it could do is
+          paraphrase YOLO's labels &mdash; turning <code>person, 0.87, lying</code> into
+          &ldquo;a person is lying down&rdquo;, which adds nothing and can only introduce error.
+        </p>
+        <p>
+          Everything that makes this project worth doing &mdash; <em>dark staining on the
+          right trouser leg</em>, <em>an arm bent at an unnatural angle</em>, <em>trapped
+          under a collapsed awning</em>, <em>waving at the camera</em> &mdash; lives in pixels
+          that no detector describes. That needs a model that takes the image itself as input.
+        </p>
+      </div>
+    </div>
+
+    <h3>The shortlist, and why the others lost</h3>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Model</th><th>Role</th><th>Verdict</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="pick">Qwen2.5-VL-3B</td>
+            <td>Primary, INT4</td>
+            <td class="why">Fits in ~2&ndash;2.5&nbsp;GB quantised. Best-in-class small model for fine visual detail, real region grounding so we can point it at <em>our</em> detected person, and native dynamic resolution so small crops are not squashed to 336&times;336. <strong>Verify the exact checkpoint's licence</strong> &mdash; the family is not uniformly Apache.</td>
+          </tr>
+          <tr>
+            <td class="pick">VILA-1.5-3B</td>
+            <td>Fallback&nbsp;1</td>
+            <td class="why">NVIDIA optimises it for Jetson specifically. Marginally behind on fine detail, well ahead on ease of deployment. If Qwen fights us on JetPack, this is the path of least resistance.</td>
+          </tr>
+          <tr>
+            <td class="pick">SmolVLM2</td>
+            <td>8&nbsp;GB board</td>
+            <td class="why">Apache-2.0, tiny, fast. Descriptions are noticeably shallower &mdash; but this is the answer if we are on the 8&nbsp;GB SKU or ever need several inferences per second.</td>
+          </tr>
+          <tr>
+            <td>GPT-4o / Claude / Gemini</td>
+            <td>Rejected</td>
+            <td class="why">Would give the best descriptions by a wide margin, and is useless to us: disaster areas have no reliable link. Keep it as <em>optional ground-station enrichment</em> when a link happens to exist &mdash; never as a flight-critical dependency.</td>
+          </tr>
+          <tr>
+            <td>LLaVA-1.6 7B</td>
+            <td>Rejected</td>
+            <td class="why">Heavy for our memory budget, and a 2024-era 7B is now matched by a 2025-era 3B. Poor size-to-quality trade.</td>
+          </tr>
+          <tr>
+            <td>Moondream2</td>
+            <td>Fallback&nbsp;2</td>
+            <td class="why">Punches above its weight at VQA, permissively licensed, easy to run. Weaker on the fine-grained detail that injury cues depend on.</td>
+          </tr>
+          <tr>
+            <td>Florence-2</td>
+            <td>Optional tier</td>
+            <td class="why">MIT, very fast, but task-token driven &mdash; it cannot be asked open questions about injury. Useful as a cheap one-line caption on every new track, not as the main model.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Ground it, then constrain it</h3>
+    <p>
+      Two rules keep a small generative model honest. First, never send the raw frame and
+      hope &mdash; send the tracked person's crop with a 30% context margin, plus what tiers
+      1&ndash;2 already established: posture, immobility duration, altitude, view angle.
+      Second, force structured output against a fixed schema with grammar-constrained
+      decoding, so we get parseable fields instead of prose:
+    </p>
+
+    <div class="tablewrap" style="min-width:0">
+      <table style="min-width:420px">
+        <thead><tr><th>Field</th><th>Example value</th></tr></thead>
+        <tbody>
+          <tr><td><code>appearance</code></td><td class="why">adult, light shirt, dark trousers</td></tr>
+          <tr><td><code>body_position</code></td><td class="why">prone, left arm extended above head</td></tr>
+          <tr><td><code>surroundings</code></td><td class="why">gravel, near a low wall, no other people</td></tr>
+          <tr><td><code>injury_indicators</code></td><td class="why">["dark staining on right lower leg"]</td></tr>
+          <tr><td><code>signalling</code></td><td class="why">none observed</td></tr>
+          <tr><td><code>not_visible</code></td><td class="why">["face", "right arm"]</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      That last field is deliberate. It gives the model a legitimate place to put its
+      uncertainty instead of inventing detail to fill a sentence.
+    </p>
+  </div>
+</section>
+
+<!-- ============ ROS GRAPH ============ -->
+<section id="wiring">
+  <div class="wrap">
+    <div class="sechead">
+      <h2>How it is wired</h2>
+      <p class="lede">
+        Five ROS 2 nodes. The rates on the edges are the point &mdash; one lane runs flat out,
+        one fires a few times a minute, and nothing in the fast lane ever waits on the slow one.
+      </p>
+    </div>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 700 330" role="img" aria-label="ROS 2 node graph. The camera node publishes images at 30 hertz to the detector node, which publishes tracks to the triage aggregator at the same rate. The detector sends occasional gated requests to the VLM node, which returns descriptions. MAVROS supplies attitude to the detector and position to the aggregator. The aggregator publishes victim reports to a rosbag and the ground station.">
+          <defs>
+            <marker id="rah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+            <marker id="rah-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#0E7C86"/>
+            </marker>
+            <marker id="rah-w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#9A6206"/>
+            </marker>
+          </defs>
+
+          <!-- nodes -->
+          <g fill="currentColor" fill-opacity=".04" stroke="currentColor" stroke-opacity=".45">
+            <rect x="6"   y="34"  width="112" height="52" rx="3"/>
+            <rect x="222" y="34"  width="156" height="52" rx="3"/>
+            <rect x="468" y="34"  width="150" height="52" rx="3"/>
+            <rect x="6"   y="176" width="112" height="52" rx="3"/>
+            <rect x="222" y="176" width="156" height="52" rx="3"/>
+          </g>
+          <g fill="currentColor" fill-opacity=".02" stroke="currentColor" stroke-opacity=".3" stroke-dasharray="4 3">
+            <rect x="150" y="278" width="150" height="40" rx="3"/>
+            <rect x="330" y="278" width="200" height="40" rx="3"/>
+          </g>
+
+          <g font-family="IBM Plex Mono, monospace" fill="currentColor">
+            <text x="62"  y="58"  font-size="12" font-weight="600" text-anchor="middle">camera_node</text>
+            <text x="62"  y="74"  font-size="10" opacity=".55" text-anchor="middle">argus / gscam</text>
+            <text x="300" y="58"  font-size="12" font-weight="600" text-anchor="middle">detector_node</text>
+            <text x="300" y="74"  font-size="10" opacity=".55" text-anchor="middle">YOLO11-pose + track + posture</text>
+            <text x="543" y="58"  font-size="12" font-weight="600" text-anchor="middle">vlm_node</text>
+            <text x="543" y="74"  font-size="10" opacity=".55" text-anchor="middle">action server, queue depth 4</text>
+            <text x="62"  y="200" font-size="12" font-weight="600" text-anchor="middle">mavros</text>
+            <text x="62"  y="216" font-size="10" opacity=".55" text-anchor="middle">read-only</text>
+            <text x="300" y="200" font-size="12" font-weight="600" text-anchor="middle">triage_aggregator</text>
+            <text x="300" y="216" font-size="10" opacity=".55" text-anchor="middle">fuse &middot; geolocate &middot; dedupe</text>
+            <text x="225" y="303" font-size="11" opacity=".7">rosbag2</text>
+            <text x="430" y="303" font-size="11" opacity=".7" text-anchor="middle">ground station</text>
+          </g>
+
+          <!-- E1 camera -> detector -->
+          <line x1="118" y1="60" x2="216" y2="60" stroke="#0E7C86" stroke-width="2" marker-end="url(#rah-a)"/>
+          <circle class="pulse-a"  cx="118" cy="60" r="3.5" fill="#0E7C86"/>
+          <circle class="pulse-a2" cx="118" cy="60" r="3.5" fill="#0E7C86"/>
+          <text x="170" y="50" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#0E7C86" text-anchor="middle">/image_raw</text>
+          <text x="170" y="78" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".5" text-anchor="middle">30 Hz</text>
+
+          <!-- E2 detector -> vlm (gated) -->
+          <line x1="378" y1="60" x2="462" y2="60" stroke="#9A6206" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#rah-w)"/>
+          <circle class="pulse-b" cx="378" cy="60" r="3.5" fill="#9A6206"/>
+          <text x="422" y="50" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#9A6206" text-anchor="middle">/vlm_request</text>
+          <text x="422" y="78" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".5" text-anchor="middle">on event</text>
+
+          <!-- E3 detector -> aggregator -->
+          <line x1="300" y1="86" x2="300" y2="170" stroke="#0E7C86" stroke-width="2" marker-end="url(#rah-a)"/>
+          <circle class="pulse-c"  cx="300" cy="86" r="3.5" fill="#0E7C86"/>
+          <circle class="pulse-c2" cx="300" cy="86" r="3.5" fill="#0E7C86"/>
+          <text x="310" y="124" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#0E7C86">/tracks</text>
+          <text x="310" y="139" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".5">30 Hz</text>
+
+          <!-- E4 vlm -> aggregator -->
+          <path d="M 543 86 L 543 202 L 384 202" fill="none" stroke="#9A6206" stroke-width="2" marker-end="url(#rah-w)"/>
+          <text x="462" y="194" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#9A6206" text-anchor="middle">/descriptions</text>
+
+          <!-- E5 mavros -> aggregator -->
+          <line x1="118" y1="202" x2="216" y2="202" stroke="currentColor" stroke-opacity=".55" stroke-width="1.6" marker-end="url(#rah)"/>
+          <text x="167" y="194" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".55" text-anchor="middle">/global_position</text>
+
+          <!-- E6 mavros -> detector (attitude) -->
+          <path d="M 62 176 L 62 120 L 270 120 L 270 92" fill="none" stroke="currentColor" stroke-opacity=".55" stroke-width="1.6" marker-end="url(#rah)"/>
+          <text x="166" y="112" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".55" text-anchor="middle">/imu/data &mdash; roll, for gravity alignment</text>
+
+          <!-- E7 aggregator -> outputs -->
+          <path d="M 300 228 L 300 256 L 225 256 L 225 272" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.6" marker-end="url(#rah)"/>
+          <path d="M 300 228 L 300 256 L 430 256 L 430 272" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.6" marker-end="url(#rah)"/>
+          <text x="310" y="248" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".55">/victim_reports</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>Teal edges run at frame rate; the amber edge fires on an event.</b> The two lanes are
+        separate nodes on separate CUDA streams, so a four-second inference on the amber path
+        cannot stall the teal one &mdash; and if <code>vlm_node</code> dies outright, the system
+        degrades to posture-only reporting rather than going blind. MAVROS is read-only: the
+        Jetson consumes telemetry and never writes control commands.
+      </figcaption>
+    </figure>
+
+    <p>
+      Recording every topic to <code>rosbag2</code> on every flight is what makes the rest of
+      the project tractable. Benchmarks replay identical bags instead of demanding new flights,
+      and the same bags become the labelled dataset &mdash; complete with the synchronised GPS
+      and attitude that the gravity-aligned classifier depends on, which cannot be recovered
+      after the fact.
+    </p>
+  </div>
+</section>
+
+<!-- ============ BUILD VS USE ============ -->
+<section id="build">
+  <div class="wrap">
+    <div class="sechead">
+      <h2>Build it, fine-tune it, or just use it?</h2>
+      <p class="lede">
+        You asked whether designing our own models would be better. Partly &mdash; and being
+        specific about which parts is what separates a good project from a wasted semester.
+      </p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Component</th><th>From scratch</th><th>Fine-tune</th><th>Off the shelf</th><th>Reasoning</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Person detector</strong></td>
+            <td>No</td><td class="pick">Yes &mdash; here</td><td>Start here</td>
+            <td class="why">A COCO-pretrained backbone fine-tuned on a few thousand aerial frames beats anything we could train from random init with our data and compute. The novelty is the domain adaptation, not the architecture.</td>
+          </tr>
+          <tr>
+            <td><strong>Pose estimator</strong></td>
+            <td>No</td><td>Probably not</td><td class="pick">Yes</td>
+            <td class="why">COCO keypoints generalise well enough, and a pose model is expensive to retrain for marginal gain.</td>
+          </tr>
+          <tr>
+            <td><strong>Posture classifier</strong></td>
+            <td class="pick">Yes &mdash; build it</td><td>&mdash;</td><td>No option fits</td>
+            <td class="why">Needs our IMU-derived gravity alignment, which nothing public has. Small, cheap, explainable, trainable on a few thousand labels. This is our contribution.</td>
+          </tr>
+          <tr>
+            <td><strong>Action recognition</strong></td>
+            <td>Later, maybe</td><td>Possible</td><td>&mdash;</td>
+            <td class="why">Posture plus motion may already cover the operationally critical cases. Escalate to a temporal keypoint model only if it does not.</td>
+          </tr>
+          <tr>
+            <td><strong>VLM</strong></td>
+            <td>Absolutely not</td><td>Not yet</td><td class="pick">Yes</td>
+            <td class="why">We lack the data to do better, and a LoRA trained on a few hundred staged casualties would learn our volunteers' clothing, not injury &mdash; a worse failure than a generic model that says &ldquo;not visible&rdquo;.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <p class="callout-h">The honest framing</p>
+      <p>
+        Transfer learning from a strong pretrained backbone is not a shortcut &mdash; it is
+        what a professional team would also do. Spend the saved effort on the three things
+        that are actually ours: <strong>aerial domain adaptation</strong>,
+        <strong>gravity-aware posture reasoning</strong>, and <strong>the triggered-VLM
+        pipeline</strong>.
+      </p>
+    </div>
+
+    <h3>Getting there</h3>
+    <div class="phases">
+      <div class="phase">
+        <span class="phase-id">Phase 0</span>
+        <div><span class="phase-b">Foundations</span><div class="phase-d">JetPack&nbsp;6, ROS&nbsp;2 Humble, camera and MAVROS publishing, first rosbag recorded and replayed.</div></div>
+        <span class="phase-t">1&ndash;2 weeks</span>
+      </div>
+      <div class="phase">
+        <span class="phase-id">Phase 1</span>
+        <div><span class="phase-b">Detection baseline</span><div class="phase-d">YOLO11 to TensorRT FP16 then INT8, ByteTrack, experiments E1&ndash;E2. Target: 25&nbsp;fps sustained.</div></div>
+        <span class="phase-t">2&ndash;3 weeks</span>
+      </div>
+      <div class="phase">
+        <span class="phase-id">Phase 2</span>
+        <div><span class="phase-b">Data collection</span><div class="phase-d">The long pole &mdash; runs in parallel from here on. Consent forms, structured flights at three altitudes, 2&ndash;5k labelled frames, split by flight not by frame.</div></div>
+        <span class="phase-t">parallel</span>
+      </div>
+      <div class="phase">
+        <span class="phase-id">Phase 3</span>
+        <div><span class="phase-b">Pose and posture</span><div class="phase-d">Gravity alignment, the custom classifier, temporal smoothing. First genuinely novel result.</div></div>
+        <span class="phase-t">2&ndash;3 weeks</span>
+      </div>
+      <div class="phase">
+        <span class="phase-id">Phase 4</span>
+        <div><span class="phase-b">VLM integration</span><div class="phase-d">Model sweep, action server with bounded queue, trigger logic, JSON schema. Measure the hallucination rate and state it as a number.</div></div>
+        <span class="phase-t">3&ndash;4 weeks</span>
+      </div>
+      <div class="phase">
+        <span class="phase-id">Phase 5</span>
+        <div><span class="phase-b">Triage and geolocation</span><div class="phase-d">Pixel-to-ground projection, cross-pass de-duplication, rule-based flags, the operator map.</div></div>
+        <span class="phase-t">3&ndash;4 weeks</span>
+      </div>
+      <div class="phase">
+        <span class="phase-id">Phase 6</span>
+        <div><span class="phase-b">Field validation</span><div class="phase-d">End-to-end flights with planted volunteers, thermal soak at flight duration, failure behaviour, model card.</div></div>
+        <span class="phase-t">ongoing</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PHOTOS ============ -->
+<section id="photos">
+  <div class="wrap">
+    <div class="sechead">
+      <h2>Photographs this page is waiting on</h2>
+      <p class="lede">
+        Every figure here is drawn, because <code>U-SCAR/assets/</code> is still empty and a
+        published page cannot pull images from anywhere else &mdash; they have to ship with it.
+        These are the seven shots worth taking, and where each one lands.
+      </p>
+    </div>
+
+    <div class="shots">
+      <div class="shot">
+        <span class="shot-n">01</span>
+        <span class="shot-t">The airframe, three-quarter</span>
+        <span class="shot-d">Props on, gimbal visible, plain background. Opens the page.<br><code>assets/airframe.jpg</code></span>
+      </div>
+      <div class="shot">
+        <span class="shot-n">02</span>
+        <span class="shot-t">Orin NX in the bay</span>
+        <span class="shot-d">Shows the thermal and wiring reality &mdash; the constraint half the design comes from.<br><code>assets/jetson-bay.jpg</code></span>
+      </div>
+      <div class="shot">
+        <span class="shot-n">03</span>
+        <span class="shot-t">Camera and gimbal, close</span>
+        <span class="shot-d">With a scale reference. Pairs with the intrinsics discussion.<br><code>assets/gimbal.jpg</code></span>
+      </div>
+      <div class="shot">
+        <span class="shot-n">04</span>
+        <span class="shot-t">Raw aerial frame at 30 m</span>
+        <span class="shot-d">A consented volunteer standing. This replaces the hero illustration.<br><code>assets/frame-30m.jpg</code></span>
+      </div>
+      <div class="shot">
+        <span class="shot-n">05</span>
+        <span class="shot-t">The same scene, prone</span>
+        <span class="shot-d">Side by side with 04 this makes the pixel-height argument in one look.<br><code>assets/frame-30m-prone.jpg</code></span>
+      </div>
+      <div class="shot">
+        <span class="shot-n">06</span>
+        <span class="shot-t">Detector overlay</span>
+        <span class="shot-d">Boxes, 17 keypoints and the torso vector drawn on a real frame.<br><code>assets/overlay-keypoints.jpg</code></span>
+      </div>
+      <div class="shot">
+        <span class="shot-n">07</span>
+        <span class="shot-t">Wiring / system diagram</span>
+        <span class="shot-d">Hand-drawn is fine. Power budget and data paths on one sheet.<br><code>assets/system-diagram.png</code></span>
+      </div>
+      <div class="shot">
+        <span class="shot-n">&mdash;</span>
+        <span class="shot-t">Consent first</span>
+        <span class="shot-d">Anyone appearing in 04&ndash;06 signs the form before the flight, and the form is kept with the dataset.</span>
+      </div>
+    </div>
+
+    <p style="margin-top:22px">
+      Drop them in <code>U-SCAR/assets/</code> and they can be embedded directly. Compress
+      before committing &mdash; and blur faces in anything destined for a poster or paper
+      unless the volunteer consented to that specific use.
+    </p>
+  </div>
+</section>
+
+<!-- ============ LIMITS ============ -->
+<section id="limits">
+  <div class="wrap">
+    <div class="sechead">
+      <h2>What U&#8209;SCAR is not</h2>
+      <p class="lede">
+        This system points a camera and a generative model at injured people. Being precise
+        about its limits is part of the engineering, not paperwork around it.
+      </p>
+    </div>
+
+    <ul class="notlist">
+      <li><span class="x">&times;</span><span><strong>Not a medical device, and not a triage system.</strong> A VLM reporting &ldquo;dark staining on the leg&rdquo; is an observation about pixels, not a finding of haemorrhage. It must never be described otherwise &mdash; not in the UI, not in a paper, not in a demo.</span></li>
+      <li><span class="x">&times;</span><span><strong>Not a decision maker.</strong> Every victim report is a recommendation to a human, who decides what happens next.</span></li>
+      <li><span class="x">&times;</span><span><strong>Not a surveillance tool.</strong> No face recognition, no re-identification across flights, no demographic labelling. Track IDs are per-flight and are not identities. That is a design boundary, not an oversight.</span></li>
+      <li><span class="x">&times;</span><span><strong>Not a guarantee that an area is clear.</strong> A blank map means the system found nothing, which is not the same as nothing being there. The altitude&ndash;recall curve exists so operators know the difference.</span></li>
+      <li><span class="x">&times;</span><span><strong>Not in the flight loop.</strong> The Jetson reads telemetry from MAVROS; it never writes control commands. Enforced in code, so a perception bug can never become a flight safety incident.</span></li>
+    </ul>
+
+    <h3>The triage flag is rule-based, deliberately</h3>
+    <p>
+      The VLM produces observations. The escalation decision is made by explicit rules over
+      structured fields &mdash; for example <code>lying</code> <em>and</em> immobile for more
+      than 60&nbsp;s <em>and</em> a non-empty <code>injury_indicators</code> list raises
+      <span class="pill urgent">urgent</span>. Every flag carries a plain-words reason, so an
+      operator can see why and disagree, behaviour is auditable after an incident, and a model
+      update cannot silently change the escalation policy.
+    </p>
+    <p>
+      Those thresholds are placeholders. They need review by someone with actual
+      search-and-rescue or emergency-medicine experience before any real use.
+    </p>
+
+    <div class="callout caution">
+      <p class="callout-h">Every number on this page is a target</p>
+      <p>
+        No figure here came out of a measurement yet &mdash; the frame rates, latencies and
+        pixel heights are budgets and models, not results. The benchmark plan exists
+        precisely to replace them, and until it does, nothing here belongs in a report as
+        a finding.
+      </p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>
+      U&#8209;SCAR &mdash; AlfaisalX student projects. Companion to the design documents in
+      <code>U-SCAR/docs/</code>. Design phase; no pipeline code written yet.
+    </p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var reduced = false;
+  try {
+    reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch (e) {}
+
+  /* ---------------- pipeline simulation ---------------- */
+
+  var el = function (id) { return document.getElementById(id); };
+
+  var roClock = el("ro-clock"), roFps = el("ro-fps"), roLat = el("ro-lat"),
+      roTracks = el("ro-tracks"), roQueue = el("ro-queue"),
+      rateCam = el("rate-cam"), rateDet = el("rate-det"), rateVlm = el("rate-vlm"),
+      stDet = el("st-det"), stVlm = el("st-vlm"), stGate = el("st-gate"),
+      gateLabel = el("gate-label"),
+      trackState = el("track-state"), tkPosture = el("tk-posture"), tkConf = el("tk-conf"),
+      tkImmobile = el("tk-immobile"), tkPos = el("tk-pos"), tkAlt = el("tk-alt"),
+      vlmState = el("vlm-state"), vlmOut = el("vlm-out"), vlmBar = el("vlm-bar"),
+      btnPlay = el("btn-play"), btnReset = el("btn-reset");
+
+  var LOOP = 24;            // seconds of simulated flight
+  var T_APPEAR = 2.5;       // person enters frame
+  var T_FALL = 9.0;         // posture flips to lying
+  var VLM_DUR = 4.0;        // inference wall time
+
+  var DESC = "An adult in a light shirt lying prone on gravel, left arm extended above " +
+             "the head, no movement observed. Dark staining visible on the right lower leg. " +
+             "Face not visible.";
+
+  var t = 0, playing = !reduced, last = null, raf = null;
+
+  function fmt(n, d) { return n.toFixed(d); }
+
+  function setPill(node, cls, text) {
+    node.className = "pill " + cls;
+    node.textContent = text;
+  }
+
+  function render() {
+    var hasTrack = t >= T_APPEAR;
+    var lying = t >= T_FALL;
+    var immobile = lying ? (t - T_FALL) : 0;
+
+    /* two VLM jobs: one on new track, one on posture change */
+    var j1 = T_APPEAR + 0.5, j2 = T_FALL + 0.3;
+    var busy = null, prog = 0;
+    if (t >= j1 && t < j1 + VLM_DUR)      { busy = 1; prog = (t - j1) / VLM_DUR; }
+    else if (t >= j2 && t < j2 + VLM_DUR) { busy = 2; prog = (t - j2) / VLM_DUR; }
+
+    roClock.textContent = fmt(t, 1).padStart(4, "0");
+    roFps.textContent = hasTrack ? "29.7" : "30.0";
+    roLat.textContent = hasTrack ? (busy ? "24.8" : "21.9") : "18.2";
+    roTracks.textContent = hasTrack ? "1" : "0";
+    roQueue.textContent = busy ? "1" : "0";
+
+    rateCam.textContent = "30 fps · frame " + String(Math.floor(t * 30)).padStart(6, "0");
+    rateDet.textContent = hasTrack
+      ? "30 fps · 1 track · 17 kpts"
+      : "30 fps · no tracks";
+    stDet.className = "stage" + (hasTrack ? " hot" : "");
+
+    /* gate */
+    stGate.className = "conn conn-gate" + (busy ? " open" : "");
+    gateLabel.textContent = busy ? (busy === 1 ? "new track" : "→ lying") : "gate";
+
+    /* track panel */
+    if (!hasTrack) {
+      setPill(trackState, "idle", "no target");
+      tkPosture.textContent = "—"; tkConf.textContent = "—";
+      tkImmobile.textContent = "—"; tkPos.textContent = "—";
+      tkAlt.textContent = "—";
+    } else {
+      tkPosture.textContent = lying ? "LYING" : "STANDING";
+      tkConf.textContent = lying ? "0.91" : "0.96";
+      tkImmobile.textContent = lying ? fmt(immobile, 1) + " s" : "0.0 s";
+      tkPos.textContent = "24.7136 N 46.6753 E";
+      tkAlt.textContent = "32 m · ±4 m";
+      if (lying && immobile > 10) setPill(trackState, "urgent", "review");
+      else if (lying)             setPill(trackState, "warn", "posture change");
+      else                        setPill(trackState, "ok", "tracked");
+    }
+
+    /* vlm panel */
+    if (busy) {
+      setPill(vlmState, "warn", "generating");
+      rateVlm.textContent = "busy · job " + busy + " · ~18 tok/s";
+      stVlm.className = "stage hot";
+      vlmBar.style.width = (prog * 100).toFixed(1) + "%";
+      if (busy === 1) {
+        vlmOut.innerHTML = '<span class="vlm-idle">Reading crop — adult standing, ' +
+          'upright, walking. Nothing of concern.</span><span class="cursor"></span>';
+      } else {
+        var n = Math.floor(DESC.length * Math.min(1, prog * 1.35));
+        vlmOut.innerHTML = escapeHtml(DESC.slice(0, n)) + '<span class="cursor"></span>';
+      }
+    } else {
+      stVlm.className = "stage";
+      vlmBar.style.width = "0%";
+      if (t >= j2 + VLM_DUR) {
+        setPill(vlmState, "urgent", "reported");
+        rateVlm.textContent = "idle · 2 jobs done";
+        vlmOut.innerHTML = escapeHtml(DESC);
+      } else if (t >= j1 + VLM_DUR) {
+        setPill(vlmState, "ok", "clear");
+        rateVlm.textContent = "idle · 1 job done";
+        vlmOut.innerHTML = '<span class="vlm-idle">Adult standing, upright, walking. ' +
+          'Nothing of concern. Sleeping until the next event.</span>';
+      } else {
+        setPill(vlmState, "idle", "idle");
+        rateVlm.textContent = "idle · 0 jobs";
+        vlmOut.innerHTML = '<span class="vlm-idle">Waiting for a trigger. The detector is ' +
+          'running at full rate regardless.</span>';
+      }
+    }
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>]/g, function (c) {
+      return c === "&" ? "&amp;" : c === "<" ? "&lt;" : "&gt;";
+    });
+  }
+
+  function tick(ts) {
+    if (last === null) last = ts;
+    var dt = Math.min(0.1, (ts - last) / 1000);
+    last = ts;
+    if (playing) {
+      t += dt;
+      if (t > LOOP) t = 0;
+      render();
+    }
+    raf = window.requestAnimationFrame(tick);
+  }
+
+  function setFlow(on) {
+    var lines = document.querySelectorAll(".conn:not(.conn-gate) .conn-line");
+    for (var i = 0; i < lines.length; i++) {
+      lines[i].classList.toggle("flowing", on);
+    }
+  }
+
+  btnPlay.addEventListener("click", function () {
+    playing = !playing;
+    btnPlay.textContent = playing ? "Pause" : "Play";
+    setFlow(playing);
+  });
+  btnReset.addEventListener("click", function () {
+    t = 0;
+    if (!playing) { playing = true; btnPlay.textContent = "Pause"; setFlow(true); }
+    render();
+  });
+
+  if (reduced) {
+    /* resting state: the interesting moment, fully rendered */
+    t = T_FALL + VLM_DUR + 1.5;
+    btnPlay.textContent = "Play";
+    setFlow(false);
+    render();
+  } else {
+    render();
+    raf = window.requestAnimationFrame(tick);
+  }
+
+  /* ---------------- bank angle figure ---------------- */
+
+  var bank = el("bank"), bankOut = el("bank-out"), sceneRot = el("scene-rot"),
+      svgBank = el("svg-bank"), svgNaiveA = el("svg-naive-a"), svgNaiveL = el("svg-naive-l"),
+      svgCorrA = el("svg-corr-a");
+
+  function updateBank() {
+    var a = parseInt(bank.value, 10);
+    bankOut.textContent = a + "°";
+    svgBank.textContent = a;
+    sceneRot.setAttribute("transform", "rotate(" + a + " 125 118)");
+    svgNaiveA.textContent = a + "°";
+    svgCorrA.textContent = "0°";
+    var wrong = a > 45;
+    svgNaiveL.textContent = wrong ? "→ LYING  (false alarm)" : "→ STANDING";
+    svgNaiveL.setAttribute("fill", wrong ? "#B03227" : "#24704A");
+    svgNaiveA.setAttribute("fill", wrong ? "#B03227" : "#24704A");
+  }
+  bank.addEventListener("input", updateBank);
+  updateBank();
+
+  /* ---------------- altitude figure ---------------- */
+
+  var alt = el("alt"), altOut = el("alt-out"),
+      pxStand = el("px-stand"), pxProne = el("px-prone"),
+      sStand = el("s-stand"), sProne = el("s-prone"),
+      vStand = el("v-stand"), vProne = el("v-prone"),
+      dotStand = el("dot-stand"), dotProne = el("dot-prone"), scrub = el("scrub");
+
+  var FOCAL = 1124;        // px, from 1920 px across 81 deg HFOV (SIYI A8 mini)
+  var H_STAND = 1.7, H_PRONE = 0.45, FLOOR = 20;
+
+  function pxAt(h, a) { return FOCAL * h / a; }
+  function xAt(a) { return 52 + (a - 20) / 40 * 548; }
+  function yAt(px) { return 180 - Math.min(px, 100) / 100 * 160; }
+
+  function buildCurve(h) {
+    var d = "", a;
+    for (a = 20; a <= 60; a += 1) {
+      d += (a === 20 ? "M " : "L ") + xAt(a).toFixed(1) + " " + yAt(pxAt(h, a)).toFixed(1) + " ";
+    }
+    return d.trim();
+  }
+  el("curve-stand").setAttribute("d", buildCurve(H_STAND));
+  el("curve-prone").setAttribute("d", buildCurve(H_PRONE));
+
+  function updateAlt() {
+    var a = parseInt(alt.value, 10);
+    altOut.textContent = a + " m";
+
+    var ps = pxAt(H_STAND, a), pp = pxAt(H_PRONE, a);
+    pxStand.textContent = Math.round(ps);
+    pxProne.textContent = Math.round(pp);
+
+    dotStand.setAttribute("cx", xAt(a).toFixed(1));
+    dotStand.setAttribute("cy", yAt(ps).toFixed(1));
+    dotProne.setAttribute("cx", xAt(a).toFixed(1));
+    dotProne.setAttribute("cy", yAt(pp).toFixed(1));
+    scrub.setAttribute("x1", xAt(a).toFixed(1));
+    scrub.setAttribute("x2", xAt(a).toFixed(1));
+
+    el("swath").textContent = Math.round(2 * a * Math.tan(40.5 * Math.PI / 180));
+
+    vStand.className = "verdict " + (ps >= FLOOR ? "good" : "bad");
+    vProne.className = "verdict " + (pp >= FLOOR ? "good" : "bad");
+    sStand.textContent = ps >= FLOOR ? "above the floor" : "below the floor — likely missed";
+    sProne.textContent = pp >= FLOOR ? "above the floor" : "below the floor — likely missed";
+  }
+  alt.addEventListener("input", updateAlt);
+  updateAlt();
+})();
+</script>

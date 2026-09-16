@@ -4,7 +4,7 @@ This repository is a shared home for student projects at AlfaisalX. Each project
 
 ## Projects
 
-- [`U-SCAR/`](./U-SCAR) — Quadcopter UAV project: drone platform with camera/gimbal integration and a Jetson Orin Nano-based AI vision pipeline for object detection and tracking.
+- [`U-SCAR/`](./U-SCAR) — Search-and-rescue quadcopter: a Jetson Orin NX onboard pipeline (YOLO detection + pose, a vision-language model, ROS 2) that finds people from the air and reports their location, posture and visible signs of injury to a ground operator.
 
 More projects will be added here over time, each in its own folder with its own README.
 
