@@ -19,6 +19,7 @@ the **Jetson Orin NX** carried by the drone.
 | 06 | [Benchmark plan](./06-benchmark-plan.md) | What we measure, how, and the numbers we must hit |
 | 07 | [Roadmap](./07-roadmap.md) | Phases, milestones, definition of done |
 | 08 | [Limitations & safety](./08-limitations-and-safety.md) | What this system is not, human-in-the-loop, privacy |
+| 09 | [Jetson environment](./09-jetson-environment.md) | Venv, PEP 668, CUDA torch, board commands |
 
 ## The short version
 

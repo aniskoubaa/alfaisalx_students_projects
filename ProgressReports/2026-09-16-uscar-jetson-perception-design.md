@@ -227,6 +227,12 @@ wiring mistake trips the supply instead of destroying the camera.
 
 Steps 5–8 need no camera and can start immediately.
 
+**Python environment:** the project venv is **`~/raptor-venv`**, created with
+`python3 -m venv --system-site-packages ~/raptor-venv`. The flag is mandatory — JetPack's
+CUDA PyTorch, TensorRT and OpenCV live in the system site-packages and cannot be reinstalled
+from PyPI on aarch64, so a sealed venv silently loses GPU acceleration. Details in
+[`docs/09-jetson-environment.md`](../U-SCAR/docs/09-jetson-environment.md).
+
 **Start data collection planning in parallel.** It is the long pole for Phases 3–5: the
 consent form, the flight plan across three altitudes and three lighting conditions, and the
 labelling workflow all take longer than the code.

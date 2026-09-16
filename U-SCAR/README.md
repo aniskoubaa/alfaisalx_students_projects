@@ -39,6 +39,7 @@ Full design docs, with the rationale behind every model choice, are in
 | 06 | [Benchmark plan](./docs/06-benchmark-plan.md) — what we measure and how |
 | 07 | [Roadmap](./docs/07-roadmap.md) — phases and milestones |
 | 08 | [Limitations & safety](./docs/08-limitations-and-safety.md) — what this is not |
+| 09 | [Jetson environment](./docs/09-jetson-environment.md) — venv, PEP 668, CUDA torch, board commands |
 
 Start with [`docs/README.md`](./docs/README.md) for the short version.
 
