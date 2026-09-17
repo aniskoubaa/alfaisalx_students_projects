@@ -41,7 +41,7 @@ install. Reflashing costs an afternoon.
 |---|---|
 | Venv activation | `source ~/raptor-venv/bin/activate` |
 | `jetson_clocks` | `sudo jetson_clocks` — never persists, by design |
-| Static IP for the camera | `sudo ip addr add 192.168.144.30/24 dev eth0`, or a netplan entry |
+| Serial port permissions | `sudo usermod -aG dialout $USER` once, then log out and back in |
 
 `nvpmodel -m 0` **does** persist — the power mode is saved across reboots.
 
@@ -52,7 +52,7 @@ Back-to-work sequence after a reboot:
 
 ```bash
 source ~/raptor-venv/bin/activate
-sudo ip addr add 192.168.144.30/24 dev eth0
+v4l2-ctl --list-devices                # confirm the capture card came back
 sudo jetson_clocks                     # benchmarking runs only
 ```
 
@@ -161,16 +161,33 @@ sudo fuser -v /dev/video0        # what is holding a video device
 
 The last two are the ones that save time when the camera stream will not open.
 
-## Networking for the camera
+## Camera capture over HDMI
+
+The camera reaches the Jetson through **micro-HDMI into a USB capture card**, not over the
+network. The card should appear as a standard UVC device:
 
 ```bash
-sudo ip addr add 192.168.144.30/24 dev eth0
-ping 192.168.144.25
+lsusb
+lsusb -t                                      # check the link speed is 5000M (USB 3.0)
+v4l2-ctl --list-devices
+v4l2-ctl -d /dev/video0 --list-formats-ext    # confirm 1920x1080 and the pixel format
 ```
 
-`.30` is SIYI's own documented example for a host on this subnet. Avoid `.20`, which SIYI
-reserves for its handheld ground station. Full harness detail in
-[`raptor-wiring-map.html`](./raptor-wiring-map.html).
+Then a quick look before involving ROS:
 
-Note this `ip addr add` does not survive a reboot. Make it permanent with a netplan entry
-once the bring-up is stable.
+```bash
+ffplay /dev/video0
+```
+
+**The camera must be told to output HDMI first.** Video output mode is set in SIYI Assistant
+on a Windows PC, under Gimbal Config. Out of the box it may be on Ethernet, in which case the
+HDMI port is silent and the capture card shows no signal.
+
+**Watch the USB link speed.** Uncompressed 1080p30 needs USB 3.0. On a USB 2.0 port the card
+will quietly fall back to MJPEG, a lower frame rate, or 720p rather than reporting an error —
+so read `lsusb -t`, do not just confirm the device exists.
+
+The camera's Ethernet port now feeds the **video transmitter** for the ground downlink, so the
+Jetson no longer needs an address on the `192.168.144.x` subnet for video. It does still need
+a serial link to the camera for **gimbal control over UART**. Full harness detail in
+[`raptor-wiring-map.html`](./raptor-wiring-map.html).

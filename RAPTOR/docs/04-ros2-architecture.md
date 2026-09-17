@@ -30,9 +30,9 @@ Isaac ROS target it.
 ```
  ┌────────────────┐   sensor_msgs/Image        ┌─────────────────────┐
  │ camera_node    │───/raptor/image_raw────────>│ detector_node       │
- │ (argus/v4l2/   │                            │  YOLO11-pose (TRT)  │
- │  gscam/rtsp)   │                            │  ByteTrack          │
- └────────────────┘                            │  posture classifier │
+ │ v4l2 /dev/     │                            │  YOLO11-pose (TRT)  │
+ │ video0 via     │                            │  ByteTrack          │
+ │ HDMI capture   │                            │  posture classifier │
                                                └──────┬──────────────┘
                                                       │
               /raptor/tracks  (raptor_msgs/TrackArray)  │
@@ -65,11 +65,30 @@ Publishes `sensor_msgs/Image` (or `CompressedImage` for the downlink) plus
 `sensor_msgs/CameraInfo` with real calibrated intrinsics. **Calibrate the camera
 properly** — geolocation accuracy depends directly on it.
 
-Implementation depends on the camera interface (open question in [the index](./README.md)):
-- CSI/MIPI → `isaac_ros_argus_camera` or a gstreamer/`nvarguscamerasrc` pipeline. Best
-  case: frames stay in GPU memory end to end.
-- USB UVC → `usb_cam` / `v4l2_camera`.
-- IP camera / RTSP → `gscam` with an `nvv4l2decoder` pipeline so decoding is hardware-accelerated.
+**Interface: micro-HDMI out of the A8 mini into a USB capture card.** The card presents
+itself to the Jetson as a standard UVC device, so the node is `v4l2_camera` or `usb_cam`
+reading `/dev/video0` — or a gstreamer pipeline via `gscam` if we need format control.
+
+```bash
+v4l2-ctl --list-devices
+v4l2-ctl -d /dev/video0 --list-formats-ext    # confirm 1920x1080 and the pixel format
+```
+
+Three things this interface costs us, all of which belong in the benchmark plan:
+
+- **USB bandwidth.** Uncompressed 1080p30 YUYV is roughly 62 MB/s and needs **USB 3.0**. A
+  USB 2.0 card will silently fall back to MJPEG, a lower frame rate, or 720p. Check
+  `lsusb -t` for the link speed, not just that the device appears.
+- **Frames arrive CPU-side.** The RTSP path could hardware-decode straight into GPU memory
+  with `nvv4l2decoder`. A capture card hands us host-memory buffers, so there is a copy to
+  the GPU on every frame. Measure it; consider `nvvidconv` early in the pipeline.
+- **The card adds its own latency**, typically tens to well over a hundred milliseconds on
+  cheap hardware, and it is invisible unless deliberately measured.
+
+The camera’s Ethernet port now feeds a **video transmitter** for the ground downlink, not the
+Jetson. That means the operator sees the camera directly rather than a stream relayed by the
+Jetson — good for link robustness, but the ground picture no longer carries our detection
+overlays unless we send them separately over telemetry.
 
 QoS: `SensorDataQoS` (best-effort, depth 1). Dropping a frame is always better than
 queueing stale ones.
@@ -85,6 +104,16 @@ Publishes:
 - `/raptor/image_annotated` — optional, throttled to ~5 Hz, for the operator view only
 
 Must hold its frame budget regardless of what any other node is doing.
+
+### `gimbal_node`
+Drives the A8 mini over **UART** using the SIYI SDK (UDP is unavailable now that the camera's
+Ethernet port feeds the transmitter). Subscribes to a target from the tracker and commands
+pitch/yaw to keep a selected person centred; publishes measured gimbal attitude, which the
+aggregator needs for pixel-to-ground projection.
+
+Keep this node separate from `detector_node` so a stuck serial port cannot stall perception,
+and make it the **single** authority on gimbal pointing — if the optional Pixhawk UART is also
+wired, the flight controller supplies attitude data only and must not issue pointing commands.
 
 ### `vlm_node`
 An **action server**, not a topic subscriber — descriptions are long-running tasks that

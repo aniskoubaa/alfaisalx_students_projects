@@ -593,6 +593,7 @@
     <div class="spec"><dt>Middleware</dt><dd>ROS 2 Humble</dd></div>
     <div class="spec"><dt>Detector</dt><dd>YOLO11 &middot; INT8 TRT</dd></div>
     <div class="spec"><dt>Describer</dt><dd>3B VLM &middot; INT4</dd></div>
+    <div class="spec"><dt>Capture</dt><dd>HDMI &rarr; UVC</dd></div>
     <div class="spec"><dt>Link</dt><dd>Not required</dd></div>
   </dl>
 
@@ -703,7 +704,7 @@
         <div class="stage hot" id="st-cam">
           <span class="stage-tag">Source</span>
           <span class="stage-name">Gimbal camera</span>
-          <span class="stage-note">1920&times;1080 frames straight into GPU memory.</span>
+          <span class="stage-note">1080p over micro-HDMI into a USB capture card, as <code>/dev/video0</code>.</span>
           <span class="stage-rate" id="rate-cam">30 fps &middot; frame 000000</span>
         </div>
 

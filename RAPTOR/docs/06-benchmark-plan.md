@@ -59,11 +59,31 @@ of ~1124 px across a 1920 px frame. The geometric prediction is therefore:
 Against a practical detection floor of ~20 px, **a prone casualty falls below it at roughly
 25 m**. If that holds in measurement it is the single most important operational number this
 project produces — and it argues for flying lower than the coverage-optimal altitude, or for
-tiled inference (E4). Confirm against the *streamed* resolution, which may be below 1920 px.
+tiled inference (E4). **Confirmed from the manual:** any live output from the A8 mini — Ethernet, HDMI or CVBS —
+is **1080p maximum**; 4K exists only for SD-card recording. So 1920 px is the correct basis
+for this table, and the 4K figure must not be used for detection planning.
 
 Deliverable: an **operational recommendation** — "search at <= X m for reliable detection
 of prone casualties". This is one of the most useful outputs of the whole project and
 costs only flight time.
+
+### E3b — Capture-card characterisation
+New with the HDMI capture path, and easy to forget because the card “just works”.
+
+Measure:
+- **Negotiated format and rate.** `v4l2-ctl -d /dev/video0 --list-formats-ext`, and
+  `lsusb -t` for the actual USB link speed. A USB 2.0 card silently degrades to MJPEG,
+  720p or a lower frame rate rather than failing.
+- **Glass-to-`/dev/video0` latency.** Point the camera at a millisecond timer on a monitor,
+  capture a frame, and compare. Cheap cards add tens to well over a hundred milliseconds,
+  and nothing else in the pipeline will reveal it.
+- **Dropped frames** over a 20-minute run, and whether the drop rate rises as the card warms.
+- **CPU cost of the host-to-GPU copy**, since capture-card frames arrive in host memory
+  rather than GPU memory as the RTSP path would have delivered them.
+- **MJPEG vs YUYV**, if the card offers both: YUYV costs USB bandwidth, MJPEG costs a decode.
+
+Deliverable: a decision on whether the HDMI path is good enough, or whether video should go
+back over Ethernet with the downlink fed some other way.
 
 ### E4 — Tiled (SAHI-style) inference
 Full-frame vs. 2x2 and 3x3 overlapping tiles. Measure the recall gain on small/prone

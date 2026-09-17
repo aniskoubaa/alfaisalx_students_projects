@@ -42,7 +42,7 @@ currently blocked only on a 12 V bench power supply for the camera.
 | Flight controller | **Pixhawk 6C** | Stated by team |
 | Camera | **SIYI A8 mini 4K**, 3-axis gimbal, 95 g | Stated by team |
 | Camera optics | Sony 1/1.7″ 8 MP, f/2.8, **81° H / 93° D FOV** | A8 mini User Manual v1.10 |
-| Camera video path | **RTSP over Ethernet** — `rtsp://192.168.144.25:8554/video1` | Manual v1.10, p.62 |
+| Camera video path | RTSP over Ethernet *(superseded 2026-09-17 — see section 9)* | Manual v1.10, p.62 |
 | Camera power | **11–25.2 V (3S–6S)**, 5 W avg / 12 W peak | Manual v1.10, p.16 |
 | Camera USB-C | **Firmware upgrade only** — not power, not video | Manual + empty `dmesg` on the Jetson |
 | Gimbal control | SIYI SDK over UDP, same Ethernet link | Manual v1.10 |
@@ -274,7 +274,33 @@ sequence in [`docs/09-jetson-environment.md`](../RAPTOR/docs/09-jetson-environme
 
 ---
 
-## 9. Scope boundary
+## 9. Addendum — 2026-09-17: video path changed
+
+The camera-to-Jetson link was changed from Ethernet/RTSP to **micro-HDMI through a USB capture card**, freeing the camera's Ethernet port to feed a **video transmitter** for the operator downlink.
+
+```
+A8 mini micro-HDMI --> USB capture card --> Jetson      [perception video]
+A8 mini Ethernet   --> video transmitter --> operator   [downlink]
+A8 mini UART       --> Jetson serial                    [gimbal control]
+```
+
+**What this buys.** The operator sees the camera directly rather than a stream relayed by the Jetson, so a Jetson fault no longer blinds them. Capture is also simpler to bring up: a UVC device at `/dev/video0` with no network configuration.
+
+**What it costs.**
+
+- **Gimbal control had to move to UART.** It previously shared the Ethernet link. The A8 mini supports the SIYI SDK over UART, so this works, but it is a wiring change.
+- **Frames now arrive in host memory.** The RTSP path could hardware-decode straight into GPU memory via `nvv4l2decoder`; a capture card forces a host-to-GPU copy every frame.
+- **The card adds its own latency**, typically tens to well over a hundred milliseconds, invisible unless deliberately measured. Experiment E3b was added to the benchmark plan.
+- **USB 3.0 is required.** Uncompressed 1080p30 is about 62 MB/s; a USB 2.0 port silently degrades to MJPEG, 720p or a lower frame rate rather than failing.
+- **The ground picture carries no detection overlays**, since it bypasses the Jetson.
+
+**Unresolved risk.** The manual describes video output as a switchable mode — “switch video output mode to HDMI under the Gimbal Config page”. If enabling HDMI disables the Ethernet stream, this split harness is not possible. **Verify on the bench before buying a capture card or transmitter.**
+
+**Also confirmed from the manual:** any live output from the A8 mini — Ethernet, HDMI or CVBS — is **1080p maximum**. The 4K figure applies only to SD-card recording, so 1920 px remains the correct basis for the altitude table in section 4.
+
+---
+
+## 10. Scope boundary
 
 RAPTOR **perceives and reports**. It does not fly the aircraft, plan paths, or command the
 flight controller — the Jetson reads telemetry from MAVROS and never writes control commands.

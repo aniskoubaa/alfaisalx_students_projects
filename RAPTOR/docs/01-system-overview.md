@@ -29,10 +29,26 @@ own** — see [08 — Limitations & safety](./08-limitations-and-safety.md).
 | Companion computer | **Jetson Orin NX 16 GB** (confirmed 2026-09-16) |
 | Camera | **SIYI A8 mini 4K**, 3-axis gimbal, 95 g |
 | Camera optics | Sony 1/1.7″ 8 MP, f/2.8, **81° horizontal / 93° diagonal FOV** |
-| Camera video | **RTSP over Ethernet** — `rtsp://192.168.144.25:8554/video1` |
+| Camera video — onboard | **Micro-HDMI → USB capture card → Jetson**, appearing as `/dev/video0` |
+| Camera video — downlink | **Ethernet → video transmitter → ground station** |
 | Camera power | 11–25.2 V (3S–6S), 5 W average / 12 W peak, own branch off the battery |
-| Gimbal control | SIYI SDK over UDP on the same Ethernet link (keeps it off the Pixhawk) |
-| Link | Telemetry + video downlink to ground station |
+| Gimbal control | **SIYI SDK over UART** to the Jetson (the Ethernet port is taken by the transmitter) |
+| Stream resolution | **1080p maximum** for any live output; 4K is SD-card recording only |
+| Link | Telemetry to the Jetson; video downlink direct from the camera |
+
+### Two things to verify before committing to this
+
+1. **Can HDMI and Ethernet video run at the same time?** The manual describes the video
+   output port as a *switch* (“switch video output mode to HDMI under the Gimbal Config
+   page”, and “HDMI / CVBS video output is changed to dynamic switch”). If selecting HDMI
+   disables the Ethernet RTSP stream, the split architecture above does not work and we
+   must either keep everything on Ethernet through a switch, or accept a downlink fed from
+   the Jetson instead of the camera. **Test this first — it is cheap and it decides the
+   whole harness.**
+2. **Gimbal control has moved to UART.** It previously shared the Ethernet link with video.
+   With Ethernet handed to the transmitter, the Jetson must drive the gimbal over the
+   camera’s UART control port instead. The A8 mini supports the SIYI SDK over UART, so this
+   works — but it is a wiring change, not a free swap.
 
 Full harness wiring, including the four ways to damage hardware, is in
 [`raptor-wiring-map.html`](./raptor-wiring-map.html).
@@ -78,7 +94,10 @@ less memory, fewer TOPS. If we own one, it becomes the dev/bench board and the
 
 ```
                     ┌──────────────────────────────────────────────┐
-  Camera ──────────>│ capture node        (30 FPS, GPU-resident)   │
+  Camera ──HDMI────>│ capture node   (USB capture card, /dev/video0)│
+   (also Ethernet   │                                              │
+    → video TX      │                                              │
+    → ground)       │                                              │
                     └───────────────┬──────────────────────────────┘
                                     │ image
                     ┌───────────────▼──────────────────────────────┐

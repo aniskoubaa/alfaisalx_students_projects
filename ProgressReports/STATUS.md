@@ -34,9 +34,26 @@ Jetson has started. No pipeline code written yet, and the camera has never been 
 
 - [ ] Flash / verify JetPack 6.x; record CUDA, TensorRT, cuDNN versions
 - [ ] Install ROS 2 Humble
-- [ ] Camera node publishing `/raptor/image_raw`
+- [ ] Camera node publishing `/raptor/image_raw` (from `/dev/video0`)
 - [ ] MAVROS link to the Pixhawk 6C
 - [ ] First rosbag recorded and replayed — **this is the Phase 0 finish line**
+
+---
+
+## Architecture change — 2026-09-17
+
+Video no longer reaches the Jetson over Ethernet. The new topology is:
+
+```
+A8 mini micro-HDMI --> USB capture card --> Jetson      [perception video, /dev/video0]
+A8 mini Ethernet   --> video transmitter --> operator   [downlink, no overlays]
+A8 mini UART       --> Jetson serial                    [gimbal control, SIYI SDK]
+Pixhawk 6C TELEM1  --> Jetson                           [MAVLink / MAVROS, read-only]
+```
+
+**This must be validated before any hardware is bought.** The manual describes the camera's video output as a switchable mode, so HDMI and Ethernet video may be mutually exclusive. If they are, this harness is impossible. Test on the bench: enable HDMI, confirm the capture card sees a picture, then check whether the RTSP URL still opens.
+
+Two consequences already accounted for in the docs: gimbal control moved from UDP to UART, and the capture card introduces latency plus a host-to-GPU copy on every frame that the RTSP path did not have.
 
 ---
 
@@ -100,9 +117,11 @@ That is the FP16 PyTorch baseline for experiment E1. **It has not been measured 
 | Companion computer | Jetson Orin NX **16 GB** | In hand, booting |
 | Flight controller | Pixhawk 6C | In hand, not yet linked to the Jetson |
 | Camera | SIYI A8 mini 4K, 81° H FOV | In hand, **never powered** |
-| Camera video | `rtsp://192.168.144.25:8554/video1` | Untested |
+| Camera video (onboard) | micro-HDMI to USB capture card | **Card not yet acquired** |
+| Camera video (downlink) | Ethernet to video transmitter | **Transmitter not yet acquired** |
+| Gimbal control | SIYI SDK over UART to the Jetson | Not wired |
 | Camera power | 11–25.2 V (3S–6S), 5 W avg / 12 W peak | **Blocked — no supply yet** |
-| Jetson network | `192.168.144.30/24` on `eth0` | Not configured |
+| Jetson video input | `/dev/video0` via USB 3.0 | Not configured |
 
 Full harness: [`RAPTOR/docs/raptor-wiring-map.html`](../RAPTOR/docs/raptor-wiring-map.html)
 
@@ -114,8 +133,8 @@ Full harness: [`RAPTOR/docs/raptor-wiring-map.html`](../RAPTOR/docs/raptor-wirin
 |---|---|---|
 | 1 | Which **carrier board** is the Orin NX on? | Regulator voltage — 5 V, 12 V or 19 V |
 | 2 | **ArduPilot or PX4** on the Pixhawk 6C? | Optional gimbal UART parameters |
-| 3 | Actual **streamed** resolution and frame rate over RTSP | Altitude table; detector input sizing |
-| 4 | H.264 or H.265 on the stream? | GStreamer pipeline elements |
+| 3 | **Can HDMI and Ethernet video run simultaneously?** | The whole split-video harness |
+| 4 | What resolution/format does the capture card negotiate? | Detector input sizing |
 | 5 | Is **AGPL-3.0** (Ultralytics) acceptable for this project? | Whether we build on YOLO11 at all |
 | 6 | Rename `jetson_orin_nano_benchmarks/`? | Flight computer is an NX |
 
