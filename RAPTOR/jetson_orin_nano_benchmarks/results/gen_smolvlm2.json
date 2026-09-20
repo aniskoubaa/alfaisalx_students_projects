@@ -1,0 +1,69 @@
+{
+  "model": "SmolVLM2-2.2B-Instruct",
+  "generations": [
+    {
+      "crop": "crop_000_385px.jpg",
+      "ttft_s": 1.006,
+      "total_s": 11.082,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": " {\n    \"appearance\": {\n        \"gender\": \"female\",\n        \"age\": \"20-29\",\n        \"race\": \"Asian\",\n        \"hair_color\": \"brown\",\n        \"hair_length\": \"short\",\n        \"eye_color\": \"brown\",\n        \"skin_tone\": \"dark\",\n        \"body_type\": \"athletic\",\n        \"accessories\": [\n            {\n                \"name\": \"hair_accessory\",\n                \"description\": \"ponytail\"\n            },\n            {\n                \"name\": \"accessory\",\n                \"description\": \"backpack\"\n            }\n        ]\n    },\n    \"body_position\": {\n        \"facing\": \"right\",\n        \"position\": \"walking\",\n        \"direction\": \"right\",\n       "
+    },
+    {
+      "crop": "crop_001_268px.jpg",
+      "ttft_s": 1.005,
+      "total_s": 11.046,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": " {\n  \"appearance\": {\n    \"name\": \"person\",\n    \"age\": \"unknown\",\n    \"gender\": \"unknown\",\n    \"race\": \"unknown\",\n    \"height\": \"unknown\",\n    \"weight\": \"unknown\",\n    \"eye_color\": \"unknown\",\n    \"hair_color\": \"unknown\",\n    \"hair_length\": \"unknown\",\n    \"hair_texture\": \"unknown\",\n    \"skin_tone\": \"unknown\",\n    \"body_type\": \"unknown\",\n    \"body_shape\": \"unknown\",\n    \"body_size\": \"unknown\",\n    \"body_part\": \"unknown\",\n    \"body_position\": \"unknown\",\n    \"body_orientation\": \"unknown\",\n    \"body_direction\": \"unknown\",\n    \""
+    },
+    {
+      "crop": "crop_002_247px.jpg",
+      "ttft_s": 1.008,
+      "total_s": 11.065,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": " {\n  \"appearance\": {\n    \"gender\": \"female\",\n    \"age\": \"20-29\",\n    \"race\": \"Asian\",\n    \"hair_color\": \"brown\",\n    \"hair_length\": \"long\",\n    \"eye_color\": \"brown\",\n    \"skin_tone\": \"dark\",\n    \"body_type\": \"athletic\",\n    \"complexion\": \"fair\",\n    \"hair_style\": \"long\",\n    \"hair_length\": \"long\",\n    \"hair_color\": \"brown\",\n    \"eye_color\": \"brown\",\n    \"eye_shape\": \"oval\",\n    \"face_shape\": \"oval\",\n    \"jawline\": \"strong\",\n    \"cheek_bones\": \"prominent\","
+    },
+    {
+      "crop": "crop_003_174px.jpg",
+      "ttft_s": 1.438,
+      "total_s": 11.499,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": " {\n    \"appearance\": {\n        \"gender\": \"female\",\n        \"age\": \"20-29\",\n        \"race\": \"Asian\",\n        \"hair_color\": \"black\",\n        \"eye_color\": \"brown\",\n        \"skin_tone\": \"dark\",\n        \"hair_length\": \"short\",\n        \"hair_style\": \"straight\",\n        \"body_type\": \"athletic\",\n        \"body_build\": \"average\",\n        \"accessories\": \"white sandals\",\n        \"clothing\": \"white t-shirt with blue and purple designs, blue jeans, white sandals\",\n        \"accessories_2\": \"pink backpack\",\n        \"accessories_3\": \"pink hair tie\"\n    },\n    \"body"
+    },
+    {
+      "crop": "crop_004_236px.jpg",
+      "ttft_s": 1.008,
+      "total_s": 11.06,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": " {\n  \"appearance\": {\n    \"gender\": \"female\",\n    \"age\": \"20-29\",\n    \"race\": \"Asian\",\n    \"hair_color\": \"brown\",\n    \"hair_length\": \"short\",\n    \"eye_color\": \"brown\",\n    \"skin_tone\": \"dark\",\n    \"body_type\": \"athletic\",\n    \"accessories\": [\n      {\n        \"name\": \"backpack\",\n        \"color\": \"green\",\n        \"pattern\": \"red\",\n        \"size\": \"large\"\n      },\n      {\n        \"name\": \"shoes\",\n        \"color\": \"red\",\n        \"type\": \"sneakers\",\n        \"size\": \"large\"\n      }\n    ]\n  },\n  \"body_"
+    },
+    {
+      "crop": "crop_005_168px.jpg",
+      "ttft_s": 1.391,
+      "total_s": 11.45,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": " {\n    \"appearance\": {\n        \"name\": \"person\",\n        \"age\": \"30\",\n        \"gender\": \"male\",\n        \"race\": \"Asian\",\n        \"height\": \"175 cm\",\n        \"weight\": \"70 kg\",\n        \"eye_color\": \"brown\",\n        \"hair_color\": \"black\",\n        \"hair_length\": \"short\",\n        \"hair_style\": \"short\",\n        \"beard_style\": \"none\",\n        \"beard_length\": \"none\",\n        \"beard_color\": \"none\",\n        \"skin_tone\": \"light\",\n        \"complexion\": \"fair\",\n        \"body_type\": \"athletic\",\n        \"body_shape\": \"hourglass\",\n        \""
+    },
+    {
+      "crop": "crop_006_188px.jpg",
+      "ttft_s": 1.407,
+      "total_s": 11.443,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": " {\n    \"appearance\": {\n        \"name\": \"person\",\n        \"age\": \"30\",\n        \"gender\": \"male\",\n        \"race\": \"Asian\",\n        \"height\": \"175 cm\",\n        \"weight\": \"70 kg\",\n        \"eye_color\": \"brown\",\n        \"hair_color\": \"black\",\n        \"hair_length\": \"short\",\n        \"hair_style\": \"short\",\n        \"beard_style\": \"none\",\n        \"beard_length\": \"none\",\n        \"face_shape\": \"oval\",\n        \"jawline\": \"strong\",\n        \"chin\": \"pointed\",\n        \"nose\": \"medium\",\n        \"mouth\": \"small\",\n        \"ears\": \"small\",\n        \""
+    },
+    {
+      "crop": "crop_007_205px.jpg",
+      "ttft_s": 1.016,
+      "total_s": 11.065,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": " {\n    \"appearance\": {\n        \"gender\": \"female\",\n        \"age\": \"unknown\",\n        \"race\": \"unknown\",\n        \"hair_color\": \"unknown\",\n        \"hair_length\": \"unknown\",\n        \"eye_color\": \"unknown\",\n        \"skin_tone\": \"unknown\",\n        \"body_type\": \"unknown\",\n        \"body_shape\": \"unknown\",\n        \"complexion\": \"unknown\",\n        \"hair_style\": \"unknown\",\n        \"hair_length_style\": \"unknown\",\n        \"hair_color_style\": \"unknown\",\n        \"body_type_style\": \"unknown\",\n        \"body_shape_style\": \"unknown\",\n        \"complexion_style\": \"unknown\",\n        \"complexion_color\":"
+    }
+  ]
+}

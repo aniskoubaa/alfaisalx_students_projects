@@ -124,6 +124,7 @@ That is the FP16 PyTorch baseline for experiment E1. **It has not been measured 
 | Jetson video input | `/dev/video0` via USB 3.0 | Not configured |
 
 Full harness: [`RAPTOR/docs/raptor-wiring-map.html`](../RAPTOR/docs/raptor-wiring-map.html)
+3D build view, to scale: [`RAPTOR/docs/raptor-build-view.html`](../RAPTOR/docs/raptor-build-view.html)
 
 ---
 

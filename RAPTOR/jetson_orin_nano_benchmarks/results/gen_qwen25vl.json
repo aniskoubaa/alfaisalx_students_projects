@@ -1,0 +1,69 @@
+{
+  "model": "Qwen2.5-VL-3B-Instruct",
+  "generations": [
+    {
+      "crop": "crop_000_385px.jpg",
+      "ttft_s": 1.184,
+      "total_s": 12.602,
+      "tokens": 118,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"brown\",\n    \"clothing\": {\n      \"top\": \"striped\",\n      \"bottom\": \"red\"\n    }\n  },\n  \"body_position\": {\n    \"posture\": \"standing\",\n    \"orientation\": \"backwards\"\n  },\n  \"surroundings\": {\n    \"ground\": \"brick-paved\",\n    \"vehicle\": \"black car\"\n  },\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.9,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_001_268px.jpg",
+      "ttft_s": 0.758,
+      "total_s": 11.659,
+      "tokens": 112,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"blonde\",\n    \"clothing\": {\n      \"top\": \"gray\",\n      \"bottom\": \"black\"\n    }\n  },\n  \"body_position\": {\n    \"posture\": \"standing\",\n    \"location\": \"left side of frame\"\n  },\n  \"surroundings\": {\n    \"ground\": \"gray pavement\"\n  },\n  \"injury_indicators\": [],\n  \"signalling\": {},\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_002_247px.jpg",
+      "ttft_s": 0.64,
+      "total_s": 13.428,
+      "tokens": 132,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"short\",\n    \"clothing\": {\n      \"top\": \"striped shirt\",\n      \"bottom\": \"red pants\"\n    }\n  },\n  \"body_position\": {\n    \"posture\": \"standing\",\n    \"location\": \"sideways on sidewalk\"\n  },\n  \"surroundings\": {\n    \"ground\": \"brick-paved sidewalk\",\n    \"background\": \"green and red objects, possibly kites or banners\"\n  },\n  \"injury_indicators\": [],\n  \"signalling\": \"\",\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_003_174px.jpg",
+      "ttft_s": 0.556,
+      "total_s": 12.347,
+      "tokens": 122,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"black\",\n    \"clothing\": \"white shirt and dark pants\"\n  },\n  \"body_position\": {\n    \"posture\": \"sitting\",\n    \"location\": \"on a chair\"\n  },\n  \"surroundings\": {\n    \"ground\": \"concrete pavement\",\n    \"background\": \"tile pattern on the ground\"\n  },\n  \"injury_indicators\": [\n    \"slippery shoes\"\n  ],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_004_236px.jpg",
+      "ttft_s": 0.637,
+      "total_s": 14.692,
+      "tokens": 145,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"brown\",\n    \"clothing\": {\n      \"top\": \"white\",\n      \"bottom\": \"red\"\n    },\n    \"accessories\": {\n      \"backpack\": \"colorful patterned\"\n    }\n  },\n  \"body_position\": {\n    \"standing\": true,\n    \"posture\": \"neutral\"\n  },\n  \"surroundings\": {\n    \"ground\": \"paved\",\n    \"objects\": [\n      \"pedestrian\",\n      \"bike handlebar\"\n    ]\n  },\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_005_168px.jpg",
+      "ttft_s": 0.477,
+      "total_s": 15.879,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"short\",\n    \"clothing\": {\n      \"shirt\": \"white\",\n      \"pants\": \"blue\",\n      \"shoes\": \"black\"\n    }\n  },\n  \"body_position\": {\n    \"posture\": \"lying\",\n    \"location\": \"on a flat surface\",\n    \"orientation\": \"face up\",\n    \"confident\": 0.91,\n    \"time\": \"38 seconds\"\n  },\n  \"surroundings\": {\n    \"altitude\": \"32 meters\",\n    \"view\": \"oblique aerial\"\n  },\n  \"injury_indicators\": [\n    \"visible bruise on left arm\"\n  ],\n  \"signalling\": \"hand gesture near face\",\n  \"confidence\":"
+    },
+    {
+      "crop": "crop_006_188px.jpg",
+      "ttft_s": 0.541,
+      "total_s": 10.824,
+      "tokens": 106,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"short\",\n    \"clothing\": \"yellow jacket, black pants\"\n  },\n  \"body_position\": \"standing\",\n  \"surroundings\": {\n    \"ground\": \"concrete surface\",\n    \"background\": \"indistinct, possibly industrial or construction area\"\n  },\n  \"injury_indicators\": [],\n  \"signalling\": \"hand raised, holding an object\",\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_007_205px.jpg",
+      "ttft_s": 0.546,
+      "total_s": 15.959,
+      "tokens": 159,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"dark\",\n    \"clothing\": {\n      \"top\": \"white shirt\",\n      \"bottom\": \"red pants\",\n      \"accessories\": {\n        \"backpack\": \"floral pattern\"\n      }\n    },\n    \"footwear\": \"pink shoes\"\n  },\n  \"body_position\": {\n    \"posture\": \"standing\",\n    \"orientation\": \"sideways\",\n    \"distance_from_camera\": \"far away\"\n  },\n  \"surroundings\": {\n    \"ground\": \"brick-paved\",\n    \"context\": \"walking on a path\"\n  },\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    }
+  ]
+}

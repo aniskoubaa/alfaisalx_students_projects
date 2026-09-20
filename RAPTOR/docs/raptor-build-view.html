@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAPTOR Build View</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --ground:      #EBEEEF;
+    --surface:     #FFFFFF;
+    --surface-alt: #F4F6F7;
+    --ink:         #0F171B;
+    --ink-mid:     #46555D;
+    --ink-soft:    #6E7D85;
+    --rule:        #CBD4D8;
+    --rule-soft:   #E1E7E9;
+    --accent:      #0E7C86;
+    --accent-ink:  #0A5F67;
+    --accent-wash: #E0F0F1;
+    --pwr:         #B03227;
+    --pwr-wash:    #F7E2DF;
+    --dat:         #0E7C86;
+    --opt:         #9A6206;
+    --opt-wash:    #F6EBD6;
+    --ok:          #24704A;
+    --ok-wash:     #DDEEE4;
+    --shadow:      0 1px 2px rgba(15,23,27,.06), 0 8px 24px -16px rgba(15,23,27,.28);
+
+    --f-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    --f-body:    'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --f-mono:    'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    --pad: clamp(16px, 4vw, 40px);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0C1317;
+      --surface:     #131D22;
+      --surface-alt: #18242A;
+      --ink:         #E4ECEF;
+      --ink-mid:     #A9B9C1;
+      --ink-soft:    #7E8F98;
+      --rule:        #273740;
+      --rule-soft:   #1D2A31;
+      --accent:      #3DD6E3;
+      --accent-ink:  #7FE7F0;
+      --accent-wash: #10333A;
+      --pwr:         #F0796C;
+      --pwr-wash:    #3A1714;
+      --dat:         #3DD6E3;
+      --opt:         #E0A63C;
+      --opt-wash:    #33260D;
+      --ok:          #5BC48B;
+      --ok-wash:     #12301F;
+      --shadow:      0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #0C1317;
+    --surface:     #131D22;
+    --surface-alt: #18242A;
+    --ink:         #E4ECEF;
+    --ink-mid:     #A9B9C1;
+    --ink-soft:    #7E8F98;
+    --rule:        #273740;
+    --rule-soft:   #1D2A31;
+    --accent:      #3DD6E3;
+    --accent-ink:  #7FE7F0;
+    --accent-wash: #10333A;
+    --pwr:         #F0796C;
+    --pwr-wash:    #3A1714;
+    --dat:         #3DD6E3;
+    --opt:         #E0A63C;
+    --opt-wash:    #33260D;
+    --ok:          #5BC48B;
+    --ok-wash:     #12301F;
+    --shadow:      0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.9);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; padding-inline: var(--pad); }
+
+  header.top { border-bottom: 1px solid var(--rule); }
+  .top-in { padding-block: clamp(26px, 5vw, 48px) clamp(20px, 3vw, 30px); }
+  .eyebrow {
+    font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--f-display); font-weight: 800;
+    font-size: clamp(28px, 5.2vw, 46px); line-height: 1.05;
+    letter-spacing: -.033em; margin: 0 0 14px; text-wrap: balance;
+  }
+  .standfirst { font-size: clamp(16px, 2vw, 18.5px); color: var(--ink-mid); max-width: 60ch; margin: 0; }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+
+  section { padding-block: clamp(32px, 5vw, 54px); }
+  section + section { border-top: 1px solid var(--rule); }
+  h2 {
+    font-family: var(--f-display); font-weight: 700;
+    font-size: clamp(22px, 3.2vw, 31px); letter-spacing: -.024em;
+    line-height: 1.14; margin: 0 0 8px; text-wrap: balance;
+  }
+  .lede { font-size: 16.5px; color: var(--ink-mid); max-width: 62ch; margin: 0 0 22px; }
+  p { margin: 0 0 14px; max-width: 66ch; }
+  code {
+    font-family: var(--f-mono); font-size: .88em;
+    background: var(--surface-alt); border: 1px solid var(--rule-soft);
+    border-radius: 3px; padding: 1px 5px;
+  }
+
+  /* ---- diagram shell ---- */
+  .board {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 4px; box-shadow: var(--shadow); overflow: hidden;
+  }
+  .board-bar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 14px; background: var(--surface-alt);
+    border-bottom: 1px solid var(--rule);
+  }
+  .board-title {
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-soft); margin-right: auto;
+  }
+  .seg { display: flex; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+  .seg button {
+    font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .06em;
+    text-transform: uppercase; background: var(--surface); color: var(--ink-soft);
+    border: 0; border-right: 1px solid var(--rule); padding: 6px 13px; cursor: pointer;
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  .canvas { overflow-x: auto; padding: 16px var(--pad) 4px; }
+  .canvas svg { min-width: 700px; max-width: 100%; height: auto; display: block; }
+
+  /* layer dimming */
+  .layer { transition: opacity .3s; }
+  .mode-power .layer-data  { opacity: .10; }
+  .mode-data  .layer-power { opacity: .10; }
+
+  .node { cursor: pointer; }
+  .node rect { transition: stroke .2s, fill-opacity .2s; }
+  .node:hover rect, .node.sel rect { stroke: var(--accent); fill-opacity: .1; }
+  .node:focus-visible { outline: none; }
+  .node:focus-visible rect { stroke: var(--accent); stroke-width: 3; }
+
+  .pulse { opacity: 0; offset-rotate: 0deg; animation: travel 2.6s linear infinite; }
+  @keyframes travel {
+    0%   { offset-distance: 0%;   opacity: 0; }
+    8%   { opacity: 1; }
+    88%  { opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+  .pulse.slow { animation-duration: 4.4s; }
+
+  /* detail panel */
+  .detail {
+    border-top: 1px solid var(--rule); background: var(--surface-alt);
+    padding: 15px var(--pad) 18px; min-height: 118px;
+  }
+  .detail-h {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-soft); margin: 0 0 8px;
+  }
+  .detail-name {
+    font-family: var(--f-display); font-weight: 700; font-size: 19px;
+    letter-spacing: -.015em; margin: 0 0 8px;
+  }
+  .detail-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; font-size: 14px; }
+  .detail-grid dt { font-family: var(--f-mono); font-size: 12px; color: var(--ink-soft); }
+  .detail-grid dd { margin: 0; color: var(--ink-mid); }
+  .detail-grid dd b { color: var(--ink); font-weight: 600; }
+  .hint { color: var(--ink-soft); font-style: italic; font-size: 14.5px; margin: 0; }
+
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; padding: 12px var(--pad) 14px; border-top: 1px solid var(--rule-soft); }
+  .lg { display: flex; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-soft); }
+  .lg i { width: 22px; height: 3px; border-radius: 2px; display: block; }
+
+  /* ---- never table ---- */
+  .nevers { display: grid; gap: 12px; margin-top: 20px; }
+  @media (min-width: 700px) { .nevers { grid-template-columns: 1fr 1fr; } }
+  .never {
+    border: 1px solid var(--pwr); border-left-width: 3px;
+    background: var(--pwr-wash); border-radius: 0 4px 4px 0; padding: 13px 16px;
+  }
+  .never-h {
+    font-family: var(--f-display); font-weight: 700; font-size: 15.5px;
+    color: var(--pwr); margin: 0 0 5px; display: flex; gap: 8px; align-items: baseline;
+  }
+  .never-h span { font-family: var(--f-mono); font-size: 15px; }
+  .never p { margin: 0; font-size: 14px; color: var(--ink-mid); max-width: none; }
+
+  /* ---- tables ---- */
+  .tablewrap { overflow-x: auto; margin: 20px 0 0; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  thead th {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-soft); font-weight: 500;
+    background: var(--surface-alt); border-bottom: 1px solid var(--rule);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.mono { font-family: var(--f-mono); font-size: 12.5px; }
+  td.why { color: var(--ink-mid); }
+  .tag {
+    display: inline-block; font-family: var(--f-mono); font-size: 10px;
+    letter-spacing: .07em; text-transform: uppercase; font-weight: 600;
+    padding: 2px 7px; border-radius: 2px; border: 1px solid;
+  }
+  .tag.req { color: var(--ok); background: var(--ok-wash); border-color: var(--ok); }
+  .tag.opt { color: var(--opt); background: var(--opt-wash); border-color: var(--opt); }
+
+  /* ---- steps ---- */
+  .steps { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; margin-top: 20px; }
+  .step { background: var(--surface); padding: 13px 18px; display: grid; grid-template-columns: 1fr; gap: 3px; }
+  @media (min-width: 680px) { .step { grid-template-columns: 34px 1fr; gap: 16px; align-items: baseline; } }
+  .step-n { font-family: var(--f-mono); font-size: 13px; font-weight: 600; color: var(--accent); }
+  .step-b { font-family: var(--f-display); font-weight: 600; font-size: 15.5px; }
+  .step-d { font-size: 13.5px; color: var(--ink-mid); }
+  .step-d code { font-size: 12px; }
+
+  .callout {
+    border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+    background: var(--surface); padding: 15px 19px; margin: 22px 0 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout-h {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .11em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 6px;
+  }
+  .callout.warn { border-left-color: var(--opt); }
+  .callout.warn .callout-h { color: var(--opt); }
+
+  footer { border-top: 1px solid var(--rule); padding-block: 26px 44px; font-size: 13.5px; color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+    .pulse { animation: none !important; opacity: 0 !important; }
+  }
+
+  /* ---- 3D viewer ---- */
+  .stage { position: relative; background: var(--surface-alt); border-bottom: 1px solid var(--rule); }
+  #gl { display: block; width: 100%; height: clamp(360px, 62vh, 620px); touch-action: none; cursor: grab; }
+  #gl:active { cursor: grabbing; }
+  .labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .lab {
+    position: absolute; transform: translate(-50%, -50%);
+    font-family: var(--f-mono); font-size: 10.5px; line-height: 1.25;
+    color: var(--ink); background: color-mix(in srgb, var(--surface) 88%, transparent);
+    border: 1px solid var(--rule); border-radius: 3px; padding: 2px 6px;
+    white-space: nowrap; transition: opacity .18s; pointer-events: auto; cursor: pointer;
+  }
+  .lab.dim { opacity: .55; }
+  .lab.on  { border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .lab i { font-style: normal; color: var(--ink-soft); }
+  .lab.ghost { border-style: dashed; color: var(--opt); }
+
+  .hud {
+    position: absolute; left: 12px; bottom: 12px; display: flex; gap: 6px; flex-wrap: wrap;
+    font-family: var(--f-mono); font-size: 11px; color: var(--ink-soft);
+    background: color-mix(in srgb, var(--surface) 84%, transparent);
+    border: 1px solid var(--rule-soft); border-radius: 3px; padding: 5px 8px;
+  }
+  .spin { position: absolute; right: 12px; bottom: 12px; }
+  .spin button {
+    font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    background: var(--surface); color: var(--ink-soft); border: 1px solid var(--rule);
+    border-radius: 3px; padding: 5px 10px; cursor: pointer;
+  }
+  .spin button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .viewbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 10px 14px; background: var(--surface-alt); border-bottom: 1px solid var(--rule); }
+  .viewbar .board-title { margin-right: auto; }
+
+  .picker { display: grid; gap: 1px; background: var(--rule); border-top: 1px solid var(--rule); }
+  @media (min-width: 640px) { .picker { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 900px) { .picker { grid-template-columns: repeat(4, 1fr); } }
+  .pick {
+    background: var(--surface); border: 0; text-align: left; cursor: pointer;
+    padding: 9px 13px; font-family: var(--f-body); font-size: 13px; color: var(--ink-mid);
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .pick:hover { background: var(--surface-alt); }
+  .pick[aria-pressed="true"] { background: var(--accent-wash); color: var(--ink); }
+  .pick .sw { width: 9px; height: 9px; border-radius: 2px; flex: none; transform: translateY(1px); }
+  .pick .nm { font-weight: 600; }
+  .pick .st { font-family: var(--f-mono); font-size: 10px; color: var(--ink-soft); margin-left: auto; }
+
+  /* ---- measured facts strip ---- */
+  .facts { display: grid; gap: 12px; margin-top: 20px; }
+  @media (min-width: 620px) { .facts { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 900px) { .facts { grid-template-columns: repeat(4, 1fr); } }
+  .fact { border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); padding: 12px 14px; }
+  .fact b { display: block; font-family: var(--f-display); font-size: 21px; letter-spacing: -.02em; color: var(--ink); }
+  .fact span { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+  .fact p { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-mid); max-width: none; }
+
+  .figure { border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); margin-top: 20px; overflow: hidden; }
+  .figure .cap { max-width: none; margin: 0; padding: 9px 14px; border-bottom: 1px solid var(--rule); background: var(--surface-alt); font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+  .figure .plot { overflow-x: auto; padding: 16px; }
+  .figure svg { display: block; width: 100%; min-width: 560px; max-width: 100%; height: auto; margin: 0 auto; }
+
+  .routes { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; margin-top: 20px; }
+  .route { background: var(--surface); padding: 12px 16px; display: grid; gap: 4px; }
+  @media (min-width: 760px) { .route { grid-template-columns: 12px 1.15fr 1.55fr; gap: 16px; align-items: baseline; } }
+  .route .dot { width: 9px; height: 9px; border-radius: 2px; transform: translateY(4px); }
+  .route .rt { font-family: var(--f-mono); font-size: 12.5px; color: var(--ink); }
+  .route .rd { font-size: 13px; color: var(--ink-mid); }
+  .route .rd code { font-size: 11.5px; }
+</style>
+
+<header class="top">
+  <div class="wrap top-in">
+    <p class="eyebrow">RAPTOR &middot; Build view</p>
+    <h1>Where everything sits, and how the cables run</h1>
+    <p class="standfirst">
+      The same harness as the <a href="./raptor-wiring-map.html">wiring map</a>, but placed on the
+      actual airframe. Drag to turn the model, scroll to zoom, and use the layer buttons to strip
+      it back to power or data alone. Parts drawn <strong>solid</strong> are on the aircraft today;
+      parts drawn <strong>dashed</strong> are proposed and still need mounting.
+    </p>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <div class="wrap">
+    <div class="board">
+      <div class="viewbar">
+        <span class="board-title">Holybro X500 V2 &mdash; 500 mm &middot; 1045 V2 props</span>
+        <div class="seg" role="group" aria-label="Camera angle">
+          <button type="button" data-view="iso"   aria-pressed="true">Iso</button>
+          <button type="button" data-view="top"   aria-pressed="false">Top</button>
+          <button type="button" data-view="front" aria-pressed="false">Front</button>
+          <button type="button" data-view="side"  aria-pressed="false">Side</button>
+        </div>
+        <div class="seg" role="group" aria-label="Show layer">
+          <button type="button" data-layer="all"   aria-pressed="true">All</button>
+          <button type="button" data-layer="power" aria-pressed="false">Power</button>
+          <button type="button" data-layer="data"  aria-pressed="false">Data</button>
+          <button type="button" data-layer="none"  aria-pressed="false">Frame</button>
+        </div>
+      </div>
+
+      <div class="stage">
+        <canvas id="gl"></canvas>
+        <div class="labels" id="labels"></div>
+        <div class="hud">drag to turn &middot; scroll to zoom &middot; click a part</div>
+        <div class="spin"><button type="button" id="spin" aria-pressed="true">Auto&#8209;turn</button></div>
+      </div>
+
+      <div class="picker" id="picker"></div>
+
+      <div class="detail" id="detail" aria-live="polite">
+        <p class="detail-h">Part detail</p>
+        <p class="hint">Select a part above, or click it in the model.</p>
+      </div>
+
+      <div class="legend">
+        <span class="lg"><i style="background:#c2372a"></i> Power</span>
+        <span class="lg"><i style="background:#0e9aa4"></i> Data</span>
+        <span class="lg"><i class="dash"></i> Optional &mdash; downlink</span>
+        <span class="lg"><i style="background:currentColor;opacity:.35"></i> Not yet mounted</span>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <p class="callout-h">If the model looks empty</p>
+      <p>
+        The 3D view needs <code>three.js</code>, which loads from a CDN. Offline &mdash; on the
+        bench, say &mdash; the canvas stays blank, but <strong>everything below this point is plain
+        SVG and still works</strong>. The two drawings and the cable list are the part you actually
+        need in front of you while wiring.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>The number that decides the build</h2>
+    <p class="lede">
+      A 1045 prop is 10&#8243; across &mdash; 254&nbsp;mm. Four of them on a 500&nbsp;mm wheelbase
+      set a hard boundary on where anything can go.
+    </p>
+
+    <div class="facts">
+      <div class="fact">
+        <span>Wheelbase</span><b>500 mm</b>
+        <p>Motor to motor, diagonally. Each motor sits 250&nbsp;mm from the frame centre.</p>
+      </div>
+      <div class="fact">
+        <span>Prop diameter</span><b>254 mm</b>
+        <p>10&#8243; &times; 4.5&#8243; pitch &mdash; that is what &ldquo;1045&rdquo; means, and the
+        handwritten &ldquo;10 45&rdquo; on the parts list is this, not a cell count.</p>
+      </div>
+      <div class="fact">
+        <span>Keep&#8209;out radius</span><b>123 mm</b>
+        <p>250 &minus; 127. Inside this circle you can stack as tall as you like. Outside it, at
+        prop height, nothing may exist.</p>
+      </div>
+      <div class="fact">
+        <span>Tip clearance</span><b>~100 mm</b>
+        <p>Between adjacent prop tips. Comfortable &mdash; the props are nowhere near each other.</p>
+      </div>
+    </div>
+
+    <div class="figure">
+      <p class="cap">Plan view &mdash; the prop keep-out, to scale</p>
+      <div class="plot">
+<svg viewBox="0 0 620 566" role="img" aria-label="Scale plan view of the X500 V2. Four 254 mm props sweep circles centred 250 mm from the frame centre. A 123 mm radius keep-out circle marks the closest the props come to the centre. The Pixhawk 6C and R86C receiver sit on the 180 mm deck, and a proposed 130 by 120 mm Jetson carrier footprint fits inside the keep-out circle with its furthest corner 88 mm from centre.">
+<circle cx="419.6" cy="182.4" r="78.7" fill="currentColor" fill-opacity=".045" stroke="currentColor" stroke-opacity=".28" stroke-width="1"/>
+<circle cx="200.4" cy="182.4" r="78.7" fill="currentColor" fill-opacity=".045" stroke="currentColor" stroke-opacity=".28" stroke-width="1"/>
+<circle cx="200.4" cy="401.6" r="78.7" fill="currentColor" fill-opacity=".045" stroke="currentColor" stroke-opacity=".28" stroke-width="1"/>
+<circle cx="419.6" cy="401.6" r="78.7" fill="currentColor" fill-opacity=".045" stroke="currentColor" stroke-opacity=".28" stroke-width="1"/>
+<line x1="326.7" y1="275.3" x2="419.6" y2="182.4" stroke="currentColor" stroke-opacity=".55" stroke-width="9.9" stroke-linecap="round"/>
+<circle cx="419.6" cy="182.4" r="8.7" fill="currentColor" fill-opacity=".5" stroke="none"/>
+<line x1="293.3" y1="275.3" x2="200.4" y2="182.4" stroke="currentColor" stroke-opacity=".55" stroke-width="9.9" stroke-linecap="round"/>
+<circle cx="200.4" cy="182.4" r="8.7" fill="currentColor" fill-opacity=".5" stroke="none"/>
+<line x1="293.3" y1="308.7" x2="200.4" y2="401.6" stroke="currentColor" stroke-opacity=".55" stroke-width="9.9" stroke-linecap="round"/>
+<circle cx="200.4" cy="401.6" r="8.7" fill="currentColor" fill-opacity=".5" stroke="none"/>
+<line x1="326.7" y1="308.7" x2="419.6" y2="401.6" stroke="currentColor" stroke-opacity=".55" stroke-width="9.9" stroke-linecap="round"/>
+<circle cx="419.6" cy="401.6" r="8.7" fill="currentColor" fill-opacity=".5" stroke="none"/>
+<circle cx="310.0" cy="292.0" r="76.3" fill="none" stroke="var(--pwr)" stroke-width="2" stroke-dasharray="7 5"/>
+<rect x="254.2" y="236.2" width="111.6" height="111.6" rx="6.2" fill="currentColor" fill-opacity=".07" stroke="currentColor" stroke-opacity=".5" stroke-width="1.5"/>
+<rect x="269.7" y="254.8" width="80.6" height="74.4" rx="2" fill="var(--opt)" fill-opacity=".03" stroke="var(--opt)" stroke-opacity=".85" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="310.0" y="272.9" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--opt)" text-anchor="middle">Jetson carrier</text>
+<text x="310.0" y="284.9" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--opt)" opacity=".7" text-anchor="middle">130 x 120 - proposed</text>
+<rect x="284.0" y="292.0" width="52.1" height="27.3" rx="2" fill="var(--dat)" fill-opacity=".12" stroke="var(--dat)" stroke-opacity=".8" stroke-width="1.6"/>
+<text x="310.0" y="305.6" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--dat)" text-anchor="middle">Pixhawk 6C</text>
+<rect x="265.4" y="271.9" width="24.8" height="15.5" rx="2" fill="var(--dat)" fill-opacity=".12" stroke="var(--dat)" stroke-opacity=".8" stroke-width="1.6"/>
+<text x="277.8" y="279.6" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--dat)" text-anchor="middle">R86C</text>
+<circle cx="310.0" cy="244.9" r="8.1" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-opacity=".45" stroke-width="1.4"/>
+<text x="310.0" y="248.4" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity=".7" text-anchor="middle">M9N</text>
+<circle cx="310.0" cy="345.3" r="18.6" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".4" stroke-width="1.4" stroke-dasharray="4 3"/>
+<text x="310.0" y="348.8" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".65" text-anchor="middle">A8 mini</text>
+<text x="310.0" y="370.3" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".45" text-anchor="middle">(hangs below)</text>
+<line x1="310.0" y1="292.0" x2="238.3" y2="318.1" stroke="var(--pwr)" stroke-width="1.2"/>
+<text x="232.3" y="334.1" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--pwr)" text-anchor="end">keep-out r = 123</text>
+<line x1="310.0" y1="292.0" x2="350.3" y2="254.8" stroke="var(--opt)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="358.3" y="237.8" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--opt)">corner = 88 mm</text>
+<text x="358.3" y="249.8" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--opt)" opacity=".8">clears by 35 mm</text>
+<line x1="200.4" y1="401.6" x2="419.6" y2="182.4" stroke="var(--dat)" stroke-width="1.2" stroke-dasharray="3 3"/>
+<text x="205.8" y="396.2" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--dat)" text-anchor="middle">wheelbase 500 mm</text>
+<text x="14" y="550" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity=".45">TO SCALE &middot; 1045 PROP = 254 MM DIAMETER &middot; DIMENSIONS IN MM</text>
+</svg>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p class="callout-h">This answers the mounting question</p>
+      <p>
+        The earlier worry was that the Jetson has nowhere to go, because the Pixhawk and the R86C
+        already fill the top deck. The plan view shows the way out: <strong>build upwards, not
+        outwards.</strong> A typical Orin NX carrier is about 130&nbsp;&times;&nbsp;120&nbsp;mm,
+        whose furthest corner is only <strong>88&nbsp;mm</strong> from centre &mdash; comfortably
+        inside the 123&nbsp;mm keep&#8209;out.
+      </p>
+      <p>
+        So a second deck on standoffs above the Pixhawk is clear of the props no matter how tall it
+        is. What it costs you is centre of gravity and prop wash over the heatsink, not clearance.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>The stack, in section</h2>
+    <p class="lede">
+      Heights are approximate &mdash; measure your own standoffs before cutting cable. What matters
+      is the order, and which side of the prop disc each thing lives on.
+    </p>
+
+    <div class="figure">
+      <p class="cap">Side elevation &mdash; deck order and cable lengths</p>
+      <div class="plot">
+<svg viewBox="0 0 620 452" role="img" aria-label="Side elevation of the stack. From the bottom: landing skids at minus 190 mm, the A8 mini camera hanging from a damped plate between minus 105 and minus 30 mm, the bottom plate at zero, the battery from 5 to 50 mm, the top plate at 55 mm, the Pixhawk 6C from 58 to 70 mm, the prop disc at 85 mm, and a proposed second deck at 125 mm carrying the Jetson and capture card up to 158 mm. The M9N GPS dome is at 245 mm.">
+<line x1="40" y1="359.2" x2="580" y2="359.2" stroke="currentColor" stroke-opacity=".3" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="44" y="373.2" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity=".45">ground</text>
+<path d="M265.9,222.4 L207.0,359.2" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="3" stroke-linecap="round"/>
+<line x1="182.2" y1="359.2" x2="231.8" y2="359.2" stroke="currentColor" stroke-opacity=".45" stroke-width="4" stroke-linecap="round"/>
+<path d="M334.1,222.4 L393.0,359.2" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="3" stroke-linecap="round"/>
+<line x1="368.2" y1="359.2" x2="417.8" y2="359.2" stroke="currentColor" stroke-opacity=".45" stroke-width="4" stroke-linecap="round"/>
+<rect x="272.1" y="241.1" width="55.8" height="5.8" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-opacity=".5" stroke-width="1.2"/>
+<circle cx="281.4" cy="232.5" r="3.2" fill="currentColor" fill-opacity=".35"/>
+<circle cx="293.8" cy="232.5" r="3.2" fill="currentColor" fill-opacity=".35"/>
+<circle cx="306.2" cy="232.5" r="3.2" fill="currentColor" fill-opacity=".35"/>
+<circle cx="318.6" cy="232.5" r="3.2" fill="currentColor" fill-opacity=".35"/>
+<rect x="282.6" y="244.0" width="34.7" height="54.0" rx="3" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-opacity=".6" stroke-width="1.5"/>
+<circle cx="300.0" cy="280.0" r="7" fill="currentColor" fill-opacity=".3" stroke="currentColor" stroke-opacity=".5"/>
+<line x1="243.0" y1="236.8" x2="56.0" y2="236.8" stroke="currentColor" stroke-opacity=".3" stroke-width="1" stroke-dasharray="2 3"/>
+<text x="46.0" y="233.8" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".75" text-anchor="start">damping balls</text>
+<text x="46.0" y="245.8" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".6" text-anchor="start">isolate the gimbal</text>
+<line x1="243.0" y1="272.8" x2="56.0" y2="272.8" stroke="currentColor" stroke-opacity=".3" stroke-width="1" stroke-dasharray="2 3"/>
+<text x="46.0" y="269.8" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".75" text-anchor="start">SIYI A8 mini</text>
+<text x="46.0" y="281.8" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".6" text-anchor="start">hangs below the frame</text>
+<rect x="244.2" y="220.2" width="111.6" height="2.5" rx="1.5" fill="currentColor" fill-opacity=".10" stroke="currentColor" stroke-opacity=".55" stroke-width="1.5"/>
+<line x1="357.0" y1="221.0" x2="564.0" y2="221.0" stroke="currentColor" stroke-opacity=".3" stroke-width="1" stroke-dasharray="2 3"/>
+<text x="574.0" y="218.0" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".75" text-anchor="end">bottom plate</text>
+<text x="574.0" y="230.0" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".6" text-anchor="end">0 mm datum</text>
+<rect x="253.5" y="186.4" width="93.0" height="32.4" rx="1.5" fill="currentColor" fill-opacity=".10" stroke="currentColor" stroke-opacity=".55" stroke-width="1.5"/>
+<line x1="357.0" y1="200.8" x2="564.0" y2="200.8" stroke="currentColor" stroke-opacity=".3" stroke-width="1" stroke-dasharray="2 3"/>
+<text x="574.0" y="197.8" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".75" text-anchor="end">battery</text>
+<text x="574.0" y="209.8" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".6" text-anchor="end">5 - 50 mm</text>
+<rect x="244.2" y="180.6" width="111.6" height="2.5" rx="1.5" fill="currentColor" fill-opacity=".10" stroke="currentColor" stroke-opacity=".55" stroke-width="1.5"/>
+<rect x="274.0" y="172.0" width="52.1" height="8.6" rx="1.5" fill="var(--dat)" fill-opacity=".14" stroke="var(--dat)" stroke-opacity=".8" stroke-width="1.5"/>
+<line x1="357.0" y1="176.3" x2="564.0" y2="176.3" stroke="var(--dat)" stroke-opacity=".3" stroke-width="1" stroke-dasharray="2 3"/>
+<text x="574.0" y="173.3" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--dat)" opacity=".75" text-anchor="end">Pixhawk 6C</text>
+<text x="574.0" y="185.3" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--dat)" opacity=".6" text-anchor="end">on the top deck</text>
+<line x1="138.8" y1="161.2" x2="223.7" y2="161.2" stroke="var(--pwr)" stroke-width="3" stroke-linecap="round"/>
+<line x1="376.3" y1="161.2" x2="461.2" y2="161.2" stroke="var(--pwr)" stroke-width="3" stroke-linecap="round"/>
+<line x1="223.7" y1="161.2" x2="376.3" y2="161.2" stroke="var(--pwr)" stroke-width="1" stroke-dasharray="3 4" stroke-opacity=".5"/>
+<text x="216.3" y="153.2" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--pwr)" text-anchor="end">prop disc 85 mm</text>
+<text x="293.8" y="152.2" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--pwr)" opacity=".75" text-anchor="middle">246 mm clear</text>
+<rect x="253.5" y="130.2" width="93.0" height="2.5" rx="1.5" fill="var(--opt)" fill-opacity=".04" stroke="var(--opt)" stroke-opacity=".9" stroke-width="1.5" stroke-dasharray="6 4"/>
+<rect x="259.7" y="108.6" width="80.6" height="21.6" rx="1.5" fill="var(--opt)" fill-opacity=".05" stroke="var(--opt)" stroke-opacity=".9" stroke-width="1.5" stroke-dasharray="6 4"/>
+<line x1="357.0" y1="119.4" x2="564.0" y2="119.4" stroke="var(--opt)" stroke-opacity=".3" stroke-width="1" stroke-dasharray="2 3"/>
+<text x="574.0" y="116.4" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--opt)" opacity=".75" text-anchor="end">Jetson + capture card</text>
+<text x="574.0" y="128.4" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--opt)" opacity=".6" text-anchor="end">proposed deck 2 @ 125 mm</text>
+<line x1="261.6" y1="180.6" x2="261.6" y2="132.4" stroke="var(--opt)" stroke-opacity=".7" stroke-width="2" stroke-dasharray="4 3"/>
+<line x1="338.4" y1="180.6" x2="338.4" y2="132.4" stroke="var(--opt)" stroke-opacity=".7" stroke-width="2" stroke-dasharray="4 3"/>
+<text x="342.2" y="150.4" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--opt)" opacity=".85">standoffs</text>
+<line x1="348.4" y1="180.6" x2="348.4" y2="67.6" stroke="currentColor" stroke-opacity=".5" stroke-width="2.5"/>
+<ellipse cx="348.4" cy="58.2" rx="16.1" ry="12.2" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-opacity=".55" stroke-width="1.5"/>
+<line x1="357.0" y1="56.8" x2="564.0" y2="56.8" stroke="currentColor" stroke-opacity=".3" stroke-width="1" stroke-dasharray="2 3"/>
+<text x="574.0" y="53.8" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".75" text-anchor="end">M9N on its mast</text>
+<text x="574.0" y="65.8" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity=".6" text-anchor="end">keep it above the Jetson</text>
+<path d="M233.0,247.6 L233.0,119.4" fill="none" stroke="var(--dat)" stroke-width="2"/>
+<line x1="228.0" y1="247.6" x2="238.0" y2="247.6" stroke="var(--dat)" stroke-width="2"/>
+<line x1="228.0" y1="119.4" x2="238.0" y2="119.4" stroke="var(--dat)" stroke-width="2"/>
+<text x="225.0" y="180.5" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--dat)" text-anchor="end">micro-HDMI run</text>
+<text x="225.0" y="191.5" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--dat)" opacity=".75" text-anchor="end">178 mm vertical</text>
+<text x="14" y="438" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity=".45">HEIGHTS APPROXIMATE &middot; MEASURE YOUR OWN STANDOFFS BEFORE CUTTING CABLE</text>
+</svg>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <p class="callout-h">The micro-HDMI run is the awkward one</p>
+      <p>
+        It goes from the camera, which hangs <em>below</em> the frame on a damped plate, up to a
+        capture card on the proposed deck <em>above</em> the Pixhawk &mdash; a run of roughly
+        180&nbsp;mm of vertical travel plus slack. It must cross the vibration isolators without
+        stiffening them, which is the whole point of the damped plate, and it must tolerate the
+        gimbal panning underneath it.
+      </p>
+      <p>
+        Leave a deliberate service loop at the gimbal end, and secure the cable to the frame
+        <strong>above</strong> the dampers, never across them.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Every cable, and where it runs</h2>
+    <p class="lede">
+      Colour matches the model. Lengths are rough-cut estimates including a service loop &mdash;
+      measure on the airframe before you crimp.
+    </p>
+
+    <div class="routes" id="routes"></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Assembly order</h2>
+    <p class="lede">Mechanical first, then power, then data. Do not reverse it.</p>
+
+    <div class="steps">
+      <div class="step"><span class="step-n">01</span><div><span class="step-b">Work out the second deck before anything else</span><div class="step-d">Standoff height, plate size, and how the Jetson bolts to it. Everything downstream &mdash; cable lengths, buck position, CG &mdash; is set by this one decision, and it is the cheapest thing on the whole build to change now and the most expensive to change later.</div></div></div>
+      <div class="step"><span class="step-n">02</span><div><span class="step-b">Mount the Jetson, buck and capture card dry</span><div class="step-d">No wiring. Bolt them where they will live, then check the aircraft still balances near the frame centre and that nothing intrudes past the 123&nbsp;mm keep&#8209;out at prop height.</div></div></div>
+      <div class="step"><span class="step-n">03</span><div><span class="step-b">Route and dress every cable before any of it is live</span><div class="step-d">Lay each run, mark the length with the gimbal at full deflection and the arms folded, and only then cut. The micro&#8209;HDMI and the camera power run together from the damped plate &mdash; sleeve them as one bundle.</div></div></div>
+      <div class="step"><span class="step-n">04</span><div><span class="step-b">Power, one branch at a time, on a bench supply</span><div class="step-d">12&nbsp;V, 2&nbsp;A limit. Camera branch first and alone &mdash; solid green LED. Then the buck, with a meter on its output <b>before</b> the Jetson is plugged into it. Confirm the buck's set voltage against the carrier spec twice; this is the step that destroys a Jetson.</div></div></div>
+      <div class="step"><span class="step-n">05</span><div><span class="step-b">Camera control port to the Pixhawk</span><div class="step-d">Prove you can slew the gimbal from the ground station and that it holds level when you tilt the airframe &mdash; before the Jetson is in the picture, so a pointing fault has exactly one possible cause.</div></div></div>
+      <div class="step"><span class="step-n">06</span><div><span class="step-b">Video, then telemetry</span><div class="step-d">micro&#8209;HDMI to the capture card, confirm <code>/dev/video0</code> at 5000M. Then TELEM1 to the Jetson and MAVROS. Record the negotiated resolution and frame rate &mdash; those numbers size the detector input.</div></div></div>
+      <div class="step"><span class="step-n">07</span><div><span class="step-b">Balance and vibration check before props</span><div class="step-d">Find the CG with the battery in. Then bench-run the motors <b>without props</b> and look at the FC's vibration logs &mdash; a second deck full of electronics changes the frame's resonance, and you want to know that before it is in the air.</div></div></div>
+    </div>
+
+    <div class="callout">
+      <p class="callout-h">Still unanswered</p>
+      <p>
+        Which carrier board is the Orin NX on &mdash; that sets the buck output and the deck size.
+        ArduPilot or PX4 on the 6C &mdash; that sets the camera control protocol. Whether the A8
+        mini can run HDMI and Ethernet at once &mdash; that decides if the VTX is worth buying.
+        And whether the Jetson is allowed to write gimbal commands to the flight controller.
+      </p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>
+      RAPTOR &mdash; AlfaisalX. Airframe dimensions are Holybro X500 V2 published figures; component
+      positions are drawn from the bench photos in <code>RAPTOR/imgs/</code> and from the proposed
+      layout, not from a measured aircraft. Heights and cable lengths are estimates &mdash; measure
+      before cutting. Companion to <a href="./raptor-wiring-map.html">the wiring map</a> and
+      <code>RAPTOR/docs/</code>.
+    </p>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* Scene units are centimetres. The X500 V2 is a 500 mm wheelbase quad, so each
+     motor sits 25 units from the frame centre. Front of the aircraft is -Z. */
+  var MOTOR_R = 25, PROP_R = 12.7, DECK = 18;
+
+  var C = { pwr: 0xc2372a, dat: 0x0e9aa4, opt: 0xd08a1e };
+
+  var PARTS = [
+    { id:"fc",   name:"Pixhawk 6C",        pos:[0, 6.4, 2.2],   size:[8.4, 1.2, 4.4],  state:"mounted",  col:0x33424b, lab:[3.2,7.8,4.2],
+      rows:[["where","Centre of the top deck, arrow forward."],["ports","POWER1 in, TELEM1 to the Jetson, GPS1 to the M9N, PPM/SBUS RC to the R86C, and the camera control port."],["job","Flies the aircraft <b>and points the gimbal</b>."]] },
+    { id:"rx",   name:"RadioMaster R86C",  pos:[-5.2, 6.2, -2.0], size:[4.0, 0.8, 2.5], state:"mounted",  col:0x33424b, lab:[-8.4,6.6,-4.2],
+      rows:[["where","Top deck, beside the flight controller."],["out","S.Bus into the Pixhawk's PPM/SBUS RC port."],["watch","Six channels only. Budget them before promising the pilot a gimbal axis."]] },
+    { id:"gps",  name:"Holybro M9N",       pos:[0, 22.8, 6.6],  size:[5.2, 2.2, 5.2],  state:"mounted",  col:0x2c3339, lab:[0,25.4,6.6], shape:"dome",
+      rows:[["where","On a mast at the rear, well above the electronics."],["carries","GNSS, compass, the arming switch and the fix LED, all on one loom."],["why the mast","Distance from the power wiring is what keeps the compass usable."]] },
+    { id:"bat",  name:"Flight battery",    pos:[0, 2.75, 0],    size:[15, 4.5, 5],     state:"mounted",  col:0x2f4038, lab:[0,1.6,-7.2],
+      rows:[["where","In the tray between the plates."],["lead","EC5, with an EC5-to-XT60 adapter already fitted."],["feeds","The power module, the camera branch, the buck, the ESCs, and the VTX if fitted."]] },
+    { id:"cam",  name:"SIYI A8 mini",      pos:[0, -6.8, -8.6], size:[5.6, 5.2, 5.6],  state:"mounted",  col:0x24292d, lab:[0,-11.6,-9.6],
+      rows:[["where","Under the nose, on a four-ball damped plate. Already on the aircraft."],["control port","To the Pixhawk. This is the pointing path."],["micro-HDMI","Up to the capture card &mdash; a 178 mm vertical run across the dampers."],["Ethernet","To the VTX, if one is fitted. Optional."]] },
+    { id:"deck2",name:"Second deck",       pos:[0, 12.5, 0],    size:[15, 0.3, 15],    state:"proposed", col:0x8a6a2a, lab:[-9.2,12.2,7.6],
+      rows:[["what","A plate on standoffs above the Pixhawk. <b>It does not exist yet.</b>"],["why","The top deck is full &mdash; the FC and receiver already occupy it."],["clearance","Anything within 123 mm of centre clears the props no matter how tall. A 150 mm plate is right at that limit; keep it smaller."]] },
+    { id:"jet",  name:"Jetson Orin NX",    pos:[0, 14.3, 0],    size:[13, 3, 12],      state:"proposed", col:0x7a5f2a, lab:[0,17.4,0],
+      rows:[["where","Proposed: on deck 2, centred, so its mass sits over the CG."],["footprint","About 130 x 120 mm. Furthest corner is 88 mm from centre &mdash; inside the 123 mm keep-out with 35 mm to spare."],["power","From the buck. Confirm the carrier's input voltage first."],["watch","Prop wash over the heatsink, and the CG shift from putting this much mass high up."]] },
+    { id:"card", name:"Capture card",      pos:[5.4, 13.6, -4], size:[6, 1.2, 2.5],    state:"proposed", col:0x7a5f2a, lab:[9.4,13.8,-6.2],
+      rows:[["where","Proposed: on deck 2, on the camera side, to keep the HDMI run short."],["in","micro-HDMI from the camera."],["out","USB 3.0 to the Jetson, as <code>/dev/video0</code>."]] },
+    { id:"buck", name:"DC-DC buck",        pos:[-5.4, 13.6, -4],size:[4.5, 1.5, 2.5],  state:"proposed", col:0x7a5f2a, lab:[-9.4,13.8,-6.2],
+      rows:[["where","Proposed: on deck 2, near the Jetson it feeds."],["in","Pack voltage from the battery."],["out","5, 12 or 19 V &mdash; whatever the carrier board wants. Still unconfirmed."],["not","A volt meter. That was the correction on the parts list."]] },
+    { id:"vtx",  name:"VTX air unit",      pos:[0, 13.9, 5.2],  size:[7, 2, 4],        state:"optional", col:0x8a6a2a, lab:[0,14.6,8.6],
+      rows:[["status","<b>Optional.</b> Nothing in the required path depends on it."],["in","Ethernet from the camera, power from the pack."],["out","RF downlink to the ground station or controller."],["buy last","Only worth having if the camera can run HDMI and Ethernet at the same time."]] }
+  ];
+
+  var CABLES = [
+    { id:"p1", t:"pwr", from:"Battery", to:"Power module &rarr; POWER1", len:"~120 mm",
+      d:"Up through the plate to the flight controller. The module supplies 5 V plus the voltage and current sense lines.",
+      pts:[[2,4.6,0],[3.4,5.2,1.2],[2.4,6.2,2.2]] },
+    { id:"p2", t:"pwr", from:"Battery", to:"A8 mini power", len:"~260 mm",
+      d:"Its own XT30 branch, forward and down past the damper plate. Sleeve it with the HDMI run.",
+      pts:[[-1.6,4.6,-1.6],[-2.2,3.0,-5.5],[-1.4,-1.0,-8.0],[-0.4,-4.4,-8.4]] },
+    { id:"p3", t:"pwr", from:"Battery", to:"DC-DC buck", len:"~230 mm",
+      d:"Up the port-side standoff to deck 2. Keep it away from the GPS mast.",
+      pts:[[-3.2,4.6,-1.0],[-6.2,7.0,-2.6],[-6.2,11.4,-3.6],[-5.4,13.0,-4.0]] },
+    { id:"p4", t:"pwr", from:"DC-DC buck", to:"Jetson", len:"~90 mm",
+      d:"Short and fat. Meter the buck's output before this ever gets plugged in.",
+      pts:[[-4.2,13.6,-4.0],[-2.6,14.2,-3.0],[-1.0,14.3,-2.0]] },
+    { id:"p5", t:"pwr", from:"Battery", to:"ESCs / motors", len:"4 runs, in the arms",
+      d:"Out along each arm. Already built &mdash; shown only so the load budget is honest.",
+      arms:true },
+    { id:"p6", t:"opt", from:"Battery", to:"VTX air unit", len:"~200 mm",
+      d:"Only if the downlink is fitted. Check the air unit's input range first.",
+      pts:[[2.6,4.6,1.4],[5.4,7.4,3.6],[4.0,12.0,5.0],[1.6,13.6,5.2]] },
+
+    { id:"d1", t:"dat", from:"A8 mini control port", to:"Pixhawk 6C", len:"~200 mm",
+      d:"<b>The pointing path.</b> Up from the gimbal to the flight controller. Set the mount driver to match &mdash; ArduPilot or PX4 is still unanswered.",
+      pts:[[1.2,-4.2,-8.2],[2.6,0.0,-7.0],[3.0,4.4,-4.4],[2.4,6.2,-1.0],[1.6,6.4,1.6]] },
+    { id:"d2", t:"dat", from:"A8 mini micro-HDMI", to:"Capture card", len:"~300 mm",
+      d:"178 mm of vertical travel plus a service loop. Cross the dampers loosely, and anchor it to the frame <b>above</b> them, never across them.",
+      pts:[[-1.4,-4.2,-8.4],[-2.0,0.5,-8.6],[0.5,6.0,-7.4],[3.8,11.0,-5.6],[5.0,13.4,-4.6]] },
+    { id:"d3", t:"dat", from:"Capture card", to:"Jetson USB 3.0", len:"~90 mm",
+      d:"Must negotiate 5000M. Via the USB hub if the carrier is short of 3.0 ports.",
+      pts:[[4.4,13.6,-4.0],[2.6,14.0,-3.4],[1.2,14.3,-2.4]] },
+    { id:"d4", t:"dat", from:"Pixhawk TELEM1", to:"Jetson", len:"~200 mm",
+      d:"MAVROS. GPS and attitude up to the Jetson &mdash; and gimbal commands back down, if you decide to allow that.",
+      pts:[[-1.6,6.6,1.4],[-4.4,8.6,2.0],[-3.4,12.6,1.6],[-1.4,14.0,1.0]] },
+    { id:"d5", t:"dat", from:"Holybro M9N", to:"Pixhawk GPS1", len:"fitted",
+      d:"Down the mast into the flight controller. Already wired.",
+      pts:[[0,21.6,6.6],[0.4,12.0,6.2],[0.8,7.6,4.4],[1.0,6.6,3.0]] },
+    { id:"d6", t:"dat", from:"RadioMaster R86C", to:"Pixhawk PPM/SBUS RC", len:"fitted",
+      d:"S.Bus, across the top deck. Already wired.",
+      pts:[[-3.6,6.2,-2.0],[-2.4,6.4,-0.6],[-1.8,6.4,1.2]] },
+    { id:"d7", t:"opt", from:"A8 mini Ethernet", to:"VTX air unit", len:"~320 mm",
+      d:"Optional. Only exists if the camera can output HDMI and Ethernet at once &mdash; test that before buying anything.",
+      pts:[[0.6,-4.2,-8.8],[-1.0,1.0,-8.0],[-3.6,7.0,-3.0],[-2.6,12.4,2.6],[-1.6,13.9,4.6]] }
+  ];
+
+  /* ------------------------------------------------------------ routes list */
+  var routes = document.getElementById("routes");
+  if (routes) {
+    var rh = "";
+    for (var ri = 0; ri < CABLES.length; ri++) {
+      var c = CABLES[ri];
+      var col = c.t === "pwr" ? "#c2372a" : (c.t === "dat" ? "#0e9aa4" : "#d08a1e");
+      rh += '<div class="route" data-cable="' + c.id + '">' +
+              '<span class="dot" style="background:' + col + '"></span>' +
+              '<span class="rt">' + c.from + ' &rarr; ' + c.to + '<br><span style="opacity:.6">' + c.len + '</span></span>' +
+              '<span class="rd">' + c.d + '</span>' +
+            '</div>';
+    }
+    routes.innerHTML = rh;
+  }
+
+  /* ------------------------------------------------------------ part picker */
+  var picker = document.getElementById("picker");
+  var detail = document.getElementById("detail");
+  var ph = "";
+  for (var pi = 0; pi < PARTS.length; pi++) {
+    var p = PARTS[pi];
+    var sw = p.state === "mounted" ? "#0e9aa4" : (p.state === "optional" ? "#d08a1e" : "#8a6a2a");
+    ph += '<button type="button" class="pick" data-part="' + p.id + '" aria-pressed="false">' +
+            '<span class="sw" style="background:' + sw + '"></span>' +
+            '<span class="nm">' + p.name + '</span>' +
+            '<span class="st">' + p.state + '</span>' +
+          '</button>';
+  }
+  picker.innerHTML = ph;
+
+  function showPart(id) {
+    var p = null;
+    for (var i = 0; i < PARTS.length; i++) { if (PARTS[i].id === id) { p = PARTS[i]; } }
+    if (!p) { return; }
+    var btns = picker.querySelectorAll(".pick");
+    for (var b = 0; b < btns.length; b++) {
+      btns[b].setAttribute("aria-pressed", btns[b].getAttribute("data-part") === id ? "true" : "false");
+    }
+    var html = '<p class="detail-h">Part detail &mdash; ' + p.state + '</p>' +
+               '<p class="detail-name">' + p.name + '</p><dl class="detail-grid">';
+    for (var r = 0; r < p.rows.length; r++) {
+      html += "<dt>" + p.rows[r][0] + "</dt><dd>" + p.rows[r][1] + "</dd>";
+    }
+    detail.innerHTML = html + "</dl>";
+    selected = id;
+    syncLabels();
+  }
+  picker.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest(".pick") : null;
+    if (b) { showPart(b.getAttribute("data-part")); }
+  });
+
+  /* ------------------------------------------------------------------- 3D */
+  var canvas = document.getElementById("gl");
+  var labelHost = document.getElementById("labels");
+  var selected = null;
+  var labelEls = {};
+
+  function syncLabels() {
+    for (var k in labelEls) {
+      if (Object.prototype.hasOwnProperty.call(labelEls, k)) {
+        labelEls[k].classList.toggle("on", k === selected);
+        labelEls[k].classList.toggle("dim", !!selected && k !== selected);
+      }
+    }
+  }
+
+  if (typeof THREE === "undefined" || !canvas) { return; }
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(38, 1, 0.5, 400);
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+  var css = getComputedStyle(document.documentElement);
+  function tok(n, f) { var v = css.getPropertyValue(n).trim(); return v || f; }
+  var isDark = false;
+  try { isDark = window.matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) {}
+
+  scene.add(new THREE.HemisphereLight(isDark ? 0x5a6a74 : 0xffffff, isDark ? 0x0c1317 : 0x9aa5ab, isDark ? 0.85 : 1.0));
+  var key = new THREE.DirectionalLight(0xffffff, isDark ? 0.75 : 0.9);
+  key.position.set(28, 40, 22); scene.add(key);
+  var fill = new THREE.DirectionalLight(0xffffff, 0.3);
+  fill.position.set(-24, 14, -20); scene.add(fill);
+
+  var root = new THREE.Group(); scene.add(root);
+  var gPower = new THREE.Group(), gData = new THREE.Group();
+  root.add(gPower); root.add(gData);
+
+  function mat(col, opts) {
+    opts = opts || {};
+    return new THREE.MeshStandardMaterial({
+      color: col, roughness: opts.rough === undefined ? 0.62 : opts.rough,
+      metalness: opts.metal === undefined ? 0.15 : opts.metal,
+      transparent: !!opts.op, opacity: opts.op === undefined ? 1 : opts.op
+    });
+  }
+  var MAT = {
+    carbon: mat(isDark ? 0x2b3238 : 0x343c42, { rough: 0.5, metal: 0.3 }),
+    plate:  mat(isDark ? 0x222a2f : 0x2a3237, { rough: 0.55 }),
+    blue:   mat(0x1f8fd0, { rough: 0.45 }),
+    motor:  mat(0x3d4449, { rough: 0.4, metal: 0.5 }),
+    prop:   mat(isDark ? 0x7d8a92 : 0x6b757b, { rough: 0.9, op: 0.11 }),
+    rim:    mat(isDark ? 0x9fb0b9 : 0x5a646a, { rough: 0.8, op: 0.55 }),
+    blade:  mat(isDark ? 0x9aa7ae : 0x444d53, { rough: 0.7, op: 0.55 }),
+    ghost:  mat(0xd08a1e, { rough: 0.75, op: 0.17 })
+  };
+
+  function box(w, h, d, x, y, z, m) {
+    var mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+    mesh.position.set(x, y, z); return mesh;
+  }
+  function tube(x1, y1, z1, x2, y2, z2, r, m) {
+    var a = new THREE.Vector3(x1, y1, z1), b = new THREE.Vector3(x2, y2, z2);
+    var len = a.distanceTo(b);
+    var g = new THREE.CylinderGeometry(r, r, len, 12);
+    var mesh = new THREE.Mesh(g, m);
+    mesh.position.copy(a).lerp(b, 0.5);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    return mesh;
+  }
+
+  /* --- airframe --------------------------------------------------------- */
+  root.add(box(DECK, 0.3, DECK, 0, 0, 0, MAT.plate));
+  root.add(box(DECK, 0.3, DECK, 0, 5.5, 0, MAT.plate));
+
+  for (var a = 0; a < 4; a++) {
+    var th = Math.PI / 4 + a * Math.PI / 2;
+    var cx = Math.cos(th), cz = Math.sin(th);
+    root.add(tube(cx * 3.8, 2.75, cz * 3.8, cx * MOTOR_R, 2.75, cz * MOTOR_R, 0.8, MAT.carbon));
+    root.add(tube(cx * 4.2, 2.75, cz * 4.2, cx * 7.6, 2.75, cz * 7.6, 1.15, MAT.blue));
+    var mo = tube(cx * MOTOR_R, 5.4, cz * MOTOR_R, cx * MOTOR_R, 7.6, cz * MOTOR_R, 1.45, MAT.motor);
+    root.add(mo);
+    root.add(tube(cx * MOTOR_R, 4.6, cz * MOTOR_R, cx * MOTOR_R, 5.5, cz * MOTOR_R, 2.1, MAT.blue));
+    /* 1045 prop = 254 mm swept disc, drawn as the area it actually sweeps */
+    var disc = new THREE.Mesh(new THREE.CircleGeometry(PROP_R, 48), MAT.prop);
+    disc.material.side = THREE.DoubleSide;
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.set(cx * MOTOR_R, 8.5, cz * MOTOR_R);
+    root.add(disc);
+    var rim = new THREE.Mesh(new THREE.TorusGeometry(PROP_R, 0.09, 6, 64), MAT.rim);
+    rim.rotation.x = -Math.PI / 2;
+    rim.position.set(cx * MOTOR_R, 8.5, cz * MOTOR_R);
+    root.add(rim);
+    for (var bl = 0; bl < 2; bl++) {
+      var blade = new THREE.Mesh(new THREE.BoxGeometry(PROP_R * 0.96, 0.14, 1.5), MAT.blade);
+      blade.position.set(bl ? -PROP_R * 0.48 : PROP_R * 0.48, 8.52, 0);
+      var pivot = new THREE.Group();
+      pivot.position.set(cx * MOTOR_R, 0, cz * MOTOR_R);
+      pivot.rotation.y = a * 0.8;
+      pivot.add(blade); root.add(pivot);
+    }
+    /* landing gear on the two front/rear arms */
+    if (a === 0 || a === 2) {
+      root.add(tube(cx * 6, 0, cz * 6, cx * 15, -19, cz * 15, 0.55, MAT.carbon));
+      root.add(tube(cx * 15, -19, cz * 15 - 6, cx * 15, -19, cz * 15 + 6, 0.55, MAT.carbon));
+    } else {
+      root.add(tube(cx * 6, 0, cz * 6, cx * 15, -19, cz * 15, 0.55, MAT.carbon));
+      root.add(tube(cx * 15 - 6, -19, cz * 15, cx * 15 + 6, -19, cz * 15, 0.55, MAT.carbon));
+    }
+  }
+
+  /* GPS mast */
+  root.add(tube(0, 5.8, 6.6, 0, 21.6, 6.6, 0.3, MAT.carbon));
+  /* damper plate under the nose */
+  root.add(box(9, 0.4, 7, 0, -2.6, -8.6, MAT.plate));
+  for (var dv = 0; dv < 4; dv++) {
+    root.add(box(1.1, 1.1, 1.1, (dv % 2 ? 3 : -3), -1.4, -8.6 + (dv < 2 ? 2.4 : -2.4), MAT.blue));
+  }
+
+  /* --- parts ------------------------------------------------------------ */
+  var partMeshes = {};
+  for (var q = 0; q < PARTS.length; q++) {
+    var P = PARTS[q];
+    var isGhost = P.state !== "mounted";
+    var m = isGhost ? MAT.ghost : mat(P.col, { rough: 0.6 });
+    var mesh;
+    if (P.shape === "dome") {
+      mesh = new THREE.Mesh(new THREE.SphereGeometry(P.size[0] / 2, 20, 14, 0, Math.PI * 2, 0, Math.PI / 1.7), m);
+      mesh.position.set(P.pos[0], P.pos[1], P.pos[2]);
+    } else {
+      mesh = box(P.size[0], P.size[1], P.size[2], P.pos[0], P.pos[1], P.pos[2], m);
+    }
+    mesh.userData.part = P.id;
+    root.add(mesh);
+    if (P.shape !== "dome") {
+      var eg = new THREE.LineSegments(
+        new THREE.EdgesGeometry(mesh.geometry),
+        new THREE.LineBasicMaterial({ color: isGhost ? 0xd08a1e : (isDark ? 0x8ea3ae : 0x1a2226), transparent: true, opacity: isGhost ? 0.9 : 0.5 })
+      );
+      eg.position.copy(mesh.position); root.add(eg);
+    }
+    partMeshes[P.id] = mesh;
+
+    var el = document.createElement("div");
+    el.className = "lab" + (isGhost ? " ghost" : "");
+    el.innerHTML = P.name + (isGhost ? ' <i>&middot; ' + P.state + '</i>' : '');
+    el.setAttribute("data-part", P.id);
+    el.addEventListener("click", function () { showPart(this.getAttribute("data-part")); });
+    labelHost.appendChild(el);
+    labelEls[P.id] = el;
+  }
+
+  /* --- cables ----------------------------------------------------------- */
+  function addCable(c) {
+    var col = c.t === "pwr" ? C.pwr : (c.t === "dat" ? C.dat : C.opt);
+    var m = new THREE.MeshStandardMaterial({ color: col, roughness: 0.5, metalness: 0.1 });
+    var host = c.t === "dat" ? gData : gPower;
+    if (c.arms) {
+      for (var a2 = 0; a2 < 4; a2++) {
+        var th2 = Math.PI / 4 + a2 * Math.PI / 2;
+        var cx2 = Math.cos(th2), cz2 = Math.sin(th2);
+        var curve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(cx2 * 2.5, 4.4, cz2 * 2.5),
+          new THREE.Vector3(cx2 * 9, 3.9, cz2 * 9),
+          new THREE.Vector3(cx2 * (MOTOR_R - 1.5), 4.4, cz2 * (MOTOR_R - 1.5))
+        ]);
+        host.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 0.22, 7, false), m));
+      }
+      return;
+    }
+    var vs = [];
+    for (var i = 0; i < c.pts.length; i++) { vs.push(new THREE.Vector3(c.pts[i][0], c.pts[i][1], c.pts[i][2])); }
+    var cu = new THREE.CatmullRomCurve3(vs);
+    host.add(new THREE.Mesh(new THREE.TubeGeometry(cu, 48, c.t === "pwr" ? 0.26 : 0.20, 8, false), m));
+  }
+  for (var ci = 0; ci < CABLES.length; ci++) { addCable(CABLES[ci]); }
+
+  /* --- orbit ------------------------------------------------------------ */
+  var az = 0.86, pol = 1.02, dist = 70, spin = true;
+  var drag = false, lx = 0, ly = 0;
+
+  canvas.addEventListener("pointerdown", function (e) {
+    drag = true; lx = e.clientX; ly = e.clientY; spin = false;
+    document.getElementById("spin").setAttribute("aria-pressed", "false");
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener("pointermove", function (e) {
+    if (!drag) { return; }
+    az -= (e.clientX - lx) * 0.008;
+    pol = Math.max(0.12, Math.min(Math.PI - 0.12, pol - (e.clientY - ly) * 0.006));
+    lx = e.clientX; ly = e.clientY;
+  });
+  canvas.addEventListener("pointerup", function (e) { drag = false; try { canvas.releasePointerCapture(e.pointerId); } catch (x) {} });
+  canvas.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    dist = Math.max(32, Math.min(170, dist + (e.deltaY > 0 ? 6 : -6)));
+  }, { passive: false });
+
+  canvas.addEventListener("click", function (e) {
+    var r = canvas.getBoundingClientRect();
+    var mouse = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    var ray = new THREE.Raycaster(); ray.setFromCamera(mouse, camera);
+    var list = [];
+    for (var k in partMeshes) { if (Object.prototype.hasOwnProperty.call(partMeshes, k)) { list.push(partMeshes[k]); } }
+    var hit = ray.intersectObjects(list, false);
+    if (hit.length) { showPart(hit[0].object.userData.part); }
+  });
+
+  var spinBtn = document.getElementById("spin");
+  spinBtn.addEventListener("click", function () {
+    spin = !spin; spinBtn.setAttribute("aria-pressed", spin ? "true" : "false");
+  });
+
+  var VIEWS = { iso: [0.86, 1.02, 70], top: [Math.PI / 2, 0.14, 84], front: [Math.PI / 2, 1.52, 74], side: [0, 1.52, 74] };
+  document.querySelectorAll("[data-view]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var v = VIEWS[b.getAttribute("data-view")];
+      az = v[0]; pol = v[1]; dist = v[2]; spin = false;
+      spinBtn.setAttribute("aria-pressed", "false");
+      document.querySelectorAll("[data-view]").forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+    });
+  });
+  document.querySelectorAll("[data-layer]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var L = b.getAttribute("data-layer");
+      gPower.visible = (L === "all" || L === "power");
+      gData.visible = (L === "all" || L === "data");
+      document.querySelectorAll("[data-layer]").forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+    });
+  });
+
+  /* --- loop ------------------------------------------------------------- */
+  var v3 = new THREE.Vector3();
+  function resize() {
+    var w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== w || canvas.height !== h) {
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+  }
+  function frame() {
+    resize();
+    if (spin) { az += 0.0022; }
+    camera.position.set(
+      dist * Math.sin(pol) * Math.cos(az),
+      dist * Math.cos(pol) + 4,
+      dist * Math.sin(pol) * Math.sin(az)
+    );
+    camera.lookAt(0, 4, 0);
+    renderer.render(scene, camera);
+
+    var r = canvas.getBoundingClientRect();
+    var shown = [];
+    for (var i = 0; i < PARTS.length; i++) {
+      var P = PARTS[i], el = labelEls[P.id];
+      v3.set(P.lab[0], P.lab[1], P.lab[2]).project(camera);
+      if (v3.z >= 1) { el.style.display = "none"; continue; }
+      el.style.display = "block";
+      shown.push({ el: el, x: (v3.x * 0.5 + 0.5) * r.width, y: (-v3.y * 0.5 + 0.5) * r.height,
+                   w: el.offsetWidth || 90, sel: P.id === selected });
+    }
+    /* keep the selected label where it belongs, then de-overlap the rest downward */
+    shown.sort(function (a, b) { return (b.sel - a.sel) || (a.y - b.y); });
+    var placed = [];
+    for (var s2 = 0; s2 < shown.length; s2++) {
+      var it = shown[s2], y = it.y, guard = 0;
+      var moved = true;
+      while (moved && guard++ < 24) {
+        moved = false;
+        for (var q2 = 0; q2 < placed.length; q2++) {
+          var o = placed[q2];
+          if (Math.abs(y - o.y) < 19 && Math.abs(it.x - o.x) < (it.w + o.w) / 2 + 6) {
+            y = o.y + 19; moved = true;
+          }
+        }
+      }
+      it.y = y; placed.push(it);
+      it.el.style.left = it.x + "px";
+      it.el.style.top = y + "px";
+    }
+    requestAnimationFrame(frame);
+  }
+  frame();
+  showPart("jet");
+})();
+</script>

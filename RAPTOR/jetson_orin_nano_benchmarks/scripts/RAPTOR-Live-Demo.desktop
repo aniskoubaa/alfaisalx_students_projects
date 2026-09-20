@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=RAPTOR Live Demo
+GenericName=Live person detection and pose
+Comment=Camera through the deployed TensorRT pose engine, with live posture and FPS
+Exec=/home/alfaisal-x-nx/raptor-live-demo.sh
+Path=/home/alfaisal-x-nx
+Icon=camera-video
+Terminal=true
+Categories=Development;Science;
+Keywords=raptor;yolo;pose;drone;tensorrt;
+StartupNotify=true

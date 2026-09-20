@@ -20,6 +20,16 @@ the **Jetson Orin NX** carried by the drone.
 | 07 | [Roadmap](./07-roadmap.md) | Phases, milestones, definition of done |
 | 08 | [Limitations & safety](./08-limitations-and-safety.md) | What this system is not, human-in-the-loop, privacy |
 | 09 | [Jetson environment](./09-jetson-environment.md) | Venv, PEP 668, CUDA torch, board commands |
+| 13 | [Bill of materials](./13-bill-of-materials.md) | Every part still to buy, with amazon.sa listings, specs that matter, and what is blocked |
+
+### Interactive companions
+
+Two HTML pages that sit alongside the numbered docs. Open them in a browser.
+
+| Page | What it is |
+|---|---|
+| [Wiring map](./raptor-wiring-map.html) | What plugs into what: every connection, the parts list, and the bench build order. |
+| [Build view](./raptor-build-view.html) | The same harness placed on the airframe &mdash; an interactive 3D model, a to-scale plan view showing the 123 mm prop keep-out, a side elevation of the stack, and per-cable routing. |
 
 ## The short version
 

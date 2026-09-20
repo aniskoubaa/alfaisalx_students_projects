@@ -1,0 +1,14 @@
+# Weights, engines and datasets are large and regenerable — keep them out of git.
+# results/ and figures/ ARE committed: 06-benchmark-plan.md calls results/ the
+# scientific output of the project, and a diff showing an FPS regression is
+# exactly the feedback we want.
+models/
+videos/
+data/
+*.pt
+*.engine
+*.onnx
+*.zip
+
+# Ultralytics run artefacts
+runs/

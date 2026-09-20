@@ -1,0 +1,136 @@
+{
+  "generated": "1970-01-01T04:15:59+00:00",
+  "board_env": {
+    "board": {
+      "l4t_release_raw": "# R39 (release), REVISION: 2.0, GCID: 45755727, BOARD: generic, EABI: aarch64, DATE: Mon Jun  1 09:28:48 PM UTC 2026",
+      "l4t_version": "39.2.0",
+      "jetpack_generation": "7",
+      "image_name": "mfi_recomputer-orin-nx-16g-j401-7.2.0-39.2.0-2026-06-18.tar.gz",
+      "device_tree_model": "NVIDIA Jetson Orin NX Engineering Reference Developer Kit Super",
+      "hostname": "alfaisal-x-nx",
+      "kernel": "6.8.12-1021-tegra",
+      "arch": "aarch64",
+      "os": "Ubuntu 24.04.4 LTS"
+    },
+    "power": {
+      "nvpmodel_name": "25W",
+      "nvpmodel_mode": 3,
+      "gpu_min_freq": 306000000,
+      "gpu_max_freq": 1173000000,
+      "jetson_clocks_pinned": false
+    },
+    "stack": {
+      "python": "3.12.3",
+      "executable": "/home/alfaisal-x-nx/raptor-venv/bin/python",
+      "in_venv": true,
+      "torch": "2.14.0+cu130",
+      "torchvision": "0.29.0+cu130",
+      "ultralytics": "8.4.154",
+      "tensorrt": "10.16.2.10",
+      "cv2": "5.0.0",
+      "numpy": "2.5.3",
+      "onnx": "1.23.0",
+      "cuda_available": true,
+      "torch_cuda_version": "13.0",
+      "gpu_name": "Orin",
+      "gpu_capability": "8.7"
+    },
+    "resources": {
+      "mem_total_gb": 15.23,
+      "mem_available_gb": 11.85,
+      "disk_free_gb": 22.93,
+      "cpu_count": 8
+    },
+    "git_commit": "unknown"
+  },
+  "selection_basis": "docs/10-detector-benchmark-results.md, docs/12-vlm-benchmark-results.md",
+  "artifacts": {
+    "detector": {
+      "role": "tier 1 - person detection",
+      "why": "highest person mAP@0.5 inside the 33 ms frame budget; TensorRT FP16 costs zero accuracy versus PyTorch and returns ~4.5 ms/frame",
+      "source": "/home/alfaisal-x-nx/raptor-models/yolo11s.engine",
+      "path": "/home/alfaisal-x-nx/raptor-deploy/detector/yolo11s.engine",
+      "bytes": 22289749,
+      "sha256_16": "e541b279fd462dbe",
+      "measured": {
+        "p95_ms": 25.871,
+        "mean_ms": 24.229,
+        "fps": 30.08,
+        "map50": 0.3687,
+        "recall": 0.3625,
+        "board_power_mean_w": 12.61,
+        "measured_at_power_mode": "25W",
+        "imgsz": 960
+      },
+      "verify": {
+        "ok": true
+      },
+      "status": "ready"
+    },
+    "pose": {
+      "role": "tier 1+2 - person detection AND 17 keypoints",
+      "why": "doc 02 specifies one pose model rather than a separate detector; in PyTorch every pose config sat within 1 ms of the hard limit, so TensorRT is a prerequisite rather than an optimisation",
+      "source": "/home/alfaisal-x-nx/raptor-models/yolo11s-pose.engine",
+      "path": "/home/alfaisal-x-nx/raptor-deploy/pose/yolo11s-pose.engine",
+      "bytes": 22966109,
+      "sha256_16": "cbe5fece4d36752c",
+      "measured": {
+        "p95_ms": 26.46,
+        "mean_ms": 20.397,
+        "fps": 34.38,
+        "board_power_mean_w": 14.53,
+        "measured_at_power_mode": "25W",
+        "imgsz": 960
+      },
+      "verify": {
+        "ok": true
+      },
+      "status": "ready"
+    },
+    "vlm": {
+      "role": "tier 3 - event-triggered scene description",
+      "why": "88% schema-valid JSON versus 0% for SmolVLM2, roughly half the time-to-first-token, lower mean and peak power",
+      "source": "/home/alfaisal-x-nx/raptor-vlm/Qwen2.5-VL-3B-Instruct",
+      "path": "/home/alfaisal-x-nx/raptor-deploy/vlm/Qwen2.5-VL-3B-Instruct",
+      "bytes": 7520923298,
+      "measured": {
+        "ttft_p95_s": 0.758,
+        "full_reply_p95_s": 15.879,
+        "tokens_per_s": 9.8,
+        "schema_valid_rate": 0.875,
+        "board_power_mean_w": 19.19,
+        "measured_at_power_mode": "25W",
+        "imgsz": null
+      },
+      "verify": {
+        "ok": true,
+        "architecture": "Qwen2_5_VLForConditionalGeneration"
+      },
+      "status": "ready"
+    },
+    "vlm_fallback": {
+      "role": "tier 3 fallback for an 8 GB board",
+      "why": "smaller and faster per token, but produced no schema-valid output and volunteered demographic attributes - MUST NOT be run without grammar-constrained decoding (see docs/12)",
+      "source": "/home/alfaisal-x-nx/raptor-vlm/SmolVLM2-2.2B-Instruct",
+      "path": "/home/alfaisal-x-nx/raptor-deploy/vlm_fallback/SmolVLM2-2.2B-Instruct",
+      "bytes": 8992159429,
+      "measured": {
+        "ttft_p95_s": 1.407,
+        "full_reply_p95_s": 11.45,
+        "tokens_per_s": 14.27,
+        "schema_valid_rate": 0.0,
+        "board_power_mean_w": 20.19,
+        "measured_at_power_mode": "25W",
+        "imgsz": null
+      },
+      "verify": {
+        "ok": true,
+        "architecture": "SmolVLMForConditionalGeneration"
+      },
+      "status": "ready"
+    }
+  },
+  "warnings": [
+    "TensorRT engines are tied to this TensorRT version and GPU. They are NOT portable \u2014 re-export after any JetPack upgrade or on a different board."
+  ]
+}
