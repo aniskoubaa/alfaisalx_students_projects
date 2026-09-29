@@ -1,0 +1,8 @@
+[Unit]
+Description=Check and persist the RAPTOR clock floor
+
+[Service]
+Type=oneshot
+# sync = load then save: if the clock has fallen behind the floor, fix it first,
+# so the periodic save can never record a regressed time.
+ExecStart=/usr/local/sbin/raptor-clock-keeper sync

@@ -1,0 +1,5 @@
+{"key": "yolo11s@960", "name": "yolo11s COCO", "imgsz": "960", "gpu_mean_ms": 11.2779, "gpu_p95_ms": 11.3606, "source": "trtexec --fp16, 300 iterations, 2 s warm-up", "timestamp": "2026-09-28"}
+{"key": "yolo26s-960@960", "name": "YOLO26s COCO", "imgsz": "960", "gpu_mean_ms": 11.7376, "gpu_p95_ms": 11.77, "source": "trtexec --fp16, 300 iterations, 2 s warm-up", "timestamp": "2026-09-28"}
+{"key": "visdrone-yolo26s-960@960", "name": "YOLO26s VisDrone", "imgsz": "960", "gpu_mean_ms": 11.3743, "gpu_p95_ms": 11.394, "source": "trtexec --fp16, 300 iterations, 2 s warm-up", "timestamp": "2026-09-28"}
+{"key": "visdrone-yolo26s-736x1280@736x1280", "name": "YOLO26s VisDrone", "imgsz": "736\u00d71280", "gpu_mean_ms": 11.3786, "gpu_p95_ms": 11.4502, "source": "trtexec --fp16, 300 iterations, 2 s warm-up", "timestamp": "2026-09-28"}
+{"key": "visdrone-rtdetrv4-s@960", "name": "RT-DETRv4-S VisDrone", "imgsz": "960", "gpu_mean_ms": 17.0655, "gpu_p95_ms": 17.0996, "source": "trtexec, recorded by bench_rtdetrv4.py", "timestamp": "2026-09-28"}

@@ -1,0 +1,10 @@
+[Unit]
+Description=Persist the RAPTOR clock floor every 10 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+Unit=raptor-clock-keeper-save.service
+
+[Install]
+WantedBy=timers.target

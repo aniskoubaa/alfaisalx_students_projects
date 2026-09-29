@@ -1,0 +1,19 @@
+# First of two restores per boot. This one runs early, before most services, so
+# they start with a sane clock. It is NOT enough on its own: the PMIC RTC driver
+# registers later and the kernel overwrites the clock from it (1970, with no
+# backup battery). raptor-clock-keeper-rtc.service, fired by a udev rule on rtc0,
+# restores it a second time after that. Installed by src/setup/install_clock_keeper.sh.
+[Unit]
+Description=RAPTOR clock keeper (restore time floor at boot, persist at shutdown)
+DefaultDependencies=no
+After=local-fs.target
+Before=sysinit.target time-set.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/raptor-clock-keeper load
+ExecStop=/usr/local/sbin/raptor-clock-keeper save
+
+[Install]
+WantedBy=sysinit.target

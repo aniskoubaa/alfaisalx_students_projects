@@ -5,6 +5,24 @@ person, which person is it, and what posture are they in.*
 
 ## Decision summary
 
+> **Updated 2026-09-28** after the second detector round
+> ([10](./10-detector-benchmark-results.md#second-round-aerial-trained-detectors-2026-09-28)).
+> The original table is kept below it, because the reasoning in the rest of this
+> document still explains most of the choices.
+
+| Question | Choice (2026-09-28) | One-line reason |
+|----------|--------|-----------------|
+| Detector | **YOLO26s trained on VisDrone** ([`dronefreak/visdrone-yolo26s`](https://huggingface.co/dronefreak/visdrone-yolo26s)), **736×1280 rectangular** TensorRT FP16 engine, served through a lean TensorRT runtime | Finds 42.5 % of people on held-out aerial test-dev against 20.0 % for COCO YOLO11s — a tie with RT-DETRv4-S — and is the lightest network at that accuracy (11.5 ms GPU compute). 26.1 ms p95 through the lean runtime (`src/common/trt_yolo.py`), against 31.0 ms through Ultralytics. **Deployed 2026-09-29.** |
+| Apache alternative | **RT-DETRv4-S trained on VisDrone**, 960 px | 42.8 % at 17.1 ms GPU compute, 24.3 ms end to end in a lean runtime. Apache-2.0 — the choice if AGPL is ruled out. |
+| Detector + pose | **Two stages, no longer one pose model** | No aerial-trained pose model exists. The COCO pose model finds only a fifth of the people from the air, so detection must come from the aerial detector. |
+| Pose | **YOLO26s-pose on crops of each track, below frame rate** | 22.7 ms against 26.5 ms for YOLO11s-pose. People do not change posture 30 times a second. |
+| Small people | **Direct posture classifier on the crop below ~32 px**, keypoints above | Keypoints are unreliable on tiny people; see the posture classifier below |
+| Precision | FP16 TensorRT; INT8 still to validate | Unchanged |
+| Tracking | ByteTrack | Unchanged |
+| Licence | YOLO26 is AGPL-3.0 (as YOLO11 was); RT-DETRv4 is Apache-2.0 and ready as a drop-in. Both sets of weights are trained on VisDrone (CC BY-NC-SA 3.0, non-commercial), so they must be replaced by our own fine-tune before any commercial use. | The AGPL decision below is still open — but no longer blocking, since a measured alternative exists |
+
+### Original decision table (2026-09-16)
+
 | Question | Choice | One-line reason |
 |----------|--------|-----------------|
 | Detector family | **Ultralytics YOLO11** | Best accuracy/latency at our scale, first-class TensorRT export, tracking built in, huge community |
@@ -38,7 +56,7 @@ Alternatives considered:
 | Option | Why not (for now) |
 |--------|-------------------|
 | **YOLOv8** | Fine, and more battle-tested, but YOLO11 is the same API with better acc/latency. Keep as fallback if we hit a YOLO11 export bug. |
-| **RT-DETR** | Transformer detector, no NMS, Apache-licensed lineage — attractive. But heavier at our input sizes and historically fiddlier to export to TensorRT on Jetson. **Revisit if AGPL becomes a blocker.** |
+| **RT-DETR** | Transformer detector, no NMS, Apache-licensed lineage — attractive. But heavier at our input sizes and historically fiddlier to export to TensorRT on Jetson. **Revisit if AGPL becomes a blocker.** *Revisited 2026-09-28: RT-DETRv4-S exported cleanly (ONNX, then trtexec), reaches 42.8 % test-dev recall at 24.3 ms, and is now the measured Apache-licensed alternative; see [10](./10-detector-benchmark-results.md).* |
 | **NVIDIA PeopleNet (TAO)** | Purpose-built person detector, DeepStream-native, commercially licensable. Weakness: trained on ground-level/CCTV viewpoints and not easy to fine-tune outside the TAO toolchain. Good backup, poor primary. |
 | **Cloud detection API** | Violates the offline constraint. Non-starter. |
 | **Training a detector from scratch** | See [05](./05-custom-models-and-data.md) — a bad use of our time. Fine-tuning a pretrained backbone gets us 95% of the benefit for 2% of the effort. |
@@ -103,6 +121,13 @@ near the limit of what YOLO's stride-32 head resolves. Options to benchmark:
 
 Measure all three; the altitude-vs-recall curve is one of the more useful results this
 project can produce.
+
+**Measured 2026-09-28** ([10](./10-detector-benchmark-results.md)): 1280 px helps,
+but a square 1280 engine costs 39 ms on real frames and misses the budget. A
+1080p frame letterboxed into a square is 44 % padding. A **rectangular
+736×1280** engine keeps the gain at 31 ms (`bench_detector.py --imgsz 736,1280`).
+Training on aerial data was worth far more than resolution: +20 points of recall
+against +5.
 
 ## Implementation path
 

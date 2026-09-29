@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=RAPTOR Live Demo (bench)
+GenericName=Person detection and posture, close to the camera
+Comment=One pose model on the whole frame - for people near a desk camera, which the aerial detector is not trained on
+Exec=/home/alfaisal-x-nx/raptor/src/demo/launch_demo.sh --mode pose-only
+Path=/home/alfaisal-x-nx/raptor
+Icon=camera-web
+Terminal=true
+Categories=Development;Science;
+Keywords=raptor;yolo;pose;tensorrt;bench;
+StartupNotify=true

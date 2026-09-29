@@ -1,0 +1,11 @@
+{
+  "name": "raptor-analysis",
+  "private": true,
+  "description": "Builds the RAPTOR model-selection Word report from benchmarks/results",
+  "scripts": {
+    "report": "node generate_report.js"
+  },
+  "dependencies": {
+    "docx": "^9.7.1"
+  }
+}

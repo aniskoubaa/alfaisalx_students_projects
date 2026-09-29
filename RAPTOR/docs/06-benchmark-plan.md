@@ -1,9 +1,9 @@
 # 06 — Benchmark Plan
 
-This document defines what the existing
-[`jetson_orin_nano_benchmarks/`](../jetson_orin_nano_benchmarks) folder should actually
-contain. (Note the folder name says "nano" while the flight computer is an Orin **NX** —
-see the naming note at the bottom.)
+This document defines what the benchmark suite must measure and how. It is implemented:
+results and figures live in [`benchmarks/`](../benchmarks), and the code that produces them
+in [`src/benchmarks/`](../src/benchmarks) and [`src/analysis/`](../src/analysis) — see
+[Folder layout](#folder-layout) at the bottom.
 
 **Rule: no number in any document, presentation or report is allowed unless it came out of
 a run recorded here.** Everything below is a measurement target, not a claim.
@@ -137,31 +137,45 @@ Replay rosbags from real flights with planted volunteers. Report:
 - Pin the analysis: a small script turns `results/*.jsonl` into the plots that go in the
   report, so no one is hand-copying numbers into slides.
 
-## Suggested folder layout
+## Folder layout
+
+As built. Entries in parentheses are planned and **not written yet**.
 
 ```
-jetson_orin_nano_benchmarks/     # see naming note below
-  scripts/
+benchmarks/                      # committed - the scientific output
+  results/                       # JSONL, one line per run - small and diffable
+  figures/                       # generated plots
+  README.md                      # methodology, environment traps, what is NOT measured
+src/
+  common/
+    collect_env.py               # JetPack/TRT versions, nvpmodel, clocks -> JSON
+    tegra_sampler.py             # power + temperature, sampled throughout a run
+  benchmarks/                    # run on the Jetson
     bench_detector.py            # E1, E2, E4
+    bench_raw_forward.py         # E1 - forward pass only, framework overhead isolated
+    bench_camera.py              # E3b - capture path
     bench_vlm.py                 # E5
-    bench_contention.py          # E7
-    replay_bag_e2e.py            # E8
-    collect_env.sh               # JetPack/TRT versions, nvpmodel, clocks -> JSON
+    run_detector_sweep.sh              # the E1 matrix in one invocation
+    (bench_contention.py)        # E7 - detector and VLM at the same time
+    (replay_bag_e2e.py)          # E8 - needs recorded rosbags first
+  analysis/                      # run on the laptop
     plot_results.py              # results/*.jsonl -> figures/
-  models/                        # git-ignored (weights, engines)
-  videos/                        # git-ignored (bags, recorded footage)
-  results/                       # committed - JSONL, small and diffable
-  figures/                       # committed - generated plots
-  README.md
+    generate_report.js           # results -> reports/RAPTOR-model-selection-report.docx
 ```
+
+Weights, engines, datasets and recordings stay **out of git**, on the Jetson under
+`~/raptor-models`, `~/raptor-data`, `~/raptor-vlm` and `~/raptor-deploy`.
 
 Keep `results/` in git. It is small, it is the actual scientific output of the project,
 and a diff showing an FPS regression after a code change is exactly the feedback we want.
 
 ## Naming note
 
-The folder is called `jetson_orin_nano_benchmarks` but the flight computer is an Orin
-**NX**. Since `General Tasks/` suggests we also have an Orin Nano, the cleanest fix is to
-keep one benchmark tree and record the **board** as a field in every result row, so
-NX and Nano numbers are directly comparable. Renaming the folder to
-`jetson_benchmarks/` would make that clearer — worth doing before there is much in it.
+**Resolved.** The folder was originally called `jetson_orin_nano_benchmarks`, but the
+flight computer is an Orin **NX** — confirmed on the board itself as *NVIDIA Jetson Orin NX
+Engineering Reference Developer Kit Super*, 16 GB, on a Seeed reComputer J401 carrier. It
+was renamed to `benchmarks/` when the repository was reorganised.
+
+Every result row still records the **board** as a field. If a second board — an Orin
+Nano, for instance — is ever benchmarked, its rows go in the same files and stay directly
+comparable.

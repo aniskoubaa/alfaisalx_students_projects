@@ -1,0 +1,8 @@
+# Re-apply the RAPTOR clock floor the moment the PMIC RTC registers as rtc0.
+#
+# The kernel copies rtc0 into the system clock during registration
+# (CONFIG_RTC_HCTOSYS_DEVICE=rtc0). With no backup battery that is 1970, and the
+# driver is a module that registers ~11 s into boot - after early services have
+# already set the clock. The add event is processed after registration, so this
+# runs strictly after the kernel's overwrite.
+ACTION=="add", SUBSYSTEM=="rtc", KERNEL=="rtc0", TAG+="systemd", ENV{SYSTEMD_WANTS}+="raptor-clock-keeper-rtc.service"

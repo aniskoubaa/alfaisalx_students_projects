@@ -1,0 +1,133 @@
+{
+  "model": "LFM2.5-VL-3B",
+  "generations": [
+    {
+      "crop": "crop_000_385px.jpg",
+      "ttft_s": 0.351,
+      "total_s": 9.278,
+      "tokens": 118,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"dark hair tied back, white short-sleeved shirt with thin horizontal stripes, red pants, carrying a large patterned backpack\",\n  \"body_position\": \"standing upright, facing away from camera\",\n  \"surroundings\": \"paved sidewalk with alternating light and dark gray tiles, black car parked on left side\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head\",\n    \"face\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_001_268px.jpg",
+      "ttft_s": 0.301,
+      "total_s": 5.143,
+      "tokens": 64,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"woman\",\n  \"body_position\": \"walking\",\n  \"surroundings\": \"paved ground\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_002_247px.jpg",
+      "ttft_s": 0.301,
+      "total_s": 9.1,
+      "tokens": 116,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"dark hair tied back, wearing a white short-sleeved shirt, red pants, and pink shoes, carrying a large patterned backpack\",\n  \"body_position\": \"standing upright, facing away from camera\",\n  \"surroundings\": \"paved area with brick pattern, green triangular shape on ground, white line on pavement\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_003_174px.jpg",
+      "ttft_s": 0.3,
+      "total_s": 6.958,
+      "tokens": 88,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"woman with dark hair wearing a white t-shirt and blue jeans\",\n  \"body_position\": \"lying on back\",\n  \"surroundings\": \"outdoor setting with concrete ground, wooden chair, building with yellow trim and glass door\",\n  \"injury_indicators\": [],\n  \"signalling\": \"no\",\n  \"confidence\": 1,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_004_236px.jpg",
+      "ttft_s": 0.299,
+      "total_s": 8.746,
+      "tokens": 112,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"dark hair tied back, wearing a white short-sleeved shirt, dark pants, and carrying a colorful backpack\",\n  \"body_position\": \"standing upright, facing away from camera\",\n  \"surroundings\": \"paved area with a green stroller to the left and part of a bicycle to the right\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_005_168px.jpg",
+      "ttft_s": 0.3,
+      "total_s": 7.196,
+      "tokens": 91,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"East Asian male\",\n  \"body_position\": \"lying on side\",\n  \"surroundings\": \"concrete surface with metal grating and chain-link fence\",\n  \"injury_indicators\": [\n    \"bruising on left knee\"\n  ],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_006_188px.jpg",
+      "ttft_s": 0.3,
+      "total_s": 8.823,
+      "tokens": 113,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"Middle-aged man with short dark hair, wearing a green jacket over a blue collared shirt and black pants\",\n  \"body_position\": \"Standing upright, facing slightly left, arms at sides\",\n  \"surroundings\": \"Concrete surface, white slatted structure in background, light-colored wall or barrier to right\",\n  \"injury_indicators\": [],\n  \"signalling\": \"No visible hand gestures or signals\",\n  \"confidence\": 0.95,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_007_205px.jpg",
+      "ttft_s": 0.301,
+      "total_s": 10.042,
+      "tokens": 129,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"woman with dark hair tied back, wearing a white short-sleeved shirt, red pants, and carrying a large dark backpack with green floral patterns\",\n  \"body_position\": \"standing upright, facing away from camera, walking forward on paved ground\",\n  \"surroundings\": \"paved area with rectangular tiles in shades of gray and pink, no other people or objects visible\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 1.0,\n  \"not_visible\": [\n    \"head\",\n    \"face\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_008_201px.jpg",
+      "ttft_s": 0.299,
+      "total_s": 8.817,
+      "tokens": 113,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"dark hair tied back, wearing a white short-sleeved shirt, red pants, pink shoes, and a large backpack with a colorful pattern\",\n  \"body_position\": \"standing upright, facing away from camera\",\n  \"surroundings\": \"paved surface, no other people or objects visible\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head\",\n    \"face\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_009_206px.jpg",
+      "ttft_s": 0.301,
+      "total_s": 8.512,
+      "tokens": 109,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"dark hair tied back, white short-sleeved shirt, dark patterned backpack, red pants\",\n  \"body_position\": \"standing upright, facing away from camera\",\n  \"surroundings\": \"gray paved surface, partial view of another person's shoulder and arm in lower left\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head of second person\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_010_198px.jpg",
+      "ttft_s": 0.301,
+      "total_s": 7.772,
+      "tokens": 99,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"man with short dark hair, wearing a pink short-sleeved shirt and blue jeans\",\n  \"body_position\": \"standing upright\",\n  \"surroundings\": \"gray paved ground, partial view of another person to the right\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head of the other person\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_011_115px.jpg",
+      "ttft_s": 0.298,
+      "total_s": 5.657,
+      "tokens": 71,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"young male\",\n  \"body_position\": \"lying on back\",\n  \"surroundings\": \"grass, large rocks, paved path\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_012_118px.jpg",
+      "ttft_s": 0.298,
+      "total_s": 5.649,
+      "tokens": 71,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"man\",\n  \"body_position\": \"lying on back\",\n  \"surroundings\": \"rocky terrain, grassy area, water\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_013_167px.jpg",
+      "ttft_s": 0.298,
+      "total_s": 5.271,
+      "tokens": 66,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"woman\",\n  \"body_position\": \"standing upright on rollerblades\",\n  \"surroundings\": \"paved surface\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 1,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_014_128px.jpg",
+      "ttft_s": 0.303,
+      "total_s": 5.597,
+      "tokens": 70,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"man\",\n  \"body_position\": \"sitting on curb\",\n  \"surroundings\": \"paved area with brick pattern and white vehicle\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 1,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_015_184px.jpg",
+      "ttft_s": 0.301,
+      "total_s": 5.569,
+      "tokens": 70,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"dark hair, light skin\",\n  \"body_position\": \"lying on back\",\n  \"surroundings\": \"snowy ground\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": []\n}"
+    }
+  ]
+}

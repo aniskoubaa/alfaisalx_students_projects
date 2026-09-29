@@ -1,0 +1,133 @@
+{
+  "model": "Qwen2.5-VL-3B-Instruct",
+  "generations": [
+    {
+      "crop": "crop_000_385px.jpg",
+      "ttft_s": 1.185,
+      "total_s": 13.191,
+      "tokens": 122,
+      "json_parsed": true,
+      "text": "```json\n{\n  \"appearance\": {\n    \"hair\": \"brown\",\n    \"clothing\": {\n      \"top\": \"striped\",\n      \"bottom\": \"red\"\n    }\n  },\n  \"body_position\": {\n    \"posture\": \"standing\",\n    \"orientation\": \"backwards\"\n  },\n  \"surroundings\": {\n    \"ground\": \"brick-paved\",\n    \"vehicle\": \"black car\"\n  },\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.9,\n  \"not_visible\": []\n}\n```"
+    },
+    {
+      "crop": "crop_001_268px.jpg",
+      "ttft_s": 0.76,
+      "total_s": 13.326,
+      "tokens": 128,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"blonde\",\n    \"clothing\": {\n      \"top\": \"gray\",\n      \"bottom\": \"black\"\n    }\n  },\n  \"body_position\": {\n    \"left_foot\": \"on ground\",\n    \"right_foot\": \"on ground\",\n    \"left_arm\": \"down\",\n    \"right_arm\": \"down\"\n  },\n  \"surroundings\": {\n    \"ground\": \"gray pavement\"\n  },\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_002_247px.jpg",
+      "ttft_s": 0.641,
+      "total_s": 13.252,
+      "tokens": 128,
+      "json_parsed": true,
+      "text": "```json\n{\n  \"appearance\": {\n    \"hair\": \"short\",\n    \"clothing\": {\n      \"top\": \"striped\",\n      \"bottom\": \"red pants\"\n    }\n  },\n  \"body_position\": {\n    \"posture\": \"standing\",\n    \"location\": \"sideways on sidewalk\"\n  },\n  \"surroundings\": {\n    \"ground\": \"brick-paved\",\n    \"background\": \"greenery and buildings\"\n  },\n  \"injury_indicators\": [],\n  \"signalling\": \"\",\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}\n```"
+    },
+    {
+      "crop": "crop_003_174px.jpg",
+      "ttft_s": 0.556,
+      "total_s": 12.521,
+      "tokens": 122,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"black\",\n    \"clothing\": \"white shirt and dark pants\"\n  },\n  \"body_position\": {\n    \"posture\": \"sitting\",\n    \"location\": \"on a chair\"\n  },\n  \"surroundings\": {\n    \"ground\": \"concrete pavement\",\n    \"background\": \"tile pattern on the ground\"\n  },\n  \"injury_indicators\": [\n    \"slippery shoes\"\n  ],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_004_236px.jpg",
+      "ttft_s": 0.635,
+      "total_s": 15.633,
+      "tokens": 153,
+      "json_parsed": true,
+      "text": "```json\n{\n  \"appearance\": {\n    \"hair\": \"brown\",\n    \"clothing\": {\n      \"top\": \"white\",\n      \"bottom\": \"red\"\n    },\n    \"accessories\": {\n      \"backpack\": \"colorful patterned\"\n    }\n  },\n  \"body_position\": {\n    \"posture\": \"standing\",\n    \"location\": \"sideways on path\"\n  },\n  \"surroundings\": {\n    \"ground\": \"paved walkway\",\n    \"objects\": [\n      \"pedestrian\",\n      \"bicycle\"\n    ]\n  },\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.9,\n  \"not_visible\": []\n}\n```"
+    },
+    {
+      "crop": "crop_005_168px.jpg",
+      "ttft_s": 0.479,
+      "total_s": 16.063,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"short\",\n    \"clothing\": {\n      \"shirt\": \"white\",\n      \"pants\": \"blue\",\n      \"shoes\": \"black\"\n    }\n  },\n  \"body_position\": {\n    \"posture\": \"lying\",\n    \"location\": \"on a flat surface\",\n    \"orientation\": \"face up\",\n    \"confident\": 0.91,\n    \"time\": \"38 seconds\"\n  },\n  \"surroundings\": {\n    \"altitude\": \"32 meters\",\n    \"view\": \"oblique aerial\"\n  },\n  \"injury_indicators\": [\n    \"visible bruise on left arm\"\n  ],\n  \"signalling\": \"hand gesture near chest\",\n  \"confidence\":"
+    },
+    {
+      "crop": "crop_006_188px.jpg",
+      "ttft_s": 0.546,
+      "total_s": 14.742,
+      "tokens": 145,
+      "json_parsed": true,
+      "text": "```json\n{\n  \"appearance\": {\n    \"hair\": \"short\",\n    \"clothing\": \"yellow jacket, black pants\"\n  },\n  \"body_position\": {\n    \"posture\": \"standing\",\n    \"location\": \"center of frame\"\n  },\n  \"surroundings\": {\n    \"ground\": \"concrete or stone surface\",\n    \"background\": \"indistinct, possibly a road or pathway\"\n  },\n  \"injury_indicators\": [\n    \"none visible\"\n  ],\n  \"signalling\": {\n    \"hand\": \"not visible\"\n  },\n  \"confidence\": 0.91,\n  \"not_visible\": [\n    \"face\"\n  ]\n}\n```"
+    },
+    {
+      "crop": "crop_007_205px.jpg",
+      "ttft_s": 0.549,
+      "total_s": 16.137,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": "```json\n{\n  \"appearance\": {\n    \"hair\": \"dark\",\n    \"clothing\": {\n      \"top\": \"white shirt\",\n      \"bottom\": \"red pants\",\n      \"footwear\": \"pink shoes\"\n    },\n    \"accessories\": {\n      \"backpack\": {\n        \"color\": \"green\",\n        \"pattern\": \"floral\"\n      }\n    }\n  },\n  \"body_position\": {\n    \"posture\": \"standing\",\n    \"orientation\": \"sideways\",\n    \"distance_from_camera\": \"far away\"\n  },\n  \"surroundings\": {\n    \"ground\": \"brick-paved\",\n    \"context\": \"walking on a path\",\n    \"environment\": \"indoor or controlled setting\"\n  },\n  \"injury_ind"
+    },
+    {
+      "crop": "crop_008_201px.jpg",
+      "ttft_s": 0.471,
+      "total_s": 11.255,
+      "tokens": 110,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"long and dark\",\n    \"clothing\": {\n      \"top\": \"white\",\n      \"bottom\": \"red\",\n      \"footwear\": \"pink\"\n    },\n    \"accessories\": \"backpack with floral pattern\"\n  },\n  \"body_position\": \"standing\",\n  \"surroundings\": \"concrete surface\",\n  \"injury_indicators\": [],\n  \"signalling\": \"no visible signals\",\n  \"confidence\": \"high\",\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_009_206px.jpg",
+      "ttft_s": 0.468,
+      "total_s": 12.709,
+      "tokens": 125,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"brown\",\n    \"clothing\": {\n      \"top\": \"white\",\n      \"bottom\": \"red\"\n    },\n    \"accessories\": {\n      \"backpack\": \"colorful\"\n    }\n  },\n  \"body_position\": {\n    \"posture\": \"standing\",\n    \"orientation\": \"sideways\"\n  },\n  \"surroundings\": {\n    \"ground\": \"gray\"\n  },\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_010_198px.jpg",
+      "ttft_s": 0.458,
+      "total_s": 11.47,
+      "tokens": 112,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"gender\": \"male\",\n    \"clothing\": [\n      \"pink shirt\",\n      \"blue jeans\"\n    ]\n  },\n  \"body_position\": {\n    \"standing\": true,\n    \"orientation\": \"frontal\"\n  },\n  \"surroundings\": {\n    \"ground\": \"concrete\",\n    \"background\": \"indistinct\"\n  },\n  \"injury_indicators\": [],\n  \"signalling\": {},\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_011_115px.jpg",
+      "ttft_s": 0.384,
+      "total_s": 8.8,
+      "tokens": 86,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"wearing a light blue shirt and dark pants\",\n  \"body_position\": \"standing\",\n  \"surroundings\": \"sidewalk next to grassy area with rocks in the background\",\n  \"injury_indicators\": [\"not visible\"],\n  \"signalling\": \"no visible signals\",\n  \"confidence\": \"0.91\",\n  \"not_visible\": [\"medical equipment\"]\n}"
+    },
+    {
+      "crop": "crop_012_118px.jpg",
+      "ttft_s": 0.385,
+      "total_s": 8.419,
+      "tokens": 82,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"wearing a dark-colored shirt and shorts\",\n  \"body_position\": \"lying on the ground\",\n  \"surroundings\": \"rocky terrain\",\n  \"injury_indicators\": [\"visible bruising on the left arm\"],\n  \"signalling\": \"no visible signals or gestures\",\n  \"confidence\": \"0.91\",\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_013_167px.jpg",
+      "ttft_s": 0.552,
+      "total_s": 15.061,
+      "tokens": 148,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"bun\",\n    \"clothing\": \"white t-shirt with black text and dark pants\"\n  },\n  \"body_position\": {\n    \"posture\": \"standing\",\n    \"location\": \"on rollerblades\"\n  },\n  \"surroundings\": {\n    \"ground\": \"concrete pavement\",\n    \"background\": \"indistinct, possibly an urban setting\"\n  },\n  \"injury_indicators\": [\n    \"skateboarder's knee pads visible on both legs\"\n  ],\n  \"signalling\": {\n    \"hand\": \"left hand raised slightly\"\n  },\n  \"confidence\": 0.9,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_014_128px.jpg",
+      "ttft_s": 0.463,
+      "total_s": 14.123,
+      "tokens": 139,
+      "json_parsed": true,
+      "text": "```json\n{\n  \"appearance\": {\n    \"hair\": \"short\",\n    \"clothing\": \"gray t-shirt and blue jeans\"\n  },\n  \"body_position\": {\n    \"posture\": \"sitting\",\n    \"location\": \"on the ground\"\n  },\n  \"surroundings\": {\n    \"floor\": \"concrete\",\n    \"background\": \"indoor setting with tiled floor\"\n  },\n  \"injury_indicators\": [\n    \"bloodstains on the ground near the person's hand\"\n  ],\n  \"signalling\": \"hand holding an object\",\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}\n```"
+    },
+    {
+      "crop": "crop_015_184px.jpg",
+      "ttft_s": 0.462,
+      "total_s": 15.965,
+      "tokens": 158,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": {\n    \"hair\": \"short\",\n    \"clothing\": {\n      \"top\": \"gray t-shirt\",\n      \"bottom\": \"black pants\"\n    }\n  },\n  \"body_position\": {\n    \"posture\": \"standing\",\n    \"location\": \"left side of frame\"\n  },\n  \"surroundings\": {\n    \"ground\": \"gray pavement\",\n    \"background\": \"indistinct, possibly urban setting\"\n  },\n  \"injury_indicators\": [\n    \"skateboard under left foot\",\n    \"skateboard under right foot\"\n  ],\n  \"signalling\": {\n    \"hand\": \"right hand raised slightly\"\n  },\n  \"confidence\": 0.9,\n  \"not_visible\": []\n}"
+    }
+  ]
+}

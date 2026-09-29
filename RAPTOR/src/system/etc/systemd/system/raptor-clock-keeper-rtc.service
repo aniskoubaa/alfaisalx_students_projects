@@ -1,0 +1,8 @@
+[Unit]
+Description=RAPTOR clock keeper - re-apply the time floor after rtc0 registers
+DefaultDependencies=no
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/raptor-clock-keeper load

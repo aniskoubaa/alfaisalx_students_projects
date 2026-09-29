@@ -1,0 +1,199 @@
+{
+  "generated": "2026-09-29T07:37:35+00:00",
+  "board_env": {
+    "board": {
+      "l4t_release_raw": "# R39 (release), REVISION: 2.0, GCID: 45755727, BOARD: generic, EABI: aarch64, DATE: Mon Jun  1 09:28:48 PM UTC 2026",
+      "l4t_version": "39.2.0",
+      "jetpack_generation": "7",
+      "image_name": "mfi_recomputer-orin-nx-16g-j401-7.2.0-39.2.0-2026-06-18.tar.gz",
+      "device_tree_model": "NVIDIA Jetson Orin NX Engineering Reference Developer Kit Super",
+      "hostname": "alfaisal-x-nx",
+      "kernel": "6.8.12-1021-tegra",
+      "arch": "aarch64",
+      "os": "Ubuntu 24.04.4 LTS"
+    },
+    "power": {
+      "nvpmodel_name": "25W",
+      "nvpmodel_mode": 3,
+      "gpu_min_freq": 306000000,
+      "gpu_max_freq": 1173000000,
+      "jetson_clocks_pinned": false
+    },
+    "stack": {
+      "python": "3.12.3",
+      "executable": "/home/alfaisal-x-nx/raptor-venv/bin/python",
+      "in_venv": true,
+      "torch": "2.14.0+cu130",
+      "torchvision": "0.29.0+cu130",
+      "ultralytics": "8.4.154",
+      "tensorrt": "10.16.2.10",
+      "cv2": "5.0.0",
+      "numpy": "2.5.3",
+      "onnx": "1.23.0",
+      "cuda_available": true,
+      "torch_cuda_version": "13.0",
+      "gpu_name": "Orin",
+      "gpu_capability": "8.7"
+    },
+    "resources": {
+      "mem_total_gb": 15.23,
+      "mem_available_gb": 11.17,
+      "disk_free_gb": 7.87,
+      "cpu_count": 8
+    },
+    "git_commit": "unknown"
+  },
+  "selection_basis": "2026-09-28 re-evaluation: docs/10-detector-benchmark-results.md, docs/12-vlm-benchmark-results.md",
+  "artifacts": {
+    "detector": {
+      "role": "tier 1 - person detection on every frame (VisDrone classes 0 pedestrian + 1 people)",
+      "why": "ties RT-DETRv4-S on held-out accuracy (VisDrone test-dev recall 42.5 %, mAP 0.452, against 20.0 % recall for COCO yolo11s) at a third less GPU compute (11.5 ms), which matters because the VLM shares the GPU. Serve it with src/common/trt_yolo.py (25.9 ms p95 end to end), not Ultralytics' Python pipeline (31.0 ms)",
+      "source": "/home/alfaisal-x-nx/raptor-models/aerial/visdrone-yolo26s-736x1280.engine",
+      "licence": "AGPL-3.0 (Ultralytics YOLO26); weights trained on VisDrone, CC BY-NC-SA 3.0 - non-commercial",
+      "source_url": "https://huggingface.co/dronefreak/visdrone-yolo26s",
+      "classes_as_person": [
+        0,
+        1
+      ],
+      "path": "/home/alfaisal-x-nx/raptor-deploy/detector/visdrone-yolo26s-736x1280.engine",
+      "bytes": 22537784,
+      "sha256_16": "ea5f6f47da0ca67d",
+      "measured": {
+        "p95_ms": 26.102,
+        "mean_ms": 22.661,
+        "fps": 32.03,
+        "map50": 0.4516,
+        "recall": 0.4248,
+        "accuracy_dataset": "/home/alfaisal-x-nx/raptor-data/visdrone-person-testdev/visdrone_person.yaml",
+        "harness": "lean TensorRT runtime (src/common/trt_yolo.py)",
+        "board_power_mean_w": 14.4,
+        "measured_at_power_mode": "25W",
+        "imgsz": [
+          736,
+          1280
+        ]
+      },
+      "verify": {
+        "ok": true,
+        "imgsz": [
+          736,
+          1280
+        ],
+        "serving": "src/common/trt_yolo.py"
+      },
+      "status": "ready"
+    },
+    "detector_alt": {
+      "role": "tier 1 alternative - the Apache-2.0 detector, if AGPL is ruled out",
+      "why": "test-dev recall 42.8 %, mAP 0.439 - a tie with the detector - and 24.3 ms end to end in its lean runtime, but 17.1 ms of GPU compute",
+      "source": "/home/alfaisal-x-nx/raptor-models/aerial/visdrone-rtdetrv4-s/model.engine",
+      "licence": "Apache-2.0 (code and weights); weights trained on VisDrone, CC BY-NC-SA 3.0 - non-commercial",
+      "source_url": "https://huggingface.co/dronefreak/visdrone-rtdetrv4-s",
+      "classes_as_person": [
+        0,
+        1
+      ],
+      "path": "/home/alfaisal-x-nx/raptor-deploy/detector_alt/visdrone-rtdetrv4-s.engine",
+      "bytes": 26020868,
+      "sha256_16": "3e968fe98d35604e",
+      "measured": {
+        "p95_ms": 24.298,
+        "mean_ms": 23.294,
+        "fps": 28.36,
+        "map50": 0.4387,
+        "recall": 0.428,
+        "accuracy_dataset": "/home/alfaisal-x-nx/raptor-data/visdrone-person-testdev/visdrone_person.yaml",
+        "harness": "bench_rtdetrv4.py (TensorRT runtime, no Ultralytics)",
+        "board_power_mean_w": 15.9,
+        "measured_at_power_mode": "25W",
+        "imgsz": 960
+      },
+      "verify": {
+        "ok": true,
+        "imgsz": [
+          960,
+          960
+        ],
+        "serving": "src/benchmarks/bench_rtdetrv4.py TrtRunner"
+      },
+      "status": "ready"
+    },
+    "pose": {
+      "role": "tier 2 - 17 keypoints on crops of each detected person, below frame rate",
+      "why": "22.7 ms p95 against 26.5 ms for yolo11s-pose. No aerial-trained pose model exists, so detection comes from the aerial detector and pose runs on its crops; keypoints are unreliable below ~32 px of person height",
+      "source": "/home/alfaisal-x-nx/raptor-models/yolo26s-pose-960.engine",
+      "licence": "AGPL-3.0 (Ultralytics YOLO26); COCO weights",
+      "path": "/home/alfaisal-x-nx/raptor-deploy/pose/yolo26s-pose-960.engine",
+      "bytes": 24583661,
+      "sha256_16": "208a26f579651a64",
+      "measured": {
+        "p95_ms": 22.705,
+        "mean_ms": 19.935,
+        "fps": 35.55,
+        "board_power_mean_w": 17.29,
+        "measured_at_power_mode": "25W",
+        "imgsz": 960
+      },
+      "verify": {
+        "ok": true
+      },
+      "status": "ready"
+    },
+    "vlm": {
+      "role": "tier 3 - event-triggered scene description",
+      "why": "the only model tested that was truthful (no injury invented for 16 uninjured people), 100 % schema-valid, honest about what it cannot see, 0.21 s to first token and 4.1 GB. The first-round pick, Qwen2.5-VL-3B, reported injuries for 7 of 16",
+      "source": "/home/alfaisal-x-nx/raptor-vlm/Qwen3-VL-2B-Instruct",
+      "licence": "Apache-2.0",
+      "decoding": {
+        "do_sample": false,
+        "repetition_penalty": 1.05,
+        "note": "greedy + 1.05 penalty; plain greedy loops (31 % valid JSON)"
+      },
+      "path": "/home/alfaisal-x-nx/raptor-deploy/vlm/Qwen3-VL-2B-Instruct",
+      "bytes": 4266648961,
+      "measured": {
+        "ttft_p95_s": 0.207,
+        "full_reply_p95_s": 14.336,
+        "tokens_per_s": 9.85,
+        "schema_valid_rate": 1.0,
+        "board_power_mean_w": 15.06,
+        "measured_at_power_mode": "25W",
+        "imgsz": null
+      },
+      "verify": {
+        "ok": true,
+        "architecture": "Qwen3VLForConditionalGeneration"
+      },
+      "status": "ready"
+    },
+    "vlm_fallback": {
+      "role": "tier 3 fallback",
+      "why": "equally truthful on injuries and never repeated the prompt's posture, but never fills not_visible and is slower (0.30 s first token)",
+      "source": "/home/alfaisal-x-nx/raptor-vlm/Qwen3.5-2B",
+      "licence": "Apache-2.0",
+      "decoding": {
+        "do_sample": false,
+        "repetition_penalty": 1.05
+      },
+      "path": "/home/alfaisal-x-nx/raptor-deploy/vlm_fallback/Qwen3.5-2B",
+      "bytes": 4571274023,
+      "measured": {
+        "ttft_p95_s": 0.304,
+        "full_reply_p95_s": 16.02,
+        "tokens_per_s": 8.08,
+        "schema_valid_rate": 1.0,
+        "board_power_mean_w": 14.43,
+        "measured_at_power_mode": "25W",
+        "imgsz": null
+      },
+      "verify": {
+        "ok": true,
+        "architecture": "Qwen3_5ForConditionalGeneration"
+      },
+      "status": "ready"
+    }
+  },
+  "warnings": [
+    "TensorRT engines are tied to this TensorRT version and GPU. They are NOT portable \u2014 re-export after any JetPack upgrade or on a different board."
+  ]
+}

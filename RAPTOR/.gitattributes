@@ -1,0 +1,26 @@
+# Line endings.
+#
+# Almost everything in src/ runs on the Jetson (Linux). This clone lives on a
+# Windows machine with core.autocrlf=true, which rewrites text files to CRLF on
+# checkout - and a shell script with CRLF endings fails on the board with
+#   $'\r': command not found
+# So Linux-bound files are pinned to LF regardless of the cloning machine.
+
+*.sh          text eol=lf
+*.py          text eol=lf
+*.js          text eol=lf
+*.json        text eol=lf
+*.service     text eol=lf
+*.timer       text eol=lf
+*.rules       text eol=lf
+*.desktop     text eol=lf
+# Installed into the OS as-is; several have no file extension.
+src/system/** text eol=lf
+
+# Windows launchers must keep CRLF for cmd.exe.
+*.bat         text eol=crlf
+
+*.docx        binary
+*.png         binary
+*.jpg         binary
+*.jpeg        binary

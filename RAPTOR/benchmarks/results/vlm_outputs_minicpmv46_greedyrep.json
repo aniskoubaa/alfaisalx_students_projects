@@ -1,0 +1,133 @@
+{
+  "model": "MiniCPM-V-4.6",
+  "generations": [
+    {
+      "crop": "crop_000_385px.jpg",
+      "ttft_s": 0.494,
+      "total_s": 9.363,
+      "tokens": 73,
+      "json_parsed": false,
+      "text": "{\n\"appearance\", \"wearing a backpack and red pants\", \"body_position\", \"walking or moving away from the camera\", \"surroundings\", \"next to a black car on a paved area with patterned tiles\", \"injury_indicators\", []\",signalling\", []\", \"confidence\", high\", \"not_visible\", []\"\n}"
+    },
+    {
+      "crop": "crop_001_268px.jpg",
+      "ttft_s": 0.49,
+      "total_s": 9.877,
+      "tokens": 77,
+      "json_parsed": false,
+      "text": "{\n\"appearance\", \"a person wearing a gray top and black pants\", \"body_position\", \"moving or walking, with an oblique aerial view\", \"surroundings\", \"an outdoor or paved area, possibly a walkway or path\", \"injury_indicators\", []\",signalling\", [], \"confidence\", [true], [false], [false]]\n}"
+    },
+    {
+      "crop": "crop_002_247px.jpg",
+      "ttft_s": 0.487,
+      "total_s": 10.015,
+      "tokens": 78,
+      "json_parsed": false,
+      "text": "{\n\"appearance\", \"a person wearing a patterned vest, white and striped shirt, and red pants\", \"body_position\", \"walking or moving away from the camera\", \"surroundings\", \"a paved surface with green geometric shapes\", \"injury_indicators\", []\", \"signalling\", []\", \"confidence\", \"high\", \"not_visible\", []\"\n}"
+    },
+    {
+      "crop": "crop_003_174px.jpg",
+      "ttft_s": 0.491,
+      "total_s": 11.475,
+      "tokens": 90,
+      "json_parsed": false,
+      "text": "{\n\"appearance\", \"a person wearing a white t-shirt and blue jeans, sitting down\", \"body_position\", \"sitting on a small wooden chair, with legs extended slightly\", \"surroundings\", \"an outdoor or semi-outdoor paved area with concrete flooring and part of a building visible in the background\", \"injury_indicators\", []\",signalling\", [], \"confidence\", \"high\", \"not_visible\", []\n}"
+    },
+    {
+      "crop": "crop_004_236px.jpg",
+      "ttft_s": 0.494,
+      "total_s": 10.636,
+      "tokens": 83,
+      "json_parsed": false,
+      "text": "{\n\"appearance\", \"a person wearing a white top and red pants, carrying a colorful backpack\", \"body_position\", \"walking or moving from behind, viewed from an oblique aerial view\", \"surroundings\", \"a paved area with some bicycles or equipment nearby\", \"injury_indicators\", []\",signalling\", []\", \"confidence\", \"high\", \"not_visible\", []\"\n}"
+    },
+    {
+      "crop": "crop_005_168px.jpg",
+      "ttft_s": 0.492,
+      "total_s": 11.367,
+      "tokens": 89,
+      "json_parsed": true,
+      "text": "{\n    \"appearance\": \"a person wearing a white shirt and light gray shorts\",\n    \"body_position\": \"kneeling or crouching on a geometric structure\",\n    \"surroundings\": \"an outdoor area with metal grates and paved surfaces\",\n    \"injury_indicators\": [],\n    \"signalling\": [],\n    \"confidence\": \"high\",\n    \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_006_188px.jpg",
+      "ttft_s": 0.491,
+      "total_s": 12.599,
+      "tokens": 99,
+      "json_parsed": false,
+      "text": "{\n    \"appearance\": \"an older man wearing a green jacket, blue shirt, and black pants, with brown shoes\",\n    \"body_position\": \"standing, slightly turned, with one hand near his chest\",\n    \"surroundings\": \"a paved or concrete surface with metal or wooden structures in the background\",\n    \"injury_indicators\": [],\n    \"signalling\": [],\n    \"confidence\": high,\n    \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_007_205px.jpg",
+      "ttft_s": 0.491,
+      "total_s": 12.32,
+      "tokens": 97,
+      "json_parsed": true,
+      "text": "{\n    \"appearance\": \"a person with dark hair in a ponytail, wearing a white and striped top and red pants\",\n    \"body_position\": \"walking or moving forward, viewed from behind\",\n    \"surroundings\": \"a paved or tiled surface, likely an outdoor area\",\n    \"injury_indicators\": [],\n    \"signalling\": [],\n    \"confidence\": 0.9,\n    \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_008_201px.jpg",
+      "ttft_s": 0.49,
+      "total_s": 8.059,
+      "tokens": 62,
+      "json_parsed": false,
+      "text": "{\n\"appearance\", \"walking with a backpack and red pants\", \"body_position\", \"back turned, moving forward\", \"surroundings\", \"paved or concrete surface\", \"injury_indicators\", []\",signalling\", [], \"confidence\", \"high\", \"not_visible\", []\n}"
+    },
+    {
+      "crop": "crop_009_206px.jpg",
+      "ttft_s": 0.497,
+      "total_s": 10.88,
+      "tokens": 84,
+      "json_parsed": false,
+      "text": "{\n\"appearance\", \"person with dark hair in a ponytail, wearing a white shirt and a colorful backpack, red pants\", \"body_position\", \"walking or moving away from the camera\", \"surroundings\", \"gray paved surface, likely an outdoor area\", \"injury_indicators\", []\", \"signalling\", []\", \"confidence\", \"moderate\", \"not_visible\", []\"\n}"
+    },
+    {
+      "crop": "crop_010_198px.jpg",
+      "ttft_s": 0.49,
+      "total_s": 8.699,
+      "tokens": 67,
+      "json_parsed": false,
+      "text": "{\n\"appearance\", \"standing with a pink shirt and blue jeans\", \"body_position\", \"near a small child, slightly angled\", \"surroundings\", \"paved ground or pavement\", \"injury_indicators\", \"\"},\n\"signalling\", [], \"confidence\", \"high\", \"not_visible\", []\n}"
+    },
+    {
+      "crop": "crop_011_115px.jpg",
+      "ttft_s": 0.498,
+      "total_s": 9.201,
+      "tokens": 71,
+      "json_parsed": false,
+      "text": "{\n\"appearance\", \"a person wearing a light blue shirt and blue pants\", \"body_position\", \"walking or moving on a path\", \"surroundings\", \"grass and large rocks in the background\", \"injury_indicators\", [],\"signalling\", [],\"confidence\", \"moderately\", \"not_visible\", []\"\n}"
+    },
+    {
+      "crop": "crop_012_118px.jpg",
+      "ttft_s": 0.487,
+      "total_s": 9.657,
+      "tokens": 75,
+      "json_parsed": false,
+      "text": "{\n\"appearance\", \"person wearing a purple shirt and black shorts with a backpack\", \"body_position\", \"standing facing a large rock or wall\", \"surroundings\", \"outdoor area with grass and a rocky surface\", \"injury_indicators\", []\", \"signalling\", []\", \"confidence\", \"high\", \"not_visible\", []\"\n}"
+    },
+    {
+      "crop": "crop_013_167px.jpg",
+      "ttft_s": 0.491,
+      "total_s": 10.378,
+      "tokens": 81,
+      "json_parsed": false,
+      "text": "{\n\"appearance\", \"a person wearing a white t-shirt and dark pants, with hair tied back\", \"body_position\", \"standing and skating on a paved surface\", \"surroundings\", \"a gray tiled or paved area, likely an outdoor space\", \"injury_indicators\", []\", \"signalling\", []\", \"confidence\", \"high\", \"not_visible\", []\"\n}"
+    },
+    {
+      "crop": "crop_014_128px.jpg",
+      "ttft_s": 0.489,
+      "total_s": 11.577,
+      "tokens": 91,
+      "json_parsed": true,
+      "text": "{\n    \"appearance\": \"a man in a gray t-shirt and blue jeans\",\n    \"body_position\": \"sitting on a step or surface, looking at a phone\",\n    \"surroundings\": \"an outdoor paved area with patterned tiles\",\n    \"injury_indicators\": [],\n    \"signalling\": [],\n    \"confidence\": 0.85,\n    \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_015_184px.jpg",
+      "ttft_s": 0.494,
+      "total_s": 9.426,
+      "tokens": 73,
+      "json_parsed": false,
+      "text": "{\n\"appearance\", \"two individuals on rollerblades\", \"body_position\", \"standing or interacting near each other\", \"surroundings\", \"paved ground or plaza\", \"injury_indicators\", \"none visible\", \"signalling\", \"no clear signs of distress or movement\", \"confidence\", \"high\", \"not_visible\", []\n}"
+    }
+  ]
+}

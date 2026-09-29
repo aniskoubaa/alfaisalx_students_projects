@@ -1,0 +1,29 @@
+# Weights, engines and datasets are large and regenerable - keep them out of git.
+# On the Jetson they live outside the repo (~/raptor-models, ~/raptor-data,
+# ~/raptor-vlm, ~/raptor-deploy); these patterns stop a stray copy being committed.
+#
+# benchmarks/results/ and benchmarks/figures/ ARE committed: docs/06 calls the
+# results the scientific output of the project, and a diff showing an FPS
+# regression is exactly the feedback we want.
+models/
+videos/
+data/
+*.pt
+*.engine
+*.onnx
+*.safetensors
+*.zip
+
+# Ultralytics run artefacts
+runs/
+
+# Tooling
+node_modules/
+__pycache__/
+*.pyc
+
+# Secrets must never be committed. VNC/RDP passwords live only on the board
+# (/etc/x11vnc.pass, grdctl's keyfile); these guard against a stray copy.
+*.pass
+*.key
+*.pem

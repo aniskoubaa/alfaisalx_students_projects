@@ -1,0 +1,13 @@
+// /etc/apt/apt.conf.d/99proxy
+//
+// Route apt through the laptop's HTTP proxy, reached over an SSH reverse tunnel
+// on the Jetson's own loopback (see src/tools/jetson_internet.sh).
+//
+// While this file exists, apt works ONLY when that tunnel is up - otherwise every
+// command fails with "Could not connect to 127.0.0.1:3128". Delete this file
+// once the board has a direct internet route:
+//     sudo rm /etc/apt/apt.conf.d/99proxy
+//
+// Installed on demand by src/setup/setup_ros2.sh.
+Acquire::http::Proxy "http://127.0.0.1:3128";
+Acquire::https::Proxy "http://127.0.0.1:3128";

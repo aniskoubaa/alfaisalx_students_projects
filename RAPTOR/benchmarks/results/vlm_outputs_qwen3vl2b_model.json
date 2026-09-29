@@ -1,0 +1,133 @@
+{
+  "model": "Qwen3-VL-2B-Instruct",
+  "generations": [
+    {
+      "crop": "crop_000_385px.jpg",
+      "ttft_s": 0.245,
+      "total_s": 16.046,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": "{\n  \"appearance\": \"A person with brown hair tied back, wearing a white and black striped shirt, red pants, and a colorful backpack with a pattern of green, blue, and red shapes. The person is wearing white shoes.\",\n  \"body_position\": \"The person is standing upright, walking on a paved sidewalk.\",\n  \"surroundings\": \"The scene is an outdoor paved area with a sidewalk made of interlocking tiles. A dark-colored vehicle is partially visible on the left side of the image.\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\"the person's face\", \"the person's legs\", \"the person's arms\", \"the person's feet\", \"the person"
+    },
+    {
+      "crop": "crop_001_268px.jpg",
+      "ttft_s": 0.199,
+      "total_s": 13.325,
+      "tokens": 132,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"A person wearing a grey jacket, black pants, and white shoes. They have dark hair and are walking.\",\n  \"body_position\": \"The person is walking on a paved surface, moving forward.\",\n  \"surroundings\": \"The scene is an outdoor paved area, possibly a street or path, with a person in the background wearing red pants and a backpack.\",\n  \"injury_indicators\": [],\n  \"signalling\": \"Not visible\",\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"hand\", \"foot\", \"upper body\", \"specific details of clothing\"]\n}"
+    },
+    {
+      "crop": "crop_002_247px.jpg",
+      "ttft_s": 0.202,
+      "total_s": 16.009,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": "{\n  \"appearance\": \"A person wearing a white and black striped shirt, red pants, and a colorful backpack.\",\n  \"body_position\": \"The person is standing upright, walking forward.\",\n  \"surroundings\": \"The person is on a paved surface with a patterned tile design. There are green triangular shapes on the ground and a white line on the ground. The scene is viewed from an oblique aerial perspective.\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"hands\", \"feet\", \"head\", \"neck\", \"arms\", \"legs\", \"back\", \"shoulders\", \"waist\", \"hips\", \"knees\", \"toes\","
+    },
+    {
+      "crop": "crop_003_174px.jpg",
+      "ttft_s": 0.198,
+      "total_s": 12.915,
+      "tokens": 128,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"A woman with dark hair, wearing a white t-shirt with a graphic design, blue jeans, and light-colored sandals.\",\n  \"body_position\": \"Sitting on a wooden stool, leaning forward with her legs crossed.\",\n  \"surroundings\": \"A concrete outdoor area with a wooden stool, a metal gate, and a green mesh fence in the background.\",\n  \"injury_indicators\": [],\n  \"signalling\": \"Not visible.\",\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"hands\", \"foot\", \"body\", \"clothing\"]\n}"
+    },
+    {
+      "crop": "crop_004_236px.jpg",
+      "ttft_s": 0.2,
+      "total_s": 16.066,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": "{\n  \"appearance\": \"A person wearing a white shirt, red pants, and a colorful backpack with a floral pattern. The person has dark hair tied back in a ponytail.\",\n  \"body_position\": \"Walking forward on a paved surface, viewed from behind.\",\n  \"surroundings\": \"A paved area with gray tiles. A portion of a green plant and a bicycle are visible on the left and right sides of the image.\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"hands\", \"footwear\", \"head\", \"eyes\", \"neck\", \"chest\", \"shoulders\", \"back\", \"arms\", \"legs\", \"waist\", \"knees"
+    },
+    {
+      "crop": "crop_005_168px.jpg",
+      "ttft_s": 0.202,
+      "total_s": 16.036,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": "{\n  \"appearance\": \"A man wearing a light blue polo shirt, light-colored shorts, and blue shoes. He has a mustache and appears to be in his 60s or 70s.\",\n  \"body_position\": \"Sitting on the ground with his legs bent and arms resting on his knees.\",\n  \"surroundings\": \"The man is on a concrete surface, possibly a dock or walkway, with metal grating in the background. The camera is at a high angle, suggesting an aerial view.\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"head\", \"neck\", \"arms\", \"legs\", \"hands\", \"feet\","
+    },
+    {
+      "crop": "crop_006_188px.jpg",
+      "ttft_s": 0.2,
+      "total_s": 13.688,
+      "tokens": 135,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"A man wearing a light-colored jacket, dark pants, and brown shoes. He has a bald head and a beard.\",\n  \"body_position\": \"Standing upright, facing the camera.\",\n  \"surroundings\": \"The person is standing on a paved surface, possibly a rooftop or an elevated platform, with a metal structure or roof in the background.\",\n  \"injury_indicators\": [],\n  \"signalling\": \"Not visible\",\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"eyes\", \"hands\", \"legs\", \"feet\", \"clothing details\", \"background texture\"]\n}"
+    },
+    {
+      "crop": "crop_007_205px.jpg",
+      "ttft_s": 0.204,
+      "total_s": 15.249,
+      "tokens": 151,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"A person wearing a white short-sleeved shirt, red pants, and a backpack with a floral pattern. The person has dark hair tied back.\",\n  \"body_position\": \"The person is walking, with their back to the camera, and appears to be in motion.\",\n  \"surroundings\": \"The person is walking on a paved surface with a patterned tile design. The setting appears to be outdoors, possibly on a sidewalk or path.\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"hands\", \"footwear details\", \"head\", \"eyes\", \"neck\", \"upper body\"]\n}"
+    },
+    {
+      "crop": "crop_008_201px.jpg",
+      "ttft_s": 0.198,
+      "total_s": 13.888,
+      "tokens": 137,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"A person wearing a white shirt, red pants, and a colorful backpack with a floral pattern. The person has dark hair tied back.\",\n  \"body_position\": \"Walking forward with a slight forward lean.\",\n  \"surroundings\": \"The person is on a paved surface, possibly a sidewalk or road. The background is mostly a flat, open area with no visible buildings or structures.\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"eyes\", \"hands\", \"feet\", \"clothing details\", \"specific backpack design\"]\n}"
+    },
+    {
+      "crop": "crop_009_206px.jpg",
+      "ttft_s": 0.201,
+      "total_s": 16.063,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": "{\n  \"appearance\": \"A person wearing a white shirt, red pants, and a colorful backpack. The person has dark hair tied back.\",\n  \"body_position\": \"The person is standing, viewed from behind, with their back to the camera.\",\n  \"surroundings\": \"The person is on a paved surface, possibly a road or sidewalk, with a blurred background. The environment appears to be outdoors.\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"footwear\", \"hands\", \"face\", \"head\", \"neck\", \"shoulders\", \"arms\", \"legs\", \"ankles\", \"toes\", \"gait\", \"eyes\", \"hair\","
+    },
+    {
+      "crop": "crop_010_198px.jpg",
+      "ttft_s": 0.2,
+      "total_s": 16.066,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": "{\n  \"appearance\": \"A man wearing a pink shirt and blue jeans, standing next to a small child wearing a red outfit. A woman in a purple top is partially visible on the right.\",\n  \"body_position\": \"Standing\",\n  \"surroundings\": \"The scene is an outdoor paved area with a light-colored tiled floor. The camera is at a high altitude, looking down at the group.\",\n  \"injury_indicators\": [],\n  \"signalling\": \"Not visible\",\n  \"confidence\": 0.91,\n  \"not_visible\": [\"a person's head\", \"a person's feet\", \"a person's hands\", \"a person's face\", \"a person's torso\", \"a person's legs\", \"a person's arms\", \"a person"
+    },
+    {
+      "crop": "crop_011_115px.jpg",
+      "ttft_s": 0.201,
+      "total_s": 12.062,
+      "tokens": 119,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"A person wearing a light-colored t-shirt and blue pants, with dark hair.\",\n  \"body_position\": \"Walking on a paved path, with arms slightly bent and legs in motion.\",\n  \"surroundings\": \"A paved path, grassy areas, and large rocks in the background, under an overcast sky.\",\n  \"injury_indicators\": [],\n  \"signalling\": \"Not visible\",\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"hands\", \"footwear details\", \"accessories\"]\n}"
+    },
+    {
+      "crop": "crop_012_118px.jpg",
+      "ttft_s": 0.197,
+      "total_s": 11.175,
+      "tokens": 110,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"A person wearing a purple t-shirt and black shorts, with a black backpack.\",\n  \"body_position\": \"Standing with their back to the camera.\",\n  \"surroundings\": \"A rocky terrain with a large rock formation in the background, and some green vegetation at the base.\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"hands\", \"legs\", \"footwear\", \"accessories\"]\n}"
+    },
+    {
+      "crop": "crop_013_167px.jpg",
+      "ttft_s": 0.2,
+      "total_s": 16.063,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": "{\n  \"appearance\": \"A person wearing a white t-shirt with black sleeves, dark pants, and white rollerblades. They have dark hair tied back in a bun.\",\n  \"body_position\": \"The person is standing on rollerblades, with one leg forward and the other back, suggesting a stance for movement.\",\n  \"surroundings\": \"The person is on a paved, tiled surface, likely a sidewalk or plaza, with a light-colored, grid-like pattern.\",\n  \"injury_indicators\": [],\n  \"signalling\": \"Not visible\",\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"legs\", \"arms\", \"hands\", \"footwear\", \"head\", \"body\", \"background\", \"environment\", \"other"
+    },
+    {
+      "crop": "crop_014_128px.jpg",
+      "ttft_s": 0.204,
+      "total_s": 14.988,
+      "tokens": 148,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"A man wearing a grey t-shirt and blue jeans, with dark hair.\",\n  \"body_position\": \"Sitting on a concrete surface, leaning forward with his legs bent and arms resting on his knees.\",\n  \"surroundings\": \"The person is on a paved area, possibly a sidewalk or a platform, with a white vehicle in the foreground. The background includes a brick wall.\",\n  \"injury_indicators\": [],\n  \"signalling\": \"Not visible\",\n  \"confidence\": 0.91,\n  \"not_visible\": [\"face\", \"eyes\", \"hands\", \"feet\", \"lower body\", \"vehicle details\", \"background texture\", \"sky\", \"weather\"]\n}"
+    },
+    {
+      "crop": "crop_015_184px.jpg",
+      "ttft_s": 0.201,
+      "total_s": 16.119,
+      "tokens": 160,
+      "json_parsed": false,
+      "text": "{\n  \"appearance\": \"A person wearing a dark blue t-shirt, light-colored pants, and white roller skates. The person has dark hair and is wearing a black strap over the shoulder, possibly from a bag or backpack.\",\n  \"body_position\": \"The person is standing on roller skates and appears to be in a stationary position, facing away from the camera.\",\n  \"surroundings\": \"The person is on a paved surface, likely a sidewalk or plaza, with a gray, tiled floor. The scene is viewed from an oblique aerial perspective, suggesting the camera is positioned above and slightly behind the person.\",\n  \"injury_indicators\": [],\n  \"signalling\": \"Not visible\",\n  \"confidence\": 0.91,\n  \"not_visible\": [\""
+    }
+  ]
+}

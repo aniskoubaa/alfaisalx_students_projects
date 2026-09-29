@@ -1,0 +1,39 @@
+#!/bin/bash
+# Launch x11vnc against whichever X server is currently running the console.
+#
+# Hardcoding the Xauthority does not survive a login: GDM's greeter runs with
+# /run/user/121/gdm/Xauthority, and when a user logs in the session - and its
+# authority file - changes. x11vnc's own "-auth guess" fails here because the
+# service has no HOME for xauth to work with, so we read the authority path
+# straight off the running Xorg command line, which is always correct.
+set -u
+
+PASSFILE=/etc/x11vnc.pass
+PORT=5900
+export HOME=/root          # xauth needs this to build a filename at all
+
+xorg_args="$(ps -eo args= | grep -m1 '^/usr/lib/xorg/Xorg')"
+if [ -z "$xorg_args" ]; then
+    echo "no Xorg process found; is the display manager running?" >&2
+    exit 1
+fi
+
+auth="$(printf '%s' "$xorg_args" | sed -n 's/.*-auth \([^ ]*\).*/\1/p')"
+if [ -z "$auth" ] || [ ! -r "$auth" ]; then
+    echo "could not read an Xauthority from Xorg args: ${auth:-<none>}" >&2
+    exit 1
+fi
+
+# Display number: Xorg here starts with -displayfd, so it is not on the command
+# line. Take the lowest X socket present, which is the console display.
+disp="$(ls /tmp/.X11-unix/ 2>/dev/null | sed -n 's/^X\([0-9]\+\)$/\1/p' | sort -n | head -1)"
+disp=":${disp:-0}"
+
+echo "x11vnc -> display $disp, auth $auth"
+exec /usr/bin/x11vnc \
+    -display "$disp" \
+    -auth "$auth" \
+    -rfbauth "$PASSFILE" \
+    -rfbport "$PORT" \
+    -forever -shared -noxdamage -repeat \
+    -o /var/log/x11vnc.log

@@ -1,112 +1,100 @@
 # RAPTOR — Current Status
 
-**Last updated: 2026-09-16**
+**Last updated: 2026-09-29** (new models deployed on the board)
 Living document. Update it at the end of every session, before closing the laptop.
-For the full design argument see the
-[2026-09-16 progress report](./2026-09-16-raptor-jetson-perception-design.md).
+Latest progress report: [`RAPTOR_Work_Report_2026-09-28_2108.docx`](./RAPTOR_Work_Report_2026-09-28_2108.docx),
+with a two-page summary in [`RAPTOR_Progress_Summary_2026-09-29_1039.docx`](./RAPTOR_Progress_Summary_2026-09-29_1039.docx).
+Both predate the 2026-09-29 deployment; this file is current. Earlier ones:
+[2026-09-28 16:24](./RAPTOR_Work_Report_2026-09-28_1624.docx),
+[2026-09-20 harness revision](./2026-09-20-raptor-harness-revision.md),
+[2026-09-16 design report](./2026-09-16-raptor-jetson-perception-design.md).
 
 ---
 
 ## Where we are
 
-**Phase 0 — Foundations.** Design is complete and documented. Environment bring-up on the
-Jetson has started. No pipeline code written yet, and the camera has never been powered.
+**Phase 0 done on the compute side; Phase 1 not started.** The flight computer is
+provisioned, benchmarked, remotely reachable and running a live camera demo. On
+2026-09-28 both model choices were re-evaluated against newer candidates and
+**replaced on measured grounds**; on 2026-09-29 the new models were **deployed** and
+the live demo switched to them. No perception pipeline code (ROS 2 nodes, tracker, posture classifier,
+trigger, victim report) exists yet. The flight camera has still never been powered.
+
+---
+
+## Current choices
+
+| Tier | Choice | Measured (Orin NX, 25 W) | Where |
+|---|---|---|---|
+| 1 — detect | **YOLO26s trained on VisDrone**, 736×1280 TensorRT FP16 engine, served by the lean runner (`src/common/trt_yolo.py`) | 42.5 % of people found on held-out aerial test-dev (previous choice: 20.0 %); a tie with RT-DETRv4-S, at a third less GPU compute (11.5 ms). 26.1 ms p95 end to end (31.0 through Ultralytics). AGPL; weights non-commercial (VisDrone). | [docs/10](../RAPTOR/docs/10-detector-benchmark-results.md) |
+| 1 — Apache alternative | RT-DETRv4-S trained on VisDrone, 960 px | 42.8 %, 17.1 ms GPU compute, 24.3 ms end to end in a lean runtime. Apache-2.0. | docs/10 |
+| 2 — pose | **YOLO26s-pose on crops of each track**, below frame rate | 22.7 ms p95 (yolo11s-pose: 26.5) | [docs/02](../RAPTOR/docs/02-detection-and-pose.md) |
+| 3 — describe | **Qwen3-VL-2B-Instruct**, greedy + repetition penalty 1.05 | 100 % valid JSON, 0 injuries invented on 16 uninjured people, first token 0.21 s, 4.1 GB. Full reply ~12 s (target 5 s). | [docs/12](../RAPTOR/docs/12-vlm-benchmark-results.md) |
+| Deployed | All five: detector, detector_alt (RT-DETRv4-S), pose, vlm, vlm_fallback (Qwen3.5-2B) — verified on the board 2026-09-29. The 2026-09-20 set is kept at `~/raptor-deploy.2026-09-20`. | see `benchmarks/results/deploy_manifest.json` | `~/raptor-deploy` |
 
 ---
 
 ## Done
 
-- [x] Full design documented — `RAPTOR/docs/01`–`09`, plus two interactive HTML explainers
-- [x] Hardware identified and specified (see table below)
-- [x] A8 mini User Manual v1.10 read; voltages, RTSP paths and optics verified against it
-- [x] Jetson confirmed as the **16 GB** SKU, which settles the VLM choice
-- [x] Python venv created: `~/raptor-venv`, with `--system-site-packages`
-- [x] `externally-managed-environment` (PEP 668) resolved
-- [x] Everything pushed to `main` on GitHub
+- [x] Full design documented — `RAPTOR/docs/01`–`14`, plus the HTML wiring map, build view and explainer
+- [x] Jetson identified: **Orin NX 16 GB** on a **Seeed reComputer J401**, JetPack 7.2 / Ubuntu 24.04
+- [x] Environment working: `~/raptor-venv`, CUDA torch 2.14, TensorRT 10.16, ultralytics 8.4, transformers 5.17
+- [x] **ROS 2 Jazzy** installed and verified (Humble has no Ubuntu 24.04 binaries)
+- [x] Clock fixed — the board no longer boots into 1970, including on a cold start
+- [x] Internet for the board through the laptop (`src/tools/jetson_internet.sh`)
+- [x] Remote access: SSH (key), VNC :5900 (console, 1024×768), RDP :3389 (own session)
+- [x] Detector benchmark, round 1 (COCO models, 18 configurations) and round 2 (aerial-trained, 9 configurations, held-out test-dev)
+- [x] VLM benchmark, round 1 (2 models) and round 2 (7 models, 16 configurations, truthfulness check)
+- [x] First-round models deployed with a provenance manifest; live camera demo with a desktop icon
+- [x] Repository reorganised (`docs/ src/ benchmarks/ reports/ assets/`), every file named for what it is
+- [x] Model-selection Word report rebuilt: Part A re-evaluation, Part B original — `RAPTOR/reports/`
 
-## In progress — blocked
+## Next
 
-- [ ] **`pip install ultralytics` fails: numpy and scipy not installed.** See "Current blocker" below.
-- [ ] **Camera has never been powered.** Waiting on a 12 V bench supply. Nothing about the
-      camera has been tested — no ping, no stream, no decode.
+- [x] **Deployed the new models** (2026-09-29): lean TensorRT runner for the detector, verified manifest, live demo switched to the two-stage pipeline, plus a *bench* icon (pose-only) for people close to the webcam
+- [ ] Move the detector's resize onto the GPU (`trt_yolo.py`) and re-measure — most of the 26.1 ms is CPU pre-processing
+- [ ] Serve Qwen3-VL-2B through llama.cpp at 4 bits with a JSON grammar; re-measure speed and truthfulness
+- [ ] Change the VLM prompt so it stops asserting the posture; drop its confidence field
+- [ ] Evaluate on aerial images of **people lying down** (Okutama-Action, NOMAD, SARD, HERIDAL)
+- [ ] Run detector + VLM together (E7) — never done
+- [ ] Then the **operator dashboard**: event logger on the Jetson → server → feed, event page, health
+- [ ] Commit today's work (the course repository, `main`, is all uncommitted — a team decision)
 
-## Not started
+## Blocked — needs hardware
 
-- [ ] Flash / verify JetPack 6.x; record CUDA, TensorRT, cuDNN versions
-- [ ] Install ROS 2 Humble
-- [ ] Camera node publishing `/raptor/image_raw` (from `/dev/video0`)
-- [ ] MAVROS link to the Pixhawk 6C
-- [ ] First rosbag recorded and replayed — **this is the Phase 0 finish line**
-
----
-
-## Architecture change — 2026-09-17
-
-Video no longer reaches the Jetson over Ethernet. The new topology is:
-
-```
-A8 mini micro-HDMI --> USB capture card --> Jetson      [perception video, /dev/video0]
-A8 mini Ethernet   --> video transmitter --> operator   [downlink, no overlays]
-A8 mini UART       --> Jetson serial                    [gimbal control, SIYI SDK]
-Pixhawk 6C TELEM1  --> Jetson                           [MAVLink / MAVROS, read-only]
-```
-
-**This must be validated before any hardware is bought.** The manual describes the camera's video output as a switchable mode, so HDMI and Ethernet video may be mutually exclusive. If they are, this harness is impossible. Test on the bench: enable HDMI, confirm the capture card sees a picture, then check whether the RTSP URL still opens.
-
-Two consequences already accounted for in the docs: gimbal control moved from UDP to UART, and the capture card introduces latency plus a host-to-GPU copy on every frame that the RTSP path did not have.
+- [ ] **Camera has never been powered.** Test HDMI + Ethernet video at the same time first (cheap, decides the whole harness)
+- [ ] Capture card and VTX not acquired (VTX is optional — buy last)
+- [ ] **The Jetson has nowhere to mount** on the X500 V2 top deck — second deck or under-tray plate
+- [ ] MAVROS link to the Pixhawk 6C; first rosbag (the Phase 0 finish line)
 
 ---
 
-## Current blocker
+## Architecture (as of 2026-09-20)
 
-`pip install ultralytics` reported **numpy and scipy not installed**.
-
-Diagnose first — the venv may be sealed off from JetPack's packages:
-
-```bash
-grep system-site ~/raptor-venv/pyvenv.cfg      # must read: include-system-site-packages = true
+```
+A8 mini control port --> Pixhawk 6C                     [gimbal pointing]
+A8 mini micro-HDMI   --> USB capture card --> Jetson    [perception video, /dev/video0]
+A8 mini Ethernet     --> VTX --> operator               [optional downlink]
+Pixhawk 6C TELEM1    --> Jetson                         [MAVLink / MAVROS]
 ```
 
-If it reads `false`, recreate the venv with `--system-site-packages`. That flag is what lets
-it see JetPack's CUDA PyTorch, TensorRT and OpenCV, none of which can be reinstalled from
-PyPI on aarch64.
-
-Then:
-
-```bash
-source ~/raptor-venv/bin/activate
-pip install "numpy<2" scipy
-python -c "import torch, numpy; print(torch.__version__, numpy.__version__, torch.cuda.is_available())"
-```
-
-**Pin numpy below 2.0.** NVIDIA's Jetson PyTorch wheels are built against numpy 1.x, and
-numpy 2.0 changed the C ABI — installing numpy 2 is a common way to silently break CUDA
-torch on this board. Relax the pin only after confirming the installed torch supports it.
-
-`torch.cuda.is_available()` must print `True`. If it does not, stop and fix that before
-anything else; a CPU-only torch runs the detector at a few frames per second while appearing
-to work.
+The Pixhawk owns the gimbal, so the Jetson can only aim the camera by sending a
+MAVLink gimbal command — a **write**, which the design currently forbids. Decide
+before the gimbal node is written: allow gimbal-only writes, or keep pointing manual.
 
 ---
 
-## Next command to run
+## Environment notes that bite
 
-```bash
-source ~/raptor-venv/bin/activate
-grep system-site ~/raptor-venv/pyvenv.cfg
-pip install "numpy<2" scipy
-python -c "import torch, numpy; print(torch.__version__, numpy.__version__, torch.cuda.is_available())"
-yolo checks
-```
-
-After that succeeds, the first real measurement:
-
-```bash
-sudo nvpmodel -m 0 && sudo jetson_clocks
-yolo benchmark model=yolo11n-pose.pt imgsz=640      # run tegrastats in a second terminal
-```
-
-That is the FP16 PyTorch baseline for experiment E1. **It has not been measured yet.**
+- **Do not `pip install "numpy<2"`.** The installed CUDA torch is built for NumPy 2; the old advice here would now break it.
+- The PyTorch wheel has no sm_87 kernels (runs by JIT) — every PyTorch number is a floor. NVIDIA's Jetson build is the top environment fix.
+- Plots cannot be drawn on the board (JetPack matplotlib is NumPy-1); they are drawn on the laptop.
+- Ultralytics `val()` ignores `classes` — score aerial models with `src/common/person_scoring.py`.
+- Time benchmarks on **real frames**, never synthetic ones.
+- Qwen3 VLMs need a repetition penalty under greedy decoding, or they loop.
+- Board internet exists only while `jetson_internet.sh` runs on the laptop; while `/etc/apt/apt.conf.d/99proxy` exists, apt needs it.
+- Don't `ping` 100.100.100.1 to check the board (carrier-grade NAT range) — use SSH.
+- The laptop's USB hub has **one** Ethernet adapter; it cannot bridge the Jetson to the router. A small network switch would.
 
 ---
 
@@ -114,17 +102,13 @@ That is the FP16 PyTorch baseline for experiment E1. **It has not been measured 
 
 | Component | Spec | Status |
 |---|---|---|
-| Companion computer | Jetson Orin NX **16 GB** | In hand, booting |
-| Flight controller | Pixhawk 6C | In hand, not yet linked to the Jetson |
-| Camera | SIYI A8 mini 4K, 81° H FOV | In hand, **never powered** |
-| Camera video (onboard) | micro-HDMI to USB capture card | **Card not yet acquired** |
-| Camera video (downlink) | Ethernet to video transmitter | **Transmitter not yet acquired** |
-| Gimbal control | SIYI SDK over UART to the Jetson | Not wired |
-| Camera power | 11–25.2 V (3S–6S), 5 W avg / 12 W peak | **Blocked — no supply yet** |
-| Jetson video input | `/dev/video0` via USB 3.0 | Not configured |
-
-Full harness: [`RAPTOR/docs/raptor-wiring-map.html`](../RAPTOR/docs/raptor-wiring-map.html)
-3D build view, to scale: [`RAPTOR/docs/raptor-build-view.html`](../RAPTOR/docs/raptor-build-view.html)
+| Companion computer | Jetson Orin NX 16 GB, Seeed reComputer J401 | Working, provisioned |
+| Flight controller | Pixhawk 6C | In hand, not linked to the Jetson |
+| Camera | SIYI A8 mini 4K | Mounted under the nose, **never powered** |
+| Camera video (onboard) | micro-HDMI to USB capture card | **Card not acquired** |
+| Camera video (downlink) | Ethernet to VTX | Optional, not acquired |
+| Airframe | Holybro X500 V2, 10" props | Built; no room for the Jetson on the top deck |
+| Test camera | Logitech C922 webcam, USB 2.0 | Used for the live demo |
 
 ---
 
@@ -132,32 +116,22 @@ Full harness: [`RAPTOR/docs/raptor-wiring-map.html`](../RAPTOR/docs/raptor-wirin
 
 | # | Question | Blocks |
 |---|---|---|
-| 1 | Which **carrier board** is the Orin NX on? | Regulator voltage — 5 V, 12 V or 19 V |
-| 2 | **ArduPilot or PX4** on the Pixhawk 6C? | Optional gimbal UART parameters |
-| 3 | **Can HDMI and Ethernet video run simultaneously?** | The whole split-video harness |
-| 4 | What resolution/format does the capture card negotiate? | Detector input sizing |
-| 5 | Is **AGPL-3.0** (Ultralytics) acceptable for this project? | Whether we build on YOLO11 at all |
-| 6 | Rename `jetson_orin_nano_benchmarks/`? | Flight computer is an NX |
+| 1 | Can HDMI and Ethernet video run at the same time? | The split-video harness |
+| 2 | ArduPilot or PX4 on the Pixhawk 6C? | Gimbal control parameters |
+| 3 | What does the capture card negotiate? | Detector input sizing |
+| 4 | May the Jetson write gimbal commands? | The gimbal node |
+| 5 | Where does the Jetson mount? | Buck position, HDMI run, centre of gravity |
+| 6 | Is the lean detector runner fast enough? It still resizes on the CPU: 26.1 ms end to end against 11.5 ms of GPU compute | Headroom for tier 2 and the VLM on the same frames |
+| 7 | Give the Jetson its own internet (network switch + DHCP fallback profile)? | Faster installs; retires the laptop proxy |
+| 8 | 25 W or 40 W in flight? | Endurance vs speed |
 
----
-
-## Things that can proceed without the camera
-
-Worth doing while waiting on the power supply:
-
-1. Fix the numpy/scipy blocker and get `yolo checks` passing.
-2. Measure the FP16 baseline.
-3. Install ROS 2 Humble; verify `talker`/`listener`.
-4. Wire the Pixhawk 6C TELEM1 to the Jetson and bring up MAVROS.
-5. **Start data-collection planning** — the consent form, flight plan and labelling workflow
-   are the long pole for Phases 3–5 and take longer than the code.
+Answered since the last update: the carrier board (J401); Qwen3 vs Qwen2.5 (Qwen3-VL-2B wins); the benchmarks folder rename (done). AGPL is still open, but no longer blocking: RT-DETRv4-S is a measured Apache-2.0 alternative within a point of the chosen detector.
 
 ---
 
 ## Standing caveat
 
-**Every performance figure in these documents is a target, not a measurement.** Nothing has
-been benchmarked yet. The altitude table — prone casualties falling below the detection floor
-at ~25 m — is geometry, not data, and experiment E3 exists to confirm or refute it. No figure
-from these docs belongs in a report or presentation as a finding until it comes out of a
-recorded run.
+Every figure above came from a run recorded in `RAPTOR/benchmarks/results`. Accuracy is on
+**VisDrone**, a public urban aerial dataset with no casualties and nobody lying down, used as a
+proxy until RAPTOR has its own footage. The new detectors were trained on it, so their numbers
+are a ceiling for this data, not a prediction for a real search.

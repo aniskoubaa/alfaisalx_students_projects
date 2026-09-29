@@ -14,6 +14,23 @@ a model that takes the image itself as input.
 
 ## Decision summary
 
+> **Updated 2026-09-28** after the second VLM round
+> ([12](./12-vlm-benchmark-results.md#second-round-newer-models-and-a-truthfulness-check-2026-09-28)),
+> which tested seven models on the board. The original table is kept below it.
+
+| Role | Choice (2026-09-28) | Why |
+|------|--------|-----|
+| **Primary** | **Qwen3-VL-2B-Instruct**, greedy decoding with repetition penalty 1.05 | The only model tested that was at once truthful (no invented injuries on 16 uninjured people), 100 % schema-valid, honest about what it cannot see, fast to start (0.21 s) and small (4.1 GB). Apache-2.0. |
+| **Close second** | Qwen3.5-2B | Equally truthful on injuries and never repeated the prompt's posture, but never fills `not_visible` and is slower. Re-test both after the prompt fix. |
+| **Fallback** | InternVL3.5-2B, plain greedy | Honest, but a 2.1 s first token |
+| **Rejected** | Qwen2.5-VL-3B (the first pick) | Reported injuries for 7 of 16 uninjured people |
+| **Rejected** | LFM2.5-VL-3B | Fastest, but asserted ethnicity, invented an injury, and called 5 of 16 upright people "lying" |
+| **Rejected** | MiniCPM-V-4.6, SmolVLM2 | Malformed JSON; SmolVLM2 also invented demographics |
+| **Serving** | Next: llama.cpp, 4-bit, JSON grammar | bf16 `transformers` takes ~12 s per description against a 5 s target |
+| **Prompt** | Stop asserting the posture; drop `confidence` | Every model sometimes repeated the prompt's "lying" and copied its 0.91 |
+
+### Original decision table (2026-09-16)
+
 | Role | Choice |
 |------|--------|
 | **Primary** | **Qwen2.5-VL-3B-Instruct**, INT4/AWQ quantised |
@@ -38,7 +55,7 @@ a model that takes the image itself as input.
 - **Well-supported quantisation path** — AWQ/GPTQ int4 checkpoints exist and it is
   supported by the common serving stacks.
 
-**Check the licence on the exact checkpoint before we commit.** The Qwen2.5-VL family
+*Settled 2026-09-28: the recommended model is now Qwen3-VL-2B, which is Apache-2.0.* **Check the licence on the exact checkpoint before we commit.** The Qwen2.5-VL family
 is not uniformly licensed — some sizes are Apache-2.0 and some ship under a Qwen
 research/community licence with use restrictions. Verify the specific 3B checkpoint's
 `LICENSE` file; if it is research-only and that conflicts with our goals, drop to

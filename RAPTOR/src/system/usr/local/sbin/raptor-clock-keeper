@@ -1,0 +1,68 @@
+#!/bin/sh
+# Keep the Jetson's clock monotonic across reboots when the RTC cannot hold time.
+#
+# The board has no RTC backup battery, so after a full power-off the PMIC RTC
+# (nvvrs-pseq-rtc, rtc0) restarts from zero. With CONFIG_RTC_HCTOSYS_DEVICE=rtc0
+# the kernel copies that RTC into the system clock *when the driver registers* -
+# and nvvrs_pseq_rtc is a loadable module that registers ~11 s into boot, after
+# ordinary early-boot services have run. A 1970 timestamp silently corrupts every
+# rosbag correlation and geolocation fix (04-ros2-architecture.md: "One clock").
+#
+# So "load" runs twice: once early at boot, and again from a udev rule the moment
+# rtc0 registers (see 90-raptor-clock-keeper.rules) - after the kernel has done
+# its damage. The periodic timer runs "sync" (load, then save), so even a missed
+# trigger self-heals within ten minutes.
+#
+# This gives a monotonic floor, not accurate time. Real time comes from NTP when
+# networked, or from the flight controller's GPS time; either steps it forward.
+set -u
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
+STAMP=/var/lib/raptor-clock-keeper/timestamp
+# Anything earlier than this is a reset RTC, never real time: never save it, and
+# always correct it, even if the saved timestamp is missing.
+SANITY_FLOOR="2026-01-01 00:00:00"
+
+mkdir -p "$(dirname "$STAMP")"
+
+epoch() { date -u -d "$1" +%s 2>/dev/null || echo 0; }
+
+saved_epoch() {
+    if [ -f "$STAMP" ]; then epoch "$(cat "$STAMP")"; else echo 0; fi
+}
+
+floor_epoch() {
+    s=$(saved_epoch)
+    f=$(epoch "$SANITY_FLOOR")
+    if [ "$s" -gt "$f" ]; then echo "$s"; else echo "$f"; fi
+}
+
+save() {
+    now=$(date -u +%s)
+    # Monotonic. The first version saved unconditionally: when the kernel reset
+    # the clock to 1970 after boot, the timer recorded 1970 over a good floor and
+    # destroyed the one thing this service exists to protect.
+    if [ "$now" -gt "$(saved_epoch)" ] && [ "$now" -gt "$(epoch "$SANITY_FLOOR")" ]; then
+        date -u -d "@$now" '+%Y-%m-%d %H:%M:%S' > "$STAMP.tmp" && mv "$STAMP.tmp" "$STAMP"
+    fi
+}
+
+load() {
+    now=$(date -u +%s)
+    floor=$(floor_epoch)
+    if [ "$now" -lt "$floor" ]; then
+        date -u -s "@$floor" >/dev/null
+        # Put the floor into the RTC too, so a warm reboot comes up sane.
+        hwclock -w 2>/dev/null || true
+        echo "clock restored to $(date -u '+%Y-%m-%d %H:%M:%S') UTC (was $(date -u -d "@$now" '+%Y-%m-%d %H:%M:%S'))"
+    else
+        echo "clock ok: $(date -u '+%Y-%m-%d %H:%M:%S') UTC"
+    fi
+}
+
+case "${1:-}" in
+    save) save ;;
+    load) load ;;
+    sync) load; save ;;
+    *) echo "usage: $0 {load|save|sync}" >&2; exit 2 ;;
+esac

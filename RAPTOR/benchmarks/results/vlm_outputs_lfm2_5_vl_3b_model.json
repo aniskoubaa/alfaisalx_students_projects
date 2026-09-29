@@ -1,0 +1,133 @@
+{
+  "model": "LFM2.5-VL-3B",
+  "generations": [
+    {
+      "crop": "crop_000_385px.jpg",
+      "ttft_s": 0.35,
+      "total_s": 9.676,
+      "tokens": 124,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"dark hair tied in a ponytail, wearing a white short-sleeved shirt with thin horizontal stripes, red pants, and white shoes\",\n  \"body_position\": \"standing upright, facing away from the camera\",\n  \"surroundings\": \"paved sidewalk with alternating light and dark gray tiles, a black car parked on the left side\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head\",\n    \"face\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_001_268px.jpg",
+      "ttft_s": 0.302,
+      "total_s": 8.057,
+      "tokens": 103,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"woman with long dark hair, wearing a light gray long-sleeved top and black pants\",\n  \"body_position\": \"walking, leaning forward slightly\",\n  \"surroundings\": \"paved surface, no other people or objects visible\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head\",\n    \"feet\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_002_247px.jpg",
+      "ttft_s": 0.303,
+      "total_s": 9.696,
+      "tokens": 125,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"dark hair in a ponytail, wearing a white short-sleeved shirt, a patterned backpack with green and blue designs, red pants, pink shoes\",\n  \"body_position\": \"walking away from the camera, slightly leaning forward\",\n  \"surroundings\": \"paved area with a green triangular shape on the ground, a white line on the pavement\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_003_174px.jpg",
+      "ttft_s": 0.299,
+      "total_s": 9.402,
+      "tokens": 121,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"woman with dark hair, wearing a white t-shirt with a graphic and blue jeans\",\n  \"body_position\": \"lying on back, legs bent at knees, arms resting on abdomen\",\n  \"surroundings\": \"outdoor setting with concrete ground, wooden chair nearby, green fence and building in background\",\n  \"injury_indicators\": [],\n  \"signalling\": \"no visible signaling\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head\",\n    \"face\",\n    \"feet\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_004_236px.jpg",
+      "ttft_s": 0.3,
+      "total_s": 9.532,
+      "tokens": 123,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"woman with dark hair tied back, wearing a white short-sleeved shirt, red pants, and carrying a large dark backpack with colorful patterns\",\n  \"body_position\": \"standing upright, facing away from the camera\",\n  \"surroundings\": \"paved area with a green scooter partially visible on the left and a bicycle on the right\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head\",\n    \"face\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_005_168px.jpg",
+      "ttft_s": 0.302,
+      "total_s": 9.035,
+      "tokens": 116,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"East Asian male, short hair, wearing a white short-sleeved shirt, light green shorts, and dark shoes\",\n  \"body_position\": \"lying on his back on a concrete surface, arms bent with hands resting on knees, legs slightly bent\",\n  \"surroundings\": \"concrete surface with a metal grate and a chain-link fence in the background\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_006_188px.jpg",
+      "ttft_s": 0.3,
+      "total_s": 8.268,
+      "tokens": 106,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"middle-aged man with short dark hair, wearing a green jacket over a blue shirt and dark pants\",\n  \"body_position\": \"standing upright, facing slightly left, arms at sides\",\n  \"surroundings\": \"concrete ground, metal grating structure in background, large stone or concrete block to the right\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_007_205px.jpg",
+      "ttft_s": 0.302,
+      "total_s": 10.203,
+      "tokens": 132,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"woman with dark hair tied back, wearing a white short-sleeved shirt, red pants, and a dark backpack with green floral pattern\",\n  \"body_position\": \"standing upright, facing away from camera, walking forward\",\n  \"surroundings\": \"paved area with rectangular stone tiles in varying shades of gray and pinkish tones\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\"head, face, hands, feet, shoes, backpack straps, backpack details, camera, sky\"]\n}"
+    },
+    {
+      "crop": "crop_008_201px.jpg",
+      "ttft_s": 0.297,
+      "total_s": 8.18,
+      "tokens": 105,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"person with dark hair tied back, wearing a white short-sleeved shirt, red pants, pink shoes, and a colorful backpack\",\n  \"body_position\": \"standing upright, facing away from camera\",\n  \"surroundings\": \"paved surface, no other people or objects visible\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\"facial features\"]\n}"
+    },
+    {
+      "crop": "crop_009_206px.jpg",
+      "ttft_s": 0.301,
+      "total_s": 7.124,
+      "tokens": 91,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"dark hair, white short-sleeved shirt, dark patterned backpack, red pants\",\n  \"body_position\": \"standing upright\",\n  \"surroundings\": \"gray pavement or road\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head of foreground person\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_010_198px.jpg",
+      "ttft_s": 0.302,
+      "total_s": 8.719,
+      "tokens": 112,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"man with short dark hair, wearing a pink short-sleeved shirt and blue jeans\",\n  \"body_position\": \"standing upright\",\n  \"surroundings\": \"gray paved ground, partial view of another person to the right\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head of the person to the right\",\n    \"full body of the person to the right\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_011_115px.jpg",
+      "ttft_s": 0.299,
+      "total_s": 7.219,
+      "tokens": 92,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"dark hair, light blue short-sleeved shirt, blue jeans\",\n  \"body_position\": \"lying on back, legs bent, arms slightly raised\",\n  \"surroundings\": \"paved path, green grass, large rocks in background\",\n  \"injury_indicators\": [],\n  \"signalling\": \"no\",\n  \"confidence\": 0.95,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_012_118px.jpg",
+      "ttft_s": 0.3,
+      "total_s": 7.791,
+      "tokens": 100,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"man with short dark hair, wearing a purple short-sleeved shirt and black shorts\",\n  \"body_position\": \"lying on back, arms and legs spread out\",\n  \"surroundings\": \"rocky terrain with green vegetation, elevated camera view\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_013_167px.jpg",
+      "ttft_s": 0.303,
+      "total_s": 8.148,
+      "tokens": 105,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"woman with dark hair tied back, wearing a white t-shirt with a graphic, dark pants, and white rollerblades\",\n  \"body_position\": \"standing upright on rollerblades, facing slightly left\",\n  \"surroundings\": \"paved area with square tiles, no other people or objects visible\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_014_128px.jpg",
+      "ttft_s": 0.303,
+      "total_s": 10.603,
+      "tokens": 137,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"man with short dark hair, wearing a gray short-sleeved t-shirt and blue jeans\",\n  \"body_position\": \"sitting on a concrete curb with knees bent, leaning forward, holding a small black object in both hands\",\n  \"surroundings\": \"light gray paved ground, a section of red and gray patterned brick pavement to the right, a white vehicle hood in the foreground\",\n  \"injury_indicators\": [],\n  \"signalling\": \"none\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\"face\", \"eyes\", \"mouth\", \"feet\"]\n}"
+    },
+    {
+      "crop": "crop_015_184px.jpg",
+      "ttft_s": 0.302,
+      "total_s": 6.739,
+      "tokens": 86,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"dark hair, light skin\",\n  \"body_position\": \"lying on back\",\n  \"surroundings\": \"snowy ground\",\n  \"injury_indicators\": [\n    \"no visible injuries\"\n  ],\n  \"signalling\": \"no visible signals\",\n  \"confidence\": 0.95,\n  \"not_visible\": [\n    \"head\"\n  ]\n}"
+    }
+  ]
+}

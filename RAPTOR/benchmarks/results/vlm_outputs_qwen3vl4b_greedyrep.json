@@ -1,0 +1,133 @@
+{
+  "model": "Qwen3-VL-4B-Instruct",
+  "generations": [
+    {
+      "crop": "crop_000_385px.jpg",
+      "ttft_s": 0.411,
+      "total_s": 13.202,
+      "tokens": 99,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"person with brown hair tied back, wearing a white striped shirt, red pants, and a patterned backpack\",\n  \"body_position\": \"standing\",\n  \"surroundings\": \"paved sidewalk next to a dark vehicle\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\n    \"face\",\n    \"hands\",\n    \"feet details\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_001_268px.jpg",
+      "ttft_s": 0.325,
+      "total_s": 10.4,
+      "tokens": 78,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"person wearing grey top and black pants, carrying a small bag\",\n  \"body_position\": \"lying\",\n  \"surroundings\": \"paved ground, aerial view from 32m altitude\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_002_247px.jpg",
+      "ttft_s": 0.323,
+      "total_s": 13.896,
+      "tokens": 105,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"person with dark hair in a ponytail, wearing a striped shirt, red pants, and a patterned backpack\",\n  \"body_position\": \"standing\",\n  \"surroundings\": \"paved ground with painted markings, possibly a school or public area\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\n    \"face\",\n    \"hands\",\n    \"feet details\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_003_174px.jpg",
+      "ttft_s": 0.316,
+      "total_s": 11.08,
+      "tokens": 83,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"woman wearing white t-shirt and blue jeans, sitting on a red chair\",\n  \"body_position\": \"sitting\",\n  \"surroundings\": \"outdoor area with concrete ground, wooden chair, greenery in background\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_004_236px.jpg",
+      "ttft_s": 0.32,
+      "total_s": 15.958,
+      "tokens": 121,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"person with dark hair in a ponytail, wearing a white shirt, red pants, and pink shoes, carrying a floral-patterned backpack\",\n  \"body_position\": \"walking\",\n  \"surroundings\": \"paved sidewalk with a bicycle partially visible on the right and a green object on the left\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\n    \"face\",\n    \"hands\",\n    \"feet details\",\n    \"clothing texture\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_005_168px.jpg",
+      "ttft_s": 0.321,
+      "total_s": 11.704,
+      "tokens": 88,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"man wearing light blue short-sleeved shirt, light-colored shorts, and purple shoes\",\n  \"body_position\": \"sitting on a metal grate\",\n  \"surroundings\": \"aerial view of a paved area with parallel metal grates\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_006_188px.jpg",
+      "ttft_s": 0.316,
+      "total_s": 10.277,
+      "tokens": 77,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"man wearing a green jacket, dark pants, and brown shoes\",\n  \"body_position\": \"standing\",\n  \"surroundings\": \"concrete ground with metal grating or railings nearby\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_007_205px.jpg",
+      "ttft_s": 0.325,
+      "total_s": 14.947,
+      "tokens": 113,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"person wearing a white short-sleeved shirt, red pants, and pink shoes; carrying a dark backpack with green floral pattern; hair tied back\",\n  \"body_position\": \"walking\",\n  \"surroundings\": \"paved walkway with rectangular tiles\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\n    \"face\",\n    \"hands\",\n    \"feet details\",\n    \"environment beyond immediate vicinity\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_008_201px.jpg",
+      "ttft_s": 0.314,
+      "total_s": 15.461,
+      "tokens": 117,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"person with brown hair in a ponytail, wearing a white short-sleeved shirt, red pants, and pink shoes, carrying a patterned backpack\",\n  \"body_position\": \"standing\",\n  \"surroundings\": \"paved ground, possibly an open area or street\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\n    \"face\",\n    \"hands\",\n    \"feet details\",\n    \"environment beyond immediate vicinity\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_009_206px.jpg",
+      "ttft_s": 0.319,
+      "total_s": 14.032,
+      "tokens": 106,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"person with dark hair in a ponytail, wearing a white shirt, red pants, and pink shoes, carrying a patterned backpack\",\n  \"body_position\": \"standing\",\n  \"surroundings\": \"gray paved surface\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\n    \"face\",\n    \"hands\",\n    \"feet details\",\n    \"environment beyond immediate vicinity\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_010_198px.jpg",
+      "ttft_s": 0.323,
+      "total_s": 9.926,
+      "tokens": 74,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"man wearing pink shirt and blue jeans, standing next to a child\",\n  \"body_position\": \"standing\",\n  \"surroundings\": \"paved ground, other people nearby\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_011_115px.jpg",
+      "ttft_s": 0.317,
+      "total_s": 8.86,
+      "tokens": 66,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"person wearing light-colored shirt and blue pants\",\n  \"body_position\": \"lying\",\n  \"surroundings\": \"grass and rocks nearby\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_012_118px.jpg",
+      "ttft_s": 0.319,
+      "total_s": 12.333,
+      "tokens": 93,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"person wearing purple shirt and dark shorts, carrying a black backpack\",\n  \"body_position\": \"lying\",\n  \"surroundings\": \"rocky terrain with green vegetation at base\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": [\n    \"face\",\n    \"hands\",\n    \"feet\",\n    \"legs\"\n  ]\n}"
+    },
+    {
+      "crop": "crop_013_167px.jpg",
+      "ttft_s": 0.322,
+      "total_s": 10.156,
+      "tokens": 76,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"person wearing white t-shirt with dark sleeves, dark pants, and inline skates\",\n  \"body_position\": \"standing\",\n  \"surroundings\": \"paved ground with square tiles\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_014_128px.jpg",
+      "ttft_s": 0.329,
+      "total_s": 10.476,
+      "tokens": 78,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"man wearing gray t-shirt and blue jeans\",\n  \"body_position\": \"sitting on ground\",\n  \"surroundings\": \"paved area with red and gray tiles, white vehicle partially visible\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    },
+    {
+      "crop": "crop_015_184px.jpg",
+      "ttft_s": 0.328,
+      "total_s": 7.847,
+      "tokens": 58,
+      "json_parsed": true,
+      "text": "{\n  \"appearance\": \"not visible\",\n  \"body_position\": \"lying\",\n  \"surroundings\": \"not visible\",\n  \"injury_indicators\": [],\n  \"signalling\": [],\n  \"confidence\": 0.91,\n  \"not_visible\": []\n}"
+    }
+  ]
+}

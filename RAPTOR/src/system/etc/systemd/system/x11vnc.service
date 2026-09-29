@@ -1,0 +1,17 @@
+[Unit]
+Description=x11vnc - VNC server mirroring the console display
+After=display-manager.service
+Wants=display-manager.service
+
+[Service]
+Type=simple
+Environment=HOME=/root
+ExecStart=/usr/local/sbin/raptor-x11vnc-start
+# The console X server is replaced when someone logs in, which kills x11vnc.
+# Restarting re-derives the new display and authority file, so the VNC session
+# follows the user from the greeter into their desktop.
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
