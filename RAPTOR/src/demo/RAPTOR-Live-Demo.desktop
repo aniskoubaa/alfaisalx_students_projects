@@ -2,12 +2,12 @@
 Type=Application
 Version=1.0
 Name=RAPTOR Live Demo
-GenericName=Aerial person detection and posture
-Comment=Camera through the deployed aerial detector (lean TensorRT) with pose on crops - the flight pipeline
+GenericName=Person detection and posture
+Comment=Webcam: pose model, tracker, posture from the legs, and a VLM posture check - for people near the camera
 Exec=/home/alfaisal-x-nx/raptor/src/demo/launch_demo.sh
 Path=/home/alfaisal-x-nx/raptor
 Icon=camera-video
 Terminal=true
 Categories=Development;Science;
-Keywords=raptor;yolo;pose;drone;tensorrt;
+Keywords=raptor;yolo;pose;posture;vlm;tensorrt;
 StartupNotify=true

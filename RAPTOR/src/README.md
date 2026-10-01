@@ -46,6 +46,10 @@ except as a sanity check.
 | `tegra_sampler.py` | Runs `tegrastats` in the background during a measurement and summarises board power and temperature. Sampling *throughout* matters: a pipeline that throttles after eight minutes has not passed. |
 | `person_scoring.py` | Person mAP and recall for **any** detector, whatever its class list. Ultralytics' `val()` ignores `classes`, so models trained on VisDrone (pedestrian + people + eight vehicle classes) cannot be scored correctly by it. This keeps the person classes, merges them, and scores with Ultralytics' own matching; it agrees with `val()` within 0.5 points on COCO models. |
 | `trt_yolo.py` | The lean TensorRT runner the deployed detector is served with: loads an Ultralytics-exported `.engine` directly, letterboxes exactly as Ultralytics does, merges the person classes and runs NMS on the GPU. Same detections, 5 ms less per frame than Ultralytics' pipeline. |
+| `live_camera.py` | The USB camera on its own thread: always the newest frame, JPEG decoding off the inference loop, found by its USB path (not `/dev/video0`) and re-opened by itself if it drops off USB. Added 2026-09-29 after the demo ran at 17 FPS and "crashed" when the webcam came back as `/dev/video1`. |
+| `person_tracker.py` | One steady box per person: removes nested and overlapping duplicates, tracks with Ultralytics' ByteTrack, confirms a person after 3 frames and holds them through short misses. The people count is the number of confirmed tracks. Needs `lap` in the venv. |
+| `posture.py` | Coarse posture from COCO keypoints, decided by the legs (thigh angle, knee drop), with `upright, legs hidden` instead of a guess and a per-person vote over recent frames. Image vertical, not gravity - bench only until the IMU attitude is wired in. |
+| `vlm_posture.py` | Asks the deployed VLM one word about one person's crop (standing / sitting / lying) on a background thread, ~0.4-0.7 s per answer, so the video never waits. |
 
 ### `benchmarks/` — measurement · *Jetson*
 Each run appends one JSON line to `benchmarks/results/`. Method and results:
@@ -79,9 +83,9 @@ Matplotlib is broken on the board (a NumPy 1/2 clash), so these run on the lapto
 
 | File | What it does |
 |---|---|
-| `raptor_live_demo.py` | Camera → aerial detector (lean TensorRT) on every frame → pose on crops every fifth frame → window with boxes, keypoints, a posture label and a performance HUD. `--mode pose-only` runs the pose model alone (for people close to a desk camera); `--source` plays aerial images or video. Falls back to text output when there is no display. |
-| `launch_demo.sh` | Launcher: checks the venv, engine and camera, explains any problem, then starts the demo. |
-| `RAPTOR-Live-Demo.desktop`, `RAPTOR-Live-Demo-Bench.desktop` | The clickable icons on the Jetson desktop: the aerial pipeline, and the pose-only bench demo. |
+| `raptor_live_demo.py` | Camera → people → tracks → posture → window with boxes, ids, keypoints, posture, the VLM's answer and a performance HUD. Default **bench** mode: the pose model on the whole frame, for people in a room. `--mode aerial`: the flight pipeline (aerial detector on every frame, pose on crops). `--source` plays images or video; `--stats` prints a summary. Falls back to text output when there is no display. |
+| `launch_demo.sh` | Launcher: checks the venv, the engines, a USB camera and that no other copy is running, explains any problem, then starts the demo. |
+| `RAPTOR-Live-Demo.desktop`, `RAPTOR-Live-Demo-Aerial.desktop` | The clickable icons on the Jetson desktop: the bench demo, and the aerial pipeline. |
 | `RAPTOR-Live-Demo.bat` | *Laptop.* Runs the demo on the board over SSH and shows its text output. |
 | `catch_person.py` | Saves one annotated frame containing a detected person — works headless, over SSH. |
 

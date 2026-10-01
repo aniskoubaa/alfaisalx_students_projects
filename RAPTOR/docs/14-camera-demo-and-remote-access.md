@@ -106,19 +106,20 @@ desktop. Both run `~/raptor/src/demo/launch_demo.sh`; the source is in
 
 | Icon | What runs | Use it for |
 |---|---|---|
-| **RAPTOR Live Demo** | **The deployed two-stage pipeline** (since 2026-09-29). The aerial detector (YOLO26s on VisDrone, 736×1280, lean TensorRT runner) runs on every frame. YOLO26s-pose runs on crops of each person every fifth frame, for people at least 64 px tall; smaller people are marked *too small for pose*. | Showing the flight pipeline. Point it at a scene seen from above, or play aerial footage with `--source`. |
-| **RAPTOR Live Demo (bench)** | `--mode pose-only`: one pose model (YOLO26s-pose) on the whole frame. This is the older demo. | People close to a desk webcam. |
+| **RAPTOR Live Demo** | **Bench mode** (the default since the 2026-09-29 fix, below). YOLO26s-pose (384×640 engine) on the whole frame, a tracker that keeps one steady box per person, posture from the legs, and the VLM (Qwen3-VL-2B) double-checking each person's posture about once a second. | People in a room, near the webcam. |
+| **RAPTOR Live Demo (aerial model)** | `--mode aerial`: the flight pipeline. The aerial detector (YOLO26s on VisDrone, 736×1280, lean TensorRT runner) on every frame, the same tracker, and YOLO26s-pose on crops of each person every fifth frame (people at least 64 px tall). | Showing the flight pipeline on a scene seen from above, or on aerial footage with `--source`. |
 
-**Why two icons.** The aerial detector is trained on small people seen from above.
-On 2026-09-29, pointed at someone sitting beside the desk webcam, it found nobody,
-where the COCO pose model found one person. That is the model doing its job, not a
-fault. For that kind of demo use the bench icon.
+**Why the aerial model is not the default.** It is trained on small people seen
+from a drone. Indoors it misses people close to the camera and mistakes chairs for
+seated people (VisDrone's *people* class means people who are not walking, and
+from above an empty chair looks like one). That is the model doing what it was
+trained for, not a fault - but it is the wrong model for a desk demo.
 
-To show the real pipeline without an aircraft, play aerial images or a video
+To show the flight pipeline without an aircraft, play aerial images or a video
 through it:
 
 ```bash
-~/raptor-venv/bin/python ~/raptor/src/demo/raptor_live_demo.py \
+~/raptor-venv/bin/python ~/raptor/src/demo/raptor_live_demo.py --mode aerial \
     --source ~/raptor-data/visdrone-person/images/val
 ```
 
@@ -131,7 +132,8 @@ The window shows person boxes, keypoints where there are enough pixels for them,
 posture label, and a HUD with frame rate, detection and pose timings, board power
 and temperature. The launcher runs in a terminal deliberately, so a failure is
 readable rather than a window that flashes and vanishes. It preflights the venv,
-both engines and `/dev/video0`, and explains what to do for each.
+the engines the mode needs, a USB camera (found by its USB path, not as
+`/dev/video0`) and that no other copy is running, and explains what to do for each.
 
 ### From the laptop — text output
 
@@ -148,10 +150,36 @@ connection rather than raising something catchable.
 Measured on the bench camera:
 
 - **2026-09-20, single pose model:** ~24 FPS, 21.6 ms inference.
-- **2026-09-29, two-stage pipeline:** ~24 FPS, 20.8 ms detection per 1080p frame.
+- **2026-09-29 morning, two-stage pipeline:** ~24 FPS on an empty scene, 20.8 ms
+  detection per 1080p frame; about 17 FPS with people in view.
+- **2026-09-29 after the fix, bench mode:** 30 FPS at 1080p (the camera's maximum),
+  60 FPS at 720p; 43 FPS at 720p with the VLM check running. Aerial mode: 30 FPS.
 - **On VisDrone images:** 27 FPS, 25 ms detection, and 28–50 ms per pose pass.
 
-On the webcam the camera sets the frame rate, not the models.
+On the webcam the camera sets the frame rate, not the models: the C922 gives at
+most 30 fps at 1080p and 60 fps at 720p (`--width 1280 --height 720 --fps 60`).
+
+### 2026-09-29: why the first live demo misbehaved, and the fix
+
+Reported after the first run of the two-stage demo: it crashed, counted one person
+as several, flickered, ran at about 17 FPS, and called a seated person "standing".
+Each was reproduced on the bench camera and traced to a cause. Most were code, not
+models. Raw numbers: `benchmarks/results/live_demo_fix_2026-09-29.json`.
+
+| Symptom | Cause (measured) | Fix |
+|---|---|---|
+| "Crashed" | The webcam dropped off USB (`dmesg`: *usb 1-2.3: USB disconnect*) and came back as `/dev/video1`; the demo only knew `/dev/video0`. Two copies of the demo were also running at once, fighting over the camera. | `src/common/live_camera.py` finds the camera by its USB path and re-opens it by itself; one copy at a time (a lock). Plug the camera straight into the board, not through a hub. |
+| One person counted as several, flickering | The aerial detector, on a room: 0 to 5 "people" per frame for two real people, the count changing on 65 of 149 frames. It boxed the seated man's head and body separately, an empty chair, and his reflection. The COCO pose model also returned the same man twice (whole body and upper body, IoU 0.66, under the 0.7 threshold). Nothing remembered people between frames. | Bench mode uses the COCO pose model, not the aerial detector. `src/common/person_tracker.py` removes nested and overlapping boxes, tracks with ByteTrack, shows a person only after 3 frames and holds them through short misses. After: 1 to 7 count changes in 400 frames, with people really coming and going. |
+| Seated person labelled "standing" | The rule looked only at the torso: upright torso = standing. The legs decide sitting vs standing. Every label the old rule gave the seated man (191) was "standing". | `src/common/posture.py`: sitting when the thigh is near horizontal (side view) or the knee barely below the hip (front view); "upright, legs hidden" instead of a guess when the knees are not visible; a vote over the last 7 estimates. Plus the VLM check. |
+| About 17 FPS | Serial loop: decoding each 1080p JPEG took 22 ms on the CPU, then 22 ms detection, then pose passes. The camera was also set to slow down in dim light (`exposure_dynamic_framerate=1`). | Capture and decoding on their own thread; the dim-light slow-down switched off; a 384×640 pose engine (9.7 ms per frame against 19.6 ms at 960); only the HUD panel blended. |
+
+The VLM check asks Qwen3-VL-2B one question about one person's crop - standing,
+sitting or lying, one word - in a background thread, so the video never waits.
+It takes about 0.7 s per answer while the video runs (0.41 s alone), and said
+"sitting" for the seated man on every check. With only an arm in view its answer
+is a guess, so it is asked only about people whose torso is visible. It slows the
+video briefly when it runs (lowest 5 % of frames: 15 FPS at 1080p); `--no-vlm`
+turns it off.
 
 ### The posture label is not flight tier 2
 

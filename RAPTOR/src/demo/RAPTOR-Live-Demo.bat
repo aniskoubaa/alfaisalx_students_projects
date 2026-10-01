@@ -2,7 +2,7 @@
 setlocal
 title RAPTOR - live perception demo
 
-REM Runs the deployed tier 1+2 model on the Jetson's live camera and streams the
+REM Runs the bench demo (pose, tracker, posture, VLM check) on the Jetson's camera and streams the
 REM results here. Video frames stay on the Jetson (the window needs a local
 REM display); this shows the detections, posture and timings as text.
 REM
@@ -42,10 +42,11 @@ echo   reachable.
 echo.
 
 echo Checking the camera...
-ssh -i "%KEY%" -o BatchMode=yes %JETSON% "test -e /dev/video0" >nul 2>&1
+REM Found by USB path: after a USB drop-out the webcam can come back as /dev/video1.
+ssh -i "%KEY%" -o BatchMode=yes %JETSON% "ls /dev/v4l/by-path/*usb*-video-index0" >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: no camera at /dev/video0 on the Jetson.
-    echo   Plug it in ^(prefer a USB 3.0 port^) and try again.
+    echo ERROR: no USB camera on the Jetson.
+    echo   Plug it in ^(directly into the board if you can, not through a hub^) and try again.
     goto :hold
 )
 echo   camera present.

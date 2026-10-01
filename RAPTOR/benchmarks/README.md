@@ -32,6 +32,7 @@ because without those fields the numbers are unreproducible and therefore worthl
 | `results/vlm_content_scores.csv` | whether those answers are **true**: invented injuries, false 'lying', ethnicity, copied prompt numbers | `src/analysis/score_vlm_generations.py` |
 | `results/camera.jsonl` | E3b — capture path, and the model on live frames | `src/benchmarks/bench_camera.py` |
 | `results/deploy_manifest.json` | what is deployed on the board now (2026-09-29), with provenance; `deploy_manifest_2026-09-20.json` is the first set | `src/deploy/deploy_models.py` |
+| `results/live_demo_fix_2026-09-29.json` | the live demo's problems measured before the fix (counts per frame, posture labels, decode and inference times, camera settings) and the demo after it (FPS, count stability, VLM answers) | `src/demo/raptor_live_demo.py --stats`; diagnostic runs on the bench camera |
 | `results/gpu_compute.jsonl` | GPU compute alone per engine (`trtexec`), to compare networks across harnesses | `trtexec`; `bench_rtdetrv4.py` |
 | `figures/fig1–fig4*.png`, `results_table.csv` | first round (2026-09-20) charts | `src/analysis/plot_results.py --before 2026-09-28` |
 | `figures/fig5–fig7*.png`, `reeval_detectors.csv` | second round (2026-09-28): test-dev accuracy vs real-frame latency, recall val vs test-dev, the VLM comparison | `src/analysis/plot_reeval.py` |

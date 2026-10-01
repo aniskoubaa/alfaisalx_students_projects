@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=RAPTOR Live Demo (aerial model)
+GenericName=The flight pipeline on the webcam
+Comment=Aerial-trained detector on every frame, pose on crops - built for footage from a drone; indoors it misses people close to the camera
+Exec=/home/alfaisal-x-nx/raptor/src/demo/launch_demo.sh --mode aerial
+Path=/home/alfaisal-x-nx/raptor
+Icon=camera-web
+Terminal=true
+Categories=Development;Science;
+Keywords=raptor;yolo;visdrone;drone;tensorrt;aerial;
+StartupNotify=true

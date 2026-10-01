@@ -1,13 +1,13 @@
 # RAPTOR — Current Status
 
-**Last updated: 2026-09-29** (new models deployed on the board)
+**Last updated: 2026-09-29** (new models deployed; live demo fixed the same afternoon)
 Living document. Update it at the end of every session, before closing the laptop.
-Latest progress report: [`RAPTOR_Work_Report_2026-09-28_2108.docx`](./RAPTOR_Work_Report_2026-09-28_2108.docx),
-with a two-page summary in [`RAPTOR_Progress_Summary_2026-09-29_1039.docx`](./RAPTOR_Progress_Summary_2026-09-29_1039.docx).
-Both predate the 2026-09-29 deployment; this file is current. Earlier ones:
-[2026-09-28 16:24](./RAPTOR_Work_Report_2026-09-28_1624.docx),
+Progress reports, one per day, each covering only that day's progress:
+[2026-09-29](./RAPTOR_Work_Report_2026-09-29.docx) (deployment, dashboard, faster models, live-demo fix),
+[2026-09-28](./RAPTOR_Work_Report_2026-09-28.docx) (the work of 17–28 September, including the model re-evaluation),
 [2026-09-20 harness revision](./2026-09-20-raptor-harness-revision.md),
-[2026-09-16 design report](./2026-09-16-raptor-jetson-perception-design.md).
+[2026-09-16](./RAPTOR_Work_Report_2026-09-16.docx) (design report and daily report, combined).
+The separate same-day originals these replaced are kept in `AlfaisalX/ProgressReports-superseded/`, outside the repository.
 
 ---
 
@@ -17,8 +17,8 @@ Both predate the 2026-09-29 deployment; this file is current. Earlier ones:
 provisioned, benchmarked, remotely reachable and running a live camera demo. On
 2026-09-28 both model choices were re-evaluated against newer candidates and
 **replaced on measured grounds**; on 2026-09-29 the new models were **deployed** and
-the live demo switched to them. No perception pipeline code (ROS 2 nodes, tracker, posture classifier,
-trigger, victim report) exists yet. The flight camera has still never been powered.
+the live demo switched to them; the demo's problems were fixed that afternoon. A tracker and a rule-based
+posture check now exist as bench tools (`src/common/`), but no ROS 2 nodes, trigger or victim report. The flight camera has still never been powered.
 
 ---
 
@@ -30,7 +30,8 @@ trigger, victim report) exists yet. The flight camera has still never been power
 | 1 — Apache alternative | RT-DETRv4-S trained on VisDrone, 960 px | 42.8 %, 17.1 ms GPU compute, 24.3 ms end to end in a lean runtime. Apache-2.0. | docs/10 |
 | 2 — pose | **YOLO26s-pose on crops of each track**, below frame rate | 22.7 ms p95 (yolo11s-pose: 26.5) | [docs/02](../RAPTOR/docs/02-detection-and-pose.md) |
 | 3 — describe | **Qwen3-VL-2B-Instruct**, greedy + repetition penalty 1.05 | 100 % valid JSON, 0 injuries invented on 16 uninjured people, first token 0.21 s, 4.1 GB. Full reply ~12 s (target 5 s). | [docs/12](../RAPTOR/docs/12-vlm-benchmark-results.md) |
-| Deployed | All five: detector, detector_alt (RT-DETRv4-S), pose, vlm, vlm_fallback (Qwen3.5-2B) — verified on the board 2026-09-29. The 2026-09-20 set is kept at `~/raptor-deploy.2026-09-20`. | see `benchmarks/results/deploy_manifest.json` | `~/raptor-deploy` |
+| Demo (bench) | **YOLO26s-pose 384×640 + ByteTrack + leg-based posture + Qwen3-VL-2B one-word posture check** | 30 FPS at 1080p, 60 at 720p; pose 9.7 ms per frame; VLM 0.4–0.7 s per person, in the background | [docs/14](../RAPTOR/docs/14-camera-demo-and-remote-access.md) |
+| Deployed | All six: detector, detector_alt (RT-DETRv4-S), pose, pose_bench (the same pose model as a 384×640 engine, for the demo), vlm, vlm_fallback (Qwen3.5-2B) — verified on the board 2026-09-29. The 2026-09-20 set is kept at `~/raptor-deploy.2026-09-20`. | see `benchmarks/results/deploy_manifest.json` | `~/raptor-deploy` |
 
 ---
 
@@ -48,6 +49,7 @@ trigger, victim report) exists yet. The flight camera has still never been power
 - [x] First-round models deployed with a provenance manifest; live camera demo with a desktop icon
 - [x] Repository reorganised (`docs/ src/ benchmarks/ reports/ assets/`), every file named for what it is
 - [x] Model-selection Word report rebuilt: Part A re-evaluation, Part B original — `RAPTOR/reports/`
+- [x] **Live demo fixed** (2026-09-29 afternoon): it had counted one person as several, flickered, called a seated person "standing", run at ~17 FPS and "crashed" (the webcam dropped off USB). Now 30 FPS (60 at 720p), steady counts, posture from the legs, a VLM posture check, automatic camera reconnect — see docs/14 and `benchmarks/results/live_demo_fix_2026-09-29.json`
 
 ## Next
 
@@ -58,7 +60,10 @@ trigger, victim report) exists yet. The flight camera has still never been power
 - [ ] Evaluate on aerial images of **people lying down** (Okutama-Action, NOMAD, SARD, HERIDAL)
 - [ ] Run detector + VLM together (E7) — never done
 - [ ] Then the **operator dashboard**: event logger on the Jetson → server → feed, event page, health
-- [ ] Commit today's work (the course repository, `main`, is all uncommitted — a team decision)
+- [ ] Serve the VLM through **TensorRT Edge-LLM** (INT4, supports Orin NX on JetPack 7.2; NVIDIA lists Qwen3-VL-2B at 58 tok/s) and re-test Qwen3.5-2B (higher counting score) — the full description should drop from ~12 s to a few seconds
+- [ ] Aerial posture: fine-tune the aerial detector with posture classes (upright / sitting / lying) on SARD, C2A and Okutama-Action — keypoints are unreliable at altitude
+- [ ] Replace the posture rule with a small classifier trained on keypoints with random leg drop-out, if the rule's `legs hidden` cases prove common
+- [ ] Commit the afternoon's work — the 10:58 commit holds the morning's; the live-demo fix and the report merge are uncommitted
 
 ## Blocked — needs hardware
 
@@ -94,6 +99,8 @@ before the gimbal node is written: allow gimbal-only writes, or keep pointing ma
 - Qwen3 VLMs need a repetition penalty under greedy decoding, or they loop.
 - Board internet exists only while `jetson_internet.sh` runs on the laptop; while `/etc/apt/apt.conf.d/99proxy` exists, apt needs it.
 - Don't `ping` 100.100.100.1 to check the board (carrier-grade NAT range) — use SSH.
+- The webcam can drop off USB and come back as `/dev/video1`; plug it into the board directly. The demo finds it by USB path either way.
+- ByteTrack needs `lap` in the venv. The board has no internet of its own, so the aarch64 wheel was downloaded on the laptop and copied over (`pip install --no-index`).
 - The laptop's USB hub has **one** Ethernet adapter; it cannot bridge the Jetson to the router. A small network switch would.
 
 ---
@@ -108,7 +115,7 @@ before the gimbal node is written: allow gimbal-only writes, or keep pointing ma
 | Camera video (onboard) | micro-HDMI to USB capture card | **Card not acquired** |
 | Camera video (downlink) | Ethernet to VTX | Optional, not acquired |
 | Airframe | Holybro X500 V2, 10" props | Built; no room for the Jetson on the top deck |
-| Test camera | Logitech C922 webcam, USB 2.0 | Used for the live demo |
+| Test camera | Logitech C922 webcam, USB 2.0 (1080p30 / 720p60 MJPEG) | Used for the live demo; dropped off USB once through the hub (2026-09-29) |
 
 ---
 

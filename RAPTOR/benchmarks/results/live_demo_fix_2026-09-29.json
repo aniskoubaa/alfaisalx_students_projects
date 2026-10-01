@@ -1,0 +1,54 @@
+{
+  "what": "Live demo diagnosis and fix, 2026-09-29. Bench C922 webcam on the Orin NX (25 W), lab scene with 1-3 people, mostly one man seated at a table side-on with his legs partly hidden.",
+  "complaint": "demo crashed; one person counted as several, flickering; ~17 FPS; a seated person labelled standing",
+  "caveat": "Live lab scenes, not a controlled test: people moved between runs, so the 'after' counts are not on the identical scene as 'before'. Timing numbers are comparable; count stability is indicative.",
+  "before": {
+    "harness": "tmp diag_live.py: deployed models run frame by frame, no tracking (as in the old demo)",
+    "frames": 150,
+    "aerial_detector_people_per_frame": {"0": 36, "1": 43, "2": 35, "3": 24, "4": 7, "5": 5},
+    "aerial_detector_count_changes": 65,
+    "aerial_detector_false_boxes_seen_on": ["the seated man's head and torso as separate people", "an empty gaming chair", "a blue chair", "his reflection on the table", "a drone motor (empty scene)"],
+    "aerial_detector_on_close_up_test_images": {"zidane.jpg": 0, "bus.jpg": 0, "coco_pose_found": {"zidane.jpg": 2, "bus.jpg": 4}},
+    "coco_pose_people_per_frame": {"1": 5, "2": 89, "3": 56},
+    "coco_pose_count_changes": 36,
+    "coco_pose_duplicate_example": "the seated man as a whole-body box and an upper-body box, IoU ~0.66, under the 0.7 NMS threshold",
+    "posture_old_rule_on_seated_man": {"standing": 191, "unknown": 160},
+    "timing_ms_p50": {"grab_and_decode_1080p": 22.3, "aerial_detector": 21.8, "pose_960_full_frame": 24.5},
+    "camera": {
+      "usb": "USB 2.0 hub port (480 Mbit/s); modes MJPG 1920x1080@30, 1280x720@60",
+      "cpu_mjpeg_decode_ms": {"1080p": 21.5, "720p": 14.7},
+      "gpu_nvjpeg_decode_ms": {"1080p": 7.7, "720p": 7.8},
+      "exposure_dynamic_framerate": "was 1 (camera slows down in dim light); 720p delivered 29.7 fps with it on, 41.7 with it off, 60 with it off and default buffers",
+      "usb_dropout": "dmesg 15:48:36 'usb 1-2.3: USB disconnect'; the camera came back as /dev/video1, the demo only knew /dev/video0",
+      "two_copies_running": "two launch_demo.sh processes were running at once, started 15:44:49 and 15:46:18"
+    },
+    "vlm_one_word_posture_qwen3_vl_2b": {
+      "seated_man_crop": {"answer": "sitting", "seconds": 0.41},
+      "edge_person_arm_only": {"answer_native": "standing", "answer_448px": "sitting", "note": "unreliable when only an arm is visible; the demo only asks about people whose torso is visible"},
+      "whole_frame_896px": {"answer": "2 people: man sitting at a desk, person sitting on the right", "seconds": 2.92}
+    }
+  },
+  "fix": {
+    "code": ["src/common/live_camera.py", "src/common/person_tracker.py", "src/common/posture.py", "src/common/vlm_posture.py", "src/demo/raptor_live_demo.py", "src/demo/launch_demo.sh"],
+    "model": "yolo26s-pose-384x640.engine (same COCO weights, 16:9 engine), deployed as slot pose_bench",
+    "dependency": "lap 0.5.13 installed into ~/raptor-venv (ByteTrack's assignment solver; the board has no internet, so the aarch64 wheel was copied from the laptop)"
+  },
+  "after": {
+    "harness": "src/demo/raptor_live_demo.py --no-display --stats (bench mode unless noted)",
+    "runs": [
+      {"setup": "1080p, no VLM", "frames": 400, "fps_mean": 30.1, "fps_p5": 27.2, "infer_ms": 17.1, "count_changes": 1},
+      {"setup": "1080p, VLM check", "frames": 400, "fps_mean": 30.0, "fps_p5": 15.5, "infer_ms": 24.4, "count_changes": 4, "vlm_s_per_answer": 0.72},
+      {"setup": "720p, no VLM", "frames": 400, "fps_mean": 59.9, "fps_p5": 49.8, "infer_ms": 14.0, "count_changes": 6},
+      {"setup": "720p, VLM check", "frames": 400, "fps_mean": 43.2, "fps_p5": 17.3, "infer_ms": 19.4, "count_changes": 7, "vlm_s_per_answer": 0.68},
+      {"setup": "desktop launcher, 1080p, VLM check, 2-3 people moving", "frames": 300, "fps_mean": 29.0, "fps_p5": 12.4, "infer_ms": 22.0, "count_changes": 5, "vlm_answers": {"sitting": 95, "standing": 104}, "vlm_s_per_answer": 0.65},
+      {"setup": "aerial mode on the camera, no VLM", "frames": 200, "fps_mean": 30.1, "infer_ms": 24.9, "count_changes": 0}
+    ],
+    "posture_new_rule": {
+      "bus.jpg standing people": "3 of 3 standing (knee 0.55-0.74 torso lengths below the hip)",
+      "seated man, live": "sitting (thigh 88 deg from vertical)",
+      "seated man, 450-frame run": "geometry sitting on most frames; VLM sitting 257 of 257"
+    },
+    "pose_engine_real_frames_ms": {"yolo26s-pose-384x640": {"p50": 9.7, "p95": 11.8}, "yolo26s-pose-960": {"p50": 19.6, "p95": 22.7}},
+    "clean_exits": "7 of 7 quits (during VLM loading, mid-answer and idle) exited 0. The first version of the new demo aborted once on quit ('terminate called without an active exception', the VLM thread was mid-answer); it now waits for the answer, and hard-exits if the model is still loading"
+  }
+}

@@ -165,16 +165,18 @@ Ubuntu 24.04), a clock that survives reboots, and network access; see
 [11](./docs/11-jetson-platform-setup.md).
 
 **Live demo, clickable.** Double-click **RAPTOR Live Demo** on the Jetson desktop:
-the camera runs through the deployed two-stage pipeline — the aerial detector on
-every frame, pose and posture on crops of each person — at the webcam's ~24 FPS.
-The aerial detector is trained on people seen from above and may not see someone
-sitting next to the webcam; **RAPTOR Live Demo (bench)** runs the pose model alone
-for that. `--source <folder or video>` plays aerial footage through the real
-pipeline. The `.bat` on the laptop desktop gives text output — see
+the pose model finds each person in the room, a tracker keeps one steady box per
+person, posture comes from the legs, and the VLM double-checks each person's
+posture about once a second — at the webcam's 30 FPS (60 at 720p). **RAPTOR Live
+Demo (aerial model)** runs the flight pipeline instead (aerial detector, pose on
+crops), which is meant for scenes seen from above; `--source <folder or video>`
+plays aerial footage through it. The 2026-09-29 fix (one person counted as
+several, sitting read as standing, 17 FPS) is written up in docs/14. The `.bat` on the laptop desktop gives text output — see
 [14](./docs/14-camera-demo-and-remote-access.md).
 
 **No pipeline code exists yet.** These are characterised, deployed, demonstrable
-components — not a perception system. No detector node, tracker, posture
-classifier, trigger logic or victim report; that is roadmap phases 1–5. The
+components — not a perception system. The demo's tracker and rule-based posture
+(`src/common/`) are bench tools, not ROS 2 nodes; there is no trigger logic or
+victim report, and posture is not yet gravity-aligned. That is roadmap phases 1–5. The
 flight camera (A8 mini + HDMI capture card) has still never been tested — the
 bench camera is a USB webcam on a USB 2.0 port.

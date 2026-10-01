@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-29T07:37:35+00:00",
+  "generated": "2026-09-29T13:31:01+00:00",
   "board_env": {
     "board": {
       "l4t_release_raw": "# R39 (release), REVISION: 2.0, GCID: 45755727, BOARD: generic, EABI: aarch64, DATE: Mon Jun  1 09:28:48 PM UTC 2026",
@@ -37,8 +37,8 @@
     },
     "resources": {
       "mem_total_gb": 15.23,
-      "mem_available_gb": 11.17,
-      "disk_free_gb": 7.87,
+      "mem_available_gb": 10.35,
+      "disk_free_gb": 7.74,
       "cpu_count": 8
     },
     "git_commit": "unknown"
@@ -135,7 +135,39 @@
         "imgsz": 960
       },
       "verify": {
-        "ok": true
+        "ok": true,
+        "imgsz": [
+          960,
+          960
+        ]
+      },
+      "status": "ready"
+    },
+    "pose_bench": {
+      "role": "bench demo - pose on the whole 16:9 webcam frame, for people near the camera",
+      "why": "the same YOLO26s-pose weights as tier 2 in a 384x640 engine that fits a 16:9 frame: 17.1 ms per 1080p frame including the tracker, against 35.4 ms for the 960 engine (live bench, 2026-09-29), so the demo reaches the camera's 30 fps (60 at 720p). People near a desk camera are large, so the lower resolution costs them nothing",
+      "source": "/home/alfaisal-x-nx/raptor-models/yolo26s-pose-384x640.engine",
+      "licence": "AGPL-3.0 (Ultralytics YOLO26); COCO weights",
+      "path": "/home/alfaisal-x-nx/raptor-deploy/pose_bench/yolo26s-pose-384x640.engine",
+      "bytes": 24685682,
+      "sha256_16": "6d1d4ebceeb50ebd",
+      "measured": {
+        "p95_ms": 11.836,
+        "mean_ms": 9.81,
+        "fps": 64.09,
+        "board_power_mean_w": 10.77,
+        "measured_at_power_mode": "25W",
+        "imgsz": [
+          384,
+          640
+        ]
+      },
+      "verify": {
+        "ok": true,
+        "imgsz": [
+          384,
+          640
+        ]
       },
       "status": "ready"
     },

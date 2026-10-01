@@ -74,6 +74,17 @@ SELECTION = {
         "match": {"model": "yolo26s-pose-960", "backend": "engine"},
         "verify": "ultralytics",
     },
+    "pose_bench": {
+        "artifact": "yolo26s-pose-384x640.engine",
+        "role": "bench demo - pose on the whole 16:9 webcam frame, for people near the camera",
+        "why": "the same YOLO26s-pose weights as tier 2 in a 384x640 engine that fits a 16:9 frame: "
+               "17.1 ms per 1080p frame including the tracker, against 35.4 ms for the 960 engine "
+               "(live bench, 2026-09-29), so the demo reaches the camera's 30 fps (60 at 720p). "
+               "People near a desk camera are large, so the lower resolution costs them nothing",
+        "licence": "AGPL-3.0 (Ultralytics YOLO26); COCO weights",
+        "match": {"model": "yolo26s-pose-384x640", "backend": "engine"},
+        "verify": "ultralytics",
+    },
     "vlm": {
         "artifact": "Qwen3-VL-2B-Instruct",
         "role": "tier 3 - event-triggered scene description",
@@ -187,16 +198,30 @@ def perf_summary(row: dict | None) -> dict | None:
     return out
 
 
-def verify_detector(path: Path, imgsz: int) -> dict:
-    """Load the engine and run one inference — proves it is usable on this board."""
+def engine_imgsz(path: Path):
+    """Input size [h, w] from an Ultralytics .engine's metadata header, or None."""
+    try:
+        with path.open("rb") as fh:
+            n = int.from_bytes(fh.read(4), "little")
+            s = json.loads(fh.read(n).decode("utf-8")).get("imgsz")
+        return [int(s[0]), int(s[1])] if isinstance(s, (list, tuple)) else [int(s), int(s)]
+    except (OSError, ValueError, UnicodeDecodeError, TypeError, IndexError):
+        return None
+
+
+def verify_detector(path: Path, imgsz) -> dict:
+    """Load the engine and run one 1080p frame — proves it is usable on this board.
+
+    `imgsz` is an int or [h, w]; a rectangular engine only accepts its own shape.
+    """
     try:
         import numpy as np
         from ultralytics import YOLO
 
         model = YOLO(str(path))
-        frame = np.zeros((imgsz, imgsz, 3), dtype=np.uint8)
+        frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
         model.predict(frame, imgsz=imgsz, verbose=False)
-        return {"ok": True}
+        return {"ok": True, "imgsz": imgsz}
     except Exception as exc:  # noqa: BLE001 - the failure is the result
         return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
@@ -319,7 +344,8 @@ def main() -> int:
             elif kind == "rtdetr":
                 entry["verify"] = verify_rtdetr(src)
             else:
-                imgsz = (entry["measured"] or {}).get("imgsz") or 960
+                imgsz = (engine_imgsz(src) if src.suffix == ".engine" else None) \
+                    or (entry["measured"] or {}).get("imgsz") or 960
                 entry["verify"] = verify_detector(src, imgsz)
             state = "OK" if entry["verify"].get("ok") else "FAILED"
             print(f"  {slot:14s} {state:8s} {name}")
