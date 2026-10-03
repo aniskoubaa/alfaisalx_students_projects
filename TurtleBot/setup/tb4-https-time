@@ -1,0 +1,23 @@
+#!/bin/bash
+# The university Wi-Fi blocks NTP, so set the clock from the Date header of an HTTPS reply instead.
+# curl -k is needed because a wrong clock makes every certificate look invalid; only the time is used.
+# Retries for up to 90 s, because at boot the Wi-Fi may still be connecting.
+end=$((SECONDS + 90))
+while [ $SECONDS -lt $end ]; do
+  for url in https://www.google.com https://github.com https://packages.ros.org; do
+    d=$(curl -skI -m 8 "$url" | awk -F': ' 'tolower($1)=="date"{print $2}' | tr -d '\r')
+    [ -z "$d" ] && continue
+    remote=$(date -u -d "$d" +%s 2>/dev/null) || continue
+    now=$(date -u +%s)
+    diff=$(( remote > now ? remote - now : now - remote ))
+    if [ "$diff" -gt 30 ]; then
+      date -u -s "@$remote" >/dev/null && echo "Clock corrected by ${diff}s using $url: $(date -u)"
+    else
+      echo "Clock already correct (off by ${diff}s)"
+    fi
+    exit 0
+  done
+  sleep 5
+done
+echo "Could not read the time from any HTTPS server"
+exit 1
