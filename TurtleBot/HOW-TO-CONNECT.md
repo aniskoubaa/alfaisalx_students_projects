@@ -1,53 +1,321 @@
 # Connecting to the TurtleBot 4
 
-The robot (TurtleBot 4 Standard, Ubuntu 24.04, ROS 2 Jazzy) joins the university **Students** Wi-Fi by itself. Your laptop reaches it by name, `turtlebot4.local`, as long as the laptop is on Students too.
+This guide shows how to reach the lab's TurtleBot 4 from your own computer (Windows, macOS or Linux), log in, write and run code on it, and turn it off safely. It is written for any lab member, including people who have not used SSH or ROS 2 before. Every command works from a fresh computer; nothing depends on a particular laptop. Facts that can change are dated (most were checked on 2026-10-03).
 
-## Everyday use
+For a beginner's overview of the robot's hardware and ROS 2, read the [TurtleBot 4 field guide](turtlebot4-field-guide.html). For what has been changed on the robot, and how to verify or undo it, see [MAINTENANCE.md](MAINTENANCE.md).
 
-1. **Turn the robot on:** put it on its charging dock. Wait about 2 minutes. The robot's screen shows its address; on the university Wi-Fi it starts with `10.87.`.
-2. **On your laptop (connected to Students), double-click a Desktop shortcut:**
-   - **TurtleBot - VS Code**: opens the robot's `~/robot_code` folder. Edit files and press Ctrl+` for a terminal that runs on the robot.
-   - **TurtleBot - Terminal**: a plain terminal on the robot.
+**Contents**
 
-No password is needed. The laptop logs in with an SSH key.
+1. [At a glance](#at-a-glance)
+2. [Before you start](#before-you-start)
+3. [Step 1: Turn the robot on](#step-1-turn-the-robot-on)
+4. [Step 2: Find out which network the robot is on, and its address](#step-2-find-out-which-network-the-robot-is-on-and-its-address)
+5. [Step 3: Connect your computer to the same network](#step-3-connect-your-computer-to-the-same-network)
+6. [Step 4: Open a terminal and connect](#step-4-open-a-terminal-and-connect)
+7. [Recommended: log in with a key instead of a password](#recommended-log-in-with-a-key-instead-of-a-password)
+8. [Write and run code](#write-and-run-code)
+9. [Turning the robot off](#turning-the-robot-off)
+10. [Troubleshooting](#troubleshooting)
+11. [Known issues](#known-issues)
+12. [Developer quick reference](#developer-quick-reference)
+13. [Optional: save a shortcut in your SSH config](#optional-save-a-shortcut-in-your-ssh-config)
+14. [Remote desktop](#remote-desktop)
+15. [Admin tasks](#admin-tasks)
+16. [Related documents](#related-documents)
 
-## Running code
+## At a glance
 
-In a robot terminal (VS Code or the Terminal shortcut):
+| Item | Value |
+|---|---|
+| Robot | TurtleBot 4 **Standard** (OLED display and buttons on top): a Raspberry Pi 4 on top of an iRobot Create 3 base |
+| Software | TurtleBot 4 image 2.0.2, Ubuntu 24.04.1 Server (no desktop), ROS 2 Jazzy |
+| ROS 2 middleware | Fast DDS, `ROS_DOMAIN_ID` 0 |
+| Login | User `ubuntu`, hostname `turtlebot4` |
+| Normal network | University Wi-Fi `Students`. Robot address from DHCP, shown on the display (starts with `10.87.`). Also reachable as `turtlebot4.local`. |
+| Fallback network | The robot's own Wi-Fi `Turtlebot4` (5 GHz). Robot address is always `10.42.0.1`. No internet. |
+| Code folder on the robot | `~/robot_code` (holds copies of the programs in [`examples/`](examples/)) |
+| Official manual | https://turtlebot.github.io/turtlebot4-user-manual/ |
+
+## Before you start
+
+You need:
+
+- A computer with Wi-Fi and an SSH client. Windows 10 and 11, macOS and most Linux systems already include `ssh`.
+- The Wi-Fi password for the network the robot is on:
+  - `Students`: the shared university Wi-Fi password.
+  - `Turtlebot4` (the robot's own Wi-Fi): the factory default from the TurtleBot 4 user manual, unless the lab changed it. Ask the lab maintainer.
+- The password of the robot's `ubuntu` account: the factory default from the TurtleBot 4 user manual, unless the lab changed it. Ask the lab maintainer. After you set up [key login](#recommended-log-in-with-a-key-instead-of-a-password) you only need it for admin tasks.
+- Optional: [VS Code](https://code.visualstudio.com/) with Microsoft's "Remote - SSH" extension, for editing code on the robot.
+- Before running anything that moves the robot: about 1 m of clear floor around the dock.
+
+Passwords are never written in this repository. Do not add any.
+
+## Step 1: Turn the robot on
+
+1. Place the robot on its charging dock. It powers on by itself.
+2. Wait about 2 minutes. When the robot is ready it plays a chime and its address appears on the display.
+
+If nothing appears after a few minutes, see [Troubleshooting](#troubleshooting).
+
+## Step 2: Find out which network the robot is on, and its address
+
+The robot has two network modes. It uses the university `Students` Wi-Fi when that network is in range (NetworkManager profile priority 10) and falls back to its own access point (priority 0) otherwise. The address on the display tells you which mode is active.
+
+| | University Wi-Fi (normal) | Robot's own Wi-Fi (fallback) |
+|---|---|---|
+| Display shows | `10.87.x.x` | `10.42.0.1` |
+| Network (SSID) your computer must join | `Students` (WPA2-Personal, one shared password) | `Turtlebot4` (5 GHz) |
+| Robot address | Assigned by DHCP and can change. It was `10.87.10.205` (subnet `10.87.0.0/18`) on 2026-10-03. | Always `10.42.0.1` |
+| Your computer's address | From the university network | `10.42.0.x`, given by the robot |
+| Internet on your computer | Yes | No (see [Step 3](#step-3-connect-your-computer-to-the-same-network) for workarounds) |
+| Internet on the robot | HTTPS only (time servers and ping are blocked) | None |
+
+Ways to find the robot's address in university mode (most useful first):
+
+1. **Read the robot's display.** It always shows the current address.
+2. **Use the name `turtlebot4.local`** instead of an address. This uses mDNS (the robot runs avahi) and works out of the box on Windows 10 and later, macOS and most Linux systems. It also works on the robot's own Wi-Fi. As of 2026-10-03 avahi on the robot is limited to `wlan0`, so the name returns only the Wi-Fi address.
+3. **From a computer with ROS 2 Jazzy on the same network** (Fast DDS, `ROS_DOMAIN_ID` 0):
+
+   ```bash
+   ros2 topic echo --once /ip
+   ```
+
+   Running ROS 2 on a laptop against the robot over campus Wi-Fi had not been tested as of 2026-10-03, so treat this method as unverified.
+4. **If you already have a shell on the robot:**
+
+   ```bash
+   hostname -I
+   ```
+
+Other campus networks (`AU-Students`, WPA2-Enterprise, and `AU-Students-WIFI`, open with a login page) are not configured on the robot. Whether a computer on those networks can reach the robot has not been tested, so use `Students`.
+
+## Step 3: Connect your computer to the same network
+
+### If the robot is on the university Wi-Fi (`10.87.x.x`)
+
+Join `Students` on your computer as you normally would. Nothing else is needed: devices on `Students` can reach each other.
+
+### If the robot is on its own Wi-Fi (`10.42.0.1`)
+
+1. Join the Wi-Fi network `Turtlebot4` and type its password.
+2. On Windows, a box may ask for an 8-digit PIN from the router label. That is a WPS screen, not the robot's password. Click **Connect using a security key instead** and type the password.
+3. Your computer gets a `10.42.0.x` address. This network has no internet.
+4. With a single Wi-Fi card, your computer loses internet while it is on `Turtlebot4`. To keep internet, give your computer a second connection: a second (USB) Wi-Fi adapter, wired Ethernet, or USB tethering from a phone. Join `Turtlebot4` on one connection and keep the other for internet.
+5. When you finish, reconnect to your normal network.
+
+## Step 4: Open a terminal and connect
+
+### Open a terminal
+
+| System | How to open a terminal |
+|---|---|
+| Windows 10 or 11 | Open the Start menu, type `PowerShell` (or `Terminal` on Windows 11) and press Enter. If you later see "ssh is not recognized", add **OpenSSH Client** under **Optional features** in Windows Settings. |
+| macOS | Press Cmd+Space, type `Terminal` and press Enter. |
+| Linux | Press Ctrl+Alt+T (Ubuntu), or open **Terminal** from the applications menu. |
+
+### Connect
+
+The command is the same on all three systems. Use the name:
+
+```bash
+ssh ubuntu@turtlebot4.local
+```
+
+Or use the address from the display. On the robot's own Wi-Fi:
+
+```bash
+ssh ubuntu@10.42.0.1
+```
+
+On the university Wi-Fi, replace the example address with the one on the display:
+
+```bash
+ssh ubuntu@10.87.10.205
+```
+
+### What you will see
+
+1. **The first time** you connect with a given name or address, SSH asks whether to trust the robot:
+
+   ```text
+   The authenticity of host 'turtlebot4.local (10.87.10.205)' can't be established.
+   ED25519 key fingerprint is SHA256:...
+   Are you sure you want to continue connecting (yes/no/[fingerprint])?
+   ```
+
+   Type `yes` and press Enter.
+2. **The password prompt** (`ubuntu@turtlebot4.local's password:`). Type the `ubuntu` password and press Enter. Nothing appears on screen while you type; that is normal.
+3. **The robot's prompt**, `ubuntu@turtlebot4:~$`. Every command you type now runs on the robot. ROS 2 is loaded automatically in the robot's interactive shells, so `ros2` commands work straight away. A quick check (ROS 2 command-line calls take 30 to 60 s on the Pi):
+
+   ```bash
+   ros2 topic list
+   ```
+
+### Log out
+
+```bash
+exit
+```
+
+(Ctrl+D does the same.) Programs you started normally in that session stop when you log out or when the connection drops. For long or moving tasks, [run them detached](#moving-the-robot-run-motion-scripts-detached).
+
+## Recommended: log in with a key instead of a password
+
+An SSH key lets your computer log in without the password, which also makes VS Code much smoother. Do this once per computer. You need the `ubuntu` password one last time, in step 2.
+
+### 1. Create a key just for the robot
+
+At the passphrase prompt, press Enter twice for no passphrase, or set one (you will then type the passphrase instead of the robot password).
+
+Linux and macOS:
+
+```bash
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+ssh-keygen -t ed25519 -f ~/.ssh/turtlebot4_ed25519
+```
+
+Windows (PowerShell):
+
+```powershell
+mkdir -Force $env:USERPROFILE\.ssh
+ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\turtlebot4_ed25519
+```
+
+On Windows, write `$env:USERPROFILE` rather than `~` in `ssh-keygen` and `type` commands: Windows PowerShell does not expand `~` for them.
+
+### 2. Install the public key on the robot
+
+Linux and macOS:
+
+```bash
+ssh-copy-id -i ~/.ssh/turtlebot4_ed25519.pub ubuntu@turtlebot4.local
+```
+
+Windows has no `ssh-copy-id`. Instead:
+
+1. Print your public key:
+
+   ```powershell
+   type $env:USERPROFILE\.ssh\turtlebot4_ed25519.pub
+   ```
+
+   It is one line that starts with `ssh-ed25519`. Select the whole line and copy it.
+2. Run this command, replacing `PASTE-KEY-HERE` with the line you copied (keep the single quotes around it):
+
+   ```powershell
+   ssh ubuntu@turtlebot4.local "mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo 'PASTE-KEY-HERE' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+   ```
+
+   Pasting the key avoids a Windows line-ending problem that piping the file into `ssh` would cause.
+
+If `turtlebot4.local` does not work, use the address from the display in these commands.
+
+### 3. Log in with the key
+
+Linux and macOS:
+
+```bash
+ssh -i ~/.ssh/turtlebot4_ed25519 ubuntu@turtlebot4.local
+```
+
+Windows (PowerShell):
+
+```powershell
+ssh -i $env:USERPROFILE\.ssh\turtlebot4_ed25519 ubuntu@turtlebot4.local
+```
+
+If no password is asked for, the key works. To avoid typing `-i ...` every time, [save a shortcut in your SSH config](#optional-save-a-shortcut-in-your-ssh-config).
+
+Keep the private key file (the one without `.pub`) on your own computer only, and never commit it to a repository. To remove your access later, delete your key's line from `~/.ssh/authorized_keys` on the robot.
+
+## Write and run code
+
+The `ubuntu` account is shared by everyone who uses the robot. Keep your own work in a clearly named folder and do not change other people's files.
+
+### Option A: VS Code Remote-SSH (recommended for editing)
+
+1. Install VS Code and Microsoft's **Remote - SSH** extension.
+2. Add these recommended user settings (press F1, choose **Preferences: Open User Settings (JSON)**, and add the two lines inside the outer braces, with a comma after the entry before them if there is one):
+
+   ```json
+   "remote.SSH.localServerDownload": "always",
+   "remote.SSH.connectTimeout": 30
+   ```
+
+   The first makes your computer download the VS Code server and copy it to the robot, so the robot does not need internet access itself. The second gives slow campus Wi-Fi more time.
+3. Press F1 (Cmd+Shift+P on macOS), choose **Remote-SSH: Connect to Host...** and type:
+
+   ```text
+   ubuntu@turtlebot4.local
+   ```
+
+   (or `ubuntu@` followed by the address on the display). If you saved the [SSH config shortcut](#optional-save-a-shortcut-in-your-ssh-config), pick `turtlebot4` from the list or from the Remote Explorer side bar instead.
+4. If VS Code asks for the platform of the remote host, choose **Linux**. Without a key, it asks for the `ubuntu` password (sometimes more than once).
+5. The first connection downloads about 200 MB and installs the VS Code server on the robot (about 600 MB once unpacked, in `~/.vscode-server`). On campus Wi-Fi this can take about 10 minutes. Later connections take seconds.
+6. Choose **File > Open Folder** and open `/home/ubuntu/robot_code`. **Terminal > New Terminal** (Ctrl+`) opens a terminal that runs on the robot.
+
+If the robot runs short of disk space, `~/.vscode-server` is safe to delete; VS Code installs it again on the next connection.
+
+### Option B: write code on your computer and copy it
+
+Copy one file into `~/robot_code` on the robot:
+
+```bash
+scp myfile.py ubuntu@turtlebot4.local:robot_code/
+```
+
+Copy a whole folder:
+
+```bash
+scp -r myproject ubuntu@turtlebot4.local:robot_code/
+```
+
+Add `-i` and your key path as with `ssh`, or use the [SSH config shortcut](#optional-save-a-shortcut-in-your-ssh-config). Copying from your computer always works, even while the robot's clock is wrong.
+
+### Option C: Git on the robot
+
+On the university Wi-Fi the robot can reach GitHub over HTTPS, so `git clone https://github.com/...` can work. However, as of 2026-10-03 the robot's clock is often wrong (see [Known issues](#known-issues)), and then `git`, `pip` and `apt` fail with certificate errors such as "not yet valid". If that happens, use Option A or B. On the robot's own Wi-Fi there is no internet at all.
+
+### Run the examples
+
+Copies of the programs in [`examples/`](examples/) are in `~/robot_code` on the robot. In a terminal on the robot:
 
 ```bash
 cd ~/robot_code
 python3 hello_robot.py
 ```
 
+ROS programs are slow to start on the Raspberry Pi: allow 10 to 20 s before deciding a program does nothing, and 30 to 60 s for `ros2` command-line calls.
+
 | Example | What it does | When it works |
 |---|---|---|
-| `hello_robot.py` | Shows a message on the robot's screen and turns the light ring green for 5 s | Any time, including on the dock |
-| `scan_test.py` | Prints the distance to the nearest object from the lidar | Only off the dock (the robot switches the lidar off while docked to save power). Needs the lidar, see [Known issues](#known-issues). |
-| `clearance_check.py` | Takes one lidar scan and prints the nearest object within ±30° of straight ahead. Exits with 0 if the way is clear, 1 if something is closer than the limit, 2 if no scan arrived. Run: `python3 clearance_check.py 0.6` (limit in metres, 0.6 if left out) | Off the dock. Needs the lidar. Does not move the robot. |
-| `drive_test.py` | Drives forward 20 cm at 0.1 m/s, then stops | Off the dock, with about 1 m clear in front. **It moves the robot.** |
-| `motion_test.sh` | Full movement test: undocks, checks the lidar with `clearance_check.py`, drives forward 20 cm only if the way is clear, spins 360° with the robot's built-in `rotate_angle` action, then docks again | Start on the dock, with space around it. **It moves the robot.** Run it detached (see below). |
+| `hello_robot.py` | Shows a text message on the robot's display and turns the light ring green for 5 s. Edit `MESSAGE` at the top to change the text. | Any time, including on the dock. Does not move the robot. |
+| `scan_test.py` | Prints the distance to the nearest object the lidar sees, until you press Ctrl+C. | Only off the dock: the robot powers the lidar down while docked. Needs a working lidar (see [Known issues](#known-issues)). |
+| `clearance_check.py` | Takes one lidar scan and prints the nearest object within ±30° of straight ahead. Exit code 0 if the way is clear, 1 if something is closer than the limit, 2 if no scan arrived. Run as `python3 clearance_check.py 0.6` (limit in metres; 0.6 if left out). | Off the dock, with a working lidar. Does not move the robot. |
+| `drive_test.py` | Drives forward 20 cm at 0.1 m/s, then stops. | Off the dock, with about 1 m clear in front. **It moves the robot.** |
+| `motion_test.sh` | Full movement test: undocks, checks the way ahead with `clearance_check.py`, drives forward 20 cm only if it is clear, spins 360° with the built-in `rotate_angle` action, then docks again. | Start on the dock, with space around it. **It moves the robot.** Run it detached (below). |
 
-Test of `motion_test.sh` on 2026-10-03: undock, spin and dock succeeded (the dock after a re-send, see below). The forward drive was skipped because there was no lidar data.
+Status on 2026-10-03: `motion_test.sh` undocked, spun and docked successfully (docking needed a re-send after the SSH session dropped). The forward drive was skipped because there was no lidar data.
 
-Notes that save time:
-- `/cmd_vel` on this robot takes `geometry_msgs/msg/TwistStamped`, not `Twist`.
-- Subscribe to `/scan` with `qos_profile_sensor_data`, or no lidar messages arrive.
-- ROS is slow to start on the robot's Raspberry Pi; give a program 10 to 20 seconds before deciding it does nothing.
-- Copies of the examples live in this repo under `TurtleBot/examples/`.
+When you write your own scripts: ROS is loaded automatically only in interactive shells. A script started in another way (for example `ssh ubuntu@turtlebot4.local "bash myscript.sh"`) should begin with `source /etc/turtlebot4/setup.bash`, as `motion_test.sh` does. The [Developer quick reference](#developer-quick-reference) lists the topics and actions.
 
-### Moving the robot: run scripts detached
+### Moving the robot: run motion scripts detached
 
-Long robot moves can drop your SSH session. While it moves, the robot can briefly leave the Wi-Fi as it switches between campus access points. When SSH drops, a running `ros2 action send_goal` is cancelled, so the move is not finished. This happened on 2026-10-03 just as docking started.
+While the robot moves, it can briefly drop off the campus Wi-Fi as it switches between access points. That ends your SSH session, and a running `ros2 action send_goal` is cancelled, so the move is left unfinished. (This happened on 2026-10-03 just as docking started.)
 
 So run motion scripts detached on the robot. They keep going if SSH drops:
 
 ```bash
 setsid nohup bash ~/robot_code/motion_test.sh > ~/robot_code/motion.log 2>&1 &
+```
+
+Watch the progress:
+
+```bash
 tail -f ~/robot_code/motion.log
 ```
 
-Press Ctrl+C to stop watching the log; the script keeps running. Running it inside `tmux` is another option.
+Press Ctrl+C to stop watching; the script keeps running. Running the script inside `tmux` is another option.
 
 If the robot is left off its dock, send it home the same way:
 
@@ -55,114 +323,157 @@ If the robot is left off its dock, send it home the same way:
 setsid nohup ros2 action send_goal /dock irobot_create_msgs/action/Dock "{}" > ~/robot_code/dock.log 2>&1 &
 ```
 
-## All the ways to connect
+## Turning the robot off
 
-| Method | Best for | How |
+Leaving the robot on its dock is fine: it is designed to sit there charging.
+
+To power it off completely (the procedure used successfully on 2026-10-03):
+
+1. In an SSH session on the robot, shut down the Raspberry Pi. It asks for the `ubuntu` password, and your SSH session ends.
+
+   ```bash
+   sudo poweroff
+   ```
+
+2. Wait about 20 s.
+3. Lift the robot off the dock.
+4. Press and hold the base's power button (the centre of the light ring) for about 7 to 10 s, until the light ring turns off.
+
+Always shut down the Pi before cutting power, so its SD card is not damaged. The official procedure is in the "powering off" steps of the [TurtleBot 4 user manual](https://turtlebot.github.io/turtlebot4-user-manual/). To turn the robot on again, place it on the dock ([Step 1](#step-1-turn-the-robot-on)).
+
+## Troubleshooting
+
+| Symptom | Likely cause | What to do |
 |---|---|---|
-| **VS Code Remote-SSH** (recommended) | Writing and running code | Desktop shortcut, or in VS Code: Remote Explorer > `turtlebot4` |
-| **SSH terminal** | Quick commands | `ssh turtlebot4` |
-| **Copy a file** | Sending code written on the laptop | `scp myfile.py turtlebot4:robot_code/` |
-| **The robot's own Wi-Fi** (fallback) | When Students is not available | Join `Turtlebot4` on the USB Wi-Fi adapter (Wi-Fi 2), then `ssh turtlebot4-ap` |
-| **Git** | Pulling a project onto the robot | `git clone <url>` on the robot (HTTPS to GitHub works, and the clock is now set automatically) |
-| **Remote desktop (RDP)** | Not set up | The robot runs Ubuntu Server with no desktop. Adding one would use memory and CPU the robot needs (the camera alone uses about one CPU core). VS Code gives a full editor without it. For seeing sensor data later, run RViz or Foxglove on the laptop instead. |
+| Display stays blank, or no chime after a few minutes | The robot is off or still starting | Make sure it sits properly on the dock, then wait 2 minutes. |
+| Display shows `10.42.0.1` | `Students` was not available, so the robot fell back to its own Wi-Fi | Join `Turtlebot4` ([Step 3](#step-3-connect-your-computer-to-the-same-network)) and run `ssh ubuntu@10.42.0.1`. |
+| `Could not resolve hostname turtlebot4.local`, or the name hangs | mDNS is not working on your computer or network, or your computer is on a different network | Connect by the address on the display instead, for example `ssh ubuntu@10.87.10.205`. Check that your computer is on `Students`. |
+| `Connection timed out` or `No route to host` | Your computer and the robot are on different networks, or the robot is still starting | Check both are on the same network (other campus networks were not tested). Put the robot back on the dock and wait 2 minutes. |
+| Windows asks for an 8-digit PIN when joining `Turtlebot4` | That is the WPS screen | Click **Connect using a security key instead** and type the Wi-Fi password. |
+| No internet while joined to `Turtlebot4` | The robot's Wi-Fi has no internet | Use a second connection for internet (USB Wi-Fi adapter, Ethernet or phone tethering). |
+| After leaving `Turtlebot4`, downloads fail with `ENOTFOUND` | Your computer still uses the robot (`10.42.0.1`) as its DNS server | Make sure the adapter shows Disconnected from `Turtlebot4`, then try again. |
+| `Permission denied` | Wrong password, or your key is not installed | Retype the password (nothing shows while typing). Repeat the [key setup](#recommended-log-in-with-a-key-instead-of-a-password). Ask the lab maintainer if the password was changed. |
+| `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!` | The robot was reinstalled, or that address now belongs to another device | Confirm with the lab maintainer, then remove the old entry with `ssh-keygen -R turtlebot4.local` (or the address) and connect again. |
+| The name reaches a different robot | Another TurtleBot 4 with the default hostname is on the same network | Connect by the address on this robot's display. |
+| VS Code times out on the first connection | The first connection downloads about 200 MB over slow Wi-Fi | Add the [recommended settings](#option-a-vs-code-remote-ssh-recommended-for-editing) and try again; allow about 10 minutes. |
+| SSH drops while the robot moves; the robot stops mid-task | Wi-Fi roaming between campus access points | Run motion scripts [detached](#moving-the-robot-run-motion-scripts-detached). Send the dock command again if needed. |
+| A ROS program prints nothing for a while | ROS starts slowly on the Pi | Wait 10 to 20 s (30 to 60 s for `ros2` command-line calls). |
+| `hello_robot.py` says it could not find the robot screen or light ring | The robot software has not finished starting | Wait a minute and run it again. |
+| `scan_test.py` or `clearance_check.py` get no data | The robot is on the dock (lidar powered down), or the lidar is not detected | Undock first. See [Known issues](#known-issues). |
+| `/dock_status` or `/battery_state` stop arriving; dock and undock commands time out | The Create 3 base application is stuck | [Restart the base application](#restart-the-create-3-base-application). |
+| `git`, `pip` or `apt` fail with certificate or "not yet valid" errors | The robot's clock is wrong | Copy code from your computer (VS Code or `scp`). See [Known issues](#known-issues). |
 
-## If it does not connect
+### Restart the Create 3 base application
 
-1. **Is the laptop on Students?** Other university networks were not tested.
-2. **Look at the robot's screen.**
-   - It shows `10.87.x.x`: the name is not resolving. Connect by address instead:
-     `ssh -i ~/.ssh/turtlebot4_ed25519 ubuntu@10.87.x.x`
-   - It shows `10.42.0.1`: Students was not available, so the robot fell back to its own Wi-Fi. Join `Turtlebot4` on Wi-Fi 2 and use `ssh turtlebot4-ap`.
-3. **Still nothing:** put it back on the dock and wait 2 minutes for it to finish starting.
-
-## If the robot stops reporting dock or battery
-
-Signs: `/dock_status` or `/battery_state` stop arriving, and undock or dock commands time out. Check from a robot terminal:
+Check whether the base (the round part with the wheels) is answering. In a terminal on the robot:
 
 ```bash
 timeout 60 ros2 topic echo --once /dock_status
 ```
 
-If nothing prints, the Create 3 base (the round part with the wheels) is probably stuck. Restart the base application first, before trying anything else:
+If nothing prints, restart the base application first, before trying anything else:
 
-- The base has its own web page at `http://192.168.186.2` (port 80; port 8080 does not answer). It is reachable from the robot only, not from the laptop.
-- Its **Restart Application** button restarts the base software. The robot chimes.
-- From a robot terminal, the same request is:
+```bash
+curl -X POST http://192.168.186.2/api/restart-app
+```
 
-  ```bash
-  curl -X POST http://192.168.186.2/api/restart-app
-  ```
+Wait for the chime (about a minute), then run the check again.
 
-Then run the check above again. On 2026-10-03 this fixed a stuck base. Restarting `turtlebot4.service` alone had not.
+- This is the same as the **Restart Application** button on the base's own web page, `http://192.168.186.2` (port 80; port 8080 does not answer). The page is reachable only from the robot, not from your computer.
+- Background: the base only talks to ROS when the Pi's clock and the base's clock agree. Restarting the base application makes it re-sync its clock from the Pi. Details are in [MAINTENANCE.md](MAINTENANCE.md).
+- On 2026-10-03 this fixed a stuck base. Restarting `turtlebot4.service` alone had not.
 
 ## Known issues
 
-**Lidar not detected (since the reboot on 2026-10-03).** The lidar spins and its cable looks seated, but the Raspberry Pi does not see it on USB:
-- `/dev/RPLIDAR` does not exist.
-- `lsusb` shows no Silicon Labs (CP210x) device, docked or undocked.
-- The `rplidar_ros` log says "cannot bind to the specified serial port '/dev/RPLIDAR'".
+As of 2026-10-03 (current status and full details in [MAINTENANCE.md](MAINTENANCE.md)):
 
-It worked before the reboot. Until it is fixed, `scan_test.py` and `clearance_check.py` get no data, and `motion_test.sh` skips its forward drive. A full power cycle (Pi shut down, base powered off and on) did not bring it back. Next: unplug and replug both ends of the lidar's USB cable, then restart the robot software (`sudo ./undo-clock` does this). If it is still missing, try another USB port or cable.
+- **Lidar not detected on USB** since the reboot on 2026-10-03. The lidar spins, but `/dev/RPLIDAR` does not exist and `lsusb` shows no Silicon Labs (CP210x) device. Until it is fixed, `scan_test.py` and `clearance_check.py` get no data and `motion_test.sh` skips its forward drive. The fix needs a physical check of the lidar's USB cable by the maintainer.
+- **The robot's clock can be wrong.** The campus network blocks internet time servers (NTP), so the robot has no internet time source (on 2026-10-03 it said October 2024). Until the clock is right, `git`, `pip` and `apt` can fail with certificate errors; copy code from your computer instead. A clock fix installed on 2026-10-03 caused the Create 3 base to stop talking to ROS, and its removal is planned. Do not change the robot's clock by a large amount while ROS is running.
 
-**The clock fix caused the base outage, and is being removed.** The clock fix was an extra change, made because the university blocks NTP and a wrong clock can break HTTPS and apt. Observed pattern: the Create 3 base only talks to ROS when the Pi and the base agree on the date.
-- After the first reboot the fix jumped the Pi's clock 2 years while ROS ran; the base went silent. Restarting the base application (it re-syncs its clock from the Pi) fixed it.
-- After the power cycle the fix could not reach any HTTPS server in its first 2 minutes, so the Pi stayed in 2024 while the base had kept 2026, and the base went silent again.
+## Developer quick reference
 
-Decision: remove the clock fix and go back to the factory clock setup. `sudo ./undo-clock` removes the fix and the "start ROS after the clock" rule and restarts the robot software; then restart the base application (see above) so the base re-syncs to the Pi. Cost: until the clock is right, `git clone`, `pip` and `apt` on the robot can fail with certificate or date errors; copy code from the laptop with VS Code or `scp` instead. Rule: never step the clock by a large amount while ROS is running.
+Middleware: Fast DDS, `ROS_DOMAIN_ID` 0. Check any topic's type on the robot with `ros2 topic info <topic>`.
 
-## Turning it off
+| Topic | Type | Notes |
+|---|---|---|
+| `/cmd_vel` | `geometry_msgs/msg/TwistStamped` | Not `Twist`. An unstamped variant, `/cmd_vel_unstamped`, also exists. See `drive_test.py`. |
+| `/scan` | `sensor_msgs/msg/LaserScan` | Subscribe with `qos_profile_sensor_data`, or no messages arrive. No data while docked. |
+| `/odom` | `nav_msgs/msg/Odometry` | Wheel odometry |
+| `/battery_state` | `sensor_msgs/msg/BatteryState` | |
+| `/dock_status` | `irobot_create_msgs/msg/DockStatus` | Field `is_docked` |
+| `/ip` | `std_msgs/msg/String` | The robot's current IP address |
+| `/hmi/display/message` | `std_msgs/msg/String` | Shows text on the display. See `hello_robot.py`. |
+| `/cmd_lightring` | `irobot_create_msgs/msg/LightringLeds` | Six LEDs; set `override_system` to take control. See `hello_robot.py`. |
 
-Leaving it on the dock is fine; it is designed to sit there charging. To power it off fully, follow the "powering off" steps in the official TurtleBot 4 user manual (https://turtlebot.github.io/turtlebot4-user-manual/). Shut down the Raspberry Pi before cutting power so the SD card is not damaged.
+| Action | Type | Example goal |
+|---|---|---|
+| `/undock` | `irobot_create_msgs/action/Undock` | `"{}"` |
+| `/dock` | `irobot_create_msgs/action/Dock` | `"{}"` |
+| `/rotate_angle` | `irobot_create_msgs/action/RotateAngle` | `"{angle: 6.283, max_rotation_speed: 0.6}"` (one full turn) |
 
-## What was set up (for whoever maintains this)
+The other Create 3 actions are listed by `ros2 action list`. Useful commands on the robot:
 
-- **Wi-Fi:** a NetworkManager profile `Students` (autoconnect, priority 10). The original access point profile `netplan-wlan0-Turtlebot4` (priority 0) stays as the fallback, so the robot uses Students when it is in range and its own Wi-Fi otherwise. It came back on Students by itself after a reboot.
-- **Clock:** the university blocks NTP, so `tb4-https-time` reads the time from an HTTPS reply shortly after boot and every 15 minutes. ROS starts only after it has run. It retries for up to 90 s, because at boot the Wi-Fi may still be connecting.
-- **Name:** avahi is limited to `wlan0`, so `turtlebot4.local` only gives the Wi-Fi address. Before, it sometimes gave `192.168.186.3`, the robot's internal link to the base, which the laptop cannot reach.
-- **Create 3 base web page:** `http://192.168.186.2` (port 80, not 8080), reachable from the robot only. Its "Restart Application" button fixed a stuck base. See [If the robot stops reporting dock or battery](#if-the-robot-stops-reporting-dock-or-battery).
-- **Admin steps** need the robot password typed by a person (`sudo` asks for it, and Wi-Fi changes need it too). The setup scripts are short commands run in the robot terminal, from the home folder (`cd ~` first):
-  - `sudo ./finish-setup` (done): clock fix and avahi change, then a reboot.
-  - `sudo ./fix-ros` (done): makes ROS wait for the clock, then restarts the robot software.
+```bash
+ros2 topic list
+ros2 topic info /cmd_vel
+timeout 60 ros2 topic echo --once /battery_state
+ros2 action list
+ros2 action send_goal /undock irobot_create_msgs/action/Undock "{}"
+ros2 action send_goal /rotate_angle irobot_create_msgs/action/RotateAngle "{angle: 6.283, max_rotation_speed: 0.6}"
+```
 
-  Both are done; you do not need to run them again. Running `finish-setup` again reboots the robot.
+In Python, subscribe to the lidar like this (from `scan_test.py`):
 
-University network facts found during setup:
-- Devices on Students can reach each other (laptop to robot SSH works).
-- HTTPS to the internet works. NTP (time servers) and ping to the internet are blocked.
+```python
+from rclpy.qos import qos_profile_sensor_data
+self.create_subscription(LaserScan, '/scan', self.on_scan, qos_profile_sensor_data)
+```
 
-## Changes made to the robot and laptop, and how to undo them
+## Optional: save a shortcut in your SSH config
 
-Everything below was added on 2026-10-03.
+An SSH config file lets you type `ssh turtlebot4` instead of the full command, and makes the robot appear in VS Code's Remote Explorer. This is a convenience on your own computer; the robot does not need it.
 
-### On the robot
+The file is `~/.ssh/config` on macOS and Linux, and `C:\Users\<your user>\.ssh\config` on Windows (no file extension). The easiest way to open or create it is in VS Code: press F1, choose **Remote-SSH: Open SSH Configuration File...**, and pick the file in your user folder. Add:
 
-| What | Where | Why | How to undo |
-|---|---|---|---|
-| Wi-Fi profile `Students` | NetworkManager, `/etc/NetworkManager/system-connections/Students.nmconnection` (root only) | Joins the university Wi-Fi (priority 10). The robot's own `Turtlebot4` access point is kept as the fallback. | `sudo nmcli connection delete Students`, then reboot. The robot comes back on its own `Turtlebot4` Wi-Fi. |
-| Laptop public key | `~/.ssh/authorized_keys` | Password-free SSH and VS Code from the laptop | Delete the laptop key's line from that file. |
-| Wi-Fi switch scripts | `~/wifi-switch/` | The scripts used for the switch, their log, and the source files of the clock fix (copies in `TurtleBot/setup/`) | Delete the folder. The installed clock fix and the Wi-Fi profile are separate copies and keep working. |
-| Example code | `~/robot_code/` | The folder VS Code opens; holds the examples (copies in `TurtleBot/examples/`) | Delete the folder, after saving anything of yours in it. |
-| Setup shortcuts | `~/finish-setup` and `~/fix-ros` (symlinks to `root-setup.sh` and `fix-ros.sh`) | Short commands for the admin steps | `rm ~/finish-setup ~/fix-ros` (removes only the links) |
-| Clock fix | `/usr/local/sbin/tb4-https-time`, `/etc/systemd/system/tb4-https-time.service` and `/etc/systemd/system/tb4-https-time.timer` | NTP is blocked; this sets the clock from an HTTPS reply after boot and every 15 minutes | `sudo systemctl disable --now tb4-https-time.timer`, delete the three files (and the drop-in below), then `sudo systemctl daemon-reload` |
-| ROS waits for the clock | `/etc/systemd/system/turtlebot4.service.d/10-wait-for-clock.conf` (drop-in) | ROS (`turtlebot4.service`) starts only after the clock is set. A big clock jump while ROS ran broke the base. | Delete it, then `sudo systemctl daemon-reload` |
-| avahi on Wi-Fi only | `/etc/avahi/avahi-daemon.conf` (`allow-interfaces=wlan0`); original saved as `/etc/avahi/avahi-daemon.conf.before-tb4` | `turtlebot4.local` gives only the Wi-Fi address | `sudo cp /etc/avahi/avahi-daemon.conf.before-tb4 /etc/avahi/avahi-daemon.conf`, then `sudo systemctl restart avahi-daemon` |
-| VS Code server | `~/.vscode-server` (about 600 MB) | Installed by VS Code Remote-SSH on the first connect | Safe to delete. VS Code downloads it again on the next connect (about 10 minutes over campus Wi-Fi). |
+```text
+Host turtlebot4
+    HostName turtlebot4.local
+    User ubuntu
+    IdentityFile ~/.ssh/turtlebot4_ed25519
 
-### On the laptop
+Host turtlebot4-ap
+    HostName 10.42.0.1
+    User ubuntu
+    IdentityFile ~/.ssh/turtlebot4_ed25519
+```
 
-| What | Where | Why | How to undo |
-|---|---|---|---|
-| SSH key | `~/.ssh/turtlebot4_ed25519` (and `.pub`) | Logs in to the robot without a password | Delete both files, and remove the key from the robot (see above). |
-| SSH hosts | `~/.ssh/config`: `turtlebot4` (turtlebot4.local) and `turtlebot4-ap` (10.42.0.1) | Short names for `ssh`, `scp` and VS Code | Delete the two `Host` blocks. |
-| VS Code Remote-SSH | The extension, plus user settings `remote.SSH.remotePlatform` (linux), `remote.SSH.localServerDownload` = `always`, `remote.SSH.connectTimeout` = `30` | Edit and run code on the robot from the laptop | Uninstall the extension and remove the three settings from VS Code's `settings.json`. |
-| Windows Wi-Fi profile `Turtlebot4` | On the USB adapter "Wi-Fi 2" | Fallback connection to the robot's own Wi-Fi, while the built-in card stays on Students | `netsh wlan delete profile name="Turtlebot4" interface="Wi-Fi 2"` |
-| Desktop shortcuts | "TurtleBot - VS Code" and "TurtleBot - Terminal" | One double-click to reach the robot | Delete them. |
-| Desktop shortcut | "TurtleBot - one-time setup.cmd" | Meant to launch the one-time robot setup. Not used; the setup was run from the Terminal shortcut instead. | No longer needed. Delete it. |
+`~` works inside this file on Windows too. Leave out the `IdentityFile` lines if you did not create a key. Then:
 
-### Restarts performed
+```bash
+ssh turtlebot4
+```
 
-- One robot reboot, at the end of `finish-setup`, to prove the Wi-Fi survives a reboot (it did).
-- One restart of `turtlebot4.service` (the ROS software only, no reboot), at the end of `fix-ros`.
-- One restart of the Create 3 base application, with its "Restart Application" function. This fixed the stuck base.
+```bash
+scp myfile.py turtlebot4:robot_code/
+```
 
-The full step-by-step log, including what failed, is in `General Tasks/TurtleBot4 - connect to university Wi-Fi.txt`.
+Use `turtlebot4-ap` when you want the fixed address on the robot's own Wi-Fi (`turtlebot4` works there too). If the name does not resolve, change `HostName` to the address on the display.
+
+## Remote desktop
+
+Remote desktop (RDP or VNC) is not set up. The robot runs Ubuntu Server with no desktop, and adding one would take memory and CPU the robot needs (the camera alone already uses about one CPU core). VS Code Remote-SSH gives a full editor without it. For viewing sensor data, the preferred direction is to run RViz or Foxglove on your own computer rather than on the robot. A remote desktop option is evaluated in [ROADMAP.md](ROADMAP.md).
+
+## Admin tasks
+
+Anything that uses `sudo` (shutting down, changing Wi-Fi, installing packages) asks for the `ubuntu` password, which a person must type. Wi-Fi changes over SSH need it too. Configuration changes to the shared robot are recorded in [MAINTENANCE.md](MAINTENANCE.md), together with the admin scripts in [`setup/`](setup/) and how to undo each change. Read it before changing anything, and record your own changes there.
+
+## Related documents
+
+| Document | What it is for |
+|---|---|
+| [README.md](README.md) | Index of this folder |
+| [MAINTENANCE.md](MAINTENANCE.md) | Configuration record: every change made to the robot (with verify and undo steps), the incident report about the clock and the Create 3 base, known issues, the admin scripts, and the original author's laptop-specific setup |
+| [ROADMAP.md](ROADMAP.md) | Plan for the next iterations, including remote desktop |
+| [turtlebot4-field-guide.html](turtlebot4-field-guide.html) | Beginner overview of the TurtleBot 4 hardware and ROS 2 (open it in a browser) |
+| [TurtleBot4 - connect to university Wi-Fi.txt](../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt) | Step-by-step log of the 2026-10-03 setup, including what failed |
+| [TurtleBot 4 user manual](https://turtlebot.github.io/turtlebot4-user-manual/) | Official documentation: setup, specifications, power on and off, tutorials |

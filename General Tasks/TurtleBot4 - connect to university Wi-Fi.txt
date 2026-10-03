@@ -58,6 +58,7 @@ Result:
 - Every change made to the robot and laptop, with how to undo it, is listed in TurtleBot/HOW-TO-CONNECT.md, section "Changes made to the robot and laptop, and how to undo them".
 
 Next steps / plan:
+(Superseded on 2026-10-03: the current task plan is TurtleBot/ROADMAP.md. The original plan below is kept for the record.)
 1. Join "Turtlebot4" on the USB adapter, install the laptop's public key on the robot (one-time, user types the robot password).
 2. Read-only checks on the robot: model (Standard has a screen showing its IP, Lite does not), ROS 2 version, current network config.
 3. Switch the robot from Access Point mode to Client mode on a university network, with a safety net: back up the current network config and start a 10-minute automatic undo, so the robot falls back to its own "Turtlebot4" network if it fails to join.
