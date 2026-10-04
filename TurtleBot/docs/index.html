@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TurtleBot 4 Docs</title>
+<meta name="description" content="Index of the lab TurtleBot 4 documentation: guides, records, illustrated pages and example programs.">
+<style>
+  /* Shared style for TurtleBot/docs pages. Tokens match turtlebot4-field-guide.html. */
+  :root{
+    --bg:#EEF2F4; --panel:#FFFFFF; --panel-alt:#E3EAED; --text:#16232F; --text-dim:#54636F;
+    --border:#C6D2D7; --accent:#0C8C82; --accent-strong:#075F58; --warn:#B85B26; --code-bg:#DDE6E9;
+    --ok:#2E7D32; --bad:#B3261E; --ok-bg:#E3F1E4; --bad-bg:#F8E4E2; --warn-bg:#F7E9DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+      --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+      --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+    --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+    --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.label-font,.eyebrow,th,.chip,.tile .k,figcaption,nav.toc a{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;}
+  code,pre,.mono{font-family:"IBM Plex Mono", Consolas, "Courier New", monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:0.88em; overflow-wrap:anywhere;}
+  pre{background:var(--code-bg); padding:12px 14px; border-radius:4px; overflow-x:auto; font-size:0.84rem; line-height:1.5; margin:0 0 16px;}
+  pre code{background:none; padding:0;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  a{color:var(--accent-strong);}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+
+  .page{display:grid; grid-template-columns:220px minmax(0,1fr); gap:0 44px; max-width:1220px; margin:0 auto; padding:0 28px 80px;}
+  nav.toc{position:sticky; top:0; align-self:start; padding-top:48px; max-height:100vh; overflow-y:auto;}
+  nav.toc .eyebrow{color:var(--text-dim); font-size:0.7rem;}
+  nav.toc ul{list-style:none; margin:0 0 24px; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.toc a{display:block; padding:6px 10px; border-radius:3px; color:var(--text-dim); text-decoration:none; font-size:0.86rem; font-weight:500;}
+  nav.toc a:hover{color:var(--text); background:var(--panel-alt);}
+  main{min-width:0; padding-top:48px;}
+  header.hero{margin-bottom:36px;}
+  .eyebrow{font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 12px;}
+  h1.title{font-size:clamp(2rem,5vw,3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{font-size:1.08rem; color:var(--text-dim); max-width:66ch; margin:0 0 20px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.84rem; color:var(--text-dim);}
+  .meta b{color:var(--text); font-weight:600;}
+
+  section{max-width:860px; padding:40px 0; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none; padding-top:0;}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .section-tag{font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.72rem; color:var(--text-dim); white-space:nowrap;}
+  h2{font-size:1.5rem; font-weight:600;}
+  h3{font-size:1.05rem; font-weight:600; margin:24px 0 8px;}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin:3px 0;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .table-wrap{overflow-x:auto; margin:0 0 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
+  th,td{text-align:left; padding:9px 12px; border-top:1px solid var(--border); vertical-align:top;}
+  thead th{border-top:none; font-size:0.76rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim); background:var(--panel-alt); white-space:nowrap;}
+  tbody th{font-weight:600; color:var(--text-dim); white-space:nowrap;}
+  td.notes{min-width:230px;}
+  td.nowrap{white-space:nowrap;}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  .chip{display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.74rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap;}
+  .chip.ok{color:var(--ok); background:var(--ok-bg);}
+  .chip.bad{color:var(--bad); background:var(--bad-bg);}
+  .chip.warn{color:var(--warn); background:var(--warn-bg);}
+  .chip.info{color:var(--accent-strong); background:var(--panel-alt);}
+  .chip.todo{color:var(--text-dim); background:transparent; border-style:dashed;}
+
+  .note{padding:12px 16px; background:var(--panel-alt); border-left:3px solid var(--warn); border-radius:0 4px 4px 0; font-size:0.92rem; margin:18px 0;}
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .placeholder{border:2px dashed var(--warn); border-radius:6px; padding:14px 16px; margin:16px 0; background:var(--warn-bg);}
+  .placeholder > b:first-child{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; color:var(--warn); text-transform:uppercase; letter-spacing:0.06em; font-size:0.78rem; display:block; margin-bottom:4px;}
+  tr.ph td{color:var(--text-dim); font-style:italic; background:repeating-linear-gradient(135deg, transparent 0 8px, var(--warn-bg) 8px 10px);}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:0 0 16px;}
+  .card{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px; break-inside:avoid;}
+  .card h3{margin:0 0 8px; font-size:0.98rem; display:flex; justify-content:space-between; gap:8px; align-items:baseline;}
+  .card p{margin:0 0 6px; font-size:0.9rem; color:var(--text-dim);}
+  .card dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.86rem;}
+  .card dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .card dd{margin:0; font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.82rem; overflow-wrap:anywhere;}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 0 18px;}
+  .tile{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px 14px;}
+  .tile .k{font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .tile .v{font-size:1.6rem; font-weight:600; font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; line-height:1.2;}
+  .tile .s{font-size:0.8rem; color:var(--text-dim);}
+
+  /* step flow */
+  ol.flow{list-style:none; padding:0; margin:0 0 16px; counter-reset:f;}
+  ol.flow > li{counter-increment:f; position:relative; padding:0 0 22px 52px; margin:0;}
+  ol.flow > li::before{content:counter(f); position:absolute; left:0; top:0; width:34px; height:34px; border-radius:50%; background:var(--panel); border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono", Consolas, monospace; font-weight:600;}
+  ol.flow > li::after{content:""; position:absolute; left:16px; top:36px; bottom:2px; width:2px; background:var(--border);}
+  ol.flow > li:last-child::after{display:none;}
+  ol.flow h3{margin:4px 0 6px;}
+
+  .verdict{border:2px solid var(--ok); background:var(--ok-bg); border-radius:8px; padding:16px 20px; margin:0 0 24px;}
+  .verdict h2{color:var(--ok); font-size:1.25rem; margin-bottom:6px;}
+  .verdict p:last-child{margin-bottom:0;}
+
+  .layers{display:flex; flex-direction:column; gap:6px; margin:0 0 16px;}
+  .layer{display:grid; grid-template-columns:34px minmax(0,1.3fr) minmax(0,1fr) 110px; gap:12px; align-items:center; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-left:5px solid var(--accent); border-radius:4px; font-size:0.88rem;}
+  .layer .n{font-family:"IBM Plex Mono", Consolas, monospace; color:var(--text-dim);}
+  .layer b{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .layer .when{color:var(--text-dim); font-size:0.84rem;}
+  .layer.pre{border-left-color:var(--text-dim);}
+  .layer.run{border-left-color:var(--warn);}
+  .layer.last{border-left-color:var(--bad);}
+
+  figure{margin:0 0 18px;}
+  figure.diagram{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:0.82rem; color:var(--text-dim); margin-top:10px; max-width:70ch;}
+  figure.narrow svg{max-width:560px; margin:0 auto;}
+  td:first-child code{white-space:nowrap;}
+  .shapes{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .shapes figure{margin:0;}
+
+  /* SVG classes (themeable) */
+  .sv-line{stroke:var(--text-dim); fill:none; stroke-width:1.5;}
+  .sv-thin{stroke:var(--border); fill:none; stroke-width:1;}
+  .sv-path{stroke:var(--accent); fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .sv-accent{stroke:var(--accent-strong); fill:none; stroke-width:2;}
+  .sv-warn{stroke:var(--warn); fill:none; stroke-width:2;}
+  .sv-bad{stroke:var(--bad); fill:none; stroke-width:2;}
+  .sv-dash{stroke-dasharray:5 4;}
+  .sv-fill-panel{fill:var(--panel); stroke:var(--text-dim); stroke-width:1.5;}
+  .sv-fill-alt{fill:var(--panel-alt); stroke:var(--border); stroke-width:1;}
+  .sv-fill-accent{fill:var(--accent); opacity:0.18; stroke:var(--accent); stroke-width:1.5;}
+  .sv-fill-warn{fill:var(--warn); opacity:0.16;}
+  .sv-fill-bad{fill:var(--bad); opacity:0.14;}
+  .sv-dot{fill:var(--accent-strong);}
+  .sv-dot-warn{fill:var(--warn);}
+  .sv-text{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:13px;}
+  .sv-small{fill:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:11px;}
+  .sv-mono{fill:var(--text-dim); font-family:"IBM Plex Mono", Consolas, monospace; font-size:10.5px;}
+  .sv-title{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:14px; font-weight:600;}
+  .sv-acc-text{fill:var(--accent-strong); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-warn-text{fill:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-bad-text{fill:var(--bad); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .arrowhead{fill:var(--text-dim);}
+  .arrowhead-acc{fill:var(--accent-strong);}
+
+  footer{max-width:860px; margin-top:30px; padding-top:18px; border-top:1px solid var(--border); font-size:0.84rem; color:var(--text-dim);}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:minmax(0,1fr); padding:0 16px 60px;}
+    nav.toc{min-width:0;}
+    nav.toc{position:sticky; top:0; z-index:5; padding-top:0; background:var(--bg); max-height:none; border-bottom:1px solid var(--border);}
+    nav.toc .eyebrow{display:none;}
+    nav.toc ul{flex-direction:row; overflow-x:auto; gap:4px; padding:12px 0; margin:0;}
+    nav.toc a{white-space:nowrap;}
+    main{padding-top:20px;}
+    .layer{grid-template-columns:28px 1fr; }
+    .layer .when,.layer .act{grid-column:2;}
+  }
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel-alt:#f2f2f2; --text:#000; --text-dim:#333; --border:#bbb; --code-bg:#f2f2f2;}
+    body{background:#fff; font-size:10.5pt;}
+    nav.toc{display:none;}
+    .page{display:block; padding:0; max-width:none;}
+    main{padding-top:0;}
+    section{padding:18px 0; max-width:none; break-inside:auto;}
+    .card,.tile,figure,.layer,tr,.verdict,.placeholder{break-inside:avoid;}
+    h2,h3{break-after:avoid;}
+    a{color:#000;}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-size:0.8em;}
+    pre{white-space:pre-wrap;}
+  }
+  .doclist{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px; margin:0 0 16px;}
+  .doclist a.card{text-decoration:none; color:var(--text); display:block;}
+  .doclist a.card:hover{border-color:var(--accent);}
+  .doclist .path{font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.78rem; color:var(--accent-strong); margin-bottom:4px; overflow-wrap:anywhere;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="toc" aria-label="Contents">
+    <p class="eyebrow">Contents</p>
+    <ul>
+      <li><a href="#start">Start here</a></li>
+      <li><a href="#pages">Illustrated pages</a></li>
+      <li><a href="#records">Records and plans</a></li>
+      <li><a href="#code">Programs and tests</a></li>
+      <li><a href="#logs">Step logs</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">AlfaisalX lab &middot; TurtleBot 4 Standard</p>
+      <h1 class="title">TurtleBot 4 documentation</h1>
+      <p class="dek">Everything written about the lab's TurtleBot 4 (Raspberry Pi 4 on an iRobot Create 3 base, Ubuntu 24.04, ROS 2 Jazzy). Log in from any computer with <code>ssh ubuntu@turtlebot4.local</code>, or with the address on the robot's display. Passwords are not stored here; ask the lab maintainer.</p>
+      <div class="meta">
+        <span><b>State on 2026-10-04</b> <span class="chip ok">lidar fixed</span> <span class="chip ok">base talking</span> <span class="chip ok">shapes driving</span> <span class="chip warn">clock fix still installed</span> <span class="chip warn">/odom pauses</span></span>
+      </div>
+    </header>
+
+    <section id="start">
+      <div class="section-head"><span class="section-tag">01</span><h2>Start here</h2></div>
+      <div class="doclist">
+        <a class="card" href="../README.md"><div class="path">README.md</div><h3>Folder index</h3><p>What each file is for, and a four-step quick start.</p></a>
+        <a class="card" href="../HOW-TO-CONNECT.md"><div class="path">HOW-TO-CONNECT.md</div><h3>Connect and run code</h3><p>Networks, SSH, keys, VS Code, running the examples, turning the robot off, troubleshooting.</p></a>
+        <a class="card" href="../turtlebot4-field-guide.html"><div class="path">turtlebot4-field-guide.html</div><h3>Field guide</h3><p>Beginner overview of the hardware and ROS 2.</p></a>
+      </div>
+    </section>
+
+    <section id="pages">
+      <div class="section-head"><span class="section-tag">02</span><h2>Illustrated pages</h2></div>
+      <div class="doclist">
+        <a class="card" href="lidar-diagnosis.html"><div class="path">docs/lidar-diagnosis.html</div><h3>Lidar diagnosis <span class="chip ok">resolved</span></h3><p>The "lidar not detected" fault: checks from USB to scan data, measured values, mount sketch, dock power saver.</p></a>
+        <a class="card" href="LIDAR-FINDINGS.md"><div class="path">docs/LIDAR-FINDINGS.md</div><h3>Lidar findings (Markdown)</h3><p>The same diagnosis as plain Markdown, for reading on GitHub.</p></a>
+        <a class="card" href="motion-program-design.html"><div class="path">docs/motion-program-design.html</div><h3>Motion program design</h3><p>How <code>motion_shapes.py</code> plans, controls and guards a run; the <code>/odom</code> pause finding; parameters.</p></a>
+        <a class="card" href="test-results.html"><div class="path">docs/test-results.html</div><h3>Test results <span class="chip todo">in progress</span></h3><p>Shape runs with odometry errors, <code>/odom</code> measurements, safety stop tests, floor measurements.</p></a>
+      </div>
+    </section>
+
+    <section id="records">
+      <div class="section-head"><span class="section-tag">03</span><h2>Records and plans</h2></div>
+      <div class="doclist">
+        <a class="card" href="../MAINTENANCE.md"><div class="path">MAINTENANCE.md</div><h3>Maintenance record</h3><p>Configuration, every change with verify and undo, incidents, known issues, verification checklist.</p></a>
+        <a class="card" href="../ROADMAP.md"><div class="path">ROADMAP.md</div><h3>Roadmap</h3><p>Open work in priority order (TB-01 to TB-19) with steps and acceptance criteria.</p></a>
+      </div>
+    </section>
+
+    <section id="code">
+      <div class="section-head"><span class="section-tag">04</span><h2>Programs and tests</h2></div>
+      <div class="doclist">
+        <a class="card" href="../examples/README.md"><div class="path">examples/README.md</div><h3>Examples guide</h3><p>How to copy, dry-run and run each example safely, and how to stop the robot.</p></a>
+        <a class="card" href="../examples/motion_shapes.py"><div class="path">examples/motion_shapes.py</div><h3>motion_shapes.py <span class="chip warn">moves</span></h3><p>Square, triangle, rotate, back-and-forth, figure eight, closed-loop on odometry.</p></a>
+        <a class="card" href="../examples/clearance_check.py"><div class="path">examples/clearance_check.py</div><h3>clearance_check.py</h3><p>One lidar scan, nearest object within &plusmn;30&deg; ahead. Does not move.</p></a>
+        <a class="card" href="../examples/motion_test.sh"><div class="path">examples/motion_test.sh</div><h3>motion_test.sh <span class="chip warn">moves</span></h3><p>Undock, clearance check, 20 cm forward, 360&deg; spin, dock.</p></a>
+        <a class="card" href="../examples/"><div class="path">examples/</div><h3>All examples</h3><p><code>hello_robot.py</code>, <code>scan_test.py</code>, <code>drive_test.py</code> and the rest. Copies live in <code>~/robot_code</code> on the robot.</p></a>
+        <a class="card" href="../tests/"><div class="path">tests/</div><h3>Test campaign</h3><p>Scripts and raw results for the example programs.</p></a>
+        <a class="card" href="../setup/"><div class="path">setup/</div><h3>Admin scripts</h3><p>Scripts used to configure the robot. Read MAINTENANCE.md before running any.</p></a>
+      </div>
+    </section>
+
+    <section id="logs">
+      <div class="section-head"><span class="section-tag">05</span><h2>Step logs</h2></div>
+      <div class="doclist">
+        <a class="card" href="../../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt"><div class="path">General Tasks/...connect to university Wi-Fi.txt</div><h3>2026-10-03 log</h3><p>Wi-Fi setup, clock fix incident, first motion test; failures included.</p></a>
+        <a class="card" href="../../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt"><div class="path">General Tasks/...lidar check and motion programs.txt</div><h3>2026-10-04 log</h3><p>Lidar diagnosis, motion program runs, the stale-odometry aborts; failures included.</p></a>
+      </div>
+    </section>
+
+    <footer>TurtleBot 4 lab documentation. Public repository: never add passwords, Wi-Fi keys or private keys. Official manual: <a href="https://turtlebot.github.io/turtlebot4-user-manual/">turtlebot.github.io/turtlebot4-user-manual</a>.</footer>
+  </main>
+</div>
+</body>
+</html>

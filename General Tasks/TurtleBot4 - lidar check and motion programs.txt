@@ -1,0 +1,50 @@
+Task: Check the TurtleBot 4 lidar after the 2026-10-03 "lidar not detected" fault, then write and test motion programs (drive a square, triangle, rotation and more)
+
+Background:
+- On 2026-10-03 the lidar spun but was not on USB (no CP210x in lsusb, no /dev/RPLIDAR). A full power cycle did not help. See "TurtleBot4 - connect to university Wi-Fi.txt" in this folder.
+- The HTTPS clock fix from 2026-10-03 (tb4-https-time timer + 10-wait-for-clock.conf drop-in) was still installed; undo-clock had been prepared but not run.
+- Times below are the robot's own clock as shown in its journal (EDT, UTC-4). The 2026-10-03 log used the laptop clock (UTC+3), so 11:44 here is 18:44 in that log's time.
+- Robot reached with ssh ubuntu@turtlebot4.local. No sudo was used today. No passwords or personal credentials are written in this file (the repo is public).
+
+Tried / done:
+- 2026-10-04: Before booting, the user reseated the lidar USB cable (same cable, same port).
+- 2026-10-04 ~11:44: Robot booted on the dock.
+- 2026-10-04 ~11:51: Read-only checks. lsusb shows 10c4:ea60 Silicon Labs CP210x UART Bridge. /dev/RPLIDAR -> ttyUSB0 (crw-rw-rw- root dialout). Journal: rplidar_composition started, S/N 6DE9ED95C4E493C8A5E69EF0FC394B6C, firmware 1.29, hardware rev 7, health status 0, scan mode Sensitivity, max distance 12 m, 7.9K samples/s. So the lidar is back: the loose cable was the cause.
+- 2026-10-04: 11:48 turtlebot4_node logged "RPLIDAR stopped" (dock power saver), so no /scan messages while docked. Expected, not a fault.
+- 2026-10-04: dmesg refused without sudo; not run (lsusb and /dev/RPLIDAR were enough).
+- 2026-10-04: ROS environment in a login shell: ROS_DOMAIN_ID=0, RMW_IMPLEMENTATION=rmw_fastrtps_cpp, ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET. Nodes include /rplidar_composition, /turtlebot4_base_node, /oakd, /turtlebot4_diagnostics. /scan: 1 publisher (RELIABLE), subscriber turtlebot4_diagnostics (BEST_EFFORT).
+- 2026-10-04: Base check: /dock_status received; Pi and base clocks agree within seconds. No clock problem on this boot. Clock fix still installed (/etc/systemd/system/tb4-https-time.timer and turtlebot4.service.d/10-wait-for-clock.conf exist), clock correct (2026). Decision by the user: leave it alone for now (do not touch the clock while ROS runs). undo-clock NOT run.
+- 2026-10-04: /cmd_vel checked: geometry_msgs/msg/TwistStamped, subscriber create3_repub (BEST_EFFORT); teleop_twist_joy publishes on it.
+- 2026-10-04 ~12:09: Undock sent detached (setsid nohup ros2 action send_goal /undock ... > /tmp/undock.log). SUCCEEDED. 12:09:54 journal: "RPLIDAR started".
+- 2026-10-04: /scan off the dock: ros2 topic hz /scan = 7.75 Hz (period 0.119 to 0.139 s, std 0.0064 s). Frame rplidar_link, angle_min -3.124 rad, angle_max 3.1416 rad, increment 0.008715 rad (720 beams), range_min 0.15 m, range_max 12.0 m. 519 of 720 beams valid (72 %), ranges 0.261 to 6.800 m, median 1.442 m.
+- 2026-10-04: GOTCHA: the first "ros2 topic echo --once /scan" showed only the first 128 ranges followed by "..."; ros2 topic echo truncates arrays at 128 entries. Adding --full-length shows all 720.
+- 2026-10-04: FAILED: "ros2 topic hz" with a --qos-reliability option was rejected: Jazzy's ros2 topic hz has no such option. Without it, hz receives /scan fine.
+- 2026-10-04: clearance_check.py 0.6 -> "lidar frame offset 90 deg, beams in front 78, nearest in front 1.73 m", exit code 0.
+- 2026-10-04: TF base_link -> rplidar_link: translation (-0.040, 0, 0.193) m, yaw +90 deg. Straight ahead of the robot is laser angle -90 deg.
+- 2026-10-04: TB-02 (fix lidar detection) DONE: root cause a loose USB connection, fixed physically, no software change.
+
+- 2026-10-04: New program TurtleBot/examples/motion_shapes.py (square, rotate, back_and_forth, triangle, figure_eight). Closed loop on /odom; safety stops: refuses on the dock, lidar front-sector stop (0.25 m within +/-30 deg while driving forward), hazard stop, stall, segment and total timeouts, Ctrl+C / SIGTERM / ~/STOP file, zero-velocity burst at every exit. Speed capped at 0.15 m/s. Copied to ~/robot_code/motion_shapes.py on the robot.
+- 2026-10-04: FAILED: first real square run aborted about 1 s in: "odometry is stale (none for 0.5 s)". The robot stopped as designed.
+- 2026-10-04: Diagnosis without motion: program loop alone, worst odom age 0.104 s; while publishing zero cmd_vel, worst 0.100 s; ros2 topic hz /odom 19.98 Hz, largest gap 0.064 s with the robot still. So no gap while still.
+- 2026-10-04: FAILED: the first odometry probe script crashed (a bug in the probe script itself, not a robot fault). Fixed and rerun.
+- 2026-10-04: Instrumented 10 cm move: /odom arrival gap 0.413 s with a matching header-stamp gap of 0.419 s, 0.12 s after motion started. Same gap in the stamps means the base itself paused /odom when the wheels started; not a delay on the Pi.
+- 2026-10-04: Fix 1: ODOM_STALE 0.5 -> 1.0 s.
+- 2026-10-04: square 40 cm with fix 1: 8 segments in 39 s, odometry end error 0.9 cm / +0.8 deg. rotate 360: 0.1 cm / +0.7 deg. back_and_forth: 0.6 cm / +0.9 deg. (Odometry-only error; not measured on the floor.)
+- 2026-10-04: FAILED: triangle with fix 1 aborted at a segment change on a 1.0 s odometry gap. Pi load average 3.4 at the time.
+- 2026-10-04: Fix 2 (current): if odometry is older than 0.3 s, send zero velocity and hold still until it is fresh again; abort only after 2.0 s. A hold does not count as a stall.
+- 2026-10-04: Triangle and figure eight being rerun with fix 2; results to be added to TurtleBot/docs/test-results.html. A characterisation of the /odom pauses (when, how long, why) is being run as a separate test campaign (TurtleBot/tests/).
+- 2026-10-04: Temporary files on the robot in /tmp (undock.log, shapes_*.log, gapprobe*.py, odomprobe.py, odomprobe.log, scan_*.txt) are cleared at reboot.
+
+Result:
+- Lidar works again (loose USB cable, reseated). /scan at 7.75 Hz off the dock, 720 beams, clearance_check exit 0.
+- Base talking on this boot with the clock fix still installed. Keep or remove the clock fix: open decision (ROADMAP TB-17).
+- motion_shapes.py drove a square, a rotation and a back-and-forth run. The base pauses /odom for 0.4 to 1.0 s when motion starts; the program now holds still through such pauses.
+- Robot changes today: ~/robot_code/motion_shapes.py added (undo: rm it). Further example programs and a test results folder to be listed in MAINTENANCE.md (R12, R13). No sudo, no configuration change, no clock change.
+- Records: TurtleBot/MAINTENANCE.md (change register R11 to R13, lidar incident record, /odom finding, known issues, checklist step 6), TurtleBot/ROADMAP.md (TB-02 done, TB-03 in progress, new TB-15 to TB-19), TurtleBot/docs/ (illustrated pages).
+
+Next steps / plan:
+1. Finish the test campaign: triangle and figure eight with fix 2, each safety stop once, floor measurements (TB-16).
+2. Characterise the /odom pauses (TB-15).
+3. Run motion_test.sh end to end, including the blocked-path run (TB-03). Dock at the end and record the result.
+4. Decide on the clock fix (TB-17). Note whether the lidar is still detected after the next reboot.
+5. Strain relief and label for the lidar cable, with photos (TB-18).

@@ -139,11 +139,11 @@ ssh ubuntu@10.87.10.205
 
    ```text
    The authenticity of host 'turtlebot4.local (10.87.10.205)' can't be established.
-   ED25519 key fingerprint is SHA256:...
+   ED25519 key fingerprint is SHA256:P2rMsKzoIV+vsYEUViVNEFf9H8ORHn+qYbEhaTciyi4.
    Are you sure you want to continue connecting (yes/no/[fingerprint])?
    ```
 
-   Type `yes` and press Enter.
+   Check that the fingerprint is exactly `SHA256:P2rMsKzoIV+vsYEUViVNEFf9H8ORHn+qYbEhaTciyi4` (the lab robot's key, recorded 2026-10-04; the same for every name and address of the robot). If it matches, type `yes` and press Enter. If it does not match, type `no`: you have reached a different device (campus addresses change) or the robot was reinstalled. Ask the lab maintainer before typing any password. A maintainer can read the current value on the robot with `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`, and must update it here after a reinstall.
 2. **The password prompt** (`ubuntu@turtlebot4.local's password:`). Type the `ubuntu` password and press Enter. Nothing appears on screen while you type; that is normal.
 3. **The robot's prompt**, `ubuntu@turtlebot4:~$`. Every command you type now runs on the robot. ROS 2 is loaded automatically in the robot's interactive shells, so `ros2` commands work straight away. A quick check (ROS 2 command-line calls take 30 to 60 s on the Pi):
 
@@ -294,8 +294,11 @@ ROS programs are slow to start on the Raspberry Pi: allow 10 to 20 s before deci
 | `clearance_check.py` | Takes one lidar scan and prints the nearest object within ±30° of straight ahead. Exit code 0 if the way is clear, 1 if something is closer than the limit, 2 if no scan arrived. Run as `python3 clearance_check.py 0.6` (limit in metres; 0.6 if left out). | Off the dock, with a working lidar. Does not move the robot. |
 | `drive_test.py` | Drives forward 20 cm at 0.1 m/s, then stops. | Off the dock, with about 1 m clear in front. **It moves the robot.** |
 | `motion_test.sh` | Full movement test: undocks, checks the way ahead with `clearance_check.py`, drives forward 20 cm only if it is clear, spins 360° with the built-in `rotate_angle` action, then docks again. | Start on the dock, with space around it. **It moves the robot.** Run it detached (below). |
+| `motion_shapes.py` | Drives a square, triangle, 360° rotation, back-and-forth or figure eight using odometry, and stops for obstacles in front, bumps, stalls, timeouts or a `~/STOP` file. Speed capped at 0.15 m/s. | Off the dock, 1 m clear all round. **It moves the robot.** Dry run first, then run it detached. Full instructions: [examples/README.md](examples/README.md). |
 
 Status on 2026-10-03: `motion_test.sh` undocked, spun and docked successfully (docking needed a re-send after the SSH session dropped). The forward drive was skipped because there was no lidar data.
+
+Status on 2026-10-04: the lidar works again, and `motion_shapes.py` drove a square, a 360° rotation and a back-and-forth run (results in [docs/test-results.html](docs/test-results.html)). `motion_test.sh` has not been rerun yet. Step-by-step instructions for every example, including how to stop the robot, are in [examples/README.md](examples/README.md); how `motion_shapes.py` works is in [docs/motion-program-design.html](docs/motion-program-design.html).
 
 When you write your own scripts: ROS is loaded automatically only in interactive shells. A script started in another way (for example `ssh ubuntu@turtlebot4.local "bash myscript.sh"`) should begin with `source /etc/turtlebot4/setup.bash`, as `motion_test.sh` does. The [Developer quick reference](#developer-quick-reference) lists the topics and actions.
 
@@ -385,9 +388,10 @@ Wait for the chime (about a minute), then run the check again.
 
 ## Known issues
 
-As of 2026-10-03 (current status and full details in [MAINTENANCE.md](MAINTENANCE.md)):
+As of 2026-10-04 (current status and full details in [MAINTENANCE.md](MAINTENANCE.md)):
 
-- **Lidar not detected on USB** since the reboot on 2026-10-03. The lidar spins, but `/dev/RPLIDAR` does not exist and `lsusb` shows no Silicon Labs (CP210x) device. Until it is fixed, `scan_test.py` and `clearance_check.py` get no data and `motion_test.sh` skips its forward drive. The fix needs a physical check of the lidar's USB cable by the maintainer.
+- **Lidar: fixed on 2026-10-04.** From 2026-10-03 to 2026-10-04 the lidar was not detected on USB because its USB cable was loose; reseating it fixed it. If `/scan` is silent, first check that the robot is off the dock (the lidar is switched off on the dock), then that `ls /dev/RPLIDAR` works. The diagnosis is in [docs/LIDAR-FINDINGS.md](docs/LIDAR-FINDINGS.md).
+- **`/odom` can pause for up to about 1 s when the wheels start moving** (found on 2026-10-04). If your program stops when odometry is late, allow for this; `motion_shapes.py` holds still and waits.
 - **The robot's clock can be wrong.** The campus network blocks internet time servers (NTP), so the robot has no internet time source (on 2026-10-03 it said October 2024). Until the clock is right, `git`, `pip` and `apt` can fail with certificate errors; copy code from your computer instead. A clock fix installed on 2026-10-03 caused the Create 3 base to stop talking to ROS, and its removal is planned. Do not change the robot's clock by a large amount while ROS is running.
 
 ## Developer quick reference
@@ -476,4 +480,7 @@ Anything that uses `sudo` (shutting down, changing Wi-Fi, installing packages) a
 | [ROADMAP.md](ROADMAP.md) | Plan for the next iterations, including remote desktop |
 | [turtlebot4-field-guide.html](turtlebot4-field-guide.html) | Beginner overview of the TurtleBot 4 hardware and ROS 2 (open it in a browser) |
 | [TurtleBot4 - connect to university Wi-Fi.txt](../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt) | Step-by-step log of the 2026-10-03 setup, including what failed |
+| [TurtleBot4 - lidar check and motion programs.txt](../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt) | Log of the 2026-10-04 lidar check and motion program work, including what failed |
+| [examples/README.md](examples/README.md) | How to run the example programs safely, including `motion_shapes.py` |
+| [docs/index.html](docs/index.html) | Illustrated pages: lidar diagnosis, motion program design, test results |
 | [TurtleBot 4 user manual](https://turtlebot.github.io/turtlebot4-user-manual/) | Official documentation: setup, specifications, power on and off, tutorials |

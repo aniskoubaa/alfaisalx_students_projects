@@ -2,7 +2,7 @@
 
 Plan of work for the lab's TurtleBot 4.
 
-**Last updated:** 2026-10-04 (robot state as of 2026-10-03)
+**Last updated:** 2026-10-04 (robot state as of 2026-10-04, about 12:30 robot time)
 
 ## Purpose
 
@@ -40,6 +40,21 @@ Admin steps (`sudo`, Wi-Fi changes) need a person who knows the robot's `ubuntu`
 
 Commands run in a terminal on the robot (SSH or VS Code Remote-SSH), from the home folder, unless marked **On the laptop**. Text in angle brackets, such as `<robot-address>`, is a placeholder.
 
+## State on 2026-10-04
+
+Times are robot time (EDT, from the robot's journal). Details and evidence: [MAINTENANCE.md](MAINTENANCE.md), [docs/](docs/index.html) and the [2026-10-04 log](../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt).
+
+Working (new or confirmed today):
+- **Lidar fixed** ([TB-02](#tb-02-fix-lidar-detection), Done). The cause was a loose USB cable; the user reseated it before the 11:44 boot. Off the dock `/scan` runs at 7.75 Hz with 720 beams, and `clearance_check.py 0.6` exits 0.
+- **Base talking** on this boot: `/dock_status` received, Pi and base clocks within seconds. Undock succeeded at about 12:09.
+- **Motion program** [examples/motion_shapes.py](examples/motion_shapes.py) drove a 40 cm square (8 segments in 39 s, odometry end error 0.9 cm / +0.8 degrees), a 360 degree rotation (0.1 cm / +0.7 degrees) and a back-and-forth run (0.6 cm / +0.9 degrees). Errors are from odometry only; the floor was not measured.
+
+Not working or open:
+- The HTTPS clock fix is **still installed** and `undo-clock` was not run. It did no harm on this boot. Keep or remove is now a decision ([TB-17](#tb-17-decide-whether-to-keep-or-remove-the-clock-fix)); TB-01 stays open until it is made.
+- The base pauses `/odom` for 0.4 to 1.0 s when the wheels start ([TB-15](#tb-15-characterise-the-odom-pauses-at-motion-start)). `motion_shapes.py` now holds still during a pause instead of aborting.
+- `motion_test.sh` itself has not been rerun ([TB-03](#tb-03-complete-the-movement-test-with-the-lidar), in progress). The first runs of the motion programs are done; the longer test campaign is waiting for a supervised session ([TB-16](#tb-16-motion-program-test-campaign-and-demo-shapes)).
+- Unchanged from 2026-10-03: the long-term time strategy (TB-04), security hardening (TB-05), Wi-Fi drops during motion (TB-10), remote desktop (TB-06).
+
 ## State on 2026-10-03
 
 Working:
@@ -60,9 +75,9 @@ Not working or open:
 
 | ID | Title | Priority | Status | Depends on |
 |---|---|---|---|---|
-| [TB-01](#tb-01-restore-create-3-base-communication) | Restore Create 3 base communication | P0 | Prepared | None |
-| [TB-02](#tb-02-fix-lidar-detection) | Fix lidar detection | P0 | Open | None |
-| [TB-03](#tb-03-complete-the-movement-test-with-the-lidar) | Complete the movement test with the lidar | P1 | Open | TB-01, TB-02 |
+| [TB-01](#tb-01-restore-create-3-base-communication) | Restore Create 3 base communication | P0 | Prepared (base working on 2026-10-04 with the clock fix still installed; waits for TB-17) | TB-17 |
+| [TB-02](#tb-02-fix-lidar-detection) | Fix lidar detection | P0 | **Done** 2026-10-04 | None |
+| [TB-03](#tb-03-complete-the-movement-test-with-the-lidar) | Complete the movement test with the lidar | P1 | In progress (2026-10-04) | TB-01, TB-02 |
 | [TB-04](#tb-04-choose-a-reliable-time-strategy) | Choose a reliable time strategy | P1 | Open | TB-01 |
 | [TB-05](#tb-05-security-hardening) | Security hardening | P1 | Open | None |
 | [TB-06](#tb-06-remote-desktop-access) | Remote desktop access | P1 | Open | TB-04, TB-05, TB-07 |
@@ -74,8 +89,13 @@ Not working or open:
 | [TB-12](#tb-12-documentation-follow-ups) | Documentation follow-ups | P2 | Open | TB-11 |
 | [TB-13](#tb-13-teleoperation-how-to) | Teleoperation how-to | P3 | Open | TB-01 |
 | [TB-14](#tb-14-onboarding-checklist-for-new-lab-members) | Onboarding checklist for new lab members | P3 | Open | TB-05, TB-11 |
+| [TB-15](#tb-15-characterise-the-odom-pauses-at-motion-start) | Characterise the `/odom` pauses at motion start | P2 | In progress (2026-10-04) | None |
+| [TB-16](#tb-16-motion-program-test-campaign-and-demo-shapes) | Motion program test campaign and demo shapes | P2 | Open (started 2026-10-04: first runs done; campaign waiting for a supervised session) | TB-02 |
+| [TB-17](#tb-17-decide-whether-to-keep-or-remove-the-clock-fix) | Decide whether to keep or remove the clock fix | P1 | Open (proposed 2026-10-04) | None |
+| [TB-18](#tb-18-lidar-cable-strain-relief-and-label) | Lidar cable strain relief and label | P2 | Open (proposed 2026-10-04) | None |
+| [TB-19](#tb-19-read-only-health-check-script) | Read-only health check script | P3 | Open (proposed 2026-10-04) | None |
 
-Suggested order: TB-01 and TB-02 in one session at the robot, then TB-03. Do TB-05 soon, because the factory passwords are public and the robot is reachable from the whole `Students` network. Take a backup (TB-07) before the first risky change in TB-04, TB-05 or TB-06.
+Suggested order (updated 2026-10-04): TB-17 (decide on the clock fix), which closes TB-01; finish TB-03 and TB-16 while the lidar and base work. Do TB-05 soon, because the factory passwords are public and the robot is reachable from the whole `Students` network. Take a backup (TB-07) before the first risky change in TB-04, TB-05 or TB-06. (Original order on 2026-10-03: TB-01 and TB-02 in one session at the robot, then TB-03.)
 
 ---
 
@@ -83,9 +103,11 @@ Suggested order: TB-01 and TB-02 in one session at the robot, then TB-03. Do TB-
 
 ### TB-01 Restore Create 3 base communication
 
-**Priority:** P0 | **Status:** Prepared | **Depends on:** None
+**Priority:** P0 | **Status:** Prepared | **Depends on:** TB-17 (added 2026-10-04)
 
 **Goal.** The Create 3 base publishes `/dock_status` and `/battery_state` to ROS again, and dock and undock work, with the HTTPS clock fix removed.
+
+**Update 2026-10-04.** On the boot at about 11:44 (robot time) the base talked to ROS without any action: `/dock_status` arrived, the Pi and base clocks agreed within seconds, and undock succeeded at about 12:09. The clock fix (R7, R8) is still installed and `undo-clock` was **not** run; the user decided not to touch the clock while ROS runs. Whether to remove the fix at all is now [TB-17](#tb-17-decide-whether-to-keep-or-remove-the-clock-fix). If TB-17 decides to keep it, rewrite this goal and close the task on the base criteria alone. The steps below remain the procedure if the fix is removed or the base goes silent again.
 
 **Why it matters.** Without data from the base, nothing that moves or docks works. TB-03, TB-09 and TB-13 are blocked until this is done. The base was observed to talk to ROS only when the Pi and base clocks agree; the HTTPS clock fix broke that twice on 2026-10-03 (details in [MAINTENANCE.md](MAINTENANCE.md)).
 
@@ -178,8 +200,8 @@ Suggested order: TB-01 and TB-02 in one session at the robot, then TB-03. Do TB-
 **Acceptance criteria.**
 - [ ] `/etc/systemd/system/tb4-https-time.timer`, `tb4-https-time.service`, `/usr/local/sbin/tb4-https-time` and the `10-wait-for-clock.conf` drop-in no longer exist.
 - [ ] `systemctl is-active turtlebot4` prints `active`.
-- [ ] `/dock_status` and `/battery_state` each print a message within 60 s.
-- [ ] Undock and dock goals are accepted and succeed (checked in TB-03, or by hand with the commands in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md)).
+- [ ] `/dock_status` and `/battery_state` each print a message within 60 s. (2026-10-04: `/dock_status` received with the clock fix still installed; `/battery_state` not recorded.)
+- [ ] Undock and dock goals are accepted and succeed (checked in TB-03, or by hand with the commands in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md)). (2026-10-04: undock succeeded at about 12:09; dock result to be recorded.)
 - [ ] The reboot-test result (base data with or without a manual base restart) is recorded.
 - [ ] MAINTENANCE.md and the General Tasks log are updated.
 
@@ -195,7 +217,9 @@ Suggested order: TB-01 and TB-02 in one session at the robot, then TB-03. Do TB-
 
 ### TB-02 Fix lidar detection
 
-**Priority:** P0 | **Status:** Open | **Depends on:** None
+**Priority:** P0 | **Status:** **Done** 2026-10-04 | **Depends on:** None
+
+**Outcome (2026-10-04).** Root cause: a loose USB connection. The user reseated the lidar USB cable (same cable, same port) before booting the robot at about 11:44 robot time; no software change was needed and steps 2 to 11 below were not required. Evidence: `lsusb` shows `10c4:ea60` Silicon Labs CP210x; `/dev/RPLIDAR` points to `ttyUSB0`; the driver reported firmware 1.29, hardware revision 7, health 0; after undocking `/scan` ran at 7.75 Hz with 720 beams (519 valid, median 1.44 m); `clearance_check.py 0.6` printed "nearest in front 1.73 m" and exited 0. Full record: [MAINTENANCE.md](MAINTENANCE.md#incident-lidar-not-detected-2026-10-03-resolved-2026-10-04), [docs/lidar-diagnosis.html](docs/lidar-diagnosis.html), [docs/LIDAR-FINDINGS.md](docs/LIDAR-FINDINGS.md). Follow-up: [TB-18](#tb-18-lidar-cable-strain-relief-and-label). The steps are kept for the next time the lidar disappears.
 
 **Goal.** The Raspberry Pi detects the lidar on USB (`/dev/RPLIDAR` exists) and `/scan` publishes when the robot is off the dock.
 
@@ -243,11 +267,11 @@ Suggested order: TB-01 and TB-02 in one session at the robot, then TB-03. Do TB-
 11. Record any port or cable change in [MAINTENANCE.md](MAINTENANCE.md) and the outcome in the General Tasks log.
 
 **Acceptance criteria.**
-- [ ] `lsusb` lists a Silicon Labs (CP210x) device.
-- [ ] `/dev/RPLIDAR` exists.
-- [ ] Off the dock, `scan_test.py` prints distances and `clearance_check.py` exits 0 or 1.
-- [ ] The lidar is still detected after a reboot.
-- [ ] Port or cable changes are recorded in MAINTENANCE.md.
+- [x] `lsusb` lists a Silicon Labs (CP210x) device. (2026-10-04: `10c4:ea60`)
+- [x] `/dev/RPLIDAR` exists. (2026-10-04: link to `ttyUSB0`)
+- [x] Off the dock, `scan_test.py` prints distances and `clearance_check.py` exits 0 or 1. (2026-10-04: `clearance_check.py 0.6` exit 0; `/scan` checked with `ros2 topic hz` and `ros2 topic echo --full-length` instead of `scan_test.py`)
+- [x] The lidar is still detected after a reboot. (2026-10-04: detected on the 11:44 boot, which came after the reseat. A second, separate reboot has not been checked yet; note it the next time the robot restarts.)
+- [x] Port or cable changes are recorded in MAINTENANCE.md. (No port or cable change; the reseat is recorded.)
 
 **Risks and rollback.**
 - Unplugging the wrong cable can cut the base link or the camera. Identify the lidar cable before unplugging (a photo of it is a TB-12 item).
@@ -262,7 +286,9 @@ Suggested order: TB-01 and TB-02 in one session at the robot, then TB-03. Do TB-
 
 ### TB-03 Complete the movement test with the lidar
 
-**Priority:** P1 | **Status:** Open | **Depends on:** TB-01, TB-02
+**Priority:** P1 | **Status:** In progress (2026-10-04) | **Depends on:** TB-01, TB-02
+
+**Progress 2026-10-04.** TB-02 is done and the base talks, so the preconditions hold in practice (TB-01 is formally open only for the clock decision). `motion_test.sh` itself has **not** been rerun. Forward driving with the lidar active has been shown by [examples/motion_shapes.py](examples/motion_shapes.py), which stops if anything is within 0.25 m and ±30 degrees in front while driving forward: square, rotate and back-and-forth completed. Undock succeeded at about 12:09. Still to do: one end-to-end `motion_test.sh` run, the blocked-path run (step 5) and recording the dock result. Results go to [docs/test-results.html](docs/test-results.html).
 
 **Goal.** Run `motion_test.sh` end to end: undock, lidar clearance check, 20 cm forward drive, 360° spin, dock.
 
@@ -582,6 +608,41 @@ Rollback for (a): stop and disable xrdp; purge exactly the packages listed for t
 
 ---
 
+### TB-17 Decide whether to keep or remove the clock fix
+
+**Priority:** P1 | **Status:** Open (proposed 2026-10-04) | **Depends on:** None
+
+**Goal.** A recorded decision on the HTTPS clock fix (R7 timer, service and script; R8 drop-in): remove it with `undo-clock` as planned on 2026-10-03, or keep it, possibly changed.
+
+**Why it matters.** On 2026-10-03 the fix silenced the base twice. On 2026-10-04 it was still installed, the clock was correct and the base talked, so the reason for removing it is less clear than it was. Its 15 minute timer can still step the clock while ROS runs if the boot-time fetch fails. TB-01 and TB-04 both wait on this decision.
+
+**Steps.**
+
+1. Collect evidence without changing anything (read only). Over the next few boots, record for each: whether the clock was right at boot, whether `tb4-https-time` succeeded or failed, whether it stepped the clock, and whether the base talked.
+
+   ```bash
+   journalctl -u tb4-https-time -b --no-pager
+   systemctl list-timers --all | grep tb4
+   timeout 60 ros2 topic echo --once /dock_status
+   ```
+
+2. Weigh the options against the evidence:
+   - **Remove** (`sudo ./undo-clock`, then restart the base application, TB-01 steps 4 to 6). Clock wrong after power cycles, but nothing steps it while ROS runs.
+   - **Keep as is.** Clock usually right; risk of a step while ROS runs when the boot fetch fails.
+   - **Keep the boot fetch, remove the 15 minute timer** so the clock is only set before ROS starts. Needs an admin change; propose it here first. **[to verify]**
+3. Agree the choice with the lab supervisor, record it here and in MAINTENANCE.md (R7, R8), and update TB-01 and TB-04.
+
+**Acceptance criteria.**
+- [ ] Evidence from at least three boots is recorded.
+- [ ] The decision, the date and who made it are recorded here and in MAINTENANCE.md.
+- [ ] TB-01 is closed or rewritten to match the decision.
+
+**Risks and rollback.** Collecting evidence changes nothing. Removing the fix: rollback is not recommended (see TB-01). Any clock change while ROS runs can silence the base; restart the base application if it does.
+
+**Estimated effort:** 15 minutes per boot to collect evidence; 30 minutes for the decision.
+
+---
+
 ## P2: improvements
 
 ### TB-07 SD card backups
@@ -797,6 +858,86 @@ The factory image from the official manual remains the last-resort restore, but 
 
 ---
 
+### TB-15 Characterise the /odom pauses at motion start
+
+**Priority:** P2 | **Status:** In progress (2026-10-04) | **Depends on:** None
+
+**Goal.** Know when, how often and why the Create 3 base stops publishing `/odom` for 0.4 to 1.0 s, and make sure the example programs handle it.
+
+**Why it matters.** The first `motion_shapes.py` runs aborted on stale odometry. An instrumented 10 cm move showed a 0.413 s gap in arrival and a 0.419 s gap in header stamps 0.12 s after the wheels started, so the base itself pauses. A triangle run later hit a 1.0 s gap at a segment change with a Pi load average of 3.4. No gap was seen with the robot still (19.98 Hz, largest gap 0.064 s). Details: [MAINTENANCE.md](MAINTENANCE.md#finding-odom-pauses-at-motion-start).
+
+**Steps.**
+
+1. Log `/odom` arrival time and header stamp during repeated short moves (start, stop, turn), with and without the camera running, and note the Pi load (`uptime`).
+2. Check whether other base topics (for example `/imu`, `/wheel_vels`) pause at the same moments. **[to verify]** topic names on this robot.
+3. Look for known reports in the Create 3 and TurtleBot 4 issue trackers and release notes.
+4. Record gap length, frequency and conditions in [docs/test-results.html](docs/test-results.html) and MAINTENANCE.md.
+5. Keep the program-side handling (hold at 0.3 s, abort at 2.0 s) unless the data shows a better threshold.
+
+**Acceptance criteria.**
+- [ ] Gap statistics over at least 20 motion starts are recorded. (_Placeholder: test campaign numbers_)
+- [ ] The likely cause is stated with its evidence, or "unknown" with what was ruled out.
+- [ ] Example programs that drive the robot tolerate the measured gaps.
+
+**Risks and rollback.** Short moves only, with the usual safety checklist. No configuration change.
+
+**Estimated effort:** 2 to 3 hours.
+
+---
+
+### TB-16 Motion program test campaign and demo shapes
+
+**Priority:** P2 | **Status:** Open (first runs 2026-10-04; campaign waiting for a supervised session) | **Depends on:** TB-02
+
+**Goal.** Every shape in `motion_shapes.py` (and the other moving examples) has a recorded, repeatable result, including a floor measurement, so lab members can use them as demos and as a starting point.
+
+**Why it matters.** On 2026-10-04 square, rotate and back-and-forth completed with odometry end errors under 1 cm and 1 degree, triangle completed after the second odometry fix (1.0 cm, +2.2 deg, with three short holds) and figure eight aborted on a 2.0 s odometry gap (robot held still), the safety stops have not all been exercised, and the real (floor) error was not measured.
+
+**Steps.**
+
+1. Run each shape at least three times, detached, from the same taped start mark. Record duration, odometry end error and the measured floor error.
+2. Exercise each safety stop once: obstacle in front, `~/STOP`, Ctrl+C, `pkill -INT`, lift (wheel drop), and a dry run on the dock (must refuse a real run).
+3. Fill the runs table in [docs/test-results.html](docs/test-results.html) and update the status block in [examples/README.md](examples/README.md).
+4. Pick one or two shapes as the standard lab demo and write the exact command in HOW-TO-CONNECT.md.
+
+**Acceptance criteria.**
+- [ ] Every shape has at least three recorded runs with odometry and floor error. (_Placeholder: test campaign results_)
+- [ ] Every safety stop has been triggered once and stopped the robot.
+- [ ] The results page and the examples README are updated.
+
+**Risks and rollback.** Collision: speed is capped at 0.15 m/s, lidar front stop active, a person stands next to the robot. No configuration change.
+
+**Estimated effort:** half a day.
+
+---
+
+### TB-18 Lidar cable strain relief and label
+
+**Priority:** P2 | **Status:** Open (proposed 2026-10-04) | **Depends on:** None
+
+**Goal.** The lidar USB cable cannot work loose easily, and anyone can identify it quickly.
+
+**Why it matters.** A loose lidar USB cable caused the lidar outage from 2026-10-03 to 2026-10-04 (TB-02). The same fault is likely to return as the robot moves and is handled.
+
+**Steps.**
+
+1. With the robot shut down, photograph the lidar cable at both ends and its route (a TB-12 item). Check that no password label or screen is visible.
+2. Add strain relief with a cable tie or clip so the plugs are not pulled by the cable's weight. Do not block the lidar's view or the moving parts, and do not touch the USB-C link to the base.
+3. Label the cable "LIDAR USB" at the Pi end.
+4. Boot, undock and check `/scan` (MAINTENANCE.md verification step 6).
+5. Add the photos to the repo and record the change in MAINTENANCE.md.
+
+**Acceptance criteria.**
+- [ ] Strain relief and label fitted; photos in the repo.
+- [ ] `/scan` publishes off the dock after the change.
+- [ ] Recorded in MAINTENANCE.md.
+
+**Risks and rollback.** Pulling the wrong cable can cut the base link or the camera; identify the cable first. Rollback: cut the tie.
+
+**Estimated effort:** 30 minutes.
+
+---
+
 ## P3: nice to have
 
 ### TB-13 Teleoperation how-to
@@ -859,6 +1000,29 @@ The factory image from the official manual remains the last-resort restore, but 
 
 ---
 
+### TB-19 Read-only health check script
+
+**Priority:** P3 | **Status:** Open (proposed 2026-10-04) | **Depends on:** None
+
+**Goal.** One command on the robot runs the [MAINTENANCE.md verification checklist](MAINTENANCE.md#verification-checklist) and prints pass or fail per item.
+
+**Why it matters.** On 2026-10-04 the lidar check took a dozen separate commands, and two of them needed retries because of command-line gotchas (128-entry truncation, a missing `--qos-reliability` option). A script makes the check quick and repeatable for anyone.
+
+**Steps.**
+
+1. Write `health_check.py` in [examples/](examples/) (written 2026-10-04, tested offline; first robot run pending): Wi-Fi profile and address, `turtlebot4` active, ROS environment, `/dock_status`, lidar device and (off the dock only) `/scan` rate and beam count, clock and clock-fix files. Read only: no `sudo`, no motion.
+2. Test it docked and undocked, and add sample output to the examples README.
+
+**Acceptance criteria.**
+- [ ] The script runs without `sudo` and changes nothing.
+- [ ] Its output matches a manual run of the checklist.
+
+**Risks and rollback.** Read only. Delete the file to roll back.
+
+**Estimated effort:** 1 to 2 hours.
+
+---
+
 ## Definition of done for any change
 
 A change to the robot, a laptop setup used by the lab, or a shared account is done only when all of these are true:
@@ -879,6 +1043,10 @@ A change to the robot, a laptop setup used by the lab, or a shared account is do
 | [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md) | User guide: connecting, running code, troubleshooting |
 | [MAINTENANCE.md](MAINTENANCE.md) | Configuration record, change register with undo steps, incident report, known issues |
 | [General Tasks log](../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt) | Dated step-by-step log of the setup, including what failed |
+| [2026-10-04 log](../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt) | Lidar check and motion programs, including what failed |
+| [docs/](docs/index.html) | Illustrated pages: lidar diagnosis, motion program design, test results |
+| [examples/README.md](examples/README.md) | How to run the example programs safely, including `motion_shapes.py` |
+| [tests/](tests/) | Test campaign for the example programs |
 | [setup/](setup/) | Scripts used to configure the robot, including `undo-clock.sh` |
 | [examples/](examples/) | Example programs and `motion_test.sh` |
 | [turtlebot4-field-guide.html](turtlebot4-field-guide.html) | Background on the platform, ROS 2 concepts and commands |

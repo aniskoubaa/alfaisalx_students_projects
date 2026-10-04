@@ -4,17 +4,25 @@
 |---|---|
 | Robot | Lab TurtleBot 4 Standard, hostname `turtlebot4` |
 | Owner | AlfaisalX lab, College of Engineering and Advanced Computing. Ask the lab maintainer or the lab supervisor for access, passwords and approval of changes |
-| Last updated | 2026-10-04 (robot state as of 2026-10-03) |
+| Last updated | 2026-10-04 (robot state as of 2026-10-04, about 12:30 robot time) |
 | Audience | Lab maintainers and whoever administers the robot next |
 | Covers | Current configuration, every change made, admin scripts, incidents, open issues, health checks |
+| Times | 2026-10-03 entries use the original author's laptop time (UTC+3). 2026-10-04 entries use the robot's own clock as shown in its journal (EDT, UTC-4), so 11:44 robot time is 18:44 in UTC+3 |
 
 ## Purpose
 
-This is the administrative record for the lab's TurtleBot 4. Everyday use (connecting, running code) is in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md). Planned work is in [ROADMAP.md](ROADMAP.md). The raw chronological log, including failed attempts, is in [General Tasks/TurtleBot4 - connect to university Wi-Fi.txt](../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt).
+This is the administrative record for the lab's TurtleBot 4. Everyday use (connecting, running code) is in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md). Planned work is in [ROADMAP.md](ROADMAP.md). The raw chronological logs, including failed attempts, are in [General Tasks/TurtleBot4 - connect to university Wi-Fi.txt](../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt) (2026-10-03) and [General Tasks/TurtleBot4 - lidar check and motion programs.txt](../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt) (2026-10-04). Illustrated write-ups (lidar diagnosis, motion program design, test results) are in [docs/](docs/index.html).
 
 Rule followed: change only what is necessary on shared hardware, and record every change with how to verify it and how to undo it. When you change the robot, add a row to the [change register](#change-register) in the same commit.
 
 No passwords, Wi-Fi keys or other credentials are recorded here or anywhere in this repository (it is public).
+
+### State on 2026-10-04
+
+- **Working:** everything listed for 2026-10-03, plus: the lidar is detected again and publishes `/scan` off the dock. It was fixed by reseating its USB cable; see the [lidar record](#incident-lidar-not-detected-2026-10-03-resolved-2026-10-04). The Create 3 base sends data (`/dock_status` received; Pi and base clocks within seconds of each other). Undock succeeded at about 12:09 robot time. The new program `motion_shapes.py` drove a square, a 360 degree rotation and a back-and-forth run.
+- **Still installed:** the HTTPS clock fix (R7, R8). On this boot the robot clock was correct (2026) and the base talked to ROS, so `undo-clock` was not run. Keep or remove is an open decision ([ROADMAP.md, TB-17](ROADMAP.md#tb-17-decide-whether-to-keep-or-remove-the-clock-fix)). Do not change the clock while ROS runs.
+- **New finding:** the base pauses `/odom` for 0.4 to 1.0 s when the wheels start moving. See [the finding](#finding-odom-pauses-at-motion-start).
+- **No configuration change** on 2026-10-04: no `sudo`, no service or system file changed. Only user files were added (R11 onward).
 
 ### State at handover (2026-10-03)
 
@@ -22,7 +30,7 @@ No passwords, Wi-Fi keys or other credentials are recorded here or anywhere in t
 - **Pending admin action:** remove the clock fix and resync the Create 3 base. See the [incident report](#incident-create-3-base-stopped-responding-after-the-clock-fix). Until this is done the base is expected to send no data.
 - **Pending physical check:** the lidar is not detected on USB. See [Known issues](#known-issues).
 
-## Current configuration (as of 2026-10-03)
+## Current configuration (as of 2026-10-03, rechecked where marked on 2026-10-04)
 
 ### Robot
 
@@ -31,11 +39,13 @@ No passwords, Wi-Fi keys or other credentials are recorded here or anywhere in t
 | Model | TurtleBot 4 Standard (has the screen that shows the robot's address) |
 | Image version | 2.0.2 |
 | Operating system | Ubuntu 24.04.1 Server, no desktop |
-| ROS | ROS 2 Jazzy, Fast DDS (`RMW_IMPLEMENTATION=rmw_fastrtps_cpp`), `ROS_DOMAIN_ID` 0. Read from `/etc/turtlebot4/setup.bash` on 2026-10-03; recheck with the [verification checklist](#verification-checklist) |
+| ROS | ROS 2 Jazzy, Fast DDS (`RMW_IMPLEMENTATION=rmw_fastrtps_cpp`), `ROS_DOMAIN_ID` 0. Read from `/etc/turtlebot4/setup.bash` on 2026-10-03; recheck with the [verification checklist](#verification-checklist). Rechecked in a login shell on 2026-10-04: same values, plus `ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET` |
+| Lidar | Slamtec RPLIDAR on USB through a Silicon Labs CP210x bridge (`lsusb` ID `10c4:ea60`); device link `/dev/RPLIDAR` points to `ttyUSB0`. On 2026-10-04 the driver node `rplidar_composition` reported firmware 1.29, hardware revision 7, health status 0, scan mode Sensitivity, 12 m maximum range. Mounted turned +90 degrees: transform `base_link` to `rplidar_link` is translation (-0.040, 0, 0.193) m, yaw +90 degrees. Switched off on the dock by the TurtleBot 4 power saver |
+| `/cmd_vel` | `geometry_msgs/msg/TwistStamped` (rechecked 2026-10-04: subscriber `create3_repub`, best effort; `teleop_twist_joy` also publishes) |
 | ROS bringup | systemd unit `turtlebot4.service` |
 | User and hostname | `ubuntu` on `turtlebot4`, advertised as `turtlebot4.local` by avahi |
 | Admin access | `sudo` asks for the `ubuntu` password; NetworkManager changes by `ubuntu` over SSH also ask for it |
-| Clock | Factory chrony setup, which cannot reach NTP on campus. No battery-backed clock: after a power cycle the Pi came back in October 2024. HTTPS clock fix installed on 2026-10-03; removal prepared, not confirmed run |
+| Clock | Factory chrony setup, which cannot reach NTP on campus. No battery-backed clock: after a power cycle the Pi came back in October 2024. HTTPS clock fix installed on 2026-10-03; removal prepared but not run. On 2026-10-04 the fix was still installed, the clock was correct (2026) and the base talked to ROS. Keep or remove: open decision (ROADMAP TB-17) |
 | Setup tool | `turtlebot4-setup` is not on `PATH` in this image; Wi-Fi was configured with `nmcli` and a keyfile |
 | Load note | The OAK-D camera container uses about one CPU core |
 
@@ -72,7 +82,7 @@ avahi is limited to `wlan0`, so `turtlebot4.local` resolves only to the Wi-Fi ad
 
 ## Change register
 
-All changes were made on 2026-10-03. Run robot commands in a robot terminal.
+R1 to R10 were made on 2026-10-03, R11 onward on 2026-10-04. Run robot commands in a robot terminal.
 
 ### On the robot
 
@@ -84,12 +94,17 @@ All changes were made on 2026-10-03. Run robot commands in a robot terminal.
 | R4 | Example programs | `~/robot_code/` (`hello_robot.py`, `scan_test.py`, `clearance_check.py`, `drive_test.py`, `motion_test.sh`; copies in `TurtleBot/examples/`) | Folder VS Code opens for users | `ls -la ~/robot_code` | Delete the folder after saving any user files in it | Present. Users may have added files; detached runs write `motion.log` and `dock.log` here |
 | R5 | Admin shortcuts (symlinks) | `~/finish-setup` to `root-setup.sh`, `~/fix-ros` to `fix-ros.sh`, `~/undo-clock` to `undo-clock.sh` | Short admin commands, run as `sudo ./name` from `~` | `ls -l ~/finish-setup ~/fix-ros ~/undo-clock` | `rm ~/finish-setup ~/fix-ros ~/undo-clock` (removes only the links) | Present. Proposed: remove `finish-setup` and `fix-ros` after `undo-clock` has run, since either one reinstalls the clock fix |
 | R6 | avahi limited to Wi-Fi | `/etc/avahi/avahi-daemon.conf` (`allow-interfaces=wlan0` under `[server]`); original saved as `/etc/avahi/avahi-daemon.conf.before-tb4` | `turtlebot4.local` resolves only to the Wi-Fi address | `grep -n '^allow-interfaces' /etc/avahi/avahi-daemon.conf` | `sudo cp /etc/avahi/avahi-daemon.conf.before-tb4 /etc/avahi/avahi-daemon.conf`, then `sudo systemctl restart avahi-daemon` | Active. Keep |
-| R7 | HTTPS clock fix | `/usr/local/sbin/tb4-https-time`, `/etc/systemd/system/tb4-https-time.service`, `/etc/systemd/system/tb4-https-time.timer` (enabled: 60 s after boot, then every 15 min) | Set the clock from an HTTPS `Date` header, because campus blocks NTP | `systemctl list-unit-files 'tb4-https-time*'` | `cd ~ && sudo ./undo-clock` (removes R7 and R8, restarts ROS); [manual steps](#removing-the-clock-fix-by-hand) | Removal prepared (`sudo ./undo-clock`), not confirmed run as of 2026-10-03. Caused the incident below |
-| R8 | ROS waits for the clock (drop-in) | `/etc/systemd/system/turtlebot4.service.d/10-wait-for-clock.conf` (`Wants=` and `After=tb4-https-time.service`) | Start `turtlebot4.service` only after the clock fix has run | `systemctl cat turtlebot4` (the drop-in is listed at the end if present) | Removed by `sudo ./undo-clock`; [manual steps](#removing-the-clock-fix-by-hand) | Removal prepared (`sudo ./undo-clock`), not confirmed run as of 2026-10-03 |
+| R7 | HTTPS clock fix | `/usr/local/sbin/tb4-https-time`, `/etc/systemd/system/tb4-https-time.service`, `/etc/systemd/system/tb4-https-time.timer` (enabled: 60 s after boot, then every 15 min) | Set the clock from an HTTPS `Date` header, because campus blocks NTP | `systemctl list-unit-files 'tb4-https-time*'` | `cd ~ && sudo ./undo-clock` (removes R7 and R8, restarts ROS); [manual steps](#removing-the-clock-fix-by-hand) | Removal prepared (`sudo ./undo-clock`), not confirmed run as of 2026-10-03. Caused the incident below. **2026-10-04: still installed** (timer file present), clock correct, base talking; left in place by the user's decision. Keep or remove: ROADMAP TB-17 |
+| R8 | ROS waits for the clock (drop-in) | `/etc/systemd/system/turtlebot4.service.d/10-wait-for-clock.conf` (`Wants=` and `After=tb4-https-time.service`) | Start `turtlebot4.service` only after the clock fix has run | `systemctl cat turtlebot4` (the drop-in is listed at the end if present) | Removed by `sudo ./undo-clock`; [manual steps](#removing-the-clock-fix-by-hand) | Removal prepared (`sudo ./undo-clock`), not confirmed run as of 2026-10-03. **2026-10-04: still installed** (drop-in present). See R7 |
 | R9 | VS Code server | `~/.vscode-server` (207 MB download, about 600 MB unpacked) | Installed automatically by VS Code Remote-SSH on the first connect | `du -sh ~/.vscode-server` | `rm -rf ~/.vscode-server`. VS Code downloads it again on the next connect (about 10 minutes over campus Wi-Fi) | Present. Safe to delete |
 | R10 | Temporary switch job | Transient systemd unit `tb4-wifi-switch` and `/run/tb4-wifi-controller.sh`, created by `start.sh` | Ran `controller.sh` in the background | `systemctl status tb4-wifi-switch` (expected: unit not found) | None needed: `/run` is cleared at boot and the unit was started with `--collect` | Gone after the reboot at about 19:56 |
+| R11 | Motion program `motion_shapes.py` (2026-10-04) | `~/robot_code/motion_shapes.py` (copy of [examples/motion_shapes.py](examples/motion_shapes.py)) | Drive test shapes closed-loop on `/odom`, with safety stops | `ls -l ~/robot_code/motion_shapes.py` | `rm ~/robot_code/motion_shapes.py` | Present. User file, no system change. The version on the robot may lag the repo copy during testing; compare before relying on it |
+| R12 | Further example programs (2026-10-04) | Not deployed yet: the programs are in [examples/](examples/) only. The robot went offline before they could be copied. When copied, list them here (`health_check.py`, `sensor_report.py`, `lidar_snapshot.py`, `lightring_status.py`, `more_shapes.py`, `wall_approach.py`, `keep_distance.py`, `motion_common.py`, `campaign.sh`) | More example programs | `ls -l ~/robot_code` | Delete the listed files | Not applied |
+| R13 | Test results folder (2026-10-04) | Not created. The 2026-10-04 run logs were copied from `/tmp` on the robot into [tests/logs/](tests/logs/) | Keep the raw run logs | n/a | n/a | Not applied |
 
 Not changed: the factory access point profile and `/etc/netplan/50-wifis.yaml`, the ROS and TurtleBot configuration, the robot password, and the Create 3 settings (the base was only restarted).
+
+On 2026-10-04 no `sudo` was used, no configuration was changed and the clock was not touched. The only physical change was reseating the lidar USB cable (same cable, same port) before the 11:44 boot. Temporary diagnosis files were written to `/tmp` (`undock.log`, `shapes_*.log`, `gapprobe*.py`, `odomprobe.py`, `odomprobe.log`, `scan_*.txt`); `/tmp` is cleared at reboot, so they need no undo.
 
 ### Restarts and service interruptions
 
@@ -101,6 +116,17 @@ Not changed: the factory access point profile and `/etc/netplan/50-wifis.yaml`, 
 | About 20:28 | Create 3 application restart | "Restart Application" (`POST /api/restart-app`) from the robot | Base data returned |
 | About 20:31 | `motion_test.sh` (undock, spin, dock) | From a laptop over SSH | Undock and spin succeeded; dock completed after a detached re-send |
 | About 20:50 (robot back at about 20:52) | Full power cycle: `sudo poweroff`, base off and on, back on the dock | Original author | Lidar still missing. Clock fix failed at boot; base silent again |
+
+2026-10-04 (robot time, EDT, from the robot's journal):
+
+| When | Action | Run by | Result |
+|---|---|---|---|
+| Before 11:44 | Lidar USB cable reseated | User (physical) | See the next row |
+| About 11:44 | Robot boot | User | Lidar detected (CP210x, `/dev/RPLIDAR`), base talking, clock correct |
+| 11:48 | Dock power saver stops the lidar (`turtlebot4_node`: "RPLIDAR stopped") | Automatic | No `/scan` while docked, as designed |
+| About 12:09 | Undock (`ros2 action send_goal /undock`, sent detached) | From a laptop over SSH | SUCCEEDED; "RPLIDAR started" at 12:09:54 |
+| After 12:09 | `motion_shapes.py` runs and short diagnostic moves | From a laptop over SSH, detached | See [docs/test-results.html](docs/test-results.html) |
+| _To be completed_ | Further undock and dock actions during the test campaign | Test campaign | _Placeholder_ |
 
 ### Removing the clock fix by hand
 
@@ -157,7 +183,7 @@ touch ~/wifi-switch/GO     # start the permanent phase (within 30 minutes of the
 touch ~/wifi-switch/KEEP   # confirm the switch (within 10 minutes), otherwise it is undone
 ```
 
-The example programs in [`examples/`](examples/) are user code, described in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md). `drive_test.py` and `motion_test.sh` move the robot. Test record for `motion_test.sh` on 2026-10-03: undock and the 360 degree spin succeeded, the forward drive was skipped (no lidar data), and the dock succeeded after a detached re-send because the SSH session dropped.
+The example programs in [`examples/`](examples/) are user code, described in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md) and [examples/README.md](examples/README.md). `drive_test.py` and `motion_test.sh` move the robot. Test record for `motion_test.sh` on 2026-10-03: undock and the 360 degree spin succeeded, the forward drive was skipped (no lidar data), and the dock succeeded after a detached re-send because the SSH session dropped.
 
 ## Incident: Create 3 base stopped responding after the clock fix
 
@@ -165,6 +191,7 @@ The example programs in [`examples/`](examples/) are user code, described in [HO
 |---|---|
 | Date | 2026-10-03 |
 | Status at handover | Open. Cause identified; fix prepared, not confirmed applied |
+| Status on 2026-10-04 | Not occurring on the 11:44 boot: clock correct, base data arriving, clocks within seconds. Fix (R7, R8) still installed, `undo-clock` not run. Keep open until the keep-or-remove decision ([ROADMAP.md, TB-17](ROADMAP.md#tb-17-decide-whether-to-keep-or-remove-the-clock-fix)) |
 | Changes involved | R7 (clock fix), R8 (drop-in) |
 
 ### Summary
@@ -226,15 +253,97 @@ Accepted cost: the Pi date stays wrong, so `git clone`, `pip` and `apt` over HTT
 - When the base goes silent, restart the Create 3 application first. Restarting `turtlebot4.service` alone did not help.
 - Nice-to-have changes on shared hardware should be proposed, not applied.
 
+## Incident: lidar not detected (2026-10-03), resolved 2026-10-04
+
+| | |
+|---|---|
+| Date | Found 2026-10-03 at about 20:31 (UTC+3); resolved 2026-10-04 before the 11:44 boot (robot time, EDT) |
+| Status | **Resolved** 2026-10-04 |
+| Changes involved | None in software. Physical: lidar USB cable reseated (same cable, same port) |
+| Illustrated version | [docs/lidar-diagnosis.html](docs/lidar-diagnosis.html); Markdown version [docs/LIDAR-FINDINGS.md](docs/LIDAR-FINDINGS.md) |
+
+### Summary
+
+After the reboot at about 19:56 on 2026-10-03 the lidar still spun, but the Raspberry Pi did not see it on USB: no CP210x device in `lsusb`, no `/dev/RPLIDAR`, and the driver could not open the port. A full power cycle did not help. On 2026-10-04 the user reseated the lidar's USB cable and booted the robot at about 11:44 (robot time). The lidar was detected, the driver started, and off the dock `/scan` published at 7.75 Hz with plausible ranges. Root cause: a loose USB connection. Fixed physically; no software change.
+
+### Evidence on 2026-10-04 (read-only checks, robot time; the commands are the way to repeat each check)
+
+| Layer | How to check | Result on 2026-10-04 |
+|---|---|---|
+| USB | `lsusb` | `10c4:ea60` Silicon Labs CP210x UART Bridge present |
+| Device | `ls -la /dev/RPLIDAR` | Link to `ttyUSB0`; `ttyUSB0` is `crw-rw-rw-`, owner `root`, group `dialout` |
+| Driver | `journalctl -u turtlebot4 -b` | `rplidar_composition` started: serial number `6DE9ED95C4E493C8A5E69EF0FC394B6C`, firmware 1.29, hardware revision 7, health status 0, scan mode Sensitivity, maximum distance 12 m, sample rate 7.9K points/s |
+| Power saver | Same journal | 11:48 `turtlebot4_node`: "RPLIDAR stopped" (docked). 12:09:54 "RPLIDAR started" (after undock). Expected behaviour, not a fault |
+| ROS graph | `ros2 node list`, `ros2 topic info -v /scan` | Nodes include `/rplidar_composition`, `/turtlebot4_base_node`, `/oakd`, `/turtlebot4_diagnostics`. `/scan`: 1 publisher (reliable), subscriber `turtlebot4_diagnostics` (best effort) |
+| Data (off the dock) | `ros2 topic hz /scan` | 7.75 Hz; period 0.119 to 0.139 s; standard deviation 0.0064 s |
+| Data | `ros2 topic echo --once --full-length /scan` | Frame `rplidar_link`; `angle_min` -3.124 rad, `angle_max` 3.1416 rad, increment 0.008715 rad (720 beams); `range_min` 0.15 m, `range_max` 12.0 m; 519 of 720 beams valid (72 %); ranges 0.261 to 6.800 m, median 1.442 m |
+| Robot frame | `ros2 run tf2_ros tf2_echo base_link rplidar_link` | Translation (-0.040, 0, 0.193) m, yaw +90 degrees. Straight ahead of the robot is laser angle -90 degrees |
+| Program | `python3 clearance_check.py 0.6` | "lidar frame offset 90 deg, beams in front 78, nearest in front 1.73 m", exit code 0 |
+
+`dmesg` needs `sudo` on this robot and was not run.
+
+### Root cause
+
+A loose USB connection between the lidar and the Pi. The lidar's motor is powered separately from its USB data link, so it kept spinning while the Pi saw no USB device. After the user reseated the cable, the CP210x bridge enumerated at boot and the driver bound to it without any software change. Not related to the clock fix.
+
+### Resolution and verification
+
+- Resolution: cable reseated by the user before the 11:44 boot on 2026-10-04 (same port, same cable).
+- Verified on the boot after the reseat: USB device, device link, driver start, `/scan` at about 7.75 Hz off the dock, `clearance_check.py` exit 0.
+- Not yet verified: detection after a second, separate reboot or power cycle. Record it the next time the robot restarts.
+
+### Lessons
+
+- When a USB sensor spins but is not in `lsusb`, check the cable first: power and data are separate.
+- "No `/scan` on the dock" is the power saver, not a fault. Undock before judging the lidar.
+- `ros2 topic echo` cuts arrays at 128 entries; add `--full-length` to see all 720 ranges.
+- `ros2 topic hz` in Jazzy has no `--qos-reliability` option; it works on `/scan` without one.
+- A cable strain relief and a label would make this less likely and quicker to check ([ROADMAP.md, TB-18](ROADMAP.md#tb-18-lidar-cable-strain-relief-and-label)).
+
+## Finding: /odom pauses at motion start
+
+| | |
+|---|---|
+| Date | 2026-10-04 (robot time) |
+| Status | Worked around in `motion_shapes.py`; root cause under characterisation ([ROADMAP.md, TB-15](ROADMAP.md#tb-15-characterise-the-odom-pauses-at-motion-start)) |
+| Affects | Any program that stops when `/odom` is late, in particular `motion_shapes.py` |
+| Illustrated version | [docs/motion-program-design.html](docs/motion-program-design.html#odom-pause) |
+
+### Summary
+
+The first real run of `motion_shapes.py square` aborted about 1 s after starting with "odometry is stale (none for 0.5 s)". Tests without motion found no gap. A 10 cm instrumented move showed that the base itself stops publishing `/odom` for about 0.4 s just after the wheels start: the gap appears both in the arrival times on the Pi and in the message header stamps, so it is not a Pi-side delivery delay.
+
+### Measurements (2026-10-04)
+
+| Test | Result |
+|---|---|
+| Program loop alone, robot still | Worst `/odom` age 0.104 s |
+| Publishing zero velocity on `/cmd_vel`, robot still | Worst `/odom` age 0.100 s |
+| `ros2 topic hz /odom`, robot still | 19.98 Hz, largest gap 0.064 s |
+| Instrumented 10 cm move | Arrival gap 0.413 s, header-stamp gap 0.419 s, 0.12 s after motion started |
+| Triangle run after fix 1 | Aborted at a segment change with a 1.0 s gap; Pi load average 3.4 at the time |
+| Root-cause characterisation | _Placeholder: numbers from the test campaign (gap length and frequency, when gaps occur, load dependence)_ |
+
+### Changes made to the program
+
+1. Fix 1: `ODOM_STALE` raised from 0.5 s to 1.0 s. Square, rotate and back-and-forth then completed. The triangle still aborted once on a 1.0 s gap.
+2. Fix 2 (current): if odometry is older than `ODOM_HOLD` = 0.3 s the program sends zero velocity and waits, and it aborts only when odometry is older than `ODOM_STALE` = 2.0 s. A hold does not count as a stall.
+
+### Open questions
+
+- Whether the pause comes from the Create 3 firmware, the USB network link or Pi load. See TB-15.
+- Whether other programs on this robot (Nav2, teleop) are affected.
+
 ## Known issues
 
 | Issue | Symptoms | Evidence | Status | Next action |
 |---|---|---|---|---|
-| Lidar not detected on USB (since the reboot at about 19:56 on 2026-10-03) | No `/scan` data; `scan_test.py` and `clearance_check.py` get nothing; `motion_test.sh` skips its forward drive | No `/dev/RPLIDAR`; no Silicon Labs CP210x device in `lsusb`, docked or undocked; `rplidar_ros` log: "cannot bind to the specified serial port '/dev/RPLIDAR'". The lidar spins. It worked before the reboot. A full power cycle did not help | Open. Likely a loose USB cable or a power issue | Reseat both ends of the lidar USB cable, restart `turtlebot4.service` (`sudo ./undo-clock` does this), then try another USB port or cable |
+| Lidar not detected on USB (since the reboot at about 19:56 on 2026-10-03) | No `/scan` data; `scan_test.py` and `clearance_check.py` get nothing; `motion_test.sh` skips its forward drive | No `/dev/RPLIDAR`; no Silicon Labs CP210x device in `lsusb`, docked or undocked; `rplidar_ros` log: "cannot bind to the specified serial port '/dev/RPLIDAR'". The lidar spins. It worked before the reboot. A full power cycle did not help | **Resolved 2026-10-04**: loose USB cable, reseated by the user. See the [lidar record](#incident-lidar-not-detected-2026-10-03-resolved-2026-10-04) | Confirm detection after the next reboot. Strain relief and label: ROADMAP TB-18 |
+| `/odom` pauses when the wheels start | Programs that require fresh odometry stop; `motion_shapes.py` printed "odometry is stale" | 0.41 s gap in arrival and header stamps 0.12 s after motion start; 1.0 s gap at a segment change with Pi load 3.4. No gap while still. See the [finding](#finding-odom-pauses-at-motion-start) | Worked around in `motion_shapes.py` (hold at 0.3 s, abort at 2.0 s) | Characterise the cause (ROADMAP TB-15). Treat short `/odom` gaps as normal in your own programs |
 | Robot clock wrong | Certificate or date errors from HTTPS, `git`, `pip` and `apt` | Campus blocks NTP (chrony sources unreachable); the Pi has no battery-backed clock and booted in October 2024 | Accepted once the clock fix is removed | Copy code from a laptop. Propose any clock solution in [ROADMAP.md](ROADMAP.md) before applying it |
-| Create 3 base silent at handover | No `/battery_state` or `/dock_status`; undock and dock time out | Pi in 2024, base in 2026 after the power cycle | Fix prepared, not confirmed run | Run the [resolution plan](#resolution-plan) |
+| Create 3 base silent at handover | No `/battery_state` or `/dock_status`; undock and dock time out | Pi in 2024, base in 2026 after the power cycle | Fix prepared, not run. Not occurring on 2026-10-04 (base talking, clocks agree, clock fix still installed) | If it happens again, run the [resolution plan](#resolution-plan). Keep-or-remove decision: ROADMAP TB-17 |
 | SSH sessions drop while the robot moves | A running `ros2 action send_goal` is cancelled, so the move is not finished | Happened on 2026-10-03 as docking started; the robot briefly left the Wi-Fi, likely roaming between campus access points | Workaround in place | Run motion scripts detached on the robot (`setsid nohup` or `tmux`), as described in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md) |
-| Clock timer can step the clock while ROS runs | Base goes silent some time after boot | If the boot-time fetch fails, the timer retries 15 minutes later and can then jump the clock with ROS running | Moot once R7 is removed | Run the resolution plan |
+| Clock timer can step the clock while ROS runs | Base goes silent some time after boot | If the boot-time fetch fails, the timer retries 15 minutes later and can then jump the clock with ROS running | Still possible: R7 is still installed on 2026-10-04. Moot once R7 is removed | Decide in ROADMAP TB-17. Until then, if the base goes silent, restart the base application |
 | `create3_republisher` crashed | Process restarts | Exited with code -11 twice and restarted by itself; seen before any system change | Watch | Note any recurrence here |
 
 ## Verification checklist
@@ -268,6 +377,14 @@ Run on the robot (`ssh ubuntu@turtlebot4.local`, or the address on its display).
    lsusb | grep -i cp210
    ros2 topic info /scan
    ```
+   Values seen on 2026-10-04: `/dev/RPLIDAR -> ttyUSB0`; `lsusb` line with ID `10c4:ea60` (Silicon Labs CP210x UART Bridge); `/scan` with 1 publisher. Off the dock only:
+   ```bash
+   ros2 topic hz /scan
+   ros2 topic echo --once --full-length /scan
+   ```
+   Expected off the dock: about 7.7 to 7.8 Hz; frame `rplidar_link`; 720 ranges (`angle_increment` about 0.0087 rad), `range_min` 0.15, `range_max` 12.0; most ranges finite in a room (72 % on 2026-10-04). `python3 ~/robot_code/clearance_check.py 0.6` should print "lidar frame offset 90 deg" and exit 0 or 1.
+
+   Gotchas: without `--full-length`, `ros2 topic echo` shows only the first 128 ranges followed by `...`. `ros2 topic hz` in Jazzy has no `--qos-reliability` option; run it without one. On the dock, `/scan` has a publisher but no messages: that is the power saver, not a fault.
 7. Clock. Record the value; a wrong date is a known issue. After the clock fix is removed, expect no `tb4-https-time` units and no drop-in folder.
    ```bash
    date
@@ -293,6 +410,9 @@ Run on the robot (`ssh ubuntu@turtlebot4.local`, or the address on its display).
 - [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md): user guide (connecting, running code, troubleshooting).
 - [ROADMAP.md](ROADMAP.md): plan for the next iterations, including remote desktop.
 - [General Tasks/TurtleBot4 - connect to university Wi-Fi.txt](../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt): raw chronological log, including failures.
+- [General Tasks/TurtleBot4 - lidar check and motion programs.txt](../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt): log of the 2026-10-04 lidar check and motion program work, including failures.
+- [docs/](docs/index.html): illustrated pages on the lidar diagnosis, the motion program design and the test results.
+- [examples/README.md](examples/README.md) and [tests/](tests/): how to run the example programs, and the test campaign.
 - [`setup/`](setup/) and [`examples/`](examples/): copies of the scripts and programs installed on the robot.
 - [turtlebot4-field-guide.html](turtlebot4-field-guide.html): general TurtleBot 4 background.
 - Official TurtleBot 4 user manual: https://turtlebot.github.io/turtlebot4-user-manual/

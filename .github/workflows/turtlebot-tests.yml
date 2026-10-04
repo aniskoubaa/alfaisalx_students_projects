@@ -1,0 +1,38 @@
+# Offline checks for the TurtleBot 4 example programs. No robot and no ROS needed: the tests stub ROS and
+# drive a simulated robot (TurtleBot/tests/offline/sim.py). Runs only when files under TurtleBot/ change.
+name: TurtleBot offline tests
+
+on:
+  push:
+    paths:
+      - 'TurtleBot/**'
+      - '.github/workflows/turtlebot-tests.yml'
+  pull_request:
+    paths:
+      - 'TurtleBot/**'
+      - '.github/workflows/turtlebot-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'   # same as the robot (Ubuntu 24.04)
+      - name: Compile every Python file
+        run: python -m py_compile TurtleBot/examples/*.py TurtleBot/tests/*.py TurtleBot/tests/offline/*.py
+      - name: Check shell scripts
+        run: |
+          for f in TurtleBot/examples/*.sh TurtleBot/tools/connect/*.sh; do
+            if [ -f "$f" ]; then bash -n "$f"; echo "ok $f"; fi
+          done
+      - name: Logic tests
+        run: python TurtleBot/tests/offline/test_pure.py
+      - name: Simulated robot runs
+        run: python TurtleBot/tests/offline/test_sim_runs.py

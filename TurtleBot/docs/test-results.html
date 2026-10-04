@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion Test Results</title>
+<meta name="description" content="Results of the TurtleBot 4 motion program runs and checks, 2026-10-04, with sections for the test campaign.">
+<style>
+  /* Shared style for TurtleBot/docs pages. Tokens match turtlebot4-field-guide.html. */
+  :root{
+    --bg:#EEF2F4; --panel:#FFFFFF; --panel-alt:#E3EAED; --text:#16232F; --text-dim:#54636F;
+    --border:#C6D2D7; --accent:#0C8C82; --accent-strong:#075F58; --warn:#B85B26; --code-bg:#DDE6E9;
+    --ok:#2E7D32; --bad:#B3261E; --ok-bg:#E3F1E4; --bad-bg:#F8E4E2; --warn-bg:#F7E9DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+      --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+      --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+    --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+    --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.label-font,.eyebrow,th,.chip,.tile .k,figcaption,nav.toc a{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;}
+  code,pre,.mono{font-family:"IBM Plex Mono", Consolas, "Courier New", monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:0.88em; overflow-wrap:anywhere;}
+  pre{background:var(--code-bg); padding:12px 14px; border-radius:4px; overflow-x:auto; font-size:0.84rem; line-height:1.5; margin:0 0 16px;}
+  pre code{background:none; padding:0;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  a{color:var(--accent-strong);}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+
+  .page{display:grid; grid-template-columns:220px minmax(0,1fr); gap:0 44px; max-width:1220px; margin:0 auto; padding:0 28px 80px;}
+  nav.toc{position:sticky; top:0; align-self:start; padding-top:48px; max-height:100vh; overflow-y:auto;}
+  nav.toc .eyebrow{color:var(--text-dim); font-size:0.7rem;}
+  nav.toc ul{list-style:none; margin:0 0 24px; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.toc a{display:block; padding:6px 10px; border-radius:3px; color:var(--text-dim); text-decoration:none; font-size:0.86rem; font-weight:500;}
+  nav.toc a:hover{color:var(--text); background:var(--panel-alt);}
+  main{min-width:0; padding-top:48px;}
+  header.hero{margin-bottom:36px;}
+  .eyebrow{font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 12px;}
+  h1.title{font-size:clamp(2rem,5vw,3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{font-size:1.08rem; color:var(--text-dim); max-width:66ch; margin:0 0 20px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.84rem; color:var(--text-dim);}
+  .meta b{color:var(--text); font-weight:600;}
+
+  section{max-width:860px; padding:40px 0; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none; padding-top:0;}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .section-tag{font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.72rem; color:var(--text-dim); white-space:nowrap;}
+  h2{font-size:1.5rem; font-weight:600;}
+  h3{font-size:1.05rem; font-weight:600; margin:24px 0 8px;}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin:3px 0;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .table-wrap{overflow-x:auto; margin:0 0 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
+  th,td{text-align:left; padding:9px 12px; border-top:1px solid var(--border); vertical-align:top;}
+  thead th{border-top:none; font-size:0.76rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim); background:var(--panel-alt); white-space:nowrap;}
+  tbody th{font-weight:600; color:var(--text-dim); white-space:nowrap;}
+  td.notes{min-width:230px;}
+  td.nowrap{white-space:nowrap;}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  .chip{display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.74rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap;}
+  .chip.ok{color:var(--ok); background:var(--ok-bg);}
+  .chip.bad{color:var(--bad); background:var(--bad-bg);}
+  .chip.warn{color:var(--warn); background:var(--warn-bg);}
+  .chip.info{color:var(--accent-strong); background:var(--panel-alt);}
+  .chip.todo{color:var(--text-dim); background:transparent; border-style:dashed;}
+
+  .note{padding:12px 16px; background:var(--panel-alt); border-left:3px solid var(--warn); border-radius:0 4px 4px 0; font-size:0.92rem; margin:18px 0;}
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .placeholder{border:2px dashed var(--warn); border-radius:6px; padding:14px 16px; margin:16px 0; background:var(--warn-bg);}
+  .placeholder > b:first-child{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; color:var(--warn); text-transform:uppercase; letter-spacing:0.06em; font-size:0.78rem; display:block; margin-bottom:4px;}
+  tr.ph td{color:var(--text-dim); font-style:italic; background:repeating-linear-gradient(135deg, transparent 0 8px, var(--warn-bg) 8px 10px);}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:0 0 16px;}
+  .card{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px; break-inside:avoid;}
+  .card h3{margin:0 0 8px; font-size:0.98rem; display:flex; justify-content:space-between; gap:8px; align-items:baseline;}
+  .card p{margin:0 0 6px; font-size:0.9rem; color:var(--text-dim);}
+  .card dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.86rem;}
+  .card dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .card dd{margin:0; font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.82rem; overflow-wrap:anywhere;}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 0 18px;}
+  .tile{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px 14px;}
+  .tile .k{font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .tile .v{font-size:1.6rem; font-weight:600; font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; line-height:1.2;}
+  .tile .s{font-size:0.8rem; color:var(--text-dim);}
+
+  /* step flow */
+  ol.flow{list-style:none; padding:0; margin:0 0 16px; counter-reset:f;}
+  ol.flow > li{counter-increment:f; position:relative; padding:0 0 22px 52px; margin:0;}
+  ol.flow > li::before{content:counter(f); position:absolute; left:0; top:0; width:34px; height:34px; border-radius:50%; background:var(--panel); border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono", Consolas, monospace; font-weight:600;}
+  ol.flow > li::after{content:""; position:absolute; left:16px; top:36px; bottom:2px; width:2px; background:var(--border);}
+  ol.flow > li:last-child::after{display:none;}
+  ol.flow h3{margin:4px 0 6px;}
+
+  .verdict{border:2px solid var(--ok); background:var(--ok-bg); border-radius:8px; padding:16px 20px; margin:0 0 24px;}
+  .verdict h2{color:var(--ok); font-size:1.25rem; margin-bottom:6px;}
+  .verdict p:last-child{margin-bottom:0;}
+
+  .layers{display:flex; flex-direction:column; gap:6px; margin:0 0 16px;}
+  .layer{display:grid; grid-template-columns:34px minmax(0,1.3fr) minmax(0,1fr) 110px; gap:12px; align-items:center; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-left:5px solid var(--accent); border-radius:4px; font-size:0.88rem;}
+  .layer .n{font-family:"IBM Plex Mono", Consolas, monospace; color:var(--text-dim);}
+  .layer b{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .layer .when{color:var(--text-dim); font-size:0.84rem;}
+  .layer.pre{border-left-color:var(--text-dim);}
+  .layer.run{border-left-color:var(--warn);}
+  .layer.last{border-left-color:var(--bad);}
+
+  figure{margin:0 0 18px;}
+  figure.diagram{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:0.82rem; color:var(--text-dim); margin-top:10px; max-width:70ch;}
+  figure.narrow svg{max-width:560px; margin:0 auto;}
+  td:first-child code{white-space:nowrap;}
+  .shapes{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .shapes figure{margin:0;}
+
+  /* SVG classes (themeable) */
+  .sv-line{stroke:var(--text-dim); fill:none; stroke-width:1.5;}
+  .sv-thin{stroke:var(--border); fill:none; stroke-width:1;}
+  .sv-path{stroke:var(--accent); fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .sv-accent{stroke:var(--accent-strong); fill:none; stroke-width:2;}
+  .sv-warn{stroke:var(--warn); fill:none; stroke-width:2;}
+  .sv-bad{stroke:var(--bad); fill:none; stroke-width:2;}
+  .sv-dash{stroke-dasharray:5 4;}
+  .sv-fill-panel{fill:var(--panel); stroke:var(--text-dim); stroke-width:1.5;}
+  .sv-fill-alt{fill:var(--panel-alt); stroke:var(--border); stroke-width:1;}
+  .sv-fill-accent{fill:var(--accent); opacity:0.18; stroke:var(--accent); stroke-width:1.5;}
+  .sv-fill-warn{fill:var(--warn); opacity:0.16;}
+  .sv-fill-bad{fill:var(--bad); opacity:0.14;}
+  .sv-dot{fill:var(--accent-strong);}
+  .sv-dot-warn{fill:var(--warn);}
+  .sv-text{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:13px;}
+  .sv-small{fill:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:11px;}
+  .sv-mono{fill:var(--text-dim); font-family:"IBM Plex Mono", Consolas, monospace; font-size:10.5px;}
+  .sv-title{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:14px; font-weight:600;}
+  .sv-acc-text{fill:var(--accent-strong); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-warn-text{fill:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-bad-text{fill:var(--bad); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .arrowhead{fill:var(--text-dim);}
+  .arrowhead-acc{fill:var(--accent-strong);}
+
+  footer{max-width:860px; margin-top:30px; padding-top:18px; border-top:1px solid var(--border); font-size:0.84rem; color:var(--text-dim);}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:minmax(0,1fr); padding:0 16px 60px;}
+    nav.toc{min-width:0;}
+    nav.toc{position:sticky; top:0; z-index:5; padding-top:0; background:var(--bg); max-height:none; border-bottom:1px solid var(--border);}
+    nav.toc .eyebrow{display:none;}
+    nav.toc ul{flex-direction:row; overflow-x:auto; gap:4px; padding:12px 0; margin:0;}
+    nav.toc a{white-space:nowrap;}
+    main{padding-top:20px;}
+    .layer{grid-template-columns:28px 1fr; }
+    .layer .when,.layer .act{grid-column:2;}
+  }
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel-alt:#f2f2f2; --text:#000; --text-dim:#333; --border:#bbb; --code-bg:#f2f2f2;}
+    body{background:#fff; font-size:10.5pt;}
+    nav.toc{display:none;}
+    .page{display:block; padding:0; max-width:none;}
+    main{padding-top:0;}
+    section{padding:18px 0; max-width:none; break-inside:auto;}
+    .card,.tile,figure,.layer,tr,.verdict,.placeholder{break-inside:avoid;}
+    h2,h3{break-after:avoid;}
+    a{color:#000;}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-size:0.8em;}
+    pre{white-space:pre-wrap;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="toc" aria-label="Contents">
+    <p class="eyebrow">Contents</p>
+    <ul>
+      <li><a href="#summary">Summary</a></li>
+      <li><a href="#runs">Shape runs</a></li>
+      <li><a href="#odom">/odom measurements</a></li>
+      <li><a href="#lidar">Lidar check</a></li>
+      <li><a href="#safety-tests">Safety stop tests</a></li>
+      <li><a href="#motion-test">motion_test.sh</a></li>
+      <li><a href="#floor">Floor measurements</a></li>
+      <li><a href="#how-to-add">How to add results</a></li>
+    </ul>
+    <p class="eyebrow">Other pages</p>
+    <ul>
+      <li><a href="index.html">Docs index</a></li>
+      <li><a href="motion-program-design.html">Motion program design</a></li>
+      <li><a href="lidar-diagnosis.html">Lidar diagnosis</a></li>
+      <li><a href="../examples/README.md">Examples README</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">TurtleBot 4 &middot; test record &middot; TB-03, TB-15, TB-16</p>
+      <h1 class="title">Motion test results</h1>
+      <p class="dek">Runs of <code>motion_shapes.py</code> and related checks on the lab TurtleBot 4. Measured values from 2026-10-04 are filled in. Sections marked with a dashed orange border wait for the test campaign.</p>
+      <div class="meta">
+        <span><b>Last updated</b> 2026-10-04</span>
+        <span><b>Times</b> robot clock, EDT (UTC-4)</span>
+        <span><b>Errors</b> odometry only unless marked "floor"</span>
+      </div>
+    </header>
+
+    <section id="summary">
+      <div class="section-head"><span class="section-tag">01</span><h2>Summary</h2></div>
+      <div class="tiles">
+        <div class="tile"><div class="k">Runs completed</div><div class="v">4</div><div class="s">square, rotate, back_and_forth, triangle</div></div>
+        <div class="tile"><div class="k">Runs aborted</div><div class="v">3</div><div class="s">all on odometry gaps (0.5, 1.0, 2.0 s); robot stopped each time</div></div>
+        <div class="tile"><div class="k">Worst odometry end error</div><div class="v">1.0 cm</div><div class="s">heading within +2.2&deg;</div></div>
+        <div class="tile"><div class="k">Pending</div><div class="v">&mdash;</div><div class="s">a complete figure eight; test campaign; floor measurements</div></div>
+      </div>
+      <div class="note"><b>Odometry error is not real error.</b> The end error compares the plan with the robot's own wheel odometry, which drifts and slips. The real error is larger. Floor measurements go in <a href="#floor">section 07</a>.</div>
+    </section>
+
+    <section id="runs">
+      <div class="section-head"><span class="section-tag">02</span><h2>Shape runs</h2></div>
+      <p>One row per run. Program version: <b>orig</b> (abort on odometry older than 0.5 s), <b>fix 1</b> (1.0 s), <b>fix 2</b> (hold at 0.3 s, abort at 2.0 s). Defaults unless stated: side 0.40 m, 0.10 m/s, 0.5 rad/s, lidar on, run detached. Rows 3 to 5 may not be in the exact order they were run.</p>
+      <div class="table-wrap">
+        <table id="runs-table">
+          <thead>
+            <tr><th>#</th><th>Time</th><th>Shape</th><th>Parameters</th><th>Version</th><th class="num">Duration</th><th class="num">Position error</th><th class="num">Heading error</th><th>Result</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td class="nowrap">12:13:37</td><td>square</td><td>defaults</td><td>orig</td><td class="num">about 1 s</td><td class="num">&ndash;</td><td class="num">&ndash;</td><td><span class="chip bad">aborted</span></td><td class="notes">"odometry is stale (none for 0.5 s)" in the first segment. Led to the <a href="#odom">odometry measurements</a></td></tr>
+            <tr><td>2</td><td class="nowrap">12:23:13</td><td>square</td><td>defaults</td><td>fix 1</td><td class="num">39 s</td><td class="num">0.9 cm</td><td class="num">+0.8&deg;</td><td><span class="chip ok">done</span></td><td class="notes">8 segments (straights 5.1&ndash;5.2 s, turns 3.6&ndash;3.7 s); plan estimate about 33 s</td></tr>
+            <tr><td>3</td><td class="nowrap">12:25:44</td><td>rotate</td><td>defaults</td><td>fix 1</td><td class="num">13.4 s</td><td class="num">0.1 cm</td><td class="num">+0.7&deg;</td><td><span class="chip ok">done</span></td><td class="notes">One full left turn</td></tr>
+            <tr><td>4</td><td class="nowrap">12:26:06</td><td>back_and_forth</td><td>defaults</td><td>fix 1</td><td class="num">26 s</td><td class="num">0.6 cm</td><td class="num">+0.9&deg;</td><td><span class="chip ok">done</span></td><td class="notes">Straights 5.1&ndash;5.4 s, 180&deg; turns 6.8 s</td></tr>
+            <tr><td>5</td><td class="nowrap">12:26:41</td><td>triangle</td><td>defaults</td><td>fix 1</td><td class="num">17 s</td><td class="num">&ndash;</td><td class="num">&ndash;</td><td><span class="chip bad">aborted</span></td><td class="notes">1.0 s odometry gap at the start of segment 4 (second turn); Pi load average 3.4. Led to fix 2</td></tr>
+            <tr><td>6</td><td class="nowrap">12:28:16</td><td>triangle</td><td>defaults</td><td>fix 2</td><td class="num">0 s</td><td class="num">&ndash;</td><td class="num">&ndash;</td><td><span class="chip warn">refused</span></td><td class="notes">Correct refusal: "path not clear: 0.48 m in front, need more than 0.65 m". The robot was then turned 180&deg; with <code>/rotate_angle</code> (SUCCEEDED) to face 2.5 m of open floor</td></tr>
+            <tr><td>7</td><td class="nowrap">12:30:47</td><td>triangle</td><td>defaults</td><td>fix 2</td><td class="num">37 s</td><td class="num">1.0 cm</td><td class="num">+2.2&deg;</td><td><span class="chip ok">done</span></td><td class="notes">Held still 3 times waiting for odometry (11, 8 and 1 control cycles), then carried on. Fix 2 working</td></tr>
+            <tr><td>8</td><td class="nowrap">12:31:31</td><td>figure_eight</td><td>defaults</td><td>fix 2</td><td class="num">22 s</td><td class="num">&ndash;</td><td class="num">&ndash;</td><td><span class="chip bad">aborted</span></td><td class="notes">Left circle done in 13.2 s (1 hold). In the right circle odometry stopped for 2.0 s: the robot held still for the whole gap, then aborted as designed</td></tr>
+            <!-- ADD NEW RUNS BELOW. Copy a row, remove class="ph", use chip ok (done), bad (aborted), warn (stopped by a person), todo (pending). -->
+            <tr class="ph"><td>9</td><td>_</td><td>_</td><td>_</td><td>fix 2</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td><span class="chip todo">pending</span></td><td class="notes">Test campaign (placeholder)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Times are the "starting" line of each run (robot clock, EDT). The full run logs are in the repository: <a href="../tests/logs/">tests/logs/</a> (described in <a href="../tests/README.md">tests/README.md</a>).</p>
+    </section>
+
+    <section id="odom">
+      <div class="section-head"><span class="section-tag">03</span><h2>/odom measurements</h2></div>
+      <p>Made after run 1 to find why odometry went stale. Details and the fixes: <a href="motion-program-design.html#odom-pause">motion program design, section 08</a>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Measurement</th><th>Robot</th><th class="num">Value</th></tr></thead>
+          <tbody>
+            <tr><td>Worst odometry age, program loop alone</td><td>still</td><td class="num">0.104 s</td></tr>
+            <tr><td>Worst odometry age, publishing zero velocity</td><td>still</td><td class="num">0.100 s</td></tr>
+            <tr><td><code>ros2 topic hz /odom</code></td><td>still</td><td class="num">19.98 Hz, largest gap 0.064 s</td></tr>
+            <tr><td>Arrival gap, instrumented 10 cm move</td><td>moving</td><td class="num">0.413 s, starting 0.12 s after motion start</td></tr>
+            <tr><td>Header-stamp gap, same move</td><td>moving</td><td class="num">0.419 s</td></tr>
+            <tr><td>Gap at a triangle segment change</td><td>moving</td><td class="num">1.0 s (load average 3.4)</td></tr>
+            <tr><td>Holds during the fix 2 triangle (20 Hz cycles beyond the 0.3 s hold limit)</td><td>moving</td><td class="num">11, 8, 1 cycles: gaps of about 0.85, 0.7 and 0.35 s</td></tr>
+            <tr><td>Gap in the figure eight's right circle</td><td>moving</td><td class="num">at least 2.0 s (abort limit)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="placeholder"><b>Placeholder: gap characterisation (TB-15)</b>
+        <div class="table-wrap" style="margin-top:8px">
+          <table>
+            <thead><tr><th>Condition</th><th class="num">Motion starts</th><th class="num">Gaps &gt; 0.2 s</th><th class="num">Median gap</th><th class="num">Max gap</th><th class="num">Delay after start</th><th class="num">Load avg</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr class="ph"><td>Straight start from rest</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td>_</td></tr>
+              <tr class="ph"><td>Turn start from rest</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td>_</td></tr>
+              <tr class="ph"><td>Segment change (straight to turn)</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td>_</td></tr>
+              <tr class="ph"><td>Stop</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td>_</td></tr>
+            </tbody>
+          </table>
+        </div>
+        Conclusion on the cause: <i>to be filled in</i>.
+      </div>
+    </section>
+
+    <section id="lidar">
+      <div class="section-head"><span class="section-tag">04</span><h2>Lidar check (TB-02)</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Check</th><th>Result</th><th class="num">Value</th></tr></thead>
+          <tbody>
+            <tr><td>USB device, device link, driver health</td><td><span class="chip ok">pass</span></td><td class="num">CP210x 10c4:ea60, /dev/RPLIDAR, health 0</td></tr>
+            <tr><td><code>/scan</code> rate off the dock</td><td><span class="chip ok">pass</span></td><td class="num">7.75 Hz (0.119&ndash;0.139 s)</td></tr>
+            <tr><td>Scan content</td><td><span class="chip ok">pass</span></td><td class="num">720 beams, 519 valid, 0.261&ndash;6.800 m</td></tr>
+            <tr><td><code>clearance_check.py 0.6</code></td><td><span class="chip ok">exit 0</span></td><td class="num">offset 90&deg;, 78 beams in front, nearest 1.73 m</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Full diagnosis: <a href="lidar-diagnosis.html">lidar-diagnosis.html</a>.</p>
+    </section>
+
+    <section id="safety-tests">
+      <div class="section-head"><span class="section-tag">05</span><h2>Safety stop tests</h2></div>
+      <p>Each stop should be triggered once on purpose (TB-16). Expected behaviour comes from the program design; the result column is for the campaign.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Trigger</th><th>Expected</th><th>Exit code</th><th>Result</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr class="ph"><td>Real run while docked</td><td>SETUP FAILED: the robot is on the dock; no motion</td><td>2</td><td><span class="chip todo">pending</span></td><td>_</td></tr>
+            <tr class="ph"><td>Dry run on the dock</td><td>Plan printed, lidar check skipped, nothing sent</td><td>0</td><td><span class="chip todo">pending</span></td><td>_</td></tr>
+            <tr class="ph"><td>Box in front at start</td><td>path not clear; no motion</td><td>1</td><td><span class="chip todo">pending</span></td><td>_</td></tr>
+            <tr class="ph"><td>Obstacle placed during a straight segment</td><td>ABORTED: obstacle &lt; 0.25 m ahead</td><td>1</td><td><span class="chip todo">pending</span></td><td>_</td></tr>
+            <tr class="ph"><td><code>touch ~/STOP</code></td><td>STOPPED within one cycle</td><td>130</td><td><span class="chip todo">pending</span></td><td>_</td></tr>
+            <tr class="ph"><td><code>pkill -INT -f motion_shapes.py</code></td><td>STOPPED within one cycle</td><td>130</td><td><span class="chip todo">pending</span></td><td>_</td></tr>
+            <tr class="ph"><td>Ctrl+C in the program's terminal</td><td>STOPPED within one cycle</td><td>130</td><td><span class="chip todo">pending</span></td><td>_</td></tr>
+            <tr class="ph"><td>Detached without <code>--yes</code></td><td>SETUP FAILED: no terminal to ask</td><td>2</td><td><span class="chip todo">pending</span></td><td>_</td></tr>
+            <tr class="ph"><td>Bumper pressed</td><td>ABORTED: hazard BUMP</td><td>1</td><td><span class="chip todo">pending</span></td><td>_</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="motion-test">
+      <div class="section-head"><span class="section-tag">06</span><h2>motion_test.sh end to end (TB-03)</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Undock</th><th>Clearance</th><th>Forward 20 cm</th><th>Spin 360&deg;</th><th>Docked at end</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>2026-10-03</td><td><span class="chip ok">ok</span></td><td><span class="chip bad">no lidar</span></td><td><span class="chip warn">skipped</span></td><td><span class="chip ok">ok</span></td><td><span class="chip ok">ok</span></td><td>Dock re-sent detached after an SSH drop</td></tr>
+            <tr class="ph"><td>_</td><td>_</td><td>_</td><td>_</td><td>_</td><td>_</td><td>Not rerun yet on 2026-10-04 (placeholder)</td></tr>
+            <tr class="ph"><td>_</td><td>_</td><td>Blocked-path run</td><td>expected: NOT driving</td><td>_</td><td>_</td><td>Placeholder</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="floor">
+      <div class="section-head"><span class="section-tag">07</span><h2>Floor measurements</h2></div>
+      <p>Mark the start position and heading with tape; after the run measure the distance from the mark to the robot centre and the heading change. Note the floor type.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Run #</th><th>Shape</th><th>Floor</th><th class="num">Odometry error</th><th class="num">Floor position error</th><th class="num">Floor heading error</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr class="ph"><td>_</td><td>_</td><td>_</td><td class="num">_</td><td class="num">_</td><td class="num">_</td><td>Placeholder: none measured yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="how-to-add">
+      <div class="section-head"><span class="section-tag">08</span><h2>How to add results</h2></div>
+      <ol>
+        <li>Open this file (<code>TurtleBot/docs/test-results.html</code>) in a text editor.</li>
+        <li>Copy a row in the right table, remove <code>class="ph"</code>, fill in the cells. Status chips: <code>chip ok</code> done, <code>chip bad</code> aborted, <code>chip warn</code> stopped or skipped, <code>chip todo</code> pending.</li>
+        <li>Take the position and heading errors from the program's last lines (<code>error: position ... cm, heading ... deg</code>).</li>
+        <li>Update the summary tiles, and the status block in <a href="../examples/README.md">examples/README.md</a>.</li>
+        <li>Never paste passwords or keys into logs or this page.</li>
+      </ol>
+    </section>
+
+    <footer>TurtleBot 4 lab documentation. Values from 2026-10-04 (robot time, EDT). Placeholders are marked with dashed borders or striped rows.</footer>
+  </main>
+</div>
+</body>
+</html>

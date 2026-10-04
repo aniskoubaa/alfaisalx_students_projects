@@ -1,0 +1,16 @@
+===== triangle
+12:28:14 shape triangle: 6 segments, about 28 s in total
+12:28:14   1. forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:28:14   2. turn left 120 deg at 0.50 rad/s (about 4.2 s, timeout 13.4 s)
+12:28:14   3. forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:28:14   4. turn left 120 deg at 0.50 rad/s (about 4.2 s, timeout 13.4 s)
+12:28:14   5. forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:28:14   6. turn left 120 deg at 0.50 rad/s (about 4.2 s, timeout 13.4 s)
+12:28:15 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+12:28:15 lidar yaw in the robot frame (from TF): 90 deg
+12:28:16 odometry OK, docked: False
+12:28:16 waiting up to 30 s for /scan
+12:28:16 lidar OK: nearest in front 0.48 m, nearest anywhere 0.48 m
+12:28:16 ABORTED: path not clear: 0.48 m in front, need more than 0.65 m
+STOPPED CHAIN at triangle (exit 1)
+CHAIN_END
