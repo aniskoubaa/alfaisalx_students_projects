@@ -2,6 +2,8 @@
 
 This guide shows how to reach the lab's TurtleBot 4 from your own computer (Windows, macOS or Linux), log in, write and run code on it, and turn it off safely. It is written for any lab member, including people who have not used SSH or ROS 2 before. Every command works from a fresh computer; nothing depends on a particular laptop. Facts that can change are dated (most were checked on 2026-10-03).
 
+**Shortcut (added 2026-10-04):** the [connect tool](tools/connect/README.md) does steps 2 to 4 and the key setup for you: `TurtleBotConnect.exe` on Windows, `connect-turtlebot.sh` on macOS and Linux. You still need to join the right Wi-Fi (step 3) and know the passwords. This guide explains what the tool does, and works without it.
+
 For a beginner's overview of the robot's hardware and ROS 2, read the [TurtleBot 4 field guide](turtlebot4-field-guide.html). For what has been changed on the robot, and how to verify or undo it, see [MAINTENANCE.md](MAINTENANCE.md).
 
 **Contents**
