@@ -104,16 +104,27 @@ echo "Starting. The window takes a few seconds to appear while TensorRT loads."
 echo "Press  q  or  ESC  in the video window to stop."
 echo
 
+# Every run is logged. Until 2026-10-05 the demo wrote only to this terminal, so
+# a crash left nothing behind once the window was closed. The newest 20 logs are
+# kept; -X faulthandler means even a native crash leaves a Python stack in it.
+LOGDIR="$HOME/raptor-results/demo-logs"
+mkdir -p "$LOGDIR"
+LOG="$LOGDIR/demo_$(date +%Y%m%d-%H%M%S).log"
+ls -1t "$LOGDIR"/demo_*.log 2>/dev/null | tail -n +20 | xargs -r rm -f
+echo "log    : $LOG"
+echo
+
 # Console is 1024x768 headless (no EDID to negotiate 1080p), so scale the
 # window to fit rather than opening one wider than the screen.
-"$VENV/bin/python" "$DEMO" --window-scale 0.5 "$@"
-status=$?
+PYTHONUNBUFFERED=1 "$VENV/bin/python" -X faulthandler "$DEMO" --window-scale 0.5 "$@" 2>&1 | tee "$LOG"
+status=${PIPESTATUS[0]}
 
 echo
 if [ $status -ne 0 ]; then
     echo "The demo exited with status $status (see the error above)."
+    echo "Full log: $LOG"
 else
-    echo "Demo finished."
+    echo "Demo finished. Log: $LOG"
 fi
 hold
 exit $status

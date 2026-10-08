@@ -1,0 +1,55 @@
+{
+ "name": "window_live_1080p60",
+ "when": "2026-10-05T12:08:13+00:00",
+ "demo_args": [
+  "--mode",
+  "bench",
+  "--window-scale",
+  "0.5"
+ ],
+ "minutes_planned": 3.0,
+ "minutes_ran": 2.05,
+ "outcome": "HUNG",
+ "exit_code": 0,
+ "signal": null,
+ "frames": 2672,
+ "fps_mean": null,
+ "fps_p5": null,
+ "infer_ms_mean": null,
+ "rss_mb_start": 483.0,
+ "rss_mb_peak": 6549.0,
+ "rss_mb_end": 6549.0,
+ "rss_slope_mb_per_min": 2.87,
+ "board_mem_available_min_mb": 6707.0,
+ "error_lines": [],
+ "demo_stats": {
+  "mode": "bench",
+  "pose_engine": "yolo26s-pose-384x640.engine",
+  "frames": 2672,
+  "fps_mean": 39.3,
+  "fps_p5": 24,
+  "infer_ms_last30": 18.1,
+  "people_count_frames": {
+   "0": 2,
+   "1": 2613,
+   "2": 54,
+   "3": 3
+  },
+  "people_count_changes": 5,
+  "posture_labels": {
+   "upright, legs hidden": 2730
+  },
+  "vlm_answers": {
+   "sitting": 2524,
+   "standing": 9
+  },
+  "vlm_seconds": 0.59,
+  "camera": "/dev/video0",
+  "camera_reconnects": 0,
+  "camera_mode": "1920x1080 YUYV @60.0 fps",
+  "frame_errors": 0,
+  "camera_thread_errors": 0
+ },
+ "log": "/home/alfaisal-x-nx/raptor-results/soak/window_live_1080p60_20261005-150610.log",
+ "crashed": true
+}

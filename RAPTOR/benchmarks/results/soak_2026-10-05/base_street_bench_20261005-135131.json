@@ -1,0 +1,54 @@
+{
+ "name": "base_street_bench",
+ "when": "2026-10-05T10:54:35+00:00",
+ "demo_args": [
+  "--mode",
+  "bench",
+  "--source",
+  "/home/alfaisal-x-nx/raptor-data/video/stress_street_1080p.mp4"
+ ],
+ "minutes_planned": 3.0,
+ "minutes_ran": 3.05,
+ "outcome": "SURVIVED",
+ "exit_code": 0,
+ "signal": null,
+ "frames": 6563,
+ "fps_mean": 52.4,
+ "fps_p5": 40.6,
+ "infer_ms_mean": 17.8,
+ "rss_mb_start": 490.0,
+ "rss_mb_peak": 9937.0,
+ "rss_mb_end": 6528.0,
+ "rss_slope_mb_per_min": 2.25,
+ "board_mem_available_min_mb": 6613.0,
+ "error_lines": [],
+ "demo_stats": {
+  "mode": "bench",
+  "pose_engine": "yolo26s-pose-384x640.engine",
+  "frames": 6563,
+  "fps_mean": 52.4,
+  "fps_p5": 32.9,
+  "infer_ms_last30": 15.7,
+  "people_count_frames": {
+   "0": 2344,
+   "1": 1565,
+   "2": 986,
+   "3": 1448,
+   "4": 220
+  },
+  "people_count_changes": 410,
+  "posture_labels": {
+   "standing": 8361,
+   "unknown": 256,
+   "upright, legs hidden": 144
+  },
+  "vlm_answers": {
+   "standing": 824
+  },
+  "vlm_seconds": 0.49,
+  "camera": "/home/alfaisal-x-nx/raptor-data/video/stress_street_1080p.mp4",
+  "camera_reconnects": 0
+ },
+ "log": "/home/alfaisal-x-nx/raptor-results/soak/base_street_bench_20261005-135131.log",
+ "crashed": false
+}

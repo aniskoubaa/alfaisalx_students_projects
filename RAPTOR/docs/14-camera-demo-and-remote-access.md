@@ -295,3 +295,163 @@ but 1024×768 is sufficient and the demo window is scaled to 0.5 to fit it.
 `xorg.conf`, and rolls back automatically** if X does not return at a usable
 resolution — a broken Xorg config on a board reachable only over SSH would
 otherwise leave no desktop at all.
+
+## 2026-10-05: a USB 3 camera at 1080p60, and the crash hunt
+
+Asked for: change to the new camera and run it at high resolution and high frame
+rate; test on **video**, not only images, because the demo "sometimes crashes if
+something shows up suddenly"; and if it keeps crashing, change the model. Every
+number below was measured on the board that day. Raw results:
+[`results/soak_2026-10-05/`](../benchmarks/results/soak_2026-10-05/_summary.json) (and the [stability report](./raptor-stability-report.html)).
+
+### The new camera: Arducam B0498
+
+The C922 has been replaced by an **Arducam B0498** (8.3 MP, USB 3). It is on the
+USB 3 bus at **5000M** - the C922 was stuck on USB 2 at 480M. It offers
+**uncompressed YUYV only; it has no MJPG mode at all.**
+
+| Mode | Driver delivers | Through the demo's capture thread | CPU for capture |
+|---|---|---|---|
+| 1280×720 @ 90 | 90.03 fps | 90.0 fps | 122 % of a core, 13.5 ms/frame |
+| **1920×1080 @ 60** | **60.03 fps** | **60.0 fps** | **111 % of a core, 18.4 ms/frame** |
+| 1920×1080 @ 30 | 30.34 fps | 30.0 fps | 55 % |
+| 3840×2160 @ 15 | 15.01 fps | 15.0 fps | 66 %, 43.9 ms/frame |
+
+**1080p60 is the setting**: full HD at twice the C922's rate, sustained by the
+capture thread on about one of the board's eight cores. 4K is available but only at
+15 fps. Auto-exposure did not lower the frame rate in the lab's lighting; in a dark
+room it may - watch the HUD.
+
+What changed in the code (`common/live_camera.py`, `demo/raptor_live_demo.py`):
+
+- `--fourcc auto` (the new default) chooses by the camera's USB link: **YUYV on
+  USB 3** (no decoding - the C922's 1080p MJPEG cost 22 ms per frame to decode),
+  MJPG on USB 2, where uncompressed 1080p does not fit. The old default asked for
+  MJPG, which this camera silently ignored.
+- `--fps 60` is the new default; a camera that cannot do 60 at the chosen size
+  gives the nearest rate it has (the C922 at 1080p: 30).
+- The demo prints and logs what was actually negotiated:
+  `camera /dev/video0 - 1920x1080 YUYV @60.0 fps`.
+
+**Bench mode on the live camera: 59.9 FPS at 1080p60**, worst 5 % of frames also
+59.9 - the pipeline keeps up with the camera. Pose inference 11.6-12.3 ms a frame.
+
+### Looking for the crash
+
+Evidence first, from the board as it was found:
+
+- The demo had been running for **5 days 20 hours**. Its peak memory was
+  **10.2 GB** (`VmHWM`) on a 15.6 GB board with **no swap**.
+- The kernel log for the previous 7 days had **no** out-of-memory kills, segfaults
+  or GPU faults - only the old C922 dropping off USB on 29 September.
+- The demo wrote only to a terminal on the Jetson's screen. **There was no log**,
+  so whatever happened left no trace.
+
+Two crash causes looked likely from reading the code, and both fire exactly when a
+new person appears. **Neither reproduced** (`tests/repro_crashes.py`):
+
+| Suspect | Test | Result |
+|---|---|---|
+| The VLM thread adds a new person's answer to a dict while the main loop iterates it (`dictionary changed size during iteration`) | Writer thread hammering the dict against the demo's exact access pattern | 0 errors in 38,750 iterations |
+| A zero-height box at the frame edge makes ByteTrack divide by zero, and `int(nan)` crashes the drawing | Zero-height, zero-width, one-pixel and inverted boxes through the tracker | No exception, no NaN |
+
+They are not claimed as the cause. The real crash was then hunted on video built for
+it (`tests/make_stress_videos.py`, 1080p): an **empty** version of each scene cut
+straight to a crowd, crowd/empty alternating **every frame**, jump cuts where people
+teleport, and a sudden brightness flash.
+
+### What was fixed, and the proof each fix works
+
+These are definite defects, fixed whether or not they were *your* crash:
+
+| Defect | Fix | Proof (fault injection, `tests/fault_inject_demo.py`) |
+|---|---|---|
+| Any exception while processing one frame ended the whole demo | Each frame is guarded: the full traceback is logged, the frame skipped, the count shown on the HUD. **30 failures in a row** stop the demo and say why - a broken system must not hide behind the guard | 1 % of frames made to fail: **survived**, 82 errors in 8,366 frames (0.98 %), still 59.8 FPS. Every frame made to fail: stopped after exactly 30, exit status 1, with the message |
+| An exception inside the camera thread killed the thread silently; the demo then froze on its last status, which looks like a crash | The thread catches it, logs it, releases the camera and re-opens it | 0.5 % of live camera reads made to fail: **survived**, 27 thread errors, 27 automatic re-opens, frames kept coming at 59.1 FPS |
+| No log | `launch_demo.sh` logs every run to `~/raptor-results/demo-logs/` (newest 20 kept), with Python's fault handler on, so even a native crash leaves a stack | - |
+| The FPS statistics list grew by one entry per frame, forever | A bounded histogram | - |
+
+### Long runs on video and live
+
+`tests/soak_demo.py` runs the demo as a separate process, so a crash is an exit code
+and a traceback rather than the test dying with it; memory is sampled every 2 s.
+
+| Run | Code | Length | Frames | Outcome | FPS (mean / worst 5 %) |
+|---|---|---|---|---|---|
+| Street stress video, bench + VLM | before | 3 min | 6,563 | survived | 52.4 / 40.6 |
+| Aerial stress video, aerial + VLM | before | 3 min | 3,753 | survived | 31.0 / 22.0 |
+| Live camera 1080p60, bench + VLM | before | 7 min | 22,983 | survived (stopped by me) | 59.9 / 59.9 |
+| Street stress video, bench + **VLM answering 3,006 times** | after | 16 min | 22,023 | **survived, 0 errors** | (profiler on) |
+| Aerial stress video, aerial + VLM | after | 12 min | 9,484 | **survived, 0 errors** | (profiler on) |
+| Live camera 1080p60 **with the real video window**, bench + VLM | after | 3 min | 7,064 | **survived, 0 errors**, memory +1 MB/min | about 44 (window drawing costs ~15 FPS) |
+
+**No run crashed, before or after the fixes.** That has to be said plainly: the
+crash you saw was not reproduced on this camera, on video built to provoke it, or
+in about 45 minutes of running. The most likely explanation is the one
+already documented for 29 September - the C922 dropping off USB, which this USB 3
+camera has not done - but that is an inference, not a proof. What *has* changed is
+that a crash can no longer pass unrecorded: if it happens again, the log in
+`~/raptor-results/demo-logs/` will say where.
+
+### Memory
+
+Soak runs showed resident memory creeping up by a few MB a minute after warm-up. Under `tracemalloc` (aerial run, minutes 2 to 8) the **Python heap grew only 0.19 MB/min while total memory grew 43 MB/min**: the growth is **native memory** (CUDA/TensorRT/allocator), not Python objects, so no leaking list or dict explains it. The profiler slows everything, so 43 MB/min overstates it; unprofiled runs measured +1 to +5 MB/min. The source is **not found**. At 5 MB/min a demo left running would take about 20 hours to use another 6 GB, so a 24-hour soak is the next test.
+
+The 10.2 GB peak is the VLM loading: its weights pass through memory at about twice
+their 4.1 GB size, then the demo settles near 6.5 GB. The board never had less than
+4.7 GB available during any test. But it has **no swap**: NVIDIA's first-boot swap
+service (`nvfb-swapfile.service`, `ConditionFirstBoot=yes`) was skipped on this
+board's first boot, so the swap JetPack intends it to have was never created. With
+one demo running that is fine; with the demo plus another large job (a benchmark, a
+second VLM) the out-of-memory killer becomes possible. Compressed RAM swap (zram)
+would cost nothing until needed - recommended, not applied.
+
+### Are the detections steady? And should the model change?
+
+`--frame-log` writes one line per frame; `tests/analyse_frame_log.py` turns it into
+numbers. **Flicker** is a people-count that jumps and comes straight back within 3
+frames - nobody walks in and out of shot in 50 ms, so it is jitter, not the scene.
+On real continuous video (`vtest.avi`, 795 frames, a street from an elevated camera,
+5-10 people in view):
+
+| | Bench pipeline | Aerial, **YOLO26s** (deployed) | Aerial, RT-DETRv4-S |
+|---|---|---|---|
+| People seen per frame (mean / max) | 1.2 / 4 | 6.2 / 10 | 6.3 / 9 |
+| Flicker per 100 frames | 0.25 | **0.88** | 1.38 |
+| New track IDs per 100 frames | 2.6 | **3.8** | 4.2 |
+| Aerial pipeline on 1080p video (FPS mean / worst 5 %) | - | **33.7** / 18 | 25.4 / 17 |
+
+- **Keep YOLO26s.** The deployed Apache-2.0 alternative, RT-DETRv4-S (now runnable in
+  the demo through `common/trt_rtdetr.py`), finds the same people but flickers about
+  57 % more, re-assigns IDs more often, and is a third slower. No model fault was
+  found anywhere, so the condition for changing models was never met - this
+  comparison is the check that the current one is the right one.
+- **The bench pipeline misses people seen from above** (1.2 per frame against 6.2).
+  That is the bench model doing what it is for - people close to a desk camera - but
+  it means the bench icon must never be used to judge detection from altitude.
+
+### The flight pipeline is not yet at 60 FPS
+
+Bench mode keeps up with the camera; **aerial mode reaches 33.7 FPS** on 1080p
+frames, the detector taking about 20 ms of each ~30 ms frame. Moving the detector's
+resize onto the GPU - the standing next step in STATUS - was built and measured
+(`tests/check_trt_yolo_gpu.py`): **1.07× faster** (21.2 → 19.8 ms), and it changed the
+people count on 12.7 % of frames, because borderline boxes near the confidence
+threshold flip on sub-pixel differences. Not adopted; the CPU path stays the
+default. The CPU resize was not the bottleneck it was assumed to be. The remaining
+routes to 60 FPS are an INT8 engine (needs calibration and a re-check of accuracy)
+or overlapping capture, detection and pose in separate threads.
+
+### Running it now
+
+Nothing changes on the desktop icons. Under the hood the demo now asks for 1080p at
+60 fps in the best format the camera offers, guards every frame, and logs every run.
+
+```bash
+# the stress tests, as run on 2026-10-05
+cd ~/raptor/src/tests
+~/raptor-venv/bin/python make_stress_videos.py            # once
+~/raptor-venv/bin/python soak_demo.py --name street --minutes 15 -- \
+    --mode bench --source ~/raptor-data/video/stress_street_1080p.mp4
+~/raptor-venv/bin/python soak_demo.py --name live --minutes 15 --with-window -- --mode bench
+```

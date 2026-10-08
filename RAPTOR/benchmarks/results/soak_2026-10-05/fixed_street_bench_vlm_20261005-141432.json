@@ -1,0 +1,60 @@
+{
+ "name": "fixed_street_bench_vlm",
+ "when": "2026-10-05T11:30:36+00:00",
+ "demo_args": [
+  "--mode",
+  "bench",
+  "--source",
+  "/home/alfaisal-x-nx/raptor-data/video/stress_street_1080p.mp4"
+ ],
+ "minutes_planned": 16.0,
+ "minutes_ran": 16.07,
+ "outcome": "SURVIVED",
+ "exit_code": 0,
+ "signal": null,
+ "frames": 22023,
+ "fps_mean": 30.9,
+ "fps_p5": 19.2,
+ "infer_ms_mean": 31.1,
+ "rss_mb_start": 564.0,
+ "rss_mb_peak": 7348.0,
+ "rss_mb_end": 7293.0,
+ "rss_slope_mb_per_min": 5.37,
+ "board_mem_available_min_mb": 4753.0,
+ "error_lines": [
+  " \"frame_errors\": 0,",
+  " \"camera_thread_errors\": 0"
+ ],
+ "demo_stats": {
+  "mode": "bench",
+  "pose_engine": "yolo26s-pose-384x640.engine",
+  "frames": 22023,
+  "fps_mean": 30.9,
+  "fps_p5": 15,
+  "infer_ms_last30": 829.2,
+  "people_count_frames": {
+   "0": 7766,
+   "1": 5264,
+   "2": 3360,
+   "3": 4877,
+   "4": 756
+  },
+  "people_count_changes": 1371,
+  "posture_labels": {
+   "standing": 28239,
+   "unknown": 896,
+   "upright, legs hidden": 504
+  },
+  "vlm_answers": {
+   "standing": 3006
+  },
+  "vlm_seconds": null,
+  "camera": "/home/alfaisal-x-nx/raptor-data/video/stress_street_1080p.mp4",
+  "camera_reconnects": 0,
+  "camera_mode": null,
+  "frame_errors": 0,
+  "camera_thread_errors": 0
+ },
+ "log": "/home/alfaisal-x-nx/raptor-results/soak/fixed_street_bench_vlm_20261005-141432.log",
+ "crashed": false
+}

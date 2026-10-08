@@ -1,0 +1,57 @@
+{
+ "name": "base_live_1080p60",
+ "when": "2026-10-05T11:05:58+00:00",
+ "demo_args": [
+  "--mode",
+  "bench",
+  "--width",
+  "1920",
+  "--height",
+  "1080",
+  "--fps",
+  "60",
+  "--fourcc",
+  "YUYV"
+ ],
+ "minutes_planned": 30.0,
+ "minutes_ran": 7.17,
+ "outcome": "STOPPED BY OPERATOR",
+ "exit_code": 0,
+ "signal": null,
+ "frames": 22983,
+ "fps_mean": 59.9,
+ "fps_p5": 59.9,
+ "infer_ms_mean": 12.3,
+ "rss_mb_start": 491.0,
+ "rss_mb_peak": 6555.0,
+ "rss_mb_end": 6230.0,
+ "rss_slope_mb_per_min": -7.93,
+ "board_mem_available_min_mb": 6768.0,
+ "error_lines": [],
+ "demo_stats": {
+  "mode": "bench",
+  "pose_engine": "yolo26s-pose-384x640.engine",
+  "frames": 22983,
+  "fps_mean": 59.9,
+  "fps_p5": 57.9,
+  "infer_ms_last30": 11.5,
+  "people_count_frames": {
+   "0": 20266,
+   "1": 2717
+  },
+  "people_count_changes": 70,
+  "posture_labels": {
+   "unknown": 2549,
+   "upright, legs hidden": 168
+  },
+  "vlm_answers": {
+   "standing": 249
+  },
+  "vlm_seconds": null,
+  "camera": "/dev/video0",
+  "camera_reconnects": 0
+ },
+ "log": "/home/alfaisal-x-nx/raptor-results/soak/base_live_1080p60_20261005-135848.log",
+ "crashed": false,
+ "note": "Stopped early by SIGINT to the demo (operator decision, not a crash) after ~8 min of live 1080p60."
+}

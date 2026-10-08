@@ -24,7 +24,16 @@ from pathlib import Path
 
 
 class TrtYolo:
-    def __init__(self, engine_path, classes=None, conf=0.25, iou=0.7, max_det=300):
+    """`gpu_preprocess=True` uploads the raw frame and does the resize, padding and
+    BGR->RGB on the GPU instead of cv2. Measured 2026-10-05 on 150 real 1080p
+    frames (tests/check_trt_yolo_gpu.py): 19.8 ms vs 21.2 ms per call, only 1.07x
+    faster - the CPU resize was NOT the bottleneck docs/STATUS assumed - and the
+    person count differed on 12.7 % of frames (borderline boxes near the threshold
+    flip on sub-pixel differences; matched boxes agree at IoU 0.992). So the CPU
+    path stays the default. Kept as an option for much larger inputs (4K), where
+    the CPU resize costs four times as much; re-check before switching."""
+
+    def __init__(self, engine_path, classes=None, conf=0.25, iou=0.7, max_det=300, gpu_preprocess=False):
         import numpy as np  # noqa: F401 - imported for the caller's convenience
         import tensorrt as trt
         import torch
@@ -56,6 +65,7 @@ class TrtYolo:
         self.names = {int(k): v for k, v in (self.meta.get("names") or {}).items()}
         self.classes = list(classes) if classes else None
         self.conf, self.iou, self.max_det = conf, iou, max_det
+        self.gpu_preprocess = gpu_preprocess
 
     def letterbox(self, frame):
         """Ultralytics LetterBox(auto=False, center=True, pad 114) - same pixels in."""
@@ -71,20 +81,46 @@ class TrtYolo:
         img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=(114, 114, 114))
         return img, r, left, top
 
+    def _letterbox_gpu(self, frame_bgr):
+        """The same letterbox as letterbox(), done on the GPU, written straight into
+        the engine's input buffer. Returns (r, pad_x, pad_y). Call on self.stream."""
+        torch = self.torch
+        import torch.nn.functional as F
+
+        h0, w0 = frame_bgr.shape[:2]
+        r = min(self.h / h0, self.w / w0)
+        nw, nh = int(round(w0 * r)), int(round(h0 * r))
+        dw, dh = (self.w - nw) / 2, (self.h - nh) / 2
+        top, left = int(round(dh - 0.1)), int(round(dw - 0.1))
+        x = torch.from_numpy(frame_bgr).cuda(non_blocking=True)          # HWC uint8, BGR
+        x = x.permute(2, 0, 1)[None].float()
+        if (nw, nh) != (w0, h0):
+            x = F.interpolate(x, size=(nh, nw), mode="bilinear", align_corners=False)
+        inp = self.buf[self.inp]
+        inp.fill_(114.0 / 255.0)                                          # Ultralytics' grey padding
+        inp[:, :, top:top + nh, left:left + nw] = x[:, [2, 1, 0]].round_().div_(255.0)   # ->RGB, 0-1
+        return r, left, top
+
     def __call__(self, frame_bgr, conf=None):
         """BGR frame -> (boxes xyxy [N,4], scores [N]) as numpy, in frame pixels."""
         torch = self.torch
         from torchvision.ops import nms
 
-        img, r, px, py = self.letterbox(frame_bgr)
         # Everything on the one stream TensorRT runs on: the input copy and the
         # inference must be ordered, or TensorRT can read a half-written input.
-        with torch.cuda.stream(self.stream):
-            x = torch.from_numpy(img).cuda(non_blocking=True)
-            x = x[..., [2, 1, 0]].permute(2, 0, 1)[None].float().div_(255)   # BGR->RGB, CHW, 0-1
-            self.buf[self.inp].copy_(x)
-            if not self.ctx.execute_async_v3(self.stream.cuda_stream):
-                raise RuntimeError("TensorRT execution failed")
+        if self.gpu_preprocess:
+            with torch.cuda.stream(self.stream):
+                r, px, py = self._letterbox_gpu(frame_bgr)
+                if not self.ctx.execute_async_v3(self.stream.cuda_stream):
+                    raise RuntimeError("TensorRT execution failed")
+        else:
+            img, r, px, py = self.letterbox(frame_bgr)
+            with torch.cuda.stream(self.stream):
+                x = torch.from_numpy(img).cuda(non_blocking=True)
+                x = x[..., [2, 1, 0]].permute(2, 0, 1)[None].float().div_(255)   # BGR->RGB, CHW, 0-1
+                self.buf[self.inp].copy_(x)
+                if not self.ctx.execute_async_v3(self.stream.cuda_stream):
+                    raise RuntimeError("TensorRT execution failed")
         self.stream.synchronize()
 
         out = self.buf[self.out][0]                     # [4 + classes, anchors]

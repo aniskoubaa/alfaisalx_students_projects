@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAPTOR Stability Report</title>
+<style>
+  :root{--ground:#EBEEEF;--surface:#fff;--alt:#F4F6F7;--ink:#0F171B;--mid:#46555D;--soft:#6E7D85;--rule:#CBD4D8;--accent:#0E7C86;--ok:#24704A;--okw:#DDEEE4;--warn:#9A6206;--warnw:#F6EBD6;--bad:#B03227;--badw:#F7E2DF}
+  @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--ground:#0C1317;--surface:#131D22;--alt:#18242A;--ink:#E4ECEF;--mid:#A9B9C1;--soft:#7E8F98;--rule:#273740;--accent:#3DD6E3;--ok:#5BC48B;--okw:#12301F;--warn:#E0A63C;--warnw:#33260D;--bad:#F0796C;--badw:#3A1714}}
+  *{box-sizing:border-box}body{margin:0;background:var(--ground);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+  header{padding:40px 0 24px;border-bottom:1px solid var(--rule)}
+  .eyebrow{font:600 11.5px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+  h1{font-size:clamp(28px,5vw,44px);line-height:1.05;margin:0 0 12px;letter-spacing:-.03em}
+  h2{font-size:clamp(21px,3vw,28px);margin:0 0 6px;letter-spacing:-.02em}
+  section{padding:34px 0;border-top:1px solid var(--rule)}header+section{border-top:0}
+  p{margin:0 0 12px;max-width:70ch}.lede{color:var(--mid);max-width:68ch}
+  .verdict{display:grid;gap:12px;margin-top:20px}@media(min-width:760px){.verdict{grid-template-columns:repeat(4,1fr)}}
+  .card{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:14px 16px}
+  .card b{display:block;font-size:26px;letter-spacing:-.02em}.card span{font:11px ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+  .card p{font-size:13px;color:var(--mid);margin:6px 0 0}
+  .tag{display:inline-block;font:600 10.5px ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:3px}
+  .ok{background:var(--okw);color:var(--ok)}.warn{background:var(--warnw);color:var(--warn)}.bad{background:var(--badw);color:var(--bad)}
+  .tw{overflow-x:auto;background:var(--surface);border:1px solid var(--rule);border-radius:6px;margin-top:14px}
+  table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px}th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--rule)}
+  th{font:600 10.5px ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);background:var(--alt)}tr:last-child td{border-bottom:0}
+  td.n{font-family:ui-monospace,Menlo,monospace;font-size:13px;text-align:right}th.n{text-align:right}
+  .bars{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:14px 16px;margin-top:14px}
+  .bar{display:grid;grid-template-columns:150px 1fr 70px;gap:10px;align-items:center;margin:7px 0;font-size:13.5px}
+  .bar i{display:block;height:16px;border-radius:3px;background:var(--accent)}.bar em{font:normal 12.5px ui-monospace,monospace;color:var(--mid);text-align:right}
+  .bar .t{background:var(--alt);border-radius:3px}.bar i.o{background:var(--warn)}
+  .callout{border:1px solid var(--rule);border-left:3px solid var(--accent);background:var(--surface);border-radius:0 6px 6px 0;padding:13px 17px;margin-top:16px}
+  .callout.w{border-left-color:var(--warn)}.callout.b{border-left-color:var(--bad)}.callout h3{font:600 11px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;margin:0 0 6px;color:var(--soft)}.callout p:last-child{margin:0}
+  .filters{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}.filters button{font:12px ui-monospace,monospace;background:var(--surface);color:var(--mid);border:1px solid var(--rule);border-radius:3px;padding:5px 11px;cursor:pointer}
+  .filters button[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .phase{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden;margin-top:14px}
+  .ph{background:var(--surface);padding:13px 16px}@media(min-width:760px){.ph{display:grid;grid-template-columns:90px 1fr 140px;gap:16px;align-items:baseline}}
+  .ph b{font-size:15px}.ph small{color:var(--mid);display:block;font-size:13px}.ph .d{font:12px ui-monospace,monospace;color:var(--soft)}
+  .ph .id{font:600 12px ui-monospace,monospace;color:var(--accent)}
+  code{font:.88em ui-monospace,Menlo,monospace;background:var(--alt);border:1px solid var(--rule);border-radius:3px;padding:1px 5px}
+  footer{padding:26px 0 44px;border-top:1px solid var(--rule);font-size:13.5px;color:var(--soft)}
+</style>
+
+<header><div class="wrap">
+  <p class="eyebrow">RAPTOR &middot; Stability report &middot; 5 October 2026</p>
+  <h1>Does the live demo survive?</h1>
+  <p class="lede">You asked for the new camera at high resolution and frame rate, video tests (not just images) aimed at the &ldquo;crashes when something shows up suddenly&rdquo; problem, and a model change if it kept failing. Here is what was measured on the Jetson, what was fixed, and what is still unknown.</p>
+  <div class="verdict">
+    <div class="card"><span>Camera</span><b>1080p @ 60</b><p>Arducam B0498 on USB 3. Delivered exactly 60.0 fps through the demo&rsquo;s capture thread.</p></div>
+    <div class="card"><span>Crashes</span><b>0 of 6 real runs</b><p>Video, live camera, windowed, 3&ndash;16 min each. None crashed, before or after the fixes.</p></div>
+    <div class="card"><span>Fault injection</span><b>3 of 3 pass</b><p>Failures forced on purpose: demo survives the small ones, stops cleanly on the big one.</p></div>
+    <div class="card"><span>Model change</span><b>Not needed</b><p>No model fault found. YOLO26s beat RT-DETRv4-S on steadiness and speed.</p></div>
+  </div>
+  <div class="callout w"><h3>The honest caveat</h3><p><strong>The crash you saw was not reproduced.</strong> I can say what I tried and what I fixed, not what caused it. The likeliest cause is the old webcam dropping off USB (documented 29 Sept), which this USB 3 camera hasn&rsquo;t done &mdash; an inference, not a proof. What is now guaranteed is that if it happens again, a log will say where.</p></div>
+</div></header>
+
+<section><div class="wrap">
+  <h2>1. The camera</h2>
+  <p class="lede">The Arducam gives uncompressed YUYV only (no MJPG). That is fine on USB 3: no decoding, 1080p60 costs about one CPU core.</p>
+  <div class="bars" id="cam"></div>
+  <p style="margin-top:12px;font-size:13.5px;color:var(--mid)">Bar = frames per second delivered through <code>live_camera.py</code>. 4K exists but only at 15 fps. The old C922 managed 1080p at 30 fps on USB 2.</p>
+</div></section>
+
+<section><div class="wrap">
+  <h2>2. Every test run</h2>
+  <p class="lede">Each run is the real demo as a separate process, so a crash would show as an exit code and a traceback, not take the test down.</p>
+  <div class="filters" id="flt"></div>
+  <div class="tw"><table><thead><tr><th>Run</th><th>Result</th><th class="n">Minutes</th><th class="n">Frames</th><th class="n">FPS</th><th class="n">Errors</th><th>What it tested</th></tr></thead><tbody id="runs"></tbody></table></div>
+  <div class="callout"><h3>Reading the odd rows</h3><p><strong>Stopped as designed</strong> = every frame was made to fail; the demo stopped after exactly 30 in a row and said why. <strong>Runner false alarm</strong> = my test script wrongly called a healthy windowed run a hang; fixed and re-run (it survived). FPS under <em>fixed_&hellip;_vlm</em> is lower because the memory profiler was running, so those are not speed results.</p></div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>3. What was fixed</h2>
+  <div class="tw"><table><thead><tr><th>Defect</th><th>Fix</th><th>Proof</th></tr></thead><tbody>
+    <tr><td>One exception in one frame ended the whole demo</td><td>Each frame guarded: logged, skipped, shown on screen. 30 in a row stops it with the reason</td><td>1% faults: survived (82 errors / 8,366 frames). 100%: stopped at exactly 30</td></tr>
+    <tr><td>Camera thread died silently, so the demo froze &mdash; which looks like a crash</td><td>Thread catches errors, releases and re-opens the camera</td><td>27 injected errors, 27 recoveries, still 59 FPS</td></tr>
+    <tr><td>No log existed; a crash left no trace</td><td>Every launch logs to <code>~/raptor-results/demo-logs/</code>, fault handler on</td><td>In place</td></tr>
+    <tr><td>FPS stats list grew forever</td><td>Bounded histogram</td><td>Code change</td></tr>
+    <tr><td>Camera format guessed (asked for MJPG the camera ignores)</td><td><code>auto</code>: YUYV on USB 3, MJPG on USB 2; reports what it got</td><td>1920&times;1080 YUYV @60.0 logged</td></tr>
+  </tbody></table></div>
+  <div class="callout"><h3>Two suspected causes that did NOT reproduce</h3><p>A thread race on the VLM answers (0 errors in 38,750 tries) and degenerate zero-height boxes through the tracker (no exception). Neither is claimed as the cause.</p></div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>4. Should the model change?</h2>
+  <p class="lede">The trigger for changing models was a model-caused crash or inconsistency. None was found, but the deployed Apache-2.0 alternative was compared anyway, on real continuous video (795 frames).</p>
+  <div class="tw"><table><thead><tr><th>Measure (lower is better except speed)</th><th class="n">YOLO26s (deployed)</th><th class="n">RT-DETRv4-S</th></tr></thead><tbody>
+    <tr><td>Flicker per 100 frames (count jumps and returns)</td><td class="n"><b>0.88</b></td><td class="n">1.38</td></tr>
+    <tr><td>New track IDs per 100 frames</td><td class="n"><b>3.8</b></td><td class="n">4.2</td></tr>
+    <tr><td>People seen per frame</td><td class="n">6.2</td><td class="n">6.3</td></tr>
+    <tr><td>Aerial pipeline FPS at 1080p (higher is better)</td><td class="n"><b>33.7</b></td><td class="n">25.4</td></tr>
+  </tbody></table></div>
+  <div class="callout"><h3>Decision</h3><p><strong>Keep YOLO26s.</strong> Same people found, steadier, a third faster. Note the bench model sees 1.2 people per frame on the same aerial video against 6.2: it is for desk demos only and must never be used to judge detection from altitude.</p></div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>5. Open problems found</h2>
+  <div class="tw"><table><thead><tr><th>Problem</th><th>Evidence</th><th>Severity</th></tr></thead><tbody>
+    <tr><td>Native memory grows slowly</td><td>Python heap +0.19 MB/min while total memory +43 MB/min under the profiler; unprofiled runs showed +1 to +5 MB/min. Source not found (CUDA/TensorRT/allocator)</td><td><span class="tag warn">Watch</span></td></tr>
+    <tr><td>No swap on the board</td><td>NVIDIA first-boot swap service was skipped. One demo is fine; demo + another big job could trigger the OOM killer</td><td><span class="tag warn">Fix soon</span></td></tr>
+    <tr><td>Flight pipeline is 34 FPS, not 60</td><td>Detector ~20 ms of a ~30 ms frame. GPU resize tried: only 1.07&times; faster and changed 12.7% of counts &mdash; rejected</td><td><span class="tag warn">Optimise</span></td></tr>
+    <tr><td>Windowed demo is ~44 FPS vs 60 headless</td><td>Drawing and scaling the window costs ~15 FPS</td><td><span class="tag ok">Minor</span></td></tr>
+    <tr><td>Peak memory 10 GB at VLM load</td><td>Weights pass through memory twice their size; settles near 6.5 GB</td><td><span class="tag ok">Minor</span></td></tr>
+  </tbody></table></div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>6. Next steps</h2>
+  <p class="lede">Ordered by what unblocks the project, given what RAPTOR is: an aerial search-and-rescue aircraft that must reliably find people and flag posture, offline, on the Jetson. Full detail: <code>docs/15-next-steps.md</code>.</p>
+  <div class="phase" id="plan"></div>
+</div></section>
+
+<footer><div class="wrap"><p id="foot"></p></div></footer>
+
+<script>
+var CAM=[["720p @ 90",90.0,"122% of a core"],["1080p @ 60",60.0,"111% of a core"],["1080p @ 30",30.0,"55% of a core"],["4K @ 15",15.0,"66% of a core"]];
+var RUNS=[
+["base_street_bench","SURVIVED",3.05,6563,52.4,"–","Street video with sudden crowds, bench pipeline + VLM","video"],
+["base_aerial","SURVIVED",3.05,3753,31.0,"–","Aerial stress video (cuts, flicker, flash), flight pipeline + VLM","video"],
+["base_live_1080p60","STOPPED BY ME",7.17,22983,59.9,"–","Live camera 1080p60, bench + VLM (stopped early on purpose)","live"],
+["fixed_street_bench_vlm","SURVIVED",16.07,22023,"30.9*",0,"Street stress video, VLM answered 3,006 times, memory profiler on","video"],
+["fixed_aerial_vlm","SURVIVED",12.08,9484,"20.5*",0,"Aerial stress video, flight pipeline + VLM, memory profiler on","video"],
+["window_live_1080p60","SURVIVED",3.05,7064,"~44",0,"Live camera with the real video window on the desktop","live"],
+["fault_frames_1pct","SURVIVED",3.03,8366,59.8,82,"1% of frames forced to fail","fault"],
+["fault_camera_live","SURVIVED",2.53,4321,59.1,"27 cam","0.5% of camera reads forced to fail on the live camera","fault"],
+["fault_frames_100pct","STOPPED AS DESIGNED",0.67,"–","–","30","Every frame forced to fail: must stop cleanly","fault"],
+["window_live (1st try)","RUNNER FALSE ALARM",2.05,2672,"–",0,"My test script mislabelled a healthy run as hung; fixed, re-run above","live"]];
+var PLAN=[
+["NOW","Run it for a day, not minutes","Leave the bench demo on the live camera for 24 h with <code>soak_demo.py</code>; confirm the memory slope and that the new log catches anything. Enable zram swap.","1&ndash;2 days"],
+["P1","Get the real flight camera on the bench","Power the A8 mini (never done), buy the HDMI capture card, run the HDMI + Ethernet simultaneity test. Everything about the real optics is still unverified.","1&ndash;2 weeks"],
+["P1","Mount the Jetson","Second deck on aluminium standoffs above the Pixhawk (inside the 123 mm prop keep-out). Blocks any flight test.","1 week"],
+["P2","MAVROS link + first rosbag","Pixhawk TELEM1 to the Jetson; record and replay a bag. This is the Phase 0 finish line. Decide: may the Jetson write gimbal commands?","1&ndash;2 weeks"],
+["P2","Data for lying people","Detectors are trained on people standing. Collect or adopt SAR sets (SARD, HERIDAL, Okutama, C2A); consent form and flight plan are the long pole.","Start now"],
+["P3","Speed: aerial 34 to 60 FPS","INT8 engine with accuracy re-check, or overlap capture, detect and pose in threads. Pose runs every 5th frame, so 60 is plausible.","2 weeks"],
+["P3","Gravity-aligned posture","Use IMU attitude from MAVROS so a banked turn is not read as lying. Posture is wrong in flight without it.","With MAVROS"],
+["P4","ROS 2 nodes + trigger + victim report","camera_node, detector_node, tracker, VLM-on-trigger, geolocated report with snapshot. Then the operator dashboard.","1&ndash;2 months"]];
+function $(i){return document.getElementById(i)}
+$("cam").innerHTML=CAM.map(function(c){return'<div class="bar"><span>'+c[0]+'</span><div class="t"><i style="width:'+(c[1]/90*100)+'%"></i></div><em>'+c[1]+' fps</em></div>'}).join("");
+var cls={"SURVIVED":"ok","STOPPED BY ME":"ok","STOPPED AS DESIGNED":"ok","RUNNER FALSE ALARM":"warn"};
+function draw(f){$("runs").innerHTML=RUNS.filter(function(r){return f=="all"||r[7]==f}).map(function(r){return"<tr><td><code>"+r[0]+"</code></td><td><span class='tag "+(cls[r[1]]||"bad")+"'>"+r[1]+"</span></td><td class='n'>"+r[2]+"</td><td class='n'>"+(typeof r[3]=="number"?r[3].toLocaleString():r[3])+"</td><td class='n'>"+r[4]+"</td><td class='n'>"+r[5]+"</td><td>"+r[6]+"</td></tr>"}).join("")}
+var F=[["all","All"],["video","Video files"],["live","Live camera"],["fault","Fault injection"]];
+$("flt").innerHTML=F.map(function(x,i){return'<button type="button" data-f="'+x[0]+'" aria-pressed="'+(i==0)+'">'+x[1]+'</button>'}).join("");
+$("flt").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;[].forEach.call($("flt").children,function(o){o.setAttribute("aria-pressed",o===b)});draw(b.dataset.f)});draw("all");
+$("plan").innerHTML=PLAN.map(function(p){return'<div class="ph"><span class="id">'+p[0]+'</span><div><b>'+p[1]+'</b><small>'+p[2]+'</small></div><span class="d">'+p[3]+'</span></div>'}).join("");
+$("foot").innerHTML="RAPTOR &mdash; AlfaisalX. All figures measured on the Jetson Orin NX 16 GB on 5 October 2026; raw results in <code>benchmarks/results/soak_2026-10-05/</code>. * = profiler running, not a speed result. Finished: <strong>15:17 on 05 October 2026</strong>.";
+</script>

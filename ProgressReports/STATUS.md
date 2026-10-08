@@ -1,6 +1,6 @@
 # RAPTOR — Current Status
 
-**Last updated: 2026-09-29** (new models deployed; live demo fixed the same afternoon)
+**Last updated: 2026-10-05, finished 15:17 on 05 October 2026** (new USB 3 camera at 1080p60; crash hunt and stability tests; see the [stability report](../RAPTOR/docs/raptor-stability-report.html) and [next steps](../RAPTOR/docs/15-next-steps.md))
 Living document. Update it at the end of every session, before closing the laptop.
 Progress reports, one per day, each covering only that day's progress:
 [2026-09-29](./RAPTOR_Work_Report_2026-09-29.docx) (deployment, dashboard, faster models, live-demo fix),
@@ -51,10 +51,20 @@ posture check now exist as bench tools (`src/common/`), but no ROS 2 nodes, trig
 - [x] Model-selection Word report rebuilt: Part A re-evaluation, Part B original — `RAPTOR/reports/`
 - [x] **Live demo fixed** (2026-09-29 afternoon): it had counted one person as several, flickered, called a seated person "standing", run at ~17 FPS and "crashed" (the webcam dropped off USB). Now 30 FPS (60 at 720p), steady counts, posture from the legs, a VLM posture check, automatic camera reconnect — see docs/14 and `benchmarks/results/live_demo_fix_2026-09-29.json`
 
+## 2026-10-05 in one paragraph
+
+Arducam B0498 (USB 3) now delivers **1080p at 60 fps** through the demo. The reported
+"crashes when something appears suddenly" was **not reproduced** in 6 real runs (video built
+to provoke it, live camera, real window; 3 to 16 min each) or by 2 suspected code causes.
+Defects found by reading and fixed anyway: one bad frame or a camera-thread error ended the
+demo; no log existed. Fault injection proves the guards. YOLO26s kept over RT-DETRv4-S. Open:
+native memory creeps +1 to +5 MB/min, the board has no swap, aerial mode runs 34 FPS not 60.
+**Nothing from this session is committed.** Plan: [docs/15](../RAPTOR/docs/15-next-steps.md).
+
 ## Next
 
 - [x] **Deployed the new models** (2026-09-29): lean TensorRT runner for the detector, verified manifest, live demo switched to the two-stage pipeline, plus a *bench* icon (pose-only) for people close to the webcam
-- [ ] Move the detector's resize onto the GPU (`trt_yolo.py`) and re-measure — most of the 26.1 ms is CPU pre-processing
+- [x] ~~Move the detector's resize onto the GPU~~ — done 2026-10-05, **rejected**: 1.07× faster, changes counts on 12.7 % of frames; the CPU resize was not the bottleneck
 - [ ] Serve Qwen3-VL-2B through llama.cpp at 4 bits with a JSON grammar; re-measure speed and truthfulness
 - [ ] Change the VLM prompt so it stops asserting the posture; drop its confidence field
 - [ ] Evaluate on aerial images of **people lying down** (Okutama-Action, NOMAD, SARD, HERIDAL)
@@ -115,7 +125,8 @@ before the gimbal node is written: allow gimbal-only writes, or keep pointing ma
 | Camera video (onboard) | micro-HDMI to USB capture card | **Card not acquired** |
 | Camera video (downlink) | Ethernet to VTX | Optional, not acquired |
 | Airframe | Holybro X500 V2, 10" props | Built; no room for the Jetson on the top deck |
-| Test camera | Logitech C922 webcam, USB 2.0 (1080p30 / 720p60 MJPEG) | Used for the live demo; dropped off USB once through the hub (2026-09-29) |
+| Test camera | **Arducam B0498**, USB 3 (YUYV only): 1080p60, 720p90, 4K15 | In use since 2026-10-05; 0 drop-outs |
+| Old test camera | Logitech C922, USB 2.0 | Retired; dropped off USB on 2026-09-29 |
 
 ---
 

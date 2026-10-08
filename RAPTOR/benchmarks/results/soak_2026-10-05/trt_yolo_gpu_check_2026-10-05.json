@@ -1,0 +1,22 @@
+{
+ "when": "2026-10-05T11:06:53+00:00",
+ "engine": "visdrone-yolo26s-736x1280.engine",
+ "source": "/home/alfaisal-x-nx/raptor-data/video/stress_aerial_1080p.mp4",
+ "frames": 150,
+ "frame_size": "1920x1080",
+ "people_cpu_path": 1324,
+ "same_count_pct": 87.3,
+ "matched_iou_mean": 0.9918,
+ "matched_iou_min": 0.759,
+ "unmatched_boxes": 22,
+ "cpu_preprocess": {
+  "mean_ms": 21.15,
+  "p95_ms": 23.29
+ },
+ "gpu_preprocess": {
+  "mean_ms": 19.84,
+  "p95_ms": 22.74
+ },
+ "speedup": 1.07,
+ "pass": false
+}

@@ -48,11 +48,13 @@ camera, wrong once an aircraft banks - the flight version needs the IMU attitude
 from __future__ import annotations
 
 import argparse
+import faulthandler
 import json
 import logging
 import os
 import sys
 import time
+import traceback
 import warnings
 from collections import Counter, deque
 from pathlib import Path
@@ -94,6 +96,7 @@ C_BOX = (235, 170, 40)
 C_MUTED = (170, 170, 170)
 C_PANEL = (30, 30, 30)
 FRAME_BUDGET_MS = 33.0
+MAX_CONSECUTIVE_ERRORS = 30      # this many failed frames in a row: stop and say why
 
 
 def posture_colour(label):
@@ -179,6 +182,25 @@ def mean(values):
     return sum(values) / len(values) if values else 0.0
 
 
+def hist_mean(hist):
+    """Mean of a Counter {value: count} - FPS is kept as a histogram, not a list
+    that grows by one entry per frame for as long as the demo runs."""
+    n = sum(hist.values())
+    return round(sum(v * c for v, c in hist.items()) / n, 1) if n else None
+
+
+def hist_quantile(hist, q):
+    n = sum(hist.values())
+    if not n:
+        return None
+    seen = 0
+    for v in sorted(hist):
+        seen += hist[v]
+        if seen >= q * n:
+            return v
+    return max(hist)
+
+
 def can_open_window() -> bool:
     """Can we create a GUI window on the current DISPLAY?
 
@@ -259,11 +281,15 @@ class FileSource:
 
 
 def main() -> int:
+    faulthandler.enable()        # a native crash still leaves a Python stack in the log
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--mode", choices=["bench", "aerial", "pose-only", "two-stage"], default="bench",
                     help="bench (people near the camera) or aerial (the flight pipeline). "
                          "pose-only and two-stage are the old names.")
     ap.add_argument("--detector", default=str(DEFAULT_DETECTOR), help="aerial mode: tier-1 engine (lean runner)")
+    ap.add_argument("--preprocess", choices=["cpu", "gpu"], default="cpu",
+                    help="aerial mode: where the detector's resize runs. CPU is the default: GPU was "
+                         "measured 1.07x faster on 1080p and changes borderline detections (2026-10-05)")
     ap.add_argument("--detector-classes", type=int, nargs="+", default=[0, 1],
                     help="aerial mode: classes that count as a person (VisDrone: 0 pedestrian, 1 people)")
     ap.add_argument("--pose", help="pose engine (default: the 384x640 engine for bench if deployed, else the 960 one)")
@@ -278,8 +304,10 @@ def main() -> int:
     ap.add_argument("--source", help="play a folder of images or a video file instead of the camera")
     ap.add_argument("--width", type=int, default=1920)
     ap.add_argument("--height", type=int, default=1080)
-    ap.add_argument("--fps", type=int, default=30)
-    ap.add_argument("--fourcc", default="MJPG")
+    ap.add_argument("--fps", type=int, default=60,
+                    help="requested frame rate; the camera gives the nearest it has (C922 1080p: 30)")
+    ap.add_argument("--fourcc", default="auto",
+                    help="auto = YUYV on a USB 3 camera (no decode), MJPG on USB 2; or force one")
     ap.add_argument("--focus", type=int, default=None,
                     help="lock the camera's focus here (C922: 0 far ... 250 near) instead of autofocus")
     ap.add_argument("--conf", type=float, default=0.35)
@@ -287,6 +315,11 @@ def main() -> int:
     ap.add_argument("--no-display", action="store_true")
     ap.add_argument("--record", help="write the annotated stream to this file")
     ap.add_argument("--max-frames", type=int, default=0, help="0 = run until quit")
+    ap.add_argument("--capture-dir", help="save ONE photo of each person the first time they are confirmed "
+                                          "(full frame with the box, plus a close-up crop). A person who keeps "
+                                          "their track id is never saved twice.")
+    ap.add_argument("--frame-log", help="write one JSON line per frame (people, track ids, timings) here - "
+                                        "for measuring how steady the detections are")
     ap.add_argument("--stats", action="store_true", help="print a JSON summary on exit (counts, postures, FPS)")
     args = ap.parse_args()
     mode = {"pose-only": "bench", "two-stage": "aerial"}.get(args.mode, args.mode)
@@ -325,7 +358,8 @@ def main() -> int:
             print("Is it plugged in? Check with: v4l2-ctl --list-devices", file=sys.stderr)
             src.stop()
             return 2
-        print("camera {} at {}x{}".format(src.device, *src.size))
+        src.mode_text = "{}x{} {} @{} fps".format(src.size[0], src.size[1], src.fourcc_got, src.fps_got)
+        print("camera {} - {}".format(src.device, src.mode_text))
     w, h = src.size
 
     print("loading models (TensorRT engine load takes a few seconds) ...")
@@ -333,9 +367,18 @@ def main() -> int:
     pose_imgsz = engine_imgsz(pose_path) or [960, 960]
     detector = None
     if mode == "aerial":
-        from trt_yolo import TrtYolo
-        detector = TrtYolo(args.detector, classes=args.detector_classes, conf=args.conf)
-        print("  detector: {} ({}x{}, lean TensorRT)".format(Path(args.detector).name, detector.w, detector.h))
+        if engine_imgsz(args.detector) is None:
+            # No Ultralytics metadata header: the RT-DETRv4 engine (Apache-2.0 alternative).
+            from trt_rtdetr import TrtRtdetr
+            detector = TrtRtdetr(args.detector, classes=args.detector_classes, conf=args.conf)
+            print("  detector: {} ({}x{}, RT-DETRv4, lean TensorRT)".format(
+                Path(args.detector).name, detector.w, detector.h))
+        else:
+            from trt_yolo import TrtYolo
+            detector = TrtYolo(args.detector, classes=args.detector_classes, conf=args.conf,
+                               gpu_preprocess=args.preprocess == "gpu")
+            print("  detector: {} ({}x{}, lean TensorRT, {} pre-processing)".format(
+                Path(args.detector).name, detector.w, detector.h, args.preprocess.upper()))
     print("  pose    : {} ({}x{})".format(Path(pose_path).name, *pose_imgsz))
     tracker = PersonTracker()
     votes = PostureVote(window=7)
@@ -353,6 +396,12 @@ def main() -> int:
     except Exception:  # noqa: BLE001 - telemetry is optional, never fatal
         sampler = None
 
+    captured = set()                   # track ids already photographed
+    cap_dir = None
+    if args.capture_dir:
+        cap_dir = Path(args.capture_dir).expanduser()
+        cap_dir.mkdir(parents=True, exist_ok=True)
+    frame_log = open(args.frame_log, "w", buffering=1 << 16) if args.frame_log else None
     writer = None
     if args.record:
         writer = cv2.VideoWriter(args.record, cv2.VideoWriter_fourcc(*"mp4v"), 20.0, (w, h))
@@ -370,9 +419,10 @@ def main() -> int:
 
     infer_hist, pose_hist, fps_hist = deque(maxlen=30), deque(maxlen=10), deque(maxlen=30)
     kps_of = {}                 # track id -> (keypoints, box they were measured in)
-    stats = {"counts": Counter(), "changes": 0, "postures": Counter(), "vlm": Counter(), "fps": []}
+    stats = {"counts": Counter(), "changes": 0, "postures": Counter(), "vlm": Counter(), "fps_hist": Counter()}
     last_count, last_vlm_t = None, 0.0
     frames, seq = 0, 0
+    frame_errors, consecutive_errors = 0, 0
     t_prev = time.perf_counter()
     print("running - press q or ESC in the window to quit")
 
@@ -389,134 +439,176 @@ def main() -> int:
                 continue
             seq = new_seq
 
-            t1 = time.perf_counter()
-            if mode == "bench":
-                res = pose_model.predict(frame, imgsz=pose_imgsz, classes=[0], conf=args.conf, iou=0.5,
-                                         verbose=False)[0]
-                boxes = res.boxes.xyxy.cpu().numpy()
-                scores = res.boxes.conf.cpu().numpy()
-                kps_all = res.keypoints.data.cpu().numpy() if res.keypoints is not None else None
-                tracks = tracker.update(boxes, scores)
-                for t in tracks:
-                    if t.det_index is not None and kps_all is not None:
-                        k = kps_all[t.det_index].tolist()
-                        kps_of[t.id] = (k, t.box)
-                        votes.add(t.id, posture_from_keypoints(k)[0])
-            else:
-                boxes, scores = detector(frame)
-                tracks = tracker.update(boxes, scores)
-                if frames % args.pose_every == 0:
-                    t2 = time.perf_counter()
-                    live = [t for t in tracks if t.det_index is not None
-                            and t.box[3] - t.box[1] >= args.pose_min_height]
-                    for t in sorted(live, key=lambda t: -(t.box[3] - t.box[1]))[: args.pose_max]:
-                        k = pose_on_crop(pose_model, pose_imgsz, frame, t.box)
-                        if k:
+            try:
+                t1 = time.perf_counter()
+                if mode == "bench":
+                    res = pose_model.predict(frame, imgsz=pose_imgsz, classes=[0], conf=args.conf, iou=0.5,
+                                             verbose=False)[0]
+                    boxes = res.boxes.xyxy.cpu().numpy()
+                    scores = res.boxes.conf.cpu().numpy()
+                    kps_all = res.keypoints.data.cpu().numpy() if res.keypoints is not None else None
+                    tracks = tracker.update(boxes, scores)
+                    for t in tracks:
+                        if t.det_index is not None and kps_all is not None:
+                            k = kps_all[t.det_index].tolist()
                             kps_of[t.id] = (k, t.box)
-                        votes.add(t.id, posture_from_keypoints(k)[0] if k else UNKNOWN)
-                    pose_hist.append((time.perf_counter() - t2) * 1000.0)
-            infer_hist.append((time.perf_counter() - t1) * 1000.0)
+                            votes.add(t.id, posture_from_keypoints(k)[0])
+                else:
+                    boxes, scores = detector(frame)
+                    tracks = tracker.update(boxes, scores)
+                    if frames % args.pose_every == 0:
+                        t2 = time.perf_counter()
+                        live = [t for t in tracks if t.det_index is not None
+                                and t.box[3] - t.box[1] >= args.pose_min_height]
+                        for t in sorted(live, key=lambda t: -(t.box[3] - t.box[1]))[: args.pose_max]:
+                            k = pose_on_crop(pose_model, pose_imgsz, frame, t.box)
+                            if k:
+                                kps_of[t.id] = (k, t.box)
+                            votes.add(t.id, posture_from_keypoints(k)[0] if k else UNKNOWN)
+                        pose_hist.append((time.perf_counter() - t2) * 1000.0)
+                infer_hist.append((time.perf_counter() - t1) * 1000.0)
 
-            live_ids = {t.id for t in tracks}
-            votes.forget(live_ids)
-            for k in [k for k in kps_of if k not in live_ids]:
-                del kps_of[k]
+                live_ids = {t.id for t in tracks}
+                votes.forget(live_ids)
+                for k in [k for k in kps_of if k not in live_ids]:
+                    del kps_of[k]
 
-            # VLM: one person per question, the one whose answer is oldest, and
-            # only people whose torso is in view (an arm alone gets a guess).
-            if vlm is not None:
-                vlm.forget(live_ids)
-                now = time.monotonic()
-                if vlm.ready and not vlm.busy and now - last_vlm_t >= args.vlm_every:
-                    cands = [t for t in tracks if t.det_index is not None
-                             and votes.get(t.id) not in (None, UNKNOWN)]
-                    cands.sort(key=lambda t: vlm.answers.get(t.id, ("", 0.0))[1])
-                    for t in cands:
+                # VLM: one person per question, the one whose answer is oldest, and
+                # only people whose torso is in view (an arm alone gets a guess).
+                if vlm is not None:
+                    vlm.forget(live_ids)
+                    now = time.monotonic()
+                    if vlm.ready and not vlm.busy and now - last_vlm_t >= args.vlm_every:
+                        cands = [t for t in tracks if t.det_index is not None
+                                 and votes.get(t.id) not in (None, UNKNOWN)]
+                        cands.sort(key=lambda t: vlm.answers.get(t.id, ("", 0.0))[1])
+                        for t in cands:
+                            c, _, _ = crop(frame, t.box, 0.15)
+                            if vlm.submit(t.id, c):
+                                last_vlm_t = now
+                                break
+
+                if cap_dir is not None:
+                    # First confirmed sighting of a track, on a frame where it was really
+                    # detected (not held through a miss): one photo, taken BEFORE any drawing.
+                    for t in tracks:
+                        if t.id in captured or t.det_index is None:
+                            continue
+                        captured.add(t.id)
+                        stamp = time.strftime("%Y%m%d-%H%M%S")
+                        base = "{}_person{:03d}_conf{:02d}".format(stamp, t.id, int(t.score * 100))
                         c, _, _ = crop(frame, t.box, 0.15)
-                        if vlm.submit(t.id, c):
-                            last_vlm_t = now
-                            break
+                        full = frame.copy()
+                        x1, y1, x2, y2 = (int(v) for v in t.box)
+                        cv2.rectangle(full, (x1, y1), (x2, y2), C_BOX, 3)
+                        ok1 = cv2.imwrite(str(cap_dir / (base + "_frame.jpg")), full, [cv2.IMWRITE_JPEG_QUALITY, 92])
+                        ok2 = c.size > 0 and cv2.imwrite(str(cap_dir / (base + "_crop.jpg")), c,
+                                                         [cv2.IMWRITE_JPEG_QUALITY, 95])
+                        print("captured person #{} -> {} ({})".format(
+                            t.id, base, "saved" if ok1 and ok2 else "WRITE FAILED"), flush=True)
 
-            annotated = frame
-            n_lying = 0
-            shown = []
-            for t in tracks:
-                geo = votes.get(t.id)
-                word = vlm.answer(t.id) if vlm is not None else None
-                if mode == "aerial" and t.box[3] - t.box[1] < args.pose_min_height:
-                    text, colour = "#{} person - too small for pose".format(t.id), C_BOX
+                annotated = frame
+                n_lying = 0
+                shown = []
+                for t in tracks:
+                    geo = votes.get(t.id)
+                    word = vlm.answer(t.id) if vlm is not None else None
+                    if mode == "aerial" and t.box[3] - t.box[1] < args.pose_min_height:
+                        text, colour = "#{} person - too small for pose".format(t.id), C_BOX
+                    else:
+                        text = "#{} {}{}".format(t.id, geo or "person", " | VLM: " + word if word else "")
+                        lying = geo == LYING or word == "lying"
+                        n_lying += lying
+                        colour = C_ALARM if lying else posture_colour(word or geo)
+                    k, kbox = kps_of.get(t.id, (None, None))
+                    if k is not None and kbox is not None and kbox != t.box:
+                        dx, dy = t.box[0] - kbox[0], t.box[1] - kbox[1]      # carry keypoints with the box
+                        k = [(x + dx, y + dy, s) for x, y, s in k]
+                    draw_person(annotated, t.box, text, colour, k, held=t.det_index is None)
+                    shown.append((geo, word))
+                    stats["postures"][geo or "none"] += 1
+                    if word:
+                        stats["vlm"][word] += 1
+
+                now = time.perf_counter()
+                fps_hist.append(1.0 / max(1e-6, now - t_prev))
+                t_prev = now
+                frames += 1
+                n = len(tracks)
+                if frame_log is not None:
+                    frame_log.write(json.dumps({"f": frames, "src": seq, "n": n,
+                                                "ids": sorted(t.id for t in tracks),
+                                                "det": int(len(boxes)),
+                                                "ms": round(infer_hist[-1], 2)}) + "\n")
+                stats["counts"][n] += 1
+                if last_count is not None and n != last_count:
+                    stats["changes"] += 1
+                last_count = n
+
+                if mode == "bench":
+                    title = "RAPTOR live  |  bench: {} + tracker + VLM check".format(Path(pose_path).stem)
+                    timing = "FPS {:5.1f}   pose {:5.1f} ms".format(mean(fps_hist), mean(infer_hist))
                 else:
-                    text = "#{} {}{}".format(t.id, geo or "person", " | VLM: " + word if word else "")
-                    lying = geo == LYING or word == "lying"
-                    n_lying += lying
-                    colour = C_ALARM if lying else posture_colour(word or geo)
-                k, kbox = kps_of.get(t.id, (None, None))
-                if k is not None and kbox is not None and kbox != t.box:
-                    dx, dy = t.box[0] - kbox[0], t.box[1] - kbox[1]      # carry keypoints with the box
-                    k = [(x + dx, y + dy, s) for x, y, s in k]
-                draw_person(annotated, t.box, text, colour, k, held=t.det_index is None)
-                shown.append((geo, word))
-                stats["postures"][geo or "none"] += 1
-                if word:
-                    stats["vlm"][word] += 1
+                    title = "RAPTOR live  |  aerial: {} + tracker + pose every {} frames".format(
+                        Path(args.detector).stem, args.pose_every)
+                    timing = "FPS {:5.1f}   detect+track {:5.1f} ms   pose pass {:5.1f} ms".format(
+                        mean(fps_hist), mean(infer_hist), mean(pose_hist))
+                hud = [(title, C_INK),
+                       (timing, C_OK if mean(infer_hist) <= FRAME_BUDGET_MS else C_ALARM),
+                       ("people: {}{}".format(n, "   LYING: {}".format(n_lying) if n_lying else ""),
+                        C_ALARM if n_lying else C_INK)]
+                if vlm is not None:
+                    lat = [a[2] for a in vlm.answers.values()]
+                    if not vlm.ready:
+                        vlm_line = vlm.state
+                    elif lat:
+                        vlm_line = "VLM posture check: {:.2f} s per person".format(mean(lat))
+                    else:
+                        vlm_line = "VLM posture check: ready"
+                    hud.append((vlm_line, C_INK))
+                if frame_errors:
+                    hud.append(("{} frame errors so far (logged, frames skipped)".format(frame_errors), C_WARN))
+                if src.status != "ok" or src.reconnects:
+                    hud.append(("camera: {}  (reconnected {}x)".format(src.status, src.reconnects), C_WARN))
+                if sampler:
+                    s = sampler.summary()
+                    if s.get("board_power_mean_w"):
+                        hud.append(("board {:.1f} W   {:.0f} C".format(s["board_power_mean_w"], s.get("temp_max_c", 0)),
+                                    C_INK))
+                hud.append(("posture uses image vertical (no IMU) - bench only, not flight", C_WARN))
+                draw_hud(annotated, hud)
 
-            now = time.perf_counter()
-            fps_hist.append(1.0 / max(1e-6, now - t_prev))
-            t_prev = now
-            frames += 1
-            n = len(tracks)
-            stats["counts"][n] += 1
-            if last_count is not None and n != last_count:
-                stats["changes"] += 1
-            last_count = n
-
-            if mode == "bench":
-                title = "RAPTOR live  |  bench: {} + tracker + VLM check".format(Path(pose_path).stem)
-                timing = "FPS {:5.1f}   pose {:5.1f} ms".format(mean(fps_hist), mean(infer_hist))
-            else:
-                title = "RAPTOR live  |  aerial: {} + tracker + pose every {} frames".format(
-                    Path(args.detector).stem, args.pose_every)
-                timing = "FPS {:5.1f}   detect+track {:5.1f} ms   pose pass {:5.1f} ms".format(
-                    mean(fps_hist), mean(infer_hist), mean(pose_hist))
-            hud = [(title, C_INK),
-                   (timing, C_OK if mean(infer_hist) <= FRAME_BUDGET_MS else C_ALARM),
-                   ("people: {}{}".format(n, "   LYING: {}".format(n_lying) if n_lying else ""),
-                    C_ALARM if n_lying else C_INK)]
-            if vlm is not None:
-                lat = [a[2] for a in vlm.answers.values()]
-                if not vlm.ready:
-                    vlm_line = vlm.state
-                elif lat:
-                    vlm_line = "VLM posture check: {:.2f} s per person".format(mean(lat))
-                else:
-                    vlm_line = "VLM posture check: ready"
-                hud.append((vlm_line, C_INK))
-            if src.status != "ok" or src.reconnects:
-                hud.append(("camera: {}  (reconnected {}x)".format(src.status, src.reconnects), C_WARN))
-            if sampler:
-                s = sampler.summary()
-                if s.get("board_power_mean_w"):
-                    hud.append(("board {:.1f} W   {:.0f} C".format(s["board_power_mean_w"], s.get("temp_max_c", 0)),
-                                C_INK))
-            hud.append(("posture uses image vertical (no IMU) - bench only, not flight", C_WARN))
-            draw_hud(annotated, hud)
-
-            if writer is not None:
-                writer.write(annotated if annotated.shape[:2] == (h, w) else cv2.resize(annotated, (w, h)))
-            if not args.no_display:
-                disp = annotated if args.window_scale >= 1 else cv2.resize(annotated, (dw, dh))
-                cv2.imshow(win, disp)
-                if (cv2.waitKey(1) & 0xFF) in (ord("q"), 27):
+                if writer is not None:
+                    writer.write(annotated if annotated.shape[:2] == (h, w) else cv2.resize(annotated, (w, h)))
+                if not args.no_display:
+                    disp = annotated if args.window_scale >= 1 else cv2.resize(annotated, (dw, dh))
+                    cv2.imshow(win, disp)
+                    if (cv2.waitKey(1) & 0xFF) in (ord("q"), 27):
+                        break
+                    if cv2.getWindowProperty(win, cv2.WND_PROP_VISIBLE) < 1:
+                        break
+                elif frames % 30 == 0:
+                    print("frame {}: {} people {}, {:.1f} FPS, infer {:.1f} ms".format(
+                        frames, n, shown, mean(fps_hist), mean(infer_hist)))
+                if frames > 30:
+                    stats["fps_hist"][int(round(fps_hist[-1]))] += 1
+                if args.max_frames and frames >= args.max_frames:
                     break
-                if cv2.getWindowProperty(win, cv2.WND_PROP_VISIBLE) < 1:
-                    break
-            elif frames % 30 == 0:
-                print("frame {}: {} people {}, {:.1f} FPS, infer {:.1f} ms".format(
-                    frames, n, shown, mean(fps_hist), mean(infer_hist)))
-            if frames > 30:
-                stats["fps"].append(fps_hist[-1])
-            if args.max_frames and frames >= args.max_frames:
-                break
+                consecutive_errors = 0
+            except Exception:  # noqa: BLE001 - one bad frame must not end a live demo
+                # Logged in full (the launcher keeps the log), counted, shown on the
+                # HUD, and the frame skipped. Only a run of failures stops the demo:
+                # then something is persistently broken and must be seen, not hidden.
+                frame_errors += 1
+                consecutive_errors += 1
+                print("frame {}: error #{} while processing - frame skipped:".format(frames, frame_errors),
+                      file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
+                if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                    print("ERROR: {} frames in a row failed - stopping. See the traceback above.".format(
+                        consecutive_errors), file=sys.stderr)
+                    raise
+                continue
     except KeyboardInterrupt:
         print("\ninterrupted")
     finally:
@@ -528,6 +620,8 @@ def main() -> int:
         src.stop()
         if writer is not None:
             writer.release()
+        if frame_log is not None:
+            frame_log.close()
         if not args.no_display:
             cv2.destroyAllWindows()
 
@@ -535,16 +629,17 @@ def main() -> int:
     if fps_hist:
         print("last-30-frame average: {:.1f} FPS, inference {:.1f} ms".format(mean(fps_hist), mean(infer_hist)))
     if args.stats:
-        fps = sorted(stats["fps"])
         print(json.dumps({
             "mode": mode, "pose_engine": Path(pose_path).name, "frames": frames,
-            "fps_mean": round(mean(fps), 1), "fps_p5": round(fps[len(fps) // 20], 1) if fps else None,
+            "fps_mean": hist_mean(stats["fps_hist"]), "fps_p5": hist_quantile(stats["fps_hist"], 0.05),
             "infer_ms_last30": round(mean(infer_hist), 1),
             "people_count_frames": dict(sorted(stats["counts"].items())),
             "people_count_changes": stats["changes"],
             "posture_labels": dict(stats["postures"]), "vlm_answers": dict(stats["vlm"]),
             "vlm_seconds": round(mean([a[2] for a in vlm.answers.values()]), 2) if vlm and vlm.answers else None,
             "camera": getattr(src, "device", None), "camera_reconnects": src.reconnects,
+            "camera_mode": getattr(src, "mode_text", None), "frame_errors": frame_errors,
+            "camera_thread_errors": getattr(src, "errors", 0),
         }, indent=1))
     if not vlm_done:
         # The VLM thread is still inside the model (quit while it was loading).

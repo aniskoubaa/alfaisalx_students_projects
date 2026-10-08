@@ -1,0 +1,41 @@
+{
+ "when": "2026-10-05T10:47:35+00:00",
+ "camera": "Arducam B0498 (USB3, YUYV)",
+ "rows": [
+  {
+   "mode": "1280x720@90",
+   "negotiated": "1280x720",
+   "fps_delivered": 90.0,
+   "capture_cpu_pct_of_one_core": 121.9,
+   "ms_cpu_per_frame": 13.54
+  },
+  {
+   "mode": "1280x720@60",
+   "negotiated": "1280x720",
+   "fps_delivered": 60.0,
+   "capture_cpu_pct_of_one_core": 81.8,
+   "ms_cpu_per_frame": 13.64
+  },
+  {
+   "mode": "1920x1080@60",
+   "negotiated": "1920x1080",
+   "fps_delivered": 60.0,
+   "capture_cpu_pct_of_one_core": 110.6,
+   "ms_cpu_per_frame": 18.43
+  },
+  {
+   "mode": "1920x1080@30",
+   "negotiated": "1920x1080",
+   "fps_delivered": 30.0,
+   "capture_cpu_pct_of_one_core": 55.4,
+   "ms_cpu_per_frame": 18.46
+  },
+  {
+   "mode": "3840x2160@15",
+   "negotiated": "3840x2160",
+   "fps_delivered": 15.0,
+   "capture_cpu_pct_of_one_core": 65.8,
+   "ms_cpu_per_frame": 43.88
+  }
+ ]
+}

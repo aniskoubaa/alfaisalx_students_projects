@@ -1,0 +1,35 @@
+memprofile of the live demo, snapshots at 120 s and 480 s (6.0 min apart)
+
+RSS (MB)          at t1   at t2   per minute
+  VmRSS           7425    7683   +43.00
+  RssAnon         6922    7195   +45.50
+  RssFile          503     488   -2.50
+  RssShmem           0       0   +0.00
+  python heap    288.1   289.3   +0.19
+
+Top 25 Python allocation sites by growth between the snapshots:
+     +253.5 KB     +854 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/numpy/lib/_twodim_base_impl.py:320
+     +133.6 KB    +1656 blocks  /usr/lib/python3.12/dataclasses.py:1286
+     +117.7 KB    +2024 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/ultralytics/trackers/byte_tracker.py:505
+      +86.1 KB      +24 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/ultralytics/trackers/utils/kalman_filter.py:197
+      +67.0 KB     +863 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/numpy/lib/_index_tricks_impl.py:435
+      +55.3 KB    +1012 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/ultralytics/trackers/byte_tracker.py:67
+      -52.8 KB     -966 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/transformers/core_model_loading.py:1289
+      +37.3 KB    +1053 blocks  /home/alfaisal-x-nx/raptor/src/common/tegra_sampler.py:102
+      +34.3 KB     +466 blocks  e/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/transformers/models/qwen3_vl/modeling_qwen3_vl.py:536
+      +33.2 KB    +1052 blocks  /home/alfaisal-x-nx/raptor/src/common/tegra_sampler.py:104
+      +30.5 KB     +430 blocks  /home/alfaisal-x-nx/raptor/src/common/person_tracker.py:114
+      -29.3 KB      -86 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/transformers/__init__.py:811
+      +25.9 KB     +318 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1794
+      +24.5 KB       +0 blocks  /home/alfaisal-x-nx/raptor/src/common/vlm_posture.py:54
+      +24.2 KB     +388 blocks  /home/alfaisal-x-nx/raptor/src/demo/raptor_live_demo.py:499
+      +23.4 KB     +302 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1783
+      +22.8 KB     +730 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/ultralytics/trackers/basetrack.py:76
+      +21.4 KB     +124 blocks  /usr/lib/python3.12/json/encoder.py:414
+      -20.8 KB     -266 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/transformers/core_model_loading.py:1259
+      +14.8 KB     +157 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/ultralytics/trackers/byte_tracker.py:96
+      +13.5 KB      +69 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/ultralytics/trackers/utils/matching.py:38
+      +13.1 KB     +175 blocks  e/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/transformers/models/qwen3_vl/modeling_qwen3_vl.py:311
+      +12.4 KB     +351 blocks  /home/alfaisal-x-nx/raptor/src/common/tegra_sampler.py:110
+      +11.8 KB     +504 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/ultralytics/trackers/byte_tracker.py:278
+      +11.4 KB      +16 blocks  /home/alfaisal-x-nx/raptor-venv/lib/python3.12/site-packages/ultralytics/trackers/utils/kalman_filter.py:195
