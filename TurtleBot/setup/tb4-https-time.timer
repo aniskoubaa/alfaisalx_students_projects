@@ -1,0 +1,9 @@
+[Unit]
+Description=Correct the clock from HTTPS shortly after boot and every 15 minutes
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=15min
+
+[Install]
+WantedBy=timers.target

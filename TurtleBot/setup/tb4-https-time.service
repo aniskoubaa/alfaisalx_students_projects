@@ -1,0 +1,9 @@
+[Unit]
+Description=Set the clock from an HTTPS Date header (NTP is blocked on the university Wi-Fi)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=120
+ExecStart=/usr/local/sbin/tb4-https-time

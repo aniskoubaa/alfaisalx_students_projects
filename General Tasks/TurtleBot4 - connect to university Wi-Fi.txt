@@ -1,0 +1,68 @@
+Task: Connect the TurtleBot 4 to the university Wi-Fi, and set up SSH access from a laptop
+
+Background:
+- The robot's Raspberry Pi starts in Access Point mode: it creates its own Wi-Fi network "Turtlebot4" (factory default, robot address 10.42.0.1).
+- With one Wi-Fi card, joining "Turtlebot4" drops the laptop's internet. Fix used here: a second USB Wi-Fi adapter (Realtek 8811CU) so the built-in card stays on the university network and the USB adapter joins the robot.
+- No passwords or personal credentials are written in this file (the repo is public).
+
+Tried / done:
+- 2026-10-03: Windows showed an "enter the 8-digit PIN" box when joining "Turtlebot4". That is the WPS router-PIN screen, not the robot password. "Connect using a security key instead" and typing the password by keyboard worked. Voice dictation mangled the password.
+- 2026-10-03: Plugged in a second USB Wi-Fi adapter. Built-in card on the university network (internet), USB adapter for the robot.
+- 2026-10-03: Created an SSH key on the laptop just for the robot (~/.ssh/turtlebot4_ed25519) and an SSH alias, so "ssh turtlebot4" connects to ubuntu@10.42.0.1 with that key.
+- 2026-10-03: Checked which university networks the laptop knows and how they log in:
+    AU-Students       WPA2-Enterprise (username + password, PEAP)
+    Students          WPA2/WPA3-Personal (one shared password)
+    AU-Students-WIFI  Open (likely a web login page)
+
+- 2026-10-03: The laptop's university connection is the "Students" network (WPA2-Personal, one shared password), so that is the network chosen for the robot.
+- 2026-10-03: Joined the USB adapter (Wi-Fi 2) to "Turtlebot4" without retyping the password: exported the saved Windows Wi-Fi profile from the built-in card (password stays encrypted) and imported it onto Wi-Fi 2, which then auto-connected. Gotcha: "netsh wlan export ... folder=<long path>" silently saved to the wrong place; a short path (%TEMP%\tb4w) worked. Temp profile files deleted afterwards.
+- 2026-10-03: Result: Wi-Fi 2 got 10.42.0.71 from the robot; robot answers ping and port 22 is open. Internet kept working because Windows prefers the built-in card (interface metric 45 vs 55 for Wi-Fi 2), so no routing changes were needed.
+- 2026-10-03: Tried to type the key-install command into the Claude desktop terminal panel; it failed (terminal integration script missing). Key install handed to the user to run in their own PowerShell window.
+
+- 2026-10-03: Key installed by the user. "ssh turtlebot4" now logs in with the key, no password.
+- 2026-10-03: Robot facts (read-only checks): TurtleBot 4 Standard, image version 2.0.2, Ubuntu 24.04.1, ROS 2 Jazzy, NetworkManager handles Wi-Fi, netplan file /etc/netplan/50-wifis.yaml holds the Access Point config (connection "netplan-wlan0-Turtlebot4", 5 GHz). avahi is running, so the robot answers to turtlebot4.local. turtlebot4-setup is not on PATH in this image.
+- 2026-10-03: Robot clock was wrong (said Oct 2024) because it had never had internet. Expect it to correct itself once online; until then HTTPS and apt can fail with certificate/date errors.
+- 2026-10-03: sudo asks for a password, and NetworkManager actions are "auth" for the ubuntu user over SSH, so any Wi-Fi change needs the robot password typed once.
+- 2026-10-03: Wrote ~/wifi-switch/ on the robot (copies kept with this note's author):
+    start.sh          run once with sudo; asks for the Students password (hidden), saves it in a root-only NetworkManager profile (Students.nmconnection, mode 600, autoconnect off, priority 10), then starts controller.sh as a background system job.
+    controller.sh     test phase: joins Students, logs address, gateway, DNS and a web check, stays 3 min, then returns to the robot's own Wi-Fi. Waits up to 30 min for a "GO" file. Permanent phase: joins Students, turns autoconnect on, and undoes everything after 10 min unless a "KEEP" file appears.
+    write_keyfile.py  writes the profile; the password goes through stdin, never the command line.
+  Gotcha: sending files through a shell heredoc collapsed double backslashes and broke the Python file; copying with scp fixed it. Self-test with a fake password containing spaces, quotes, # and a backslash passed.
+- Design note: the robot's own Wi-Fi stays as a fallback. With Students at priority 10 and the AP at 0, NetworkManager should prefer Students when in range and fall back to the AP otherwise.
+
+- 2026-10-03: start.sh run by the user. Test phase: robot joined Students on 5 GHz, got 10.87.10.205/18, gateway and DNS OK, but outbound web check failed (HTTP 000) and raw TCP to 1.1.1.1:443 timed out. The laptop reached the robot over Students by SSH (no client isolation). Robot returned to its own Wi-Fi by itself after 3 minutes, as designed.
+- 2026-10-03: Gotcha: right after joining, turtlebot4.local resolved to 192.168.186.3 (the robot's internal USB link to the Create 3 base, unreachable from the laptop) for a few minutes before the Wi-Fi address appeared. avahi advertises every interface.
+- 2026-10-03: Permanent phase (GO file sent): joined Students on 2.4 GHz this time, same address 10.87.10.205, web check HTTP 204 (internet OK). KEEP file created after the laptop reached it by name; log says CONFIRMED. Profiles now: Students autoconnect priority 10, Turtlebot4 AP priority 0.
+- 2026-10-03: Internet on Students: HTTPS to github.com and packages.ros.org works (200). NTP to the Ubuntu pool is blocked (chrony sources unreachable), ICMP to the internet is blocked. Plain HTTP checks were inconsistent.
+- 2026-10-03: ROS 2 checks: bringup service running; /cmd_vel is geometry_msgs/msg/TwistStamped (cmd_vel_unstamped also exists). No /scan data while docked: turtlebot4_node log says "RPLIDAR stopped" (power saving on the dock). create3_republisher had crashed (exit -11) twice and restarted by itself. The OAK-D camera container uses about one CPU core.
+- 2026-10-03: First program test passed: TurtleBot/examples/hello_robot.py put "Hello from Ibrahim" on the robot screen and turned the light ring green for 5 s (safe on the dock). Note: ROS programs take 10 to 20 s to start on the Pi; an 8 s timeout killed the first lidar test before it finished starting.
+- 2026-10-03: Laptop set up for easy access: ssh alias turtlebot4 now uses turtlebot4.local (works on Students and on the robot's own Wi-Fi), turtlebot4-ap kept for 10.42.0.1. VS Code Remote-SSH installed; settings remotePlatform=linux, localServerDownload=always, connectTimeout=30. First VS Code connect timed out (likely the wrong mDNS address answered first); after lowering ssh ConnectTimeout to 5 s it worked. The VS Code server is 207 MB and downloaded slowly over campus (about 10 minutes, one time only). Desktop shortcuts added: "TurtleBot - VS Code" and "TurtleBot - Terminal".
+- 2026-10-03: Laptop gotcha: an extension install failed with ENOTFOUND while Wi-Fi 2 still listed the robot's old DNS server (10.42.0.1); retrying once the adapter showed Disconnected worked.
+- 2026-10-03: Prepared root-setup.sh (copy in TurtleBot/setup/): installs an HTTPS-based clock fix (service + 15-minute timer, because NTP is blocked), limits avahi to wlan0, then reboots to prove the robot comes back on Students by itself. Dry run of the time fetch: web said 2026-10-03, robot clock said 2024-10-28.
+- Guide for users: TurtleBot/HOW-TO-CONNECT.md.
+
+- 2026-10-03: User ran root-setup.sh (as "sudo ./finish-setup" in an SSH window; the Desktop .cmd launcher was not visible on the desktop and the user opened the Terminal shortcut instead). Robot rebooted and came back on Students by itself (Wi-Fi survives reboot). Clock corrected to 2026, timer enabled, avahi limited to wlan0.
+- 2026-10-03: PROBLEM CAUSED BY THE CLOCK FIX: after the reboot, ROS started at ~26 s and the clock fix jumped the clock 2 years at ~82 s. From then on no data came from the Create 3 base (no /battery_state, /dock_status, undock/dock actions timed out). Lesson: never step the clock by a large amount while ROS is running.
+- 2026-10-03: Fix part 1 (fix-ros.sh, run by the user with sudo): tb4-https-time now retries for 90 s and a drop-in (/etc/systemd/system/turtlebot4.service.d/10-wait-for-clock.conf) makes the ROS bringup start only after the clock is set; then restarted turtlebot4.service. Base still silent afterwards.
+- 2026-10-03: Fix part 2: the Create 3 base's own application was stuck (its web server on http://192.168.186.2 port 80 still answered; note port 8080 does not). Restarted it with its "Restart Application" function (POST /api/restart-app; robot chimes). After that /dock_status came back.
+- 2026-10-03: Movement test (TurtleBot/examples/motion_test.sh): undock SUCCEEDED, 360-degree spin with the built-in rotate_angle action SUCCEEDED, forward drive skipped because there is no lidar data. The SSH session dropped while docking started (robot briefly left the Wi-Fi while moving, likely roaming between campus access points), which cancelled the dock command; re-sent it detached on the robot (setsid nohup) and the robot docked.
+- 2026-10-03: LIDAR NOT DETECTED: /dev/RPLIDAR is missing and there is no Silicon Labs (CP210x) USB device in lsusb, docked or undocked, since the reboot. rplidar_ros log: "cannot bind to the specified serial port '/dev/RPLIDAR'". Before the reboot the lidar was being stopped/started by the power saver, so it worked then. Likely a loose USB cable or a power issue; needs a physical check.
+
+Result:
+- Robot is on the university Students Wi-Fi, reachable from the laptop by name, with a fallback to its own Wi-Fi. VS Code and SSH access work without passwords. Screen/light test, undock, spin and dock all work.
+- Open issue: the lidar is not detected on USB (physical check of its cable needed). Long robot moves can drop the SSH session while the robot roams between access points; run motion scripts detached on the robot (nohup/setsid or tmux).
+- Lidar: a full power cycle (sudo poweroff, base off and on, back on the dock) did NOT bring it back: still no /dev/RPLIDAR and no CP210x in lsusb. Next: reseat both ends of the lidar USB cable, restart turtlebot4.service, then try another port or cable.
+- 2026-10-03 (after the power cycle): the clock fix failed at boot ("Could not read the time from any HTTPS server" after 116 s of retries), so the Pi stayed in Oct 2024 and the base sent no data again. Pattern seen today: the base only talks to ROS when the Pi and base clocks agree. Decision: remove the clock fix. Prepared ~/undo-clock (TurtleBot/setup/undo-clock.sh): disables and deletes the tb4-https-time timer, service and script, deletes the 10-wait-for-clock.conf drop-in, daemon-reload, restarts turtlebot4.service. After it runs, restart the Create 3 app (curl -X POST http://192.168.186.2/api/restart-app from the robot) and check /dock_status. Status at handover: prepared, NOT yet run by the user.
+- If /dock_status or /battery_state stop arriving, restart the Create 3 base application first: its web page http://192.168.186.2 (port 80, reachable from the robot only), "Restart Application" (POST /api/restart-app).
+- Restarts done today: one robot reboot (finish-setup), one restart of turtlebot4.service (fix-ros), one restart of the Create 3 base application.
+- Every change made to the robot and laptop, with how to undo it, is listed in TurtleBot/HOW-TO-CONNECT.md, section "Changes made to the robot and laptop, and how to undo them".
+
+Next steps / plan:
+(Superseded on 2026-10-03: the current task plan is TurtleBot/ROADMAP.md. The original plan below is kept for the record.)
+1. Join "Turtlebot4" on the USB adapter, install the laptop's public key on the robot (one-time, user types the robot password).
+2. Read-only checks on the robot: model (Standard has a screen showing its IP, Lite does not), ROS 2 version, current network config.
+3. Switch the robot from Access Point mode to Client mode on a university network, with a safety net: back up the current network config and start a 10-minute automatic undo, so the robot falls back to its own "Turtlebot4" network if it fails to join.
+   - "Students" (one password): use the robot's own tool, turtlebot4-setup > Wi-Fi Setup > Client mode.
+   - "AU-Students" (username + password): turtlebot4-setup is not expected to handle this; needs a manual netplan config (PEAP / MSCHAPv2). Credentials end up stored on the shared robot, so a device account from IT is preferable to a personal one.
+   - "AU-Students-WIFI" (web login page): not recommended for a robot without a screen and browser.
+4. Known campus risks to test for: the network may block devices from reaching each other (laptop cannot ping the robot), may block ROS 2 discovery (multicast), and the robot's address changes with DHCP.
