@@ -517,7 +517,7 @@ Remote desktop (RDP or VNC) is not set up. The robot runs Ubuntu Server with no 
 
 Anything that uses `sudo` (shutting down, changing Wi-Fi, installing packages) asks for the `ubuntu` password, which a person must type. Wi-Fi changes over SSH need it too. Configuration changes to the shared robot are recorded in [MAINTENANCE.md](MAINTENANCE.md), together with the admin scripts in [`setup/`](setup/) and how to undo each change. Read it before changing anything, and record your own changes there.
 
-Open admin work on the network (2026-10-10): the Wi-Fi power-saving fix ([ROADMAP.md, TB-20](ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving)), the decision on the robot's network ([TB-21](ROADMAP.md#tb-21-decide-the-robots-network-students-or-the-lab-router)) and securing the lab router ([TB-22](ROADMAP.md#tb-22-secure-the-lab-router)). These are proposals; nothing was changed on the robot for them.
+Open admin work on the network (2026-10-10): the Wi-Fi power-saving fix ([ROADMAP.md, TB-20](ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving)), the decision on the robot's network ([TB-21](ROADMAP.md#tb-21-decide-the-robots-network-students-or-the-lab-router)) and securing the lab router ([TB-22](ROADMAP.md#tb-22-secure-the-lab-router); its credentials were changed on 2026-10-10, the remaining steps are open). These are proposals; nothing was changed on the robot for them.
 
 ## Related documents
 

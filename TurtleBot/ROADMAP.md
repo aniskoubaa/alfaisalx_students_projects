@@ -107,10 +107,10 @@ Not working or open:
 | [TB-08](#tb-08-stable-addressing) | Stable addressing | P2 | Open | None |
 | [TB-09](#tb-09-ros-2-from-a-laptop-over-campus-wi-fi) | ROS 2 from a laptop over campus Wi-Fi | P2 | Open | TB-01 |
 | [TB-10](#tb-10-make-long-commands-survive-wi-fi-drops) | Make long commands survive Wi-Fi drops | P2 | Open | None |
-| [TB-11](#tb-11-generalise-the-documentation) | Generalise the documentation | P2 | In progress (2026-10-03; docs updated 2026-10-10) | None |
+| [TB-11](#tb-11-generalise-the-documentation) | Generalise the documentation | P2 | In progress (2026-10-03; docs updated 2026-10-10; hands-on and lidar guides added 2026-10-10) | None |
 | [TB-12](#tb-12-documentation-follow-ups) | Documentation follow-ups | P2 | In progress (2026-10-10) | TB-11 |
-| [TB-13](#tb-13-teleoperation-how-to) | Teleoperation how-to | P3 | Open | TB-01 |
-| [TB-14](#tb-14-onboarding-checklist-for-new-lab-members) | Onboarding checklist for new lab members | P3 | Open | TB-05, TB-11 |
+| [TB-13](#tb-13-teleoperation-how-to) | Teleoperation how-to | P3 | Open (command-line driving documented 2026-10-10; keyboard teleop not yet) | TB-01 |
+| [TB-14](#tb-14-onboarding-checklist-for-new-lab-members) | Onboarding checklist for new lab members | P3 | In progress (do-it-yourself guide written 2026-10-10; not yet tried by a new member) | TB-05, TB-11 |
 | [TB-15](#tb-15-characterise-the-odom-pauses-at-motion-start) | Characterise the `/odom` pauses at motion start | P2 | In progress (2026-10-04) | None |
 | [TB-16](#tb-16-motion-program-test-campaign-and-demo-shapes) | Motion program test campaign and demo shapes | P2 | Open (started 2026-10-04: first runs done; campaign waiting for a supervised session, no runs since 2026-10-04) | TB-02 |
 | [TB-17](#tb-17-decide-whether-to-keep-or-remove-the-clock-fix) | Decide whether to keep or remove the clock fix | P1 | Open (proposed 2026-10-04) | None |
@@ -872,7 +872,7 @@ Expected: autoconnect `yes`, priority `20`; `<lab SSID>:wlan0` active; the reser
 
 Part A, the programs:
 
-1. Copy the programs (this applies R12). On the laptop, from `TurtleBot/examples/`:
+1. Copy the programs (this applies R12, and also replaces the robot's `clearance_check.py` with the version whose lidar fallback was fixed on 2026-10-10). On the laptop, from `TurtleBot/examples/`:
 
    ```bash
    scp *.py *.sh ubuntu@<robot-address>:robot_code/
@@ -1081,7 +1081,9 @@ The factory image from the official manual remains the last-resort restore, but 
 
 ### TB-11 Generalise the documentation
 
-**Priority:** P2 | **Status:** In progress (2026-10-03; docs updated 2026-10-10) | **Depends on:** None
+**Priority:** P2 | **Status:** In progress (2026-10-03; docs updated 2026-10-10; hands-on and lidar guides added 2026-10-10) | **Depends on:** None
+
+**Update 2026-10-10 (later).** Added guides written for any lab member: [docs/do-it-yourself.html](docs/do-it-yourself.html) ([Markdown](docs/DO-IT-YOURSELF.md)), [docs/lidar-guide.html](docs/lidar-guide.html) ([Markdown](docs/LIDAR-GUIDE.md)), and the interactive [motion simulator](docs/motion-simulator.html) and [docking explainer](docs/docking-explained.html). They are linked from README.md, HOW-TO-CONNECT.md and the docs index.
 
 **Goal.** Documentation that any lab member can follow on any laptop, with the configuration and change history kept separately.
 
@@ -1222,7 +1224,9 @@ The factory image from the official manual remains the last-resort restore, but 
 
 ### TB-13 Teleoperation how-to
 
-**Priority:** P3 | **Status:** Open | **Depends on:** TB-01
+**Priority:** P3 | **Status:** Open (command-line driving documented 2026-10-10; keyboard teleop not yet) | **Depends on:** TB-01
+
+**Update 2026-10-10.** Step 8 of [docs/do-it-yourself.html](docs/do-it-yourself.html) now documents driving by hand from the command line (`ros2 topic pub` with `TwistStamped`, and the `drive_distance` and `rotate_angle` actions, with a speed-capped command builder). Those commands are not yet tested on this robot. Keyboard teleop (this task) is still to do.
 
 **Goal.** A short, tested guide to driving the robot by keyboard.
 
@@ -1260,7 +1264,9 @@ The factory image from the official manual remains the last-resort restore, but 
 
 ### TB-14 Onboarding checklist for new lab members
 
-**Priority:** P3 | **Status:** Open | **Depends on:** TB-05, TB-11
+**Priority:** P3 | **Status:** In progress (do-it-yourself guide written 2026-10-10; not yet tried by a new member) | **Depends on:** TB-05, TB-11
+
+**Update 2026-10-10.** [docs/do-it-yourself.html](docs/do-it-yourself.html) ([Markdown](docs/DO-IT-YOURSELF.md)) covers most of the suggested items as eleven steps with progress checkboxes, and README.md's quick start links to it. Still open: access to the password manager entries and the rule for recording changes (step 1 items), and step 2 (a new member follows it and gives feedback).
 
 **Goal.** A one-page checklist that takes a new lab member from nothing to running their first program safely.
 
