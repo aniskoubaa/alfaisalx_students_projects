@@ -48,7 +48,7 @@ No change was made to the robot after 2026-10-04 (details in [MAINTENANCE.md](MA
 |---|---|---|
 | Robot Wi-Fi (the main problem this week) | **Open.** On 2026-10-04 (about 15:42) the robot answered SSH once after being switched on, then dropped off for at least 25 minutes. On 2026-10-05 it answered for about a minute, then only in short windows (about 10 to 40 s). Likely cause: Wi-Fi power saving on the Pi (diagnosis, not confirmed). Fix proposed, **not applied** | [TB-20](#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving) (new, P0) |
 | `turtlebot4.local` | Failed to resolve intermittently on the campus Wi-Fi on 2026-10-04. Use the address on the display | [TB-08](#tb-08-stable-addressing), TB-20 |
-| Lab router | Linksys WRT54G set up on 2026-10-05 (`192.168.1.1`, LAN `192.168.1.x`). **The robot has not been moved to it.** Admin login was still the factory default when it was set up | [TB-21](#tb-21-decide-the-robots-network-students-or-the-lab-router), [TB-22](#tb-22-secure-the-lab-router) (new) |
+| Lab router | Linksys WRT54G set up on 2026-10-05 (`192.168.1.1`, LAN `192.168.1.x`). **The robot has not been moved to it.** Admin login was still the factory default when it was set up; credentials changed on 2026-10-10 (reported by the lab RA) | [TB-21](#tb-21-decide-the-robots-network-students-or-the-lab-router), [TB-22](#tb-22-secure-the-lab-router) (new) |
 | New example programs | Written 2026-10-04 and tested offline (101 logic checks, 38 simulated runs, rerun 2026-10-10). Not copied to the robot (R12 not applied) | [TB-23](#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool) (new) |
 | `health_check.py` | Written 2026-10-04, tested offline; first robot run pending | [TB-19](#tb-19-read-only-health-check-script) (now Prepared), TB-23 |
 | Connect tool | `TurtleBotConnect.exe` (Windows) and `connect-turtlebot.sh` (macOS, Linux) in [tools/connect/](tools/connect/README.md). Work in progress was committed on 2026-10-05 (7007f51; its exe is v1.0.0 and does not match its source); the final design is v1.1.0. Not yet used with the real robot | TB-23 |
@@ -107,10 +107,10 @@ Not working or open:
 | [TB-08](#tb-08-stable-addressing) | Stable addressing | P2 | Open | None |
 | [TB-09](#tb-09-ros-2-from-a-laptop-over-campus-wi-fi) | ROS 2 from a laptop over campus Wi-Fi | P2 | Open | TB-01 |
 | [TB-10](#tb-10-make-long-commands-survive-wi-fi-drops) | Make long commands survive Wi-Fi drops | P2 | Open | None |
-| [TB-11](#tb-11-generalise-the-documentation) | Generalise the documentation | P2 | In progress (2026-10-03; docs updated 2026-10-10) | None |
+| [TB-11](#tb-11-generalise-the-documentation) | Generalise the documentation | P2 | In progress (2026-10-03; docs updated 2026-10-10; hands-on and lidar guides added 2026-10-10) | None |
 | [TB-12](#tb-12-documentation-follow-ups) | Documentation follow-ups | P2 | In progress (2026-10-10) | TB-11 |
-| [TB-13](#tb-13-teleoperation-how-to) | Teleoperation how-to | P3 | Open | TB-01 |
-| [TB-14](#tb-14-onboarding-checklist-for-new-lab-members) | Onboarding checklist for new lab members | P3 | Open | TB-05, TB-11 |
+| [TB-13](#tb-13-teleoperation-how-to) | Teleoperation how-to | P3 | Open (command-line driving documented 2026-10-10; keyboard teleop not yet) | TB-01 |
+| [TB-14](#tb-14-onboarding-checklist-for-new-lab-members) | Onboarding checklist for new lab members | P3 | In progress (do-it-yourself guide written 2026-10-10; not yet tried by a new member) | TB-05, TB-11 |
 | [TB-15](#tb-15-characterise-the-odom-pauses-at-motion-start) | Characterise the `/odom` pauses at motion start | P2 | In progress (2026-10-04) | None |
 | [TB-16](#tb-16-motion-program-test-campaign-and-demo-shapes) | Motion program test campaign and demo shapes | P2 | Open (started 2026-10-04: first runs done; campaign waiting for a supervised session, no runs since 2026-10-04) | TB-02 |
 | [TB-17](#tb-17-decide-whether-to-keep-or-remove-the-clock-fix) | Decide whether to keep or remove the clock fix | P1 | Open (proposed 2026-10-04) | None |
@@ -118,7 +118,7 @@ Not working or open:
 | [TB-19](#tb-19-read-only-health-check-script) | Read-only health check script | P3 | Prepared (written 2026-10-04 as `examples/health_check.py`, tested offline; robot run pending, TB-23) | None |
 | [TB-20](#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving) | Fix the robot Wi-Fi drops (Wi-Fi power saving) | P0 | Prepared (fix proposed 2026-10-10, not applied) | None |
 | [TB-21](#tb-21-decide-the-robots-network-students-or-the-lab-router) | Decide the robot's network: Students or the lab router | P1 | Open (proposed 2026-10-10) | TB-20, TB-22 |
-| [TB-22](#tb-22-secure-the-lab-router) | Secure the lab router | P1 | Open (proposed 2026-10-10) | None |
+| [TB-22](#tb-22-secure-the-lab-router) | Secure the lab router | P1 | In progress (credentials changed 2026-10-10) | None |
 | [TB-23](#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool) | First robot run of the new programs and the connect tool | P1 | Open (proposed 2026-10-10) | TB-20 |
 
 Suggested order (updated 2026-10-10): **TB-20 first**, because nothing else can be done on the robot while it drops off the Wi-Fi. Then TB-22 and the network decision TB-21 (secure the router before the robot uses it). Then TB-23 (copy the new programs and run them, and the connect tool, for the first time; supervised, in short batches), which also feeds TB-19, TB-16 and TB-15. TB-17 (the clock decision, which closes TB-01) can be done in the same sessions. Do TB-05 soon. Take a backup (TB-07) before the first risky change in TB-04, TB-05, TB-06 or TB-21.
@@ -830,7 +830,9 @@ Expected: autoconnect `yes`, priority `20`; `<lab SSID>:wlan0` active; the reser
 
 ### TB-22 Secure the lab router
 
-**Priority:** P1 | **Status:** Open (proposed 2026-10-10) | **Depends on:** None
+**Priority:** P1 | **Status:** In progress (credentials changed 2026-10-10) | **Depends on:** None
+
+**Update 2026-10-10.** The lab RA changed the router's credentials (step 1) and reports that the router works afterwards. The new credentials are not recorded in this repository. Steps 2 to 4 are still open.
 
 **Goal.** The lab router no longer uses a factory admin login, its admin page is reachable from the lab network only, its settings are recorded without secrets, and a decision on replacing it is recorded.
 
@@ -844,7 +846,7 @@ Expected: autoconnect `yes`, priority `20`; `<lab SSID>:wlan0` active; the reser
 4. Decide whether to keep the WRT54G or replace it with a current router (newer firmware, 5 GHz). Record the decision.
 
 **Acceptance criteria.**
-- [ ] The factory admin login no longer works; the new login is in the lab password manager.
+- [x] The factory admin login no longer works; the new login is in the lab password manager. (2026-10-10: credentials changed by the lab RA; where the new login is stored is for the lab maintainer to confirm.)
 - [ ] Remote management is off.
 - [ ] Firmware version and exact SSID are recorded in MAINTENANCE.md, and no secret appears in the repository.
 - [ ] The keep-or-replace decision is recorded.
@@ -870,7 +872,7 @@ Expected: autoconnect `yes`, priority `20`; `<lab SSID>:wlan0` active; the reser
 
 Part A, the programs:
 
-1. Copy the programs (this applies R12). On the laptop, from `TurtleBot/examples/`:
+1. Copy the programs (this applies R12, and also replaces the robot's `clearance_check.py` with the version whose lidar fallback was fixed on 2026-10-10). On the laptop, from `TurtleBot/examples/`:
 
    ```bash
    scp *.py *.sh ubuntu@<robot-address>:robot_code/
@@ -1079,7 +1081,9 @@ The factory image from the official manual remains the last-resort restore, but 
 
 ### TB-11 Generalise the documentation
 
-**Priority:** P2 | **Status:** In progress (2026-10-03; docs updated 2026-10-10) | **Depends on:** None
+**Priority:** P2 | **Status:** In progress (2026-10-03; docs updated 2026-10-10; hands-on and lidar guides added 2026-10-10) | **Depends on:** None
+
+**Update 2026-10-10 (later).** Added guides written for any lab member: [docs/do-it-yourself.html](docs/do-it-yourself.html) ([Markdown](docs/DO-IT-YOURSELF.md)), [docs/lidar-guide.html](docs/lidar-guide.html) ([Markdown](docs/LIDAR-GUIDE.md)), and the interactive [motion simulator](docs/motion-simulator.html) and [docking explainer](docs/docking-explained.html). They are linked from README.md, HOW-TO-CONNECT.md and the docs index.
 
 **Goal.** Documentation that any lab member can follow on any laptop, with the configuration and change history kept separately.
 
@@ -1220,7 +1224,9 @@ The factory image from the official manual remains the last-resort restore, but 
 
 ### TB-13 Teleoperation how-to
 
-**Priority:** P3 | **Status:** Open | **Depends on:** TB-01
+**Priority:** P3 | **Status:** Open (command-line driving documented 2026-10-10; keyboard teleop not yet) | **Depends on:** TB-01
+
+**Update 2026-10-10.** Step 8 of [docs/do-it-yourself.html](docs/do-it-yourself.html) now documents driving by hand from the command line (`ros2 topic pub` with `TwistStamped`, and the `drive_distance` and `rotate_angle` actions, with a speed-capped command builder). Those commands are not yet tested on this robot. Keyboard teleop (this task) is still to do.
 
 **Goal.** A short, tested guide to driving the robot by keyboard.
 
@@ -1258,7 +1264,9 @@ The factory image from the official manual remains the last-resort restore, but 
 
 ### TB-14 Onboarding checklist for new lab members
 
-**Priority:** P3 | **Status:** Open | **Depends on:** TB-05, TB-11
+**Priority:** P3 | **Status:** In progress (do-it-yourself guide written 2026-10-10; not yet tried by a new member) | **Depends on:** TB-05, TB-11
+
+**Update 2026-10-10.** [docs/do-it-yourself.html](docs/do-it-yourself.html) ([Markdown](docs/DO-IT-YOURSELF.md)) covers most of the suggested items as eleven steps with progress checkboxes, and README.md's quick start links to it. Still open: access to the password manager entries and the rule for recording changes (step 1 items), and step 2 (a new member follows it and gives feedback).
 
 **Goal.** A one-page checklist that takes a new lab member from nothing to running their first program safely.
 

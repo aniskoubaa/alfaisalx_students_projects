@@ -10,7 +10,10 @@
 - Wrote the first motion program, `motion_shapes.py`. It drives a 40 cm square, a full turn, a back and forth, a triangle and a figure eight, using wheel odometry for distance and heading. It stops for obstacles closer than 25 cm, for bumper hits and on timeouts, has an emergency stop, and is capped at 0.15 m/s. On the robot, the square, turn, back and forth and triangle each ended within 1 cm and 2.2° of where they started (measured by odometry; floor measurements are still to do).
 - Added more programs: a one-command health check, a sensor report, a LiDAR snapshot with an HTML plot, extra shapes, a wall approach and a keep-distance controller. So far these have only run in simulation. A simulated robot (101 logic checks, 38 scenarios) runs on GitHub after every change, and it passes.
 - Built a connect tool: a Windows program (no install needed) and a script for Mac and Linux that find the robot and open a terminal on it. It only connects to the real lab robot, because it checks the robot's identity key, so nobody types the robot password into the wrong device. Tested against a test server; its first run on the robot is next week.
-- Set up a dedicated lab router (Linksys) on the wall Ethernet port. It measured about 12 to 13 Mbit/s, compared with about 3 Mbit/s on the Students Wi-Fi.
+- Set up a dedicated lab router (Linksys) on the wall Ethernet port. It measured about 12 to 13 Mbit/s, compared with about 3 Mbit/s on the Students Wi-Fi. I have since changed its login credentials from the setup values.
+- Wrote guides so that anyone in the lab can use the robot without help (or AI help): a step-by-step "do it yourself" guide (connecting, putting your own code on the robot, driving, docking, a first program, for Windows, Mac and Linux) and a LiDAR user guide (how it works, what one scan contains, and how to use the data in Python).
+- Added interactive pages: a motion simulator that runs the same logic as the real program (its simulated square takes 38.8 s, the real robot took 39 s) and an explanation of how the robot finds its dock by itself.
+- Fixed a bug found while writing the LiDAR guide: one program would have checked the robot's left side instead of the front if it could not read how the LiDAR is mounted.
 - Documented all of it in the repository: the user guide, a maintenance record listing every change to the robot and how to undo it, the roadmap with next tasks, test logs, and illustrated HTML pages, including a new page on the network problems.
 
 ## Challenges faced
@@ -22,11 +25,12 @@
 
 ## Main outcome or deliverable
 
-The TurtleBot 4 is usable for lab work: the LiDAR works, a tested motion program drives the requested shapes safely, and lab members have tools to connect to the robot and check its health. The code, configuration changes, tests, results and step-by-step logs are in the GitHub repository under `TurtleBot/`, merged into `main`.
+The TurtleBot 4 is usable for lab work: the LiDAR works, a tested motion program drives the requested shapes safely, and lab members have tools to connect to the robot and check its health. Lab members also have step-by-step guides, so they can connect, run their own code and use the LiDAR by themselves. The code, configuration changes, tests, results and step-by-step logs are in the GitHub repository under `TurtleBot/`, merged into `main`.
 
 ## Plan for next week
 
 1. Apply the Wi-Fi power-saving fix and check whether the robot stays reachable. If it does not, move it to the lab router with a fixed address.
 2. Run the new programs and the connect tool on the robot for the first time (supervised), get a full figure eight, and measure the real accuracy on the floor.
-3. Find out why the odometry pauses.
-4. Decide on the clock setup, and change the lab router's default admin login.
+3. Have a new lab member follow the "do it yourself" guide, and fix whatever is unclear.
+4. Find out why the odometry pauses.
+5. Decide on the clock setup, and finish securing the lab router (remote access off, firmware recorded).

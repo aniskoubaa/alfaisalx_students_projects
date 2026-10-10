@@ -1,0 +1,1152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion Simulator</title>
+<meta name="description" content="Interactive top-down simulator of TurtleBot/examples/motion_shapes.py: pick a shape, watch the planner and the 20 Hz controller drive it, drop an obstacle to trigger the lidar stop, pause the odometry, and compare with the real runs of 2026-10-04.">
+<style>
+  /* Shared style for TurtleBot/docs pages. Tokens match turtlebot4-field-guide.html. */
+  :root{
+    --bg:#EEF2F4; --panel:#FFFFFF; --panel-alt:#E3EAED; --text:#16232F; --text-dim:#54636F;
+    --border:#C6D2D7; --accent:#0C8C82; --accent-strong:#075F58; --warn:#B85B26; --code-bg:#DDE6E9;
+    --ok:#2E7D32; --bad:#B3261E; --ok-bg:#E3F1E4; --bad-bg:#F8E4E2; --warn-bg:#F7E9DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+      --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+      --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+    --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+    --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.label-font,.eyebrow,th,.chip,.tile .k,figcaption,nav.toc a{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;}
+  code,pre,.mono{font-family:"IBM Plex Mono", Consolas, "Courier New", monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:0.88em; overflow-wrap:anywhere;}
+  pre{background:var(--code-bg); padding:12px 14px; border-radius:4px; overflow-x:auto; font-size:0.84rem; line-height:1.5; margin:0 0 16px;}
+  pre code{background:none; padding:0;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  a{color:var(--accent-strong);}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+
+  .page{display:grid; grid-template-columns:220px minmax(0,1fr); gap:0 44px; max-width:1220px; margin:0 auto; padding:0 28px 80px;}
+  nav.toc{position:sticky; top:0; align-self:start; padding-top:48px; max-height:100vh; overflow-y:auto;}
+  nav.toc .eyebrow{color:var(--text-dim); font-size:0.7rem;}
+  nav.toc ul{list-style:none; margin:0 0 24px; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.toc a{display:block; padding:6px 10px; border-radius:3px; color:var(--text-dim); text-decoration:none; font-size:0.86rem; font-weight:500;}
+  nav.toc a:hover{color:var(--text); background:var(--panel-alt);}
+  main{min-width:0; padding-top:48px;}
+  header.hero{margin-bottom:36px;}
+  .eyebrow{font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 12px;}
+  h1.title{font-size:clamp(2rem,5vw,3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{font-size:1.08rem; color:var(--text-dim); max-width:66ch; margin:0 0 20px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.84rem; color:var(--text-dim);}
+  .meta b{color:var(--text); font-weight:600;}
+
+  section{max-width:860px; padding:40px 0; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none; padding-top:0;}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .section-tag{font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.72rem; color:var(--text-dim); white-space:nowrap;}
+  h2{font-size:1.5rem; font-weight:600;}
+  h3{font-size:1.05rem; font-weight:600; margin:24px 0 8px;}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin:3px 0;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .table-wrap{overflow-x:auto; margin:0 0 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
+  th,td{text-align:left; padding:9px 12px; border-top:1px solid var(--border); vertical-align:top;}
+  thead th{border-top:none; font-size:0.76rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim); background:var(--panel-alt); white-space:nowrap;}
+  tbody th{font-weight:600; color:var(--text-dim); white-space:nowrap;}
+  td.notes{min-width:230px;}
+  td.nowrap{white-space:nowrap;}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  .chip{display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.74rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap;}
+  .chip.ok{color:var(--ok); background:var(--ok-bg);}
+  .chip.bad{color:var(--bad); background:var(--bad-bg);}
+  .chip.warn{color:var(--warn); background:var(--warn-bg);}
+  .chip.info{color:var(--accent-strong); background:var(--panel-alt);}
+  .chip.todo{color:var(--text-dim); background:transparent; border-style:dashed;}
+
+  .note{padding:12px 16px; background:var(--panel-alt); border-left:3px solid var(--warn); border-radius:0 4px 4px 0; font-size:0.92rem; margin:18px 0;}
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .placeholder{border:2px dashed var(--warn); border-radius:6px; padding:14px 16px; margin:16px 0; background:var(--warn-bg);}
+  .placeholder > b:first-child{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; color:var(--warn); text-transform:uppercase; letter-spacing:0.06em; font-size:0.78rem; display:block; margin-bottom:4px;}
+  tr.ph td{color:var(--text-dim); font-style:italic; background:repeating-linear-gradient(135deg, transparent 0 8px, var(--warn-bg) 8px 10px);}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:0 0 16px;}
+  .card{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px; break-inside:avoid;}
+  .card h3{margin:0 0 8px; font-size:0.98rem; display:flex; justify-content:space-between; gap:8px; align-items:baseline;}
+  .card p{margin:0 0 6px; font-size:0.9rem; color:var(--text-dim);}
+  .card dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.86rem;}
+  .card dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .card dd{margin:0; font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.82rem; overflow-wrap:anywhere;}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 0 18px;}
+  .tile{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px 14px;}
+  .tile .k{font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .tile .v{font-size:1.6rem; font-weight:600; font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; line-height:1.2;}
+  .tile .s{font-size:0.8rem; color:var(--text-dim);}
+
+  /* step flow */
+  ol.flow{list-style:none; padding:0; margin:0 0 16px; counter-reset:f;}
+  ol.flow > li{counter-increment:f; position:relative; padding:0 0 22px 52px; margin:0;}
+  ol.flow > li::before{content:counter(f); position:absolute; left:0; top:0; width:34px; height:34px; border-radius:50%; background:var(--panel); border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono", Consolas, monospace; font-weight:600;}
+  ol.flow > li::after{content:""; position:absolute; left:16px; top:36px; bottom:2px; width:2px; background:var(--border);}
+  ol.flow > li:last-child::after{display:none;}
+  ol.flow h3{margin:4px 0 6px;}
+
+  .verdict{border:2px solid var(--ok); background:var(--ok-bg); border-radius:8px; padding:16px 20px; margin:0 0 24px;}
+  .verdict h2{color:var(--ok); font-size:1.25rem; margin-bottom:6px;}
+  .verdict p:last-child{margin-bottom:0;}
+
+  .layers{display:flex; flex-direction:column; gap:6px; margin:0 0 16px;}
+  .layer{display:grid; grid-template-columns:34px minmax(0,1.3fr) minmax(0,1fr) 110px; gap:12px; align-items:center; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-left:5px solid var(--accent); border-radius:4px; font-size:0.88rem;}
+  .layer .n{font-family:"IBM Plex Mono", Consolas, monospace; color:var(--text-dim);}
+  .layer b{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .layer .when{color:var(--text-dim); font-size:0.84rem;}
+  .layer.pre{border-left-color:var(--text-dim);}
+  .layer.run{border-left-color:var(--warn);}
+  .layer.last{border-left-color:var(--bad);}
+
+  figure{margin:0 0 18px;}
+  figure.diagram{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:0.82rem; color:var(--text-dim); margin-top:10px; max-width:70ch;}
+  figure.narrow svg{max-width:560px; margin:0 auto;}
+  td:first-child code{white-space:nowrap;}
+  .shapes{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .shapes figure{margin:0;}
+
+  /* SVG classes (themeable) */
+  .sv-line{stroke:var(--text-dim); fill:none; stroke-width:1.5;}
+  .sv-thin{stroke:var(--border); fill:none; stroke-width:1;}
+  .sv-path{stroke:var(--accent); fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .sv-accent{stroke:var(--accent-strong); fill:none; stroke-width:2;}
+  .sv-warn{stroke:var(--warn); fill:none; stroke-width:2;}
+  .sv-bad{stroke:var(--bad); fill:none; stroke-width:2;}
+  .sv-dash{stroke-dasharray:5 4;}
+  .sv-fill-panel{fill:var(--panel); stroke:var(--text-dim); stroke-width:1.5;}
+  .sv-fill-alt{fill:var(--panel-alt); stroke:var(--border); stroke-width:1;}
+  .sv-fill-accent{fill:var(--accent); opacity:0.18; stroke:var(--accent); stroke-width:1.5;}
+  .sv-fill-warn{fill:var(--warn); opacity:0.16;}
+  .sv-fill-bad{fill:var(--bad); opacity:0.14;}
+  .sv-dot{fill:var(--accent-strong);}
+  .sv-dot-warn{fill:var(--warn);}
+  .sv-text{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:13px;}
+  .sv-small{fill:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:11px;}
+  .sv-mono{fill:var(--text-dim); font-family:"IBM Plex Mono", Consolas, monospace; font-size:10.5px;}
+  .sv-title{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:14px; font-weight:600;}
+  .sv-acc-text{fill:var(--accent-strong); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-warn-text{fill:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-bad-text{fill:var(--bad); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .arrowhead{fill:var(--text-dim);}
+  .arrowhead-acc{fill:var(--accent-strong);}
+
+  footer{max-width:860px; margin-top:30px; padding-top:18px; border-top:1px solid var(--border); font-size:0.84rem; color:var(--text-dim);}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:minmax(0,1fr); padding:0 16px 60px;}
+    nav.toc{min-width:0;}
+    nav.toc{position:sticky; top:0; z-index:5; padding-top:0; background:var(--bg); max-height:none; border-bottom:1px solid var(--border);}
+    nav.toc .eyebrow{display:none;}
+    nav.toc ul{flex-direction:row; overflow-x:auto; gap:4px; padding:12px 0; margin:0;}
+    nav.toc a{white-space:nowrap;}
+    main{padding-top:20px;}
+    .layer{grid-template-columns:28px 1fr; }
+    .layer .when,.layer .act{grid-column:2;}
+  }
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel-alt:#f2f2f2; --text:#000; --text-dim:#333; --border:#bbb; --code-bg:#f2f2f2;}
+    body{background:#fff; font-size:10.5pt;}
+    nav.toc{display:none;}
+    .page{display:block; padding:0; max-width:none;}
+    main{padding-top:0;}
+    section{padding:18px 0; max-width:none; break-inside:auto;}
+    .card,.tile,figure,.layer,tr,.verdict,.placeholder{break-inside:avoid;}
+    h2,h3{break-after:avoid;}
+    a{color:#000;}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-size:0.8em;}
+    pre{white-space:pre-wrap;}
+  }
+  /* page: network-and-connectivity */
+  .scroll-x{overflow-x:auto;}
+  .scroll-x svg{min-width:680px;}
+  tbody th{vertical-align:top;}
+  @media print{ .scroll-x{overflow:visible;} .scroll-x svg{min-width:0;} }
+  /* page: motion-simulator */
+  .page{max-width:1400px;}
+  section.wide{max-width:none;}
+  .ctl{padding:14px 16px; display:grid; gap:14px; margin:0 0 16px;}
+  .ctl h3{margin:0 0 6px; font-size:0.78rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .btnrow{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  button.b{font-family:"IBM Plex Sans Condensed","Arial Narrow","Segoe UI",sans-serif; font-size:0.95rem; font-weight:600; padding:6px 14px; min-height:40px; border:1px solid var(--border); background:var(--panel); color:var(--text); border-radius:4px; cursor:pointer;}
+  button.b:hover{background:var(--panel-alt);}
+  button.b:focus-visible,input[type=range]:focus-visible,input[type=checkbox]:focus-visible{outline:3px solid var(--accent); outline-offset:2px;}
+  button.b[aria-pressed="true"]{border:2px solid var(--accent); background:var(--panel-alt); color:var(--accent-strong); padding:5px 13px;}
+  button.b.go{border:2px solid var(--accent); color:var(--accent-strong); padding:5px 13px; min-width:92px;}
+  button.b.bad{border-color:var(--bad); color:var(--bad);}
+  button.b:disabled{opacity:0.45; cursor:default;}
+  .sep{width:1px; align-self:stretch; background:var(--border); margin:0 4px;}
+  .sliders{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px 22px;}
+  .sl label{display:flex; justify-content:space-between; gap:8px; font-size:0.86rem; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; color:var(--text-dim);}
+  .sl output{font-family:"IBM Plex Mono",Consolas,monospace; color:var(--text); font-size:0.86rem;}
+  .sl input[type=range]{width:100%; margin:4px 0 0; accent-color:var(--accent);}
+  .small{font-size:0.84rem; color:var(--text-dim);}
+  label.chk{display:inline-flex; gap:6px; align-items:center; font-size:0.9rem; cursor:pointer;}
+  label.chk input{width:18px; height:18px; accent-color:var(--accent);}
+
+  .simgrid{display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:16px; align-items:start;}
+  figure.floor{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:8px; margin:0;}
+  figure.floor svg{width:100%; height:auto; display:block; cursor:crosshair; touch-action:manipulation;}
+  .fl-bg{fill:var(--panel);}
+  .fl-grid{stroke:var(--border); stroke-width:1; vector-effect:non-scaling-stroke;}
+  .fl-grid.major{stroke:var(--text-dim); stroke-width:1.2;}
+  .fl-label{fill:var(--text-dim); font-family:"IBM Plex Mono",Consolas,monospace;}
+  .fl-plan{fill:none; stroke:var(--text-dim); stroke-width:2; stroke-dasharray:7 5; vector-effect:non-scaling-stroke;}
+  .fl-trail{fill:none; stroke:var(--accent); stroke-width:3.2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke;}
+  .fl-odom{fill:none; stroke:var(--warn); stroke-width:1.6; stroke-dasharray:2 3; vector-effect:non-scaling-stroke;}
+  .fl-body{fill:var(--panel-alt); stroke:var(--text); stroke-width:1.6; vector-effect:non-scaling-stroke;}
+  .fl-notch{fill:var(--accent-strong);}
+  .fl-puck{fill:var(--text-dim);}
+  .fl-zone{fill:var(--warn); fill-opacity:0.28; stroke:var(--warn); stroke-width:1.2; vector-effect:non-scaling-stroke;}
+  .fl-zone.hit{fill:var(--bad); fill-opacity:0.4; stroke:var(--bad);}
+  .fl-scan{fill:var(--accent); fill-opacity:0.07; stroke:none;}
+  .fl-box{fill:var(--bad); fill-opacity:0.35; stroke:var(--bad); stroke-width:1.6; vector-effect:non-scaling-stroke;}
+  .fl-start{fill:none; stroke:var(--accent-strong); stroke-width:1.5; stroke-dasharray:3 3; vector-effect:non-scaling-stroke;}
+  .fl-cap{fill:var(--accent-strong); font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-weight:600;}
+  figcaption.legend{display:flex; flex-wrap:wrap; gap:6px 16px; margin:8px 4px 2px;}
+  .key{display:inline-flex; align-items:center; gap:6px;}
+  .key i{display:inline-block; width:26px; height:0; border-top:3px solid var(--accent);}
+  .key i.d{border-top:2px dashed var(--text-dim);}
+  .key i.o{border-top:2px dotted var(--warn);}
+  .key i.z{height:12px; width:16px; border:1px solid var(--warn); background:var(--warn-bg);}
+  .key i.bx{height:12px; width:12px; border:1.5px solid var(--bad); background:var(--bad-bg);}
+
+  .readout{padding:14px 16px; display:grid; gap:10px;}
+  .readout .stat{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .seglabel{font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:1.15rem; font-weight:600; line-height:1.3;}
+  .ro{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .ro .tile{padding:8px 10px;}
+  .ro .tile .v{font-size:1.25rem; font-variant-numeric:tabular-nums;}
+  .msg{padding:10px 12px; border-radius:4px; border-left:4px solid var(--accent); background:var(--panel-alt); min-height:3.2em; font-size:0.9rem; font-family:"IBM Plex Mono",Consolas,monospace; overflow-wrap:anywhere;}
+  .msg.bad{border-left-color:var(--bad); background:var(--bad-bg); color:var(--bad); font-weight:600;}
+  .msg.warn{border-left-color:var(--warn); background:var(--warn-bg);}
+  .msg.ok{border-left-color:var(--ok); background:var(--ok-bg);}
+  pre.log{margin:0; max-height:190px; overflow:auto; font-size:0.74rem; line-height:1.45; padding:8px 10px; white-space:pre-wrap; overflow-wrap:anywhere;}
+  figure.chart{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:8px 10px; margin:16px 0 0;}
+  .ch-axis{stroke:var(--border); stroke-width:1; fill:none;}
+  .ch-zero{stroke:var(--text-dim); stroke-width:1; stroke-dasharray:3 3;}
+  .ch-v{fill:none; stroke:var(--accent-strong); stroke-width:1.8; stroke-linejoin:round;}
+  .ch-w{fill:none; stroke:var(--warn); stroke-width:1.8; stroke-linejoin:round;}
+  .ch-seg{stroke:var(--border); stroke-width:1;}
+  .ch-drop{fill:var(--bad); fill-opacity:0.18;}
+  .ch-t{fill:var(--text-dim); font-family:"IBM Plex Mono",Consolas,monospace; font-size:10px;}
+  .ch-n{fill:var(--text-dim); font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:10px;}
+  .twocol{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px;}
+  .cmdbox{background:var(--code-bg); border-radius:4px; padding:10px 12px; margin:0 0 12px;}
+  .cmdbox .cap{font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-weight:600; font-size:0.86rem; color:var(--text-dim); margin:0 0 4px;}
+  .cmdbox pre{margin:0; padding:0; background:none; white-space:pre-wrap; overflow-wrap:anywhere;}
+  td.sim{background:var(--panel-alt);}
+  @media (max-width:1100px){ .simgrid{grid-template-columns:minmax(0,1fr);} }
+  @media (max-width:560px){ .sep{display:none;} button.b{padding:6px 11px;} .sl label{flex-wrap:wrap;} }
+  @media print{ .ctl,.readout button{display:none;} figure.floor svg{cursor:default;} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="toc" aria-label="Contents">
+    <p class="eyebrow">Contents</p>
+    <ul>
+      <li><a href="#simulator">Simulator</a></li>
+      <li><a href="#how">How the program decides</a></li>
+      <li><a href="#lidar">Lidar stop zone</a></li>
+      <li><a href="#odom">Odometry dropout</a></li>
+      <li><a href="#results">Simulation vs robot</a></li>
+      <li><a href="#robot">Try it on the robot</a></li>
+      <li><a href="#limits">What is not simulated</a></li>
+    </ul>
+    <p class="eyebrow">Other pages</p>
+    <ul>
+      <li><a href="index.html">Docs index</a></li>
+      <li><a href="motion-program-design.html">Motion program design</a></li>
+      <li><a href="test-results.html">Test results</a></li>
+      <li><a href="../examples/README.md">Examples README</a></li>
+      <li><a href="../examples/motion_shapes.py">motion_shapes.py</a></li>
+      <li><a href="../HOW-TO-CONNECT.md">How to connect</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">TurtleBot 4 &middot; interactive &middot; motion_shapes.py</p>
+      <h1 class="title">Motion simulator</h1>
+      <p class="dek">Click a shape and watch how <a href="../examples/motion_shapes.py"><code>motion_shapes.py</code></a> drives it: the plan (dashed), the path actually driven (solid), the speed commands 20 times a second, and the safety checks that stop it. The simulator runs the same planner and control rules as the real program in your browser. Nothing here moves a robot.</p>
+      <div class="meta">
+        <span><b>Runs offline</b> one file, no network needed</span>
+        <span><b>Real-robot numbers</b> from the runs of 2026-10-04</span>
+        <span><b>Simulated only</b> star, polygon and circle (from <code>more_shapes.py</code>) have not been run on the robot</span>
+      </div>
+    </header>
+
+    <section id="simulator" class="wide">
+      <div class="section-head"><span class="section-tag">01</span><h2>Simulator</h2></div>
+
+      <div class="panel ctl">
+        <div>
+          <h3 id="h-shape">Shape</h3>
+          <div class="btnrow" role="group" aria-labelledby="h-shape" id="shapes">
+            <button class="b" type="button" data-shape="square" aria-pressed="true">square</button>
+            <button class="b" type="button" data-shape="triangle" aria-pressed="false">triangle</button>
+            <button class="b" type="button" data-shape="rotate" aria-pressed="false">rotate</button>
+            <button class="b" type="button" data-shape="back_and_forth" aria-pressed="false">back_and_forth</button>
+            <button class="b" type="button" data-shape="figure_eight" aria-pressed="false">figure_eight</button>
+            <span class="sep" aria-hidden="true"></span>
+            <button class="b" type="button" data-shape="star" aria-pressed="false">star*</button>
+            <button class="b" type="button" data-shape="polygon" aria-pressed="false">polygon*</button>
+            <button class="b" type="button" data-shape="circle" aria-pressed="false">circle*</button>
+          </div>
+          <p class="small" style="margin:6px 0 0">* from <code>more_shapes.py</code>: <b>simulated only, not yet run on the robot</b> (circle radius 0.25 m there; side length and speeds below apply).</p>
+        </div>
+
+        <div class="sliders">
+          <div class="sl"><label for="side">Side length <output id="o-side">0.40 m</output></label><input id="side" type="range" min="0.2" max="0.6" step="0.05" value="0.4"></div>
+          <div class="sl"><label for="speed">Speed <output id="o-speed">0.10 m/s</output></label><input id="speed" type="range" min="0.05" max="0.15" step="0.01" value="0.10"></div>
+          <div class="sl"><label for="turn">Turn speed <output id="o-turn">0.50 rad/s</output></label><input id="turn" type="range" min="0.2" max="1.0" step="0.05" value="0.5"></div>
+          <div class="sl" id="sides-wrap" hidden><label for="sides">Polygon sides <output id="o-sides">5</output></label><input id="sides" type="range" min="3" max="8" step="1" value="5"></div>
+        </div>
+        <p class="small" style="margin:-4px 0 0">The real program caps speed at 0.15 m/s and turn speed at 1.0 rad/s. Changing a shape or slider resets the run.</p>
+
+        <div>
+          <h3 id="h-run">Run</h3>
+          <div class="btnrow" role="group" aria-labelledby="h-run">
+            <button class="b go" type="button" id="play">Play</button>
+            <button class="b" type="button" id="step" title="Run until the next segment starts">Step segment</button>
+            <button class="b" type="button" id="step1" title="Run one 50 ms control cycle">Step 1 cycle</button>
+            <button class="b" type="button" id="reset">Reset</button>
+            <span class="sep" aria-hidden="true"></span>
+            <span class="small" id="h-mult">Time speed</span>
+            <span class="btnrow" role="group" aria-labelledby="h-mult" id="mult">
+              <button class="b" type="button" data-m="1" aria-pressed="true">1x</button>
+              <button class="b" type="button" data-m="2" aria-pressed="false">2x</button>
+              <button class="b" type="button" data-m="4" aria-pressed="false">4x</button>
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <h3 id="h-try">Try to break it</h3>
+          <div class="btnrow" role="group" aria-labelledby="h-try">
+            <button class="b" type="button" id="dropbox" title="Puts a 20 cm box 0.4 m in front of the robot (lidar distance) where it points right now">Drop a box ahead</button>
+            <button class="b" type="button" id="clearbox">Clear boxes</button>
+            <span class="sep" aria-hidden="true"></span>
+            <button class="b bad" type="button" id="drop1" title="The base stops publishing /odom for 0.8 s">Odometry dropout 0.8 s</button>
+            <button class="b bad" type="button" id="drop2" title="The base stops publishing /odom for 2.5 s">Odometry dropout 2.5 s</button>
+            <span class="sep" aria-hidden="true"></span>
+            <label class="chk"><input type="checkbox" id="realism"> Add realism (wheel slip)</label>
+          </div>
+          <p class="small" style="margin:6px 0 0">You can also click or tap the floor to drop a 20 cm box, and click a box again to remove it. Dropouts and boxes work while the robot is driving.</p>
+        </div>
+      </div>
+
+      <div class="simgrid">
+        <div>
+          <figure class="floor">
+            <svg id="floor" viewBox="-1 -2 3 3" role="img" aria-label="Top-down floor view with a 1 metre grid. The robot starts at the origin facing right. Dashed line: planned path. Solid line: path driven so far.">
+              <rect class="fl-bg" x="-1" y="-2" width="3" height="3"/>
+              <g id="grid"></g>
+              <circle class="fl-start" cx="0" cy="0" r="0.17"/>
+              <text class="fl-cap" x="-0.2" y="0.3" font-size="0.055" text-anchor="middle">start</text>
+              <polyline id="plan" class="fl-plan" points=""/>
+              <polyline id="odomtrail" class="fl-odom" points=""/>
+              <polyline id="trail" class="fl-trail" points=""/>
+              <g id="boxes"></g>
+              <g id="robot">
+                <path class="fl-scan" d="M -0.04 0 L 2.5 -1.4434 A 2.5 2.5 0 0 1 2.5 1.4434 Z"/>
+                <path id="zone" class="fl-zone" d="M -0.04 0 L 0.1765 -0.125 A 0.25 0.25 0 0 1 0.1765 0.125 Z"/>
+                <circle class="fl-body" r="0.17"/>
+                <path class="fl-notch" d="M 0.17 0 L 0.07 -0.055 L 0.07 0.055 Z"/>
+                <circle class="fl-puck" cx="-0.04" cy="0" r="0.035"/>
+              </g>
+            </svg>
+            <figcaption class="legend small">
+              <span class="key"><i class="d"></i>planned path</span>
+              <span class="key"><i></i>driven path (true position)</span>
+              <span class="key" id="key-odom" hidden><i class="o"></i>what odometry believes</span>
+              <span class="key"><i class="z"></i>stop zone: &plusmn;30&deg;, 0.25 m</span>
+              <span class="key"><i class="bx"></i>box (click floor)</span>
+              <span class="key">grid: 1 m; robot drawn to scale (0.34 m)</span>
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="panel readout" aria-label="Live readout">
+          <div class="stat"><span class="eyebrow" style="margin:0">Live readout</span><span class="chip info" id="chip">ready</span></div>
+          <div class="seglabel" id="seg">Press Play</div>
+          <div class="ro">
+            <div class="tile"><div class="k">Commanded v</div><div class="v" id="r-v">0.000</div><div class="s">m/s</div></div>
+            <div class="tile"><div class="k">Commanded w</div><div class="v" id="r-w">0.000</div><div class="s">rad/s (+ is left)</div></div>
+            <div class="tile"><div class="k" id="r-remk">Remaining</div><div class="v" id="r-rem">-</div><div class="s" id="r-remu">&nbsp;</div></div>
+            <div class="tile"><div class="k">Elapsed</div><div class="v" id="r-t">0.0</div><div class="s" id="r-tp">s</div></div>
+          </div>
+          <div class="msg" id="msg" role="status" aria-live="polite">Waiting to start.</div>
+          <div id="res" class="small" hidden></div>
+          <pre class="log panel" id="log" tabindex="0" aria-label="Program log (simulated time)"></pre>
+        </div>
+      </div>
+
+      <figure class="chart">
+        <svg id="chart" viewBox="0 0 700 250" role="img" aria-label="Chart of commanded forward speed v and turn rate w against time, with segment boundaries."></svg>
+        <figcaption>Top: forward speed v (m/s). Bottom: turn rate w (rad/s). Each vertical line starts a new segment (numbered). Watch v fall towards the end of every straight (<code>v = 1.0 &times; remaining</code>, but never below 0.03 m/s) and w fall towards the end of every turn (<code>w = 1.5 &times; remaining</code>, never below 0.15 rad/s). The small wiggles in w on a straight are the heading hold. Red bands are odometry dropouts.</figcaption>
+      </figure>
+      <p class="small" id="rm-note" hidden><b>Reduced motion is on in your system settings.</b> The simulation does not animate by itself: use <b>Step segment</b> or <b>Step 1 cycle</b>, or press Play if you want the animation.</p>
+    </section>
+
+    <section id="how">
+      <div class="section-head"><span class="section-tag">02</span><h2>How the program decides</h2></div>
+      <ol class="flow">
+        <li>
+          <h3>1. Plan</h3>
+          <p>The shape becomes a list of <b>segments</b>: drive straight (a distance), turn in place (an angle, + is left), or drive a full circle. A square is 4 &times; (straight, turn left 90&deg;). A figure eight is a left circle then a right circle, radius 0.20 m. Each segment gets an expected time and a timeout of 2 &times; expected + 5 s. If the whole plan needs more than 120 s the program refuses to start.</p>
+        </li>
+        <li>
+          <h3>2. Control loop, 20 times a second</h3>
+          <p>Every 50 ms the program reads the robot's position and heading from odometry (<code>/odom</code>) and computes a speed command for the current segment:</p>
+          <ul>
+            <li><b>Straight:</b> <code>v = max(0.03, min(speed, 1.0 &times; remaining))</code>, and a steering correction <code>w = clamp(1.5 &times; heading error, &plusmn;0.3)</code> to hold the heading. Done when less than 1 cm remains.</li>
+            <li><b>Turn in place:</b> <code>w = sign &times; max(0.15, min(turn_speed, 1.5 &times; |remaining|))</code> towards an <em>absolute</em> target heading, so an overshoot is turned back. Done within 1.5&deg;.</li>
+            <li><b>Circle:</b> <code>w = v / r</code> with r = 0.20 m, lowered if it would exceed the turn speed, then slowed near the end like a turn.</li>
+          </ul>
+          <p>Between segments the robot stands still for 0.5 s. That is why every shape takes longer than distance divided by speed.</p>
+        </li>
+        <li>
+          <h3>3. Safety checks, every cycle</h3>
+          <p>The STOP file and Ctrl+C, hazards reported by the base (bump, cliff, wheel drop), odometry too old, <b>lidar obstacle closer than 0.25 m ahead</b> (only while driving, see below), and the timeouts. Any of them stops the robot and ends the program with "ABORTED". The simulator implements the lidar, odometry and timeout checks; bump, cliff and the stall check are not simulated.</p>
+        </li>
+      </ol>
+      <p class="small">Full explanation with the source: <a href="motion-program-design.html">motion-program-design.html</a>.</p>
+    </section>
+
+    <section id="lidar">
+      <div class="section-head"><span class="section-tag">03</span><h2>Lidar stop zone</h2></div>
+      <p>The orange wedge on the robot is the stop zone: anything the lidar sees within &plusmn;30&deg; of straight ahead and closer than 0.25 m stops the robot. The very faint wedge beyond it is the part of the scan the program looks at (the lidar itself reaches 12 m). The lidar sits 4 cm behind the robot's centre, so the 0.25 m is measured from there.</p>
+      <p>To see it: press Play, then click the floor ahead of the robot while it drives (or press <b>Drop a box ahead</b>). When the box enters the zone the robot stops and the readout shows the real message, <code>ABORTED: obstacle 0.2x m ahead (limit 0.25 m)</code>. The same check runs on circles. Before starting, the program also checks that the first leg is clear (the straight plus 0.25 m): a box placed in the way before you press Play gives <code>ABORTED: path not clear</code>.</p>
+      <div class="note"><b>Turning in place does not check the lidar.</b> The program only checks the lidar when the segment is not a turn. A round robot that spins on the spot sweeps the same circle of floor it already covers, so no new floor comes under it: there is nothing new to hit, and a person walking up to the side would not be caught by a forward-only check anyway. Try it: choose <em>rotate</em>, press Play, and drop a box in front. The robot keeps turning. (A bump is a different safety check, done by the base.)</div>
+    </section>
+
+    <section id="odom">
+      <div class="section-head"><span class="section-tag">04</span><h2>Odometry dropout</h2></div>
+      <p>The program has no camera or map: it knows where it is only from the wheel odometry the Create 3 base publishes on <code>/odom</code>. Press <b>Odometry dropout 0.8 s</b> while the robot is driving:</p>
+      <ul>
+        <li>If the newest odometry is older than <b>0.3 s</b>, the program sends zero velocity and waits. The readout shows <code>held still for N control cycles waiting for odometry</code>.</li>
+        <li>If there is no odometry for more than <b>2.0 s</b> it aborts: <code>ABORTED: odometry is stale (none for 2.0 s)</code>. Use the 2.5 s button.</li>
+      </ul>
+      <div class="note"><b>This really happened on 2026-10-04.</b> The Create 3 base sometimes paused <code>/odom</code> for 0.4 to 2 s while driving. The triangle run was held still three times (11, 8 and 1 control cycles) and still finished. The figure eight finished its first circle, then aborted safely when one gap reached 2.0 s. See <a href="test-results.html">test-results.html</a> and <a href="../ROADMAP.md#tb-15-characterise-the-odom-pauses-at-motion-start">ROADMAP TB-15</a>. In the simulator the robot keeps moving for the first 0.3 s of a dropout (it has not noticed yet), then stands still.</div>
+    </section>
+
+    <section id="results">
+      <div class="section-head"><span class="section-tag">05</span><h2>Simulation vs the real robot</h2></div>
+      <p>The simulated columns are computed live in your browser at the default settings (side 0.40 m, 0.10 m/s, 0.5 rad/s, no realism, no dropouts). The real runs are from 2026-10-04. Errors are <b>odometry</b> end errors (what the robot believed), not measured on the floor.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Shape</th><th class="num">Plan says</th><th class="num sim">Simulated</th><th class="num">Real robot</th><th class="num sim">Sim odometry end error</th><th class="num">Real odometry end error</th></tr></thead>
+          <tbody id="restab"></tbody>
+        </table>
+      </div>
+      <p><b>Why the real runs are slower than the plan.</b> The plan (<code>distance / speed + angle / turn speed + 0.5 s pauses</code>, about 33 s for the square) assumes full speed all the way. The program does not run at full speed all the way:</p>
+      <ul>
+        <li><b>Slow-down near each goal.</b> The last 10 cm of a straight and the last 0.33 rad (about 19&deg;) of a turn are driven slower, down to 0.03 m/s and 0.15 rad/s. This alone adds about 0.9 s per straight and 0.6 s per turn. The simulator reproduces it, which is why it lands close to the real time (square 38.8 s simulated, 39 s real).</li>
+        <li><b>Pauses.</b> 0.5 s after every segment, including the last, is already in the plan.</li>
+        <li><b>Start-up and the base.</b> The simulator changes speed instantly; the real base has to speed up and slow down, and the program's first cycles wait for the first odometry. The leftover difference (for example triangle: 32 s simulated, 37 s real) is mostly the three odometry holds on that run. Not measured separately.</li>
+      </ul>
+      <p>The simulated end errors are small because the simulator measures with the same odometry it steers by: the stop rule (1 cm, 1.5&deg;) is all that is left. Tick <b>Add realism</b> in the simulator to give the wheels a small slip and scale error: the odometry still says "almost back at the start" but the solid line on the floor ends somewhere else. That is why the program prints "odometry only; the real error is larger, measure it on the floor". The size of the slip here is invented for illustration, it is not measured from the robot.</p>
+    </section>
+
+    <section id="robot">
+      <div class="section-head"><span class="section-tag">06</span><h2>Try it on the robot</h2></div>
+      <div class="note"><b>The real program moves the robot.</b> First: undock it (<a href="../examples/README.md#undock-and-dock">how</a>), clear about 1 m of floor all round, and keep a person next to it. Speed is capped at 0.15 m/s. Run these <em>on the robot</em> (in the SSH session, see <a href="../HOW-TO-CONNECT.md">HOW-TO-CONNECT.md</a>). From a non-login shell, run <code>source /etc/turtlebot4/setup.bash</code> first.</div>
+      <div class="twocol">
+        <div>
+          <div class="cmdbox"><p class="cap">1. Dry run first: checks everything, prints the plan, never moves</p><pre><code>python3 ~/robot_code/motion_shapes.py square --dry-run</code></pre></div>
+          <div class="cmdbox"><p class="cap">2. The real run, detached so a Wi-Fi drop does not kill it</p><pre><code>setsid nohup python3 ~/robot_code/motion_shapes.py square --yes > ~/robot_code/shapes.log 2>&1 &amp;
+tail -f ~/robot_code/shapes.log</code></pre></div>
+          <p class="small">Options: <code>--side 0.4</code>, <code>--speed 0.1</code>, <code>--turn-speed 0.5</code>, the same numbers as the sliders. Shapes: square, triangle, rotate, back_and_forth, figure_eight. Star, polygon and circle are in <code>more_shapes.py</code>, which has not been run on the robot yet.</p>
+        </div>
+        <div>
+          <h3 style="margin-top:0">Three ways to stop it (the robot stops, the program exits)</h3>
+          <div class="cmdbox"><p class="cap">a. Ctrl+C in the terminal running it (not available for a detached run)</p></div>
+          <div class="cmdbox"><p class="cap">b. From another terminal on the robot (delete the file afterwards or the next run refuses to start)</p><pre><code>touch ~/STOP
+rm ~/STOP</code></pre></div>
+          <div class="cmdbox"><p class="cap">c. From another terminal on the robot</p><pre><code>pkill -INT -f motion_shapes.py</code></pre></div>
+          <p class="small">Or pick the robot up: lifting it makes the wheels stop. Details and exit codes: <a href="../examples/README.md#how-to-stop-the-robot">examples README</a>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="limits">
+      <div class="section-head"><span class="section-tag">07</span><h2>What is not simulated</h2></div>
+      <ul>
+        <li>The base speeds up and slows down gradually; the simulator jumps to the commanded speed instantly.</li>
+        <li>Bump, cliff, wheel-drop and stall checks, the STOP file and signals, the 1 s start-up listen, and the lidar-stale check.</li>
+        <li>Lidar scans arrive 7.7 times a second on the robot; the simulator refreshes the box distance every 0.13 s. Boxes are perfect squares seen by 121 beams (0.5&deg; apart), with no noise.</li>
+        <li>The slip in "Add realism" is a made-up size. It shows <em>that</em> the floor and the odometry disagree, not by how much on this robot.</li>
+      </ul>
+      <footer>Source of the logic: <a href="../examples/motion_shapes.py">examples/motion_shapes.py</a> (constants and rules copied from it) and <a href="../examples/more_shapes.py">examples/more_shapes.py</a> (star, polygon, circle). Real results: <a href="test-results.html">test-results.html</a>. Open this page with <code>#autoplay</code> at the end of the address to start the square at 4x (used for screenshot tests).</footer>
+    </section>
+  </main>
+</div>
+
+<script id="core">
+/* ---- simulation core: pure functions, no DOM. Port of TurtleBot/examples/motion_shapes.py (planner + controller + safety checks). ---- */
+(function (root) {
+'use strict';
+var PI = Math.PI;
+var K = {
+  LINEAR_SPEED: 0.10, MAX_LINEAR_SPEED: 0.15, MIN_LINEAR_SPEED: 0.03,
+  ANGULAR_SPEED: 0.5, MAX_ANGULAR_SPEED: 1.0, MIN_ANGULAR_SPEED: 0.15,
+  DISTANCE_TOLERANCE: 0.01, ANGLE_TOLERANCE: 1.5 * PI / 180,
+  LINEAR_SLOWDOWN: 1.0, ANGULAR_SLOWDOWN: 1.5,
+  HEADING_HOLD_GAIN: 1.5, MAX_HEADING_CORRECTION: 0.3,
+  CIRCLE_RADIUS: 0.20, MORE_CIRCLE_RADIUS: 0.25,
+  OBSTACLE_STOP_DISTANCE: 0.25, OBSTACLE_HALF_ANGLE: 30 * PI / 180,
+  LIDAR_X: -0.04, RANGE_MIN: 0.15, RANGE_MAX: 12.0, SCAN_PERIOD: 0.13,
+  TOTAL_TIMEOUT: 120.0, SEGMENT_TIMEOUT_FACTOR: 2.0, SEGMENT_TIMEOUT_EXTRA: 5.0,
+  ODOM_HOLD: 0.3, ODOM_STALE: 2.0, PAUSE: 0.5, CONTROL_RATE: 20, DT: 0.05,
+  BOX_SIZE: 0.20, ROBOT_RADIUS: 0.17, PLAN_MAX_RADIUS: 1.0
+};
+var HOLD_TICKS = Math.round(K.ODOM_HOLD / K.DT);   // 6: age above this holds still
+var STALE_TICKS = Math.round(K.ODOM_STALE / K.DT); // 40: age above this aborts
+var PAUSE_TICKS = Math.round(K.PAUSE / K.DT);      // 10
+
+var SHAPES = ['square', 'rotate', 'back_and_forth', 'triangle', 'figure_eight'];
+var MORE_SHAPES = ['star', 'polygon', 'circle'];
+
+function wrapAngle(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
+function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+function copysign(m, s) { return (s < 0 || Object.is(s, -0)) ? -Math.abs(m) : Math.abs(m); }
+
+function clampSetting(name, value, lo, hi, unit) {
+  if (value > hi) return [hi, name + ' ' + value + ' ' + unit + ' is above the cap, using ' + hi + ' ' + unit];
+  if (value < lo) return [lo, name + ' ' + value + ' ' + unit + ' is below the minimum, using ' + lo + ' ' + unit];
+  return [value, null];
+}
+
+function arcSpeeds(radius, speed, maxTurn) {
+  var w = speed / radius;
+  if (w > maxTurn) { w = maxTurn; speed = w * radius; }
+  return [speed, w];
+}
+
+function planSegments(shape, side, radius, sides) {
+  var left90 = PI / 2, left120 = 2 * PI / 3, half = PI, segs = [], i;
+  if (shape === 'square') { for (i = 0; i < 4; i++) segs.push({ kind: 'straight', distance: side }, { kind: 'turn', angle: left90 }); return segs; }
+  if (shape === 'triangle') { for (i = 0; i < 3; i++) segs.push({ kind: 'straight', distance: side }, { kind: 'turn', angle: left120 }); return segs; }
+  if (shape === 'rotate') return [{ kind: 'turn', angle: 2 * PI }];
+  if (shape === 'back_and_forth') return [{ kind: 'straight', distance: side }, { kind: 'turn', angle: half }, { kind: 'straight', distance: side }, { kind: 'turn', angle: half }];
+  if (shape === 'figure_eight') return [{ kind: 'arc', angle: 2 * PI, radius: radius }, { kind: 'arc', angle: -2 * PI, radius: radius }];
+  // more_shapes.py (simulated only)
+  if (shape === 'polygon') { for (i = 0; i < sides; i++) segs.push({ kind: 'straight', distance: side }, { kind: 'turn', angle: 2 * PI / sides }); return segs; }
+  if (shape === 'star') { for (i = 0; i < 5; i++) segs.push({ kind: 'straight', distance: side }, { kind: 'turn', angle: 144 * PI / 180 }); return segs; }
+  if (shape === 'circle') return [{ kind: 'arc', angle: 2 * PI, radius: radius }];
+  throw new Error('unknown shape ' + shape);
+}
+
+function addTiming(segs, speed, turnSpeed) {
+  segs.forEach(function (s) {
+    if (s.kind === 'straight') { s.v = speed; s.w = 0; s.expected = s.distance / speed; }
+    else if (s.kind === 'turn') { s.v = 0; s.w = turnSpeed; s.expected = Math.abs(s.angle) / turnSpeed; }
+    else { var a = arcSpeeds(s.radius, speed, turnSpeed); s.v = a[0]; s.w = a[1]; s.expected = Math.abs(s.angle) / s.w; }
+    s.timeout = K.SEGMENT_TIMEOUT_FACTOR * s.expected + K.SEGMENT_TIMEOUT_EXTRA;
+  });
+  return segs;
+}
+
+function deg(r) { return r * 180 / PI; }
+
+function shortSegment(s) {
+  if (s.kind === 'straight') return 'forward ' + s.distance.toFixed(2) + ' m';
+  var side = s.angle > 0 ? 'left' : 'right';
+  if (s.kind === 'turn') return 'turn ' + side + ' ' + deg(Math.abs(s.angle)).toFixed(0) + ' deg';
+  return 'full ' + side + ' circle, r ' + s.radius.toFixed(2) + ' m';
+}
+
+function describeSegment(s) {
+  var what;
+  if (s.kind === 'straight') what = 'forward ' + s.distance.toFixed(2) + ' m at ' + s.v.toFixed(2) + ' m/s';
+  else if (s.kind === 'turn') what = 'turn ' + (s.angle > 0 ? 'left' : 'right') + ' ' + deg(Math.abs(s.angle)).toFixed(0) + ' deg at ' + s.w.toFixed(2) + ' rad/s';
+  else what = 'full ' + (s.angle > 0 ? 'left' : 'right') + ' circle, radius ' + s.radius.toFixed(2) + ' m, at ' + s.v.toFixed(2) + ' m/s and ' + s.w.toFixed(2) + ' rad/s';
+  return what + ' (about ' + s.expected.toFixed(1) + ' s, timeout ' + s.timeout.toFixed(1) + ' s)';
+}
+
+/* planned end pose in the start frame; heading change includes full circles (a multiple of 360 deg) */
+function plannedEndPose(segs) {
+  var x = 0, y = 0, h = 0;
+  segs.forEach(function (s) {
+    if (s.kind === 'straight') { x += s.distance * Math.cos(h); y += s.distance * Math.sin(h); }
+    else h += s.angle;
+  });
+  return { x: Math.round(x * 1e9) / 1e9 + 0, y: Math.round(y * 1e9) / 1e9 + 0, h: h };
+}
+
+/* planned path as a polyline [{x,y}] in the start frame (turning in place adds no points) */
+function plannedPath(segs) {
+  var x = 0, y = 0, h = 0, pts = [{ x: 0, y: 0 }];
+  segs.forEach(function (s) {
+    if (s.kind === 'straight') { x += s.distance * Math.cos(h); y += s.distance * Math.sin(h); pts.push({ x: x, y: y }); }
+    else if (s.kind === 'turn') h += s.angle;
+    else {
+      var n = 72, d = s.angle > 0 ? 1 : -1, da = Math.abs(s.angle) / n;
+      for (var i = 0; i < n; i++) {
+        var c = 2 * s.radius * Math.sin(da / 2);
+        x += c * Math.cos(h + d * da / 2); y += c * Math.sin(h + d * da / 2);
+        h += d * da; pts.push({ x: x, y: y });
+      }
+    }
+  });
+  return pts;
+}
+
+function straightCommand(remaining, headingError, speed) {
+  var v = Math.max(K.MIN_LINEAR_SPEED, Math.min(speed, K.LINEAR_SLOWDOWN * remaining));
+  var w = clamp(K.HEADING_HOLD_GAIN * headingError, -K.MAX_HEADING_CORRECTION, K.MAX_HEADING_CORRECTION);
+  return [v, w];
+}
+function turnCommand(remaining, turnSpeed) {
+  var w = Math.max(K.MIN_ANGULAR_SPEED, Math.min(turnSpeed, K.ANGULAR_SLOWDOWN * Math.abs(remaining)));
+  return copysign(w, remaining);
+}
+function arcCommand(remaining, radius, wNominal, direction) {
+  var w = Math.max(K.MIN_ANGULAR_SPEED, Math.min(wNominal, K.ANGULAR_SLOWDOWN * remaining));
+  return [w * radius, direction * w];
+}
+
+/* ---- lidar: nearest box return within +/-30 deg ahead (lidar sits 4 cm behind the robot centre) ---- */
+function rayBox(ox, oy, dx, dy, b) {
+  var h = K.BOX_SIZE / 2, tmin = -Infinity, tmax = Infinity, lo, hi, t1, t2;
+  var o = [ox, oy], d = [dx, dy], c = [b.x, b.y];
+  for (var i = 0; i < 2; i++) {
+    lo = c[i] - h; hi = c[i] + h;
+    if (Math.abs(d[i]) < 1e-12) { if (o[i] < lo || o[i] > hi) return Infinity; }
+    else {
+      t1 = (lo - o[i]) / d[i]; t2 = (hi - o[i]) / d[i];
+      if (t1 > t2) { var tt = t1; t1 = t2; t2 = tt; }
+      tmin = Math.max(tmin, t1); tmax = Math.min(tmax, t2);
+      if (tmin > tmax) return Infinity;
+    }
+  }
+  if (tmax < 0) return Infinity;
+  return tmin >= 0 ? tmin : Infinity;   // origin inside the box: no valid return
+}
+function nearestFront(pose, boxes) {
+  var lx = pose.x + K.LIDAR_X * Math.cos(pose.h), ly = pose.y + K.LIDAR_X * Math.sin(pose.h);
+  var nearest = Infinity;
+  for (var i = -60; i <= 60; i++) {
+    var a = pose.h + i * 0.5 * PI / 180, dx = Math.cos(a), dy = Math.sin(a);
+    for (var j = 0; j < boxes.length; j++) {
+      var r = rayBox(lx, ly, dx, dy, boxes[j]);
+      if (r > K.RANGE_MIN && r < K.RANGE_MAX && r < nearest) nearest = r;
+    }
+  }
+  return nearest;
+}
+
+function mulberry32(seed) {
+  var a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    var t = a; t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gauss(rng) {
+  var u = Math.max(rng(), 1e-12), v = rng();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * PI * v);
+}
+
+function isMoreShape(shape) { return MORE_SHAPES.indexOf(shape) >= 0; }
+
+/* o: {shape, side, speed, turnSpeed, sides, realism, seed, boxes} -> simulation state */
+function createSim(o) {
+  var notes = [], r;
+  r = clampSetting('--side', o.side, 0.05, 1.0, 'm'); var side = r[0]; if (r[1]) notes.push(r[1]);
+  r = clampSetting('--speed', o.speed, K.MIN_LINEAR_SPEED, K.MAX_LINEAR_SPEED, 'm/s'); var speed = r[0]; if (r[1]) notes.push(r[1]);
+  r = clampSetting('--turn-speed', o.turnSpeed, K.MIN_ANGULAR_SPEED, K.MAX_ANGULAR_SPEED, 'rad/s'); var turnSpeed = r[0]; if (r[1]) notes.push(r[1]);
+  var radius = isMoreShape(o.shape) ? K.MORE_CIRCLE_RADIUS : K.CIRCLE_RADIUS;
+  var segs = addTiming(planSegments(o.shape, side, radius, o.sides || 5), speed, turnSpeed);
+  var expected = segs.reduce(function (a, s) { return a + s.expected; }, 0) + K.PAUSE * segs.length;
+  var path = plannedPath(segs);
+  var far = path.reduce(function (m, p) { return Math.max(m, Math.hypot(p.x, p.y)); }, 0);
+  var rng = mulberry32(o.seed == null ? 1 : o.seed);
+  var s = {
+    shape: o.shape, side: side, speed: speed, turnSpeed: turnSpeed, sides: o.sides || 5, notes: notes,
+    segs: segs, expected: expected, path: path, far: far, planned: plannedEndPose(segs),
+    realism: !!o.realism, rng: rng,
+    bias: o.realism ? { v: 0.02 * gauss(rng), w: 0.03 * gauss(rng), d: 0.04 * gauss(rng) } : { v: 0, w: 0, d: 0 },
+    boxes: (o.boxes || []).map(function (b) { return { x: b.x, y: b.y }; }),
+    status: 'ready', phase: 'seg', idx: 0, k: 0, t: 0,
+    pose: { x: 0, y: 0, h: 0 }, odom: { x: 0, y: 0, h: 0 }, rep: { x: 0, y: 0, h: 0 }, repK: 0, freezeK: 0,
+    cmd: { v: 0, w: 0 }, remaining: null, remainingUnit: '', target: 0, segSt: null, pauseLeft: 0,
+    holds: 0, totalHolds: 0, nearest: Infinity, nextScanK: 0, hitBox: false,
+    message: '', log: [], ts: [], vs: [], ws: [], trail: [{ x: 0, y: 0 }], odomTrail: [{ x: 0, y: 0 }],
+    segMarks: [], dropouts: [], result: null, segTimes: []
+  };
+  if (expected > K.TOTAL_TIMEOUT) {
+    s.status = 'refused';
+    s.message = 'REFUSING: the plan needs about ' + expected.toFixed(0) + ' s, more than TOTAL_TIMEOUT ' + K.TOTAL_TIMEOUT.toFixed(0) + ' s. Use a shorter --side or a higher --speed.';
+  } else if (far > K.PLAN_MAX_RADIUS + 1e-9) {
+    s.status = 'refused';
+    s.message = 'REFUSING: the path goes ' + far.toFixed(2) + ' m from the start, more than ' + K.PLAN_MAX_RADIUS.toFixed(1) + ' m. Use a shorter --side / fewer sides.';
+  }
+  return s;
+}
+
+function logLine(s, text) { s.log.push({ t: s.t, text: text }); if (s.log.length > 60) s.log.shift(); }
+function abort(s, text) {
+  s.status = 'aborted'; s.message = 'ABORTED: ' + text; s.cmd = { v: 0, w: 0 };
+  logLine(s, s.message);
+  return true;
+}
+function floorTenth(x) { return (Math.floor(x * 10 + 1e-9) / 10).toFixed(1); }
+
+/* the real check_safety(): called every control cycle, also while standing still */
+function checkSafety(s, forward) {
+  var ageTicks = s.k - s.repK;
+  if (ageTicks > STALE_TICKS) return abort(s, 'odometry is stale (none for ' + floorTenth(ageTicks * K.DT) + ' s)');
+  if (forward && s.nearest < K.OBSTACLE_STOP_DISTANCE) {
+    s.hitBox = true;
+    return abort(s, 'obstacle ' + s.nearest.toFixed(2) + ' m ahead (limit ' + K.OBSTACLE_STOP_DISTANCE.toFixed(2) + ' m)');
+  }
+  if (s.t > K.TOTAL_TIMEOUT) return abort(s, 'total timeout of ' + K.TOTAL_TIMEOUT.toFixed(0) + ' s reached');
+  return false;
+}
+
+function beginSegment(s) {
+  var seg = s.segs[s.idx];
+  if (seg.kind !== 'straight') s.target += seg.angle;
+  s.segSt = { x0: s.rep.x, y0: s.rep.y, h0: s.rep.h, startK: s.k, holds: 0 };
+  s.holds = 0;
+  s.segMarks.push(s.t);
+  logLine(s, 'segment ' + (s.idx + 1) + '/' + s.segs.length + ': ' + describeSegment(seg));
+}
+
+function advance(p, v, w) {
+  var hm = p.h + w * K.DT / 2;
+  p.x += v * Math.cos(hm) * K.DT; p.y += v * Math.sin(hm) * K.DT; p.h += w * K.DT;
+}
+
+function finishRun(s) {
+  var p = s.planned, mx = s.rep.x, my = s.rep.y, mh = s.rep.h;
+  var tx = s.pose.x, ty = s.pose.y, th = s.pose.h;
+  s.result = {
+    px: p.x, py: p.y, ph: p.h, mx: mx, my: my, mh: mh,
+    errPosCm: Math.hypot(mx - p.x, my - p.y) * 100, errHeadDeg: deg(mh - p.h),
+    floorPosCm: Math.hypot(tx - p.x, ty - p.y) * 100, floorHeadDeg: deg(th - p.h),
+    duration: s.t
+  };
+  s.status = 'done'; s.message = 'done';
+  logLine(s, 'planned end: x ' + p.x.toFixed(3) + ' m, y ' + p.y.toFixed(3) + ' m, heading change ' + deg(p.h).toFixed(1) + ' deg');
+  logLine(s, 'odometry end: x ' + mx.toFixed(3) + ' m, y ' + my.toFixed(3) + ' m, heading change ' + deg(mh).toFixed(1) + ' deg');
+  logLine(s, 'error: position ' + s.result.errPosCm.toFixed(1) + ' cm, heading ' + s.result.errHeadDeg.toFixed(1) + ' deg (odometry only)');
+  logLine(s, 'done');
+}
+
+/* one control cycle (20 Hz): decide, then move the robot for DT seconds. Returns false when the run is over. */
+function stepSim(s) {
+  if (s.status === 'refused' || s.status === 'done' || s.status === 'aborted') return false;
+  var v = 0, w = 0, seg, st, ageTicks, h, remaining, c, dir;
+  s.t = s.k * K.DT;
+
+  if (s.status === 'ready') {
+    s.status = 'running';
+    s.nearest = nearestFront(s.pose, s.boxes); s.nextScanK = s.k + Math.round(K.SCAN_PERIOD / K.DT);
+    var first = s.segs[0], need = first.kind === 'straight' ? first.distance + K.OBSTACLE_STOP_DISTANCE
+      : first.kind === 'arc' ? first.radius + K.OBSTACLE_STOP_DISTANCE : 0;
+    s.notes.forEach(function (n) { logLine(s, 'note: ' + n); });
+    logLine(s, 'lidar OK: nearest in front ' + (isFinite(s.nearest) ? s.nearest.toFixed(2) + ' m' : 'nothing in range'));
+    if (s.nearest < need) {
+      abort(s, 'path not clear: ' + s.nearest.toFixed(2) + ' m in front, need more than ' + need.toFixed(2) + ' m');
+      s.ts.push(s.t); s.vs.push(0); s.ws.push(0);
+      return false;
+    }
+    logLine(s, 'starting');
+    beginSegment(s);
+  }
+
+  ageTicks = s.k - s.repK;
+  if (s.phase === 'seg') {
+    seg = s.segs[s.idx]; st = s.segSt;
+    if (checkSafety(s, seg.kind !== 'turn')) { /* aborted */ }
+    else if ((s.k - st.startK) * K.DT > seg.timeout) abort(s, 'segment timeout (' + seg.timeout.toFixed(1) + ' s)');
+    else if (ageTicks > HOLD_TICKS) {
+      st.holds++; s.totalHolds++; s.holds = st.holds;   // stand still, wait for fresh odometry
+    } else {
+      h = s.rep.h; var done = false;
+      if (seg.kind === 'straight') {
+        remaining = seg.distance - Math.hypot(s.rep.x - st.x0, s.rep.y - st.y0);
+        s.remaining = remaining; s.remainingUnit = 'm';
+        if (remaining < K.DISTANCE_TOLERANCE) done = true;
+        else { c = straightCommand(remaining, s.target - h, seg.v); v = c[0]; w = c[1]; }
+      } else if (seg.kind === 'turn') {
+        remaining = s.target - h;
+        s.remaining = Math.abs(remaining); s.remainingUnit = 'deg';
+        if (Math.abs(remaining) < K.ANGLE_TOLERANCE) done = true;
+        else w = turnCommand(remaining, seg.w);
+      } else {
+        dir = seg.angle > 0 ? 1 : -1;
+        remaining = Math.abs(seg.angle) - dir * (h - st.h0);
+        s.remaining = remaining; s.remainingUnit = 'deg';
+        if (remaining < K.ANGLE_TOLERANCE) done = true;
+        else { c = arcCommand(remaining, seg.radius, seg.w, dir); v = c[0]; w = c[1]; }
+      }
+      if (done) {
+        v = 0; w = 0;
+        var took = (s.k - st.startK) * K.DT;
+        if (st.holds) logLine(s, '  held still for ' + st.holds + ' control cycles waiting for odometry');
+        logLine(s, 'segment ' + (s.idx + 1) + ' done in ' + took.toFixed(1) + ' s');
+        s.segTimes.push(took);
+        s.phase = 'pause'; s.pauseLeft = PAUSE_TICKS; s.remaining = 0;
+      }
+    }
+  } else {   // pause between segments: stand still, safety checks still run
+    if (!checkSafety(s, false)) {
+      s.pauseLeft--;
+      if (s.pauseLeft <= 0) {
+        s.idx++;
+        if (s.idx >= s.segs.length) { finishRun(s); }
+        else { s.phase = 'seg'; beginSegment(s); }
+      }
+    }
+  }
+
+  if (s.status === 'aborted') { s.cmd = { v: 0, w: 0 }; s.ts.push(s.t); s.vs.push(0); s.ws.push(0); return false; }
+
+  // move the robot for DT seconds with the command
+  s.cmd = { v: v, w: w };
+  advance(s.odom, v, w);                       // what the wheel encoders report
+  var vt = v, wt = w;
+  if (s.realism) {                             // what the floor sees: scale errors, drift, random slip
+    vt = v * (1 + s.bias.v + 0.01 * gauss(s.rng));
+    wt = w * (1 + s.bias.w + 0.015 * gauss(s.rng)) + s.bias.d * v + 0.02 * gauss(s.rng) * Math.min(1, Math.abs(v) * 10);
+  }
+  advance(s.pose, vt, wt);
+  s.ts.push(s.t); s.vs.push(v); s.ws.push(w);
+  s.k++;
+  s.t = s.k * K.DT;
+  if (s.k >= s.freezeK) { s.rep = { x: s.odom.x, y: s.odom.y, h: s.odom.h }; s.repK = s.k; }
+  if (s.k >= s.nextScanK) { s.nearest = nearestFront(s.pose, s.boxes); s.nextScanK += Math.round(K.SCAN_PERIOD / K.DT); }
+  s.trail.push({ x: s.pose.x, y: s.pose.y });
+  s.odomTrail.push({ x: s.rep.x, y: s.rep.y });
+  if (s.status === 'done') return false;
+  return true;
+}
+
+/* pause /odom for dur seconds (the base stops publishing; the robot keeps whatever it was told last) */
+function startDropout(s, dur) {
+  var n = Math.round(dur / K.DT);
+  s.freezeK = Math.max(s.freezeK, s.k + n);
+  s.dropouts.push({ from: s.t, to: s.freezeK * K.DT });
+  logLine(s, 'base pauses /odom for ' + dur.toFixed(1) + ' s');
+}
+function addBox(s, x, y) { s.boxes.push({ x: x, y: y }); }
+
+function runToEnd(s, maxSeconds) {
+  var limit = Math.round((maxSeconds || 300) / K.DT);
+  while (limit-- > 0 && stepSim(s)) { /* keep going */ }
+  return s;
+}
+
+var api = { K: K, SHAPES: SHAPES, MORE_SHAPES: MORE_SHAPES, wrapAngle: wrapAngle, planSegments: planSegments, addTiming: addTiming,
+  describeSegment: describeSegment, shortSegment: shortSegment, plannedEndPose: plannedEndPose, plannedPath: plannedPath,
+  straightCommand: straightCommand, turnCommand: turnCommand, arcCommand: arcCommand, arcSpeeds: arcSpeeds,
+  nearestFront: nearestFront, createSim: createSim, stepSim: stepSim, startDropout: startDropout, addBox: addBox,
+  runToEnd: runToEnd, isMoreShape: isMoreShape, deg: deg, mulberry32: mulberry32 };
+if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MotionCore = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script id="ui">
+(function () {
+'use strict';
+var C = window.MotionCore, K = C.K, NS = 'http://www.w3.org/2000/svg';
+function $(id) { return document.getElementById(id); }
+var ui = { shape: 'square', side: 0.4, speed: 0.10, turn: 0.5, sides: 5, realism: false, mult: 1, playing: false, boxes: [], seed: 1 };
+var sim = null, budget = 0, lastFrame = null, dirty = true;
+var reduced = false;
+try { reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+function el(name, attrs, parent) {
+  var n = document.createElementNS(NS, name);
+  for (var k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+function pts(arr) { var o = new Array(arr.length); for (var i = 0; i < arr.length; i++) o[i] = arr[i].x.toFixed(4) + ',' + (-arr[i].y).toFixed(4); return o.join(' '); }
+
+/* ---- grid ---- */
+(function () {
+  var g = $('grid'), v;
+  for (v = -1; v <= 2; v += 0.5) {
+    var major = Math.abs(v - Math.round(v)) < 1e-9;
+    el('line', { x1: v, y1: -2, x2: v, y2: 1, 'class': 'fl-grid' + (major ? ' major' : ''), 'stroke-opacity': major ? 0.8 : 0.45 }, g);
+  }
+  for (v = -1; v <= 2; v += 0.5) {
+    var mj = Math.abs(v - Math.round(v)) < 1e-9;
+    el('line', { x1: -1, y1: -v, x2: 2, y2: -v, 'class': 'fl-grid' + (mj ? ' major' : ''), 'stroke-opacity': mj ? 0.8 : 0.45 }, g);
+  }
+  for (v = -1; v <= 1; v++) { var t = el('text', { x: v + 0.02, y: 0.97, 'class': 'fl-label', 'font-size': 0.055 }, g); t.textContent = v + ' m'; }
+  for (v = -1; v <= 1; v++) { if (v === -1) continue; var t2 = el('text', { x: -0.98, y: -v - 0.02, 'class': 'fl-label', 'font-size': 0.055 }, g); t2.textContent = v + ' m'; }
+})();
+
+/* ---- build / reset ---- */
+function config() {
+  return { shape: ui.shape, side: ui.side, speed: ui.speed, turnSpeed: ui.turn, sides: ui.sides, realism: ui.realism, seed: ui.seed, boxes: ui.boxes };
+}
+function rebuild() {
+  if (sim) syncBoxesFromSim();
+  ui.playing = false; budget = 0;
+  sim = C.createSim(config());
+  $('plan').setAttribute('points', pts(sim.path));
+  $('key-odom').hidden = !ui.realism;
+  $('odomtrail').style.display = ui.realism ? '' : 'none';
+  if (sim.status === 'refused') logRefusal();
+  dirty = true; render();
+}
+function logRefusal() { sim.log.push({ t: 0, text: sim.message }); }
+function syncBoxesFromSim() { ui.boxes = sim.boxes.map(function (b) { return { x: b.x, y: b.y }; }); }
+
+/* ---- rendering ---- */
+function setMsg(text, cls) { var m = $('msg'); if (m.textContent !== text) m.textContent = text; m.className = 'msg' + (cls ? ' ' + cls : ''); }
+function renderBoxes() {
+  var g = $('boxes'); while (g.firstChild) g.removeChild(g.firstChild);
+  sim.boxes.forEach(function (b) {
+    var h = K.BOX_SIZE / 2;
+    el('rect', { x: b.x - h, y: -b.y - h, width: K.BOX_SIZE, height: K.BOX_SIZE, 'class': 'fl-box' }, g);
+  });
+}
+var boxCount = -1;
+function render() {
+  var p = sim.pose;
+  $('robot').setAttribute('transform', 'translate(' + p.x.toFixed(4) + ',' + (-p.y).toFixed(4) + ') rotate(' + (-p.h * 180 / Math.PI).toFixed(2) + ')');
+  $('trail').setAttribute('points', pts(sim.trail));
+  if (ui.realism) $('odomtrail').setAttribute('points', pts(sim.odomTrail));
+  else $('odomtrail').setAttribute('points', '');
+  if (boxCount !== sim.boxes.length || dirty) { renderBoxes(); boxCount = sim.boxes.length; }
+  $('zone').setAttribute('class', 'fl-zone' + (sim.hitBox ? ' hit' : ''));
+
+  var n = sim.segs.length, seg = sim.segs[Math.min(sim.idx, n - 1)], st = sim.status;
+  var chip = $('chip'), label;
+  if (st === 'ready') { label = 'Press Play: ' + n + ' segments, about ' + sim.expected.toFixed(0) + ' s'; chip.textContent = 'ready'; chip.className = 'chip info'; }
+  else if (st === 'refused') { label = 'Refused to start'; chip.textContent = 'refused'; chip.className = 'chip bad'; }
+  else if (st === 'aborted') { label = 'Stopped in segment ' + (sim.idx + 1) + '/' + n; chip.textContent = 'aborted'; chip.className = 'chip bad'; }
+  else if (st === 'done') { label = 'Finished all ' + n + ' segments'; chip.textContent = 'done'; chip.className = 'chip ok'; }
+  else if (sim.phase === 'pause') { label = (sim.idx + 1) + '/' + n + ' done, pausing 0.5 s'; chip.textContent = 'pause'; chip.className = 'chip todo'; }
+  else if (sim.holds > 0 && sim.k - sim.repK > 6) { label = (sim.idx + 1) + '/' + n + ': ' + C.shortSegment(seg) + ' (held)'; chip.textContent = 'held still'; chip.className = 'chip warn'; }
+  else { label = (sim.idx + 1) + '/' + n + ': ' + C.shortSegment(seg); chip.textContent = 'driving'; chip.className = 'chip warn'; }
+  $('seg').textContent = label;
+  $('r-v').textContent = sim.cmd.v.toFixed(3);
+  $('r-w').textContent = sim.cmd.w.toFixed(3);
+  var running = st === 'running';
+  if (running && sim.phase === 'seg' && sim.remaining != null && seg.kind === 'straight') { $('r-remk').textContent = 'Distance remaining'; $('r-rem').textContent = sim.remaining.toFixed(3); $('r-remu').textContent = 'm'; }
+  else if (running && sim.phase === 'seg' && sim.remaining != null) { $('r-remk').textContent = 'Angle remaining'; $('r-rem').textContent = (sim.remaining * 180 / Math.PI).toFixed(1); $('r-remu').textContent = 'deg'; }
+  else if (st === 'ready') { $('r-remk').textContent = 'Remaining'; $('r-rem').textContent = '-'; $('r-remu').innerHTML = '&nbsp;'; }
+  $('r-t').textContent = sim.t.toFixed(1);
+  $('r-tp').textContent = 's (plan says about ' + sim.expected.toFixed(0) + ' s)';
+
+  var msg, cls = '';
+  if (st === 'aborted' || st === 'refused') { msg = sim.message; cls = 'bad'; }
+  else if (st === 'done') { msg = 'done'; cls = 'ok'; }
+  else if (running && sim.phase === 'seg' && sim.holds > 0 && sim.k - sim.repK > 6) { msg = 'held still for ' + sim.holds + ' control cycles waiting for odometry'; cls = 'warn'; }
+  else if (running && sim.hitBox === false && isFinite(sim.nearest) && sim.nearest < 0.6) { msg = 'lidar: nearest thing ahead ' + sim.nearest.toFixed(2) + ' m (stop limit 0.25 m)' + (sim.phase === 'seg' && seg.kind === 'turn' ? ', not checked while turning in place' : ''); }
+  else if (running) { msg = sim.holds > 0 ? 'resumed after holding still ' + sim.holds + ' cycles' : 'segment ' + (sim.idx + 1) + ' running'; }
+  else msg = 'Waiting to start. Notes: ' + (sim.notes.length ? sim.notes.join('; ') : 'none');
+  setMsg(msg, cls);
+
+  var r = sim.result, res = $('res');
+  if (r) {
+    res.hidden = false;
+    res.textContent = 'Odometry end error: ' + r.errPosCm.toFixed(1) + ' cm, ' + r.errHeadDeg.toFixed(1) + ' deg. ' +
+      (sim.realism ? 'Error on the floor (invisible to the program): ' + r.floorPosCm.toFixed(1) + ' cm, ' + r.floorHeadDeg.toFixed(1) + ' deg. ' : 'Turn on "Add realism" to see the floor error. ') +
+      'Total time ' + r.duration.toFixed(1) + ' s.';
+  } else res.hidden = true;
+
+  var lines = sim.log.slice(-14).map(function (l) { return (l.t.toFixed(1) + ' s').padStart(7) + '  ' + l.text; });
+  var lg = $('log'), txt = lines.join('\n');
+  if (lg.textContent !== txt) { lg.textContent = txt; lg.scrollTop = lg.scrollHeight; }
+
+  $('play').textContent = ui.playing ? 'Pause' : (st === 'done' || st === 'aborted' ? 'Replay' : 'Play');
+  $('play').setAttribute('aria-label', $('play').textContent === 'Pause' ? 'Pause the simulation' : 'Play the simulation');
+  $('play').disabled = st === 'refused';
+  var live = running;
+  $('drop1').disabled = $('drop2').disabled = !live;
+  $('dropbox').disabled = false;
+  $('step').disabled = $('step1').disabled = st === 'done' || st === 'aborted' || st === 'refused';
+  renderChart();
+  dirty = false;
+}
+
+function renderChart() {
+  var svg = $('chart'); while (svg.firstChild) svg.removeChild(svg.firstChild);
+  var W = 700, L = 46, R = 12, PW = W - L - R;
+  var tmax = Math.max(10, Math.ceil(Math.max(sim.expected * 1.2, sim.t + 1) / 5) * 5);
+  var wmax = Math.max(0.6, Math.ceil(sim.turnSpeed * 1.2 * 5) / 5);
+  var panels = [{ y0: 22, h: 90, lo: 0, hi: 0.16, data: sim.vs, cls: 'ch-v', unit: 'v m/s', ticks: [0, 0.05, 0.10, 0.15] },
+                { y0: 140, h: 90, lo: -wmax, hi: wmax, data: sim.ws, cls: 'ch-w', unit: 'w rad/s', ticks: [-wmax, 0, wmax] }];
+  function X(t) { return L + t / tmax * PW; }
+  panels.forEach(function (pn) {
+    function Y(v) { return pn.y0 + pn.h - (v - pn.lo) / (pn.hi - pn.lo) * pn.h; }
+    sim.dropouts.forEach(function (d) { el('rect', { x: X(d.from), y: pn.y0, width: Math.max(1, X(Math.min(d.to, tmax)) - X(d.from)), height: pn.h, 'class': 'ch-drop' }, svg); });
+    el('rect', { x: L, y: pn.y0, width: PW, height: pn.h, 'class': 'ch-axis' }, svg);
+    pn.ticks.forEach(function (tv) {
+      if (pn.lo < 0 && tv === 0) el('line', { x1: L, x2: L + PW, y1: Y(0), y2: Y(0), 'class': 'ch-zero' }, svg);
+      var tx = el('text', { x: L - 5, y: Y(tv) + 3, 'text-anchor': 'end', 'class': 'ch-t' }, svg); tx.textContent = (Math.abs(tv) < 1e-9 ? '0' : (+tv.toFixed(2)).toString());
+    });
+    var lab = el('text', { x: L, y: pn.y0 - 6, 'class': 'ch-n' }, svg); lab.textContent = pn.unit;
+    sim.segMarks.forEach(function (tm, i) {
+      el('line', { x1: X(tm), x2: X(tm), y1: pn.y0, y2: pn.y0 + pn.h, 'class': 'ch-seg' }, svg);
+      if (pn.y0 < 100 && X(tm) < L + PW - 8) { var nt = el('text', { x: X(tm) + 2, y: pn.y0 + 10, 'class': 'ch-n' }, svg); nt.textContent = i + 1; }
+    });
+    var d = [], n = pn.data.length, step = Math.max(1, Math.floor(n / 700));
+    for (var i = 0; i < n; i += step) d.push(X(sim.ts[i]).toFixed(1) + ',' + Y(pn.data[i]).toFixed(1));
+    if (d.length > 1) el('polyline', { points: d.join(' '), 'class': pn.cls }, svg);
+  });
+  for (var tt = 0; tt <= tmax; tt += (tmax > 60 ? 20 : 10)) {
+    var tl = el('text', { x: X(tt), y: 246, 'text-anchor': 'middle', 'class': 'ch-t' }, svg); tl.textContent = tt + ' s';
+  }
+}
+
+/* ---- results table (headless runs at default settings) ---- */
+var REAL = {
+  square: { time: '39 s', err: '0.9 cm / +0.8 deg' },
+  rotate: { time: '13.4 s', err: '0.1 cm / +0.7 deg' },
+  back_and_forth: { time: '26 s', err: '0.6 cm / +0.9 deg' },
+  triangle: { time: '37 s (held still 3 times: 11, 8, 1 cycles)', err: '1.0 cm / +2.2 deg' },
+  figure_eight: { time: 'first circle 13.2 s, then aborted on a 2.0 s odometry gap', err: 'not finished' }
+};
+function buildTable() {
+  var tb = $('restab');
+  ['square', 'triangle', 'rotate', 'back_and_forth', 'figure_eight'].forEach(function (name) {
+    var s = C.createSim({ shape: name, side: 0.4, speed: 0.1, turnSpeed: 0.5, sides: 5, realism: false, seed: 1, boxes: [] });
+    C.runToEnd(s);
+    var tr = document.createElement('tr');
+    function cell(tag, text, cls) { var c = document.createElement(tag); c.textContent = text; if (cls) c.className = cls; tr.appendChild(c); }
+    cell('th', name);
+    cell('td', s.expected.toFixed(1) + ' s', 'num');
+    cell('td', (name === 'figure_eight' ? s.t.toFixed(1) + ' s (first circle ' + s.segTimes[0].toFixed(1) + ' s)' : s.t.toFixed(1) + ' s'), 'num sim');
+    cell('td', REAL[name].time, 'notes');
+    cell('td', s.result.errPosCm.toFixed(1) + ' cm / ' + (s.result.errHeadDeg >= 0 ? '+' : '') + s.result.errHeadDeg.toFixed(1) + ' deg', 'num sim');
+    cell('td', REAL[name].err, 'num');
+    tb.appendChild(tr);
+  });
+}
+
+/* ---- run loop ---- */
+function advanceTicks(n) {
+  for (var i = 0; i < n; i++) if (!C.stepSim(sim)) break;
+  if (sim.status === 'done' || sim.status === 'aborted') ui.playing = false;
+}
+function frame(now) {
+  if (lastFrame == null) lastFrame = now;
+  var dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now;
+  if (ui.playing && sim) {
+    budget += dt * ui.mult;
+    var n = Math.floor(budget / K.DT);
+    if (n > 0) { budget -= n * K.DT; advanceTicks(Math.min(n, 400)); dirty = true; render(); }
+  }
+  requestAnimationFrame(frame);
+}
+function play() {
+  if (sim.status === 'done' || sim.status === 'aborted') rebuild();
+  if (sim.status === 'refused') return;
+  ui.playing = !ui.playing; render();
+}
+function stepSegment() {
+  ui.playing = false;
+  if (sim.status === 'refused') return;
+  var startIdx = sim.idx, startPhase = sim.phase, guard = 4000;
+  while (guard-- > 0 && C.stepSim(sim)) { if (sim.idx !== startIdx) break; }
+  render();
+}
+function stepOne() { ui.playing = false; C.stepSim(sim); render(); }
+
+/* ---- events ---- */
+function setPressed(group, attr, value) {
+  var bs = group.querySelectorAll('button[' + attr + ']');
+  for (var i = 0; i < bs.length; i++) bs[i].setAttribute('aria-pressed', String(bs[i].getAttribute(attr) === String(value)));
+}
+function selectShape(name) {
+  ui.shape = name; setPressed($('shapes'), 'data-shape', name);
+  $('sides-wrap').hidden = name !== 'polygon';
+  rebuild();
+}
+$('shapes').addEventListener('click', function (e) { var b = e.target.closest('button[data-shape]'); if (b) selectShape(b.getAttribute('data-shape')); });
+$('mult').addEventListener('click', function (e) { var b = e.target.closest('button[data-m]'); if (b) { ui.mult = +b.getAttribute('data-m'); setPressed($('mult'), 'data-m', ui.mult); } });
+function bindSlider(id, key, fmt, out) {
+  var inp = $(id);
+  function upd() { ui[key] = +inp.value; $(out).textContent = fmt(ui[key]); }
+  inp.addEventListener('input', function () { upd(); rebuild(); });
+  upd();
+}
+bindSlider('side', 'side', function (v) { return v.toFixed(2) + ' m'; }, 'o-side');
+bindSlider('speed', 'speed', function (v) { return v.toFixed(2) + ' m/s' + (v >= 0.15 ? ' (cap)' : ''); }, 'o-speed');
+bindSlider('turn', 'turn', function (v) { return v.toFixed(2) + ' rad/s'; }, 'o-turn');
+bindSlider('sides', 'sides', function (v) { return String(v); }, 'o-sides');
+$('realism').addEventListener('change', function () { ui.realism = $('realism').checked; ui.seed = (ui.seed % 9) + 1; rebuild(); });
+$('play').addEventListener('click', play);
+$('step').addEventListener('click', stepSegment);
+$('step1').addEventListener('click', stepOne);
+$('reset').addEventListener('click', function () { syncBoxesFromSim(); rebuild(); });
+$('clearbox').addEventListener('click', function () { sim.boxes.length = 0; ui.boxes = []; dirty = true; render(); });
+$('drop1').addEventListener('click', function () { if (sim.status === 'running') { C.startDropout(sim, 0.8); render(); } });
+$('drop2').addEventListener('click', function () { if (sim.status === 'running') { C.startDropout(sim, 2.5); render(); } });
+
+function addBoxAt(x, y) {
+  if (Math.hypot(x - sim.pose.x, y - sim.pose.y) < K.ROBOT_RADIUS + K.BOX_SIZE * 0.71 + 0.02) { setMsg('Too close to the robot: drop the box farther away.', 'warn'); return; }
+  if (sim.boxes.length >= 12) { setMsg('At most 12 boxes. Use Clear boxes.', 'warn'); return; }
+  C.addBox(sim, x, y); dirty = true; render();
+}
+$('dropbox').addEventListener('click', function () {
+  var p = sim.pose, d = 0.40 + K.BOX_SIZE / 2 + 0.04;   // near face 0.40 m from the lidar
+  addBoxAt(p.x + d * Math.cos(p.h), p.y + d * Math.sin(p.h));
+});
+$('floor').addEventListener('click', function (e) {
+  var svg = $('floor'), r = svg.getBoundingClientRect();
+  var x = -1 + (e.clientX - r.left) / r.width * 3, y = -((-2) + (e.clientY - r.top) / r.height * 3);
+  var h = K.BOX_SIZE / 2 + 0.02;
+  for (var i = 0; i < sim.boxes.length; i++) {
+    if (Math.abs(sim.boxes[i].x - x) <= h && Math.abs(sim.boxes[i].y - y) <= h) { sim.boxes.splice(i, 1); dirty = true; render(); return; }
+  }
+  addBoxAt(x, y);
+});
+
+/* ---- start ---- */
+buildTable();
+$('rm-note').hidden = !reduced;
+rebuild();
+if (location.hash === '#autoplay') {
+  if (reduced) { C.runToEnd(sim, 120); dirty = true; render(); }
+  else {
+    ui.mult = 4; setPressed($('mult'), 'data-m', 4);
+    advanceTicks(Math.round(18 / K.DT));   // screenshot test hook: skip the first 18 s so a still image shows a run in progress
+    ui.playing = sim.status === 'running'; render();
+  }
+}
+requestAnimationFrame(frame);
+window.__sim = function () { return sim; };
+})();
+
+</script>
+</body>
+</html>

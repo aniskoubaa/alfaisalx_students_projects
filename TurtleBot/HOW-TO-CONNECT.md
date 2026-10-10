@@ -6,6 +6,8 @@ This guide shows how to reach the lab's TurtleBot 4 from your own computer (Wind
 
 What the tool offers (version 1.1.0, described 2026-10-10): a numbered menu with 1 Connect (opens a robot terminal), 2 Find the robot (the last address that worked, `turtlebot4.local`, `10.42.0.1`, or an address you type), 3 Set up key login (once per computer), 4 Robot status (read only), 5 Open in VS Code, 6 Add a `turtlebot4` shortcut to your SSH config (it backs the file up first), 7 EMERGENCY stop of the motion programs (creates `~/STOP` and stops the example programs), 8 Copy a file to the robot, and 9 Fix "host key changed". It only talks to a device that presents the lab robot's ED25519 host key (the fingerprint in [Step 4](#what-you-will-see)), so a stale campus address that now belongs to another device is refused before any password prompt. After a robot reinstall, `--trust-new-host-key` lets it accept the new key, and a maintainer must then update the pinned key. The Windows program needs no installation (Windows 10 or 11) but is not code-signed: on the first run SmartScreen warns, choose **More info**, then **Run anyway**, or build it from its source with `build.cmd`, which uses the C# compiler that comes with Windows. As of 2026-10-10 the tool has not yet been used with the real robot ([ROADMAP.md, TB-23](ROADMAP.md#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool)).
 
+New here and want a step-by-step walk-through? The [do-it-yourself guide](docs/do-it-yourself.html) ([Markdown version](docs/DO-IT-YOURSELF.md)) takes you from power-on to your first program, and the [lidar user guide](docs/lidar-guide.html) ([Markdown](docs/LIDAR-GUIDE.md)) explains the lidar data.
+
 For a beginner's overview of the robot's hardware and ROS 2, read the [TurtleBot 4 field guide](turtlebot4-field-guide.html). For what has been changed on the robot, and how to verify or undo it, see [MAINTENANCE.md](MAINTENANCE.md).
 
 **Contents**
@@ -515,7 +517,7 @@ Remote desktop (RDP or VNC) is not set up. The robot runs Ubuntu Server with no 
 
 Anything that uses `sudo` (shutting down, changing Wi-Fi, installing packages) asks for the `ubuntu` password, which a person must type. Wi-Fi changes over SSH need it too. Configuration changes to the shared robot are recorded in [MAINTENANCE.md](MAINTENANCE.md), together with the admin scripts in [`setup/`](setup/) and how to undo each change. Read it before changing anything, and record your own changes there.
 
-Open admin work on the network (2026-10-10): the Wi-Fi power-saving fix ([ROADMAP.md, TB-20](ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving)), the decision on the robot's network ([TB-21](ROADMAP.md#tb-21-decide-the-robots-network-students-or-the-lab-router)) and securing the lab router ([TB-22](ROADMAP.md#tb-22-secure-the-lab-router)). These are proposals; nothing was changed on the robot for them.
+Open admin work on the network (2026-10-10): the Wi-Fi power-saving fix ([ROADMAP.md, TB-20](ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving)), the decision on the robot's network ([TB-21](ROADMAP.md#tb-21-decide-the-robots-network-students-or-the-lab-router)) and securing the lab router ([TB-22](ROADMAP.md#tb-22-secure-the-lab-router); its credentials were changed on 2026-10-10, the remaining steps are open). These are proposals; nothing was changed on the robot for them.
 
 ## Related documents
 

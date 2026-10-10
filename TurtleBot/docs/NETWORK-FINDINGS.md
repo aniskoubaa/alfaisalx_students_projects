@@ -85,7 +85,7 @@ Set up on 2026-10-05 by Ibrahim, with the AI assistant, as a dedicated lab netwo
 | Item | Value |
 |---|---|
 | Model | Linksys WRT54G: old 802.11g, 2.4 GHz only. Firmware very old (end of life); version not recorded |
-| Admin page | `http://192.168.1.1`. Admin login still the factory default when it was set up (to-do) |
+| Admin page | `http://192.168.1.1`. Admin login still the factory default when it was set up; credentials changed on 2026-10-10 by the lab RA (not recorded here) |
 | LAN | `192.168.1.x` with DHCP; a laptop on a cable got `192.168.1.103` |
 | Uplink | The university wall Ethernet cable in the router's **Internet** port. The first cable gave no internet; a different cable worked |
 | Wi-Fi | SSID starting with `AlfaisalX` (exact final name not confirmed in the record; read it on the router's Wireless page). WPA2-Personal with AES |
@@ -104,7 +104,7 @@ Measured on 2026-10-05 with a laptop on a cable:
 
 Security to-dos ([TB-22](../ROADMAP.md#tb-22-secure-the-lab-router)):
 
-- Change the factory admin login; keep the new one in the lab password manager, never in this repository.
+- Change the factory admin login; keep the new one in the lab password manager, never in this repository. **Done 2026-10-10** (credentials changed by the lab RA).
 - Keep the admin page reachable from the lab network only: the WRT54G firmware is end of life.
 - Consider a newer router.
 

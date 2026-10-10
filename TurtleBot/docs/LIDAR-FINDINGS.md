@@ -2,6 +2,8 @@
 
 Markdown version of [lidar-diagnosis.html](lidar-diagnosis.html), for reading on GitHub. The admin record is in [MAINTENANCE.md](../MAINTENANCE.md#incident-lidar-not-detected-2026-10-03-resolved-2026-10-04); the task is [ROADMAP.md, TB-02](../ROADMAP.md#tb-02-fix-lidar-detection).
 
+This page is the fault story. To use the lidar (how it works, how to read and use its data), see the [lidar user guide](LIDAR-GUIDE.md) ([interactive version](lidar-guide.html)).
+
 | | |
 |---|---|
 | Robot | Lab TurtleBot 4 Standard, `ubuntu@turtlebot4.local` |

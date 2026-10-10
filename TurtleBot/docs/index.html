@@ -217,6 +217,7 @@
       <div class="doclist">
         <a class="card" href="../README.md"><div class="path">README.md</div><h3>Folder index</h3><p>What each file is for, and a four-step quick start.</p></a>
         <a class="card" href="../HOW-TO-CONNECT.md"><div class="path">HOW-TO-CONNECT.md</div><h3>Connect and run code</h3><p>Networks, SSH, keys, VS Code, running the examples, turning the robot off, troubleshooting.</p></a>
+        <a class="card" href="do-it-yourself.html"><div class="path">docs/do-it-yourself.html</div><h3>Do it yourself <span class="chip ok">new</span></h3><p>Eleven hands-on steps with no AI help: power on, Wi-Fi, SSH, putting your code on the robot, sensors, undock, drive, dock, stop, power off and a first program. Commands for Windows, macOS and Linux. Markdown version: <code>DO-IT-YOURSELF.md</code>.</p></a>
         <a class="card" href="../turtlebot4-field-guide.html"><div class="path">turtlebot4-field-guide.html</div><h3>Field guide</h3><p>Beginner overview of the hardware and ROS 2.</p></a>
         <a class="card" href="../tools/connect/README.md"><div class="path">tools/connect/</div><h3>Connect tool <span class="chip todo">not yet run on the robot</span></h3><p><code>TurtleBotConnect.exe</code> (Windows 10 or 11, no installation) and <code>connect-turtlebot.sh</code> (macOS, Linux), version 1.1.0. A menu to connect, find the robot, set up key login, show status, open VS Code, add an SSH shortcut, stop the motion programs in an emergency, copy a file and fix "host key changed". It only talks to a device with the lab robot's host key. The exe is unsigned: SmartScreen asks once (More info, Run anyway), or build it from source.</p></a>
       </div>
@@ -234,6 +235,7 @@
             <tr><td class="nowrap">2026-10-05</td><td>Lab router (Linksys WRT54G, <code>192.168.1.1</code>) set up and measured. Connect tool work in progress committed (7007f51)</td><td><span class="chip todo">proposal</span> Robot not on the router (TB-21); router admin login to change (TB-22)</td></tr>
             <tr><td class="nowrap">2026-10-05</td><td>GitHub Desktop switched the local clone to <code>main</code> with uncommitted TurtleBot changes</td><td><span class="chip ok">resolved 2026-10-10</span> Nothing lost</td></tr>
             <tr><td class="nowrap">2026-10-10</td><td>Documentation brought up to date; connect tool 1.1.0 finished (robot host key pinned) and tested against a local SSH server; all TurtleBot work merged into <code>main</code></td><td><span class="chip todo">pending</span> First robot runs of the new programs and the tool (TB-23)</td></tr>
+            <tr><td class="nowrap">2026-10-10 (later)</td><td>Interactive pages added: do-it-yourself guide, lidar user guide, motion simulator and docking explainer. Lab router credentials changed by the lab RA. <code>clearance_check.py</code> fallback fixed (+90&deg;)</td><td><span class="chip ok">done</span> Robot runs of the new programs still pending (TB-23)</td></tr>
           </tbody>
         </table>
       </div>
@@ -241,8 +243,13 @@
     </section>
 
     <section id="pages">
-      <div class="section-head"><span class="section-tag">03</span><h2>Illustrated pages</h2></div>
+      <div class="section-head"><span class="section-tag">03</span><h2>Interactive and illustrated pages</h2></div>
       <div class="doclist">
+        <a class="card" href="lidar-guide.html"><div class="path">docs/lidar-guide.html</div><h3>Lidar user guide <span class="chip ok">interactive</span></h3><p>What the RPLIDAR A1M8 measures, one scan field by field, the 90&deg; mounting, a lidar explorer you can play with, the commands to get the data by hand, and a complete Python example. Markdown version: <code>LIDAR-GUIDE.md</code>.</p></a>
+        <a class="card" href="motion-simulator.html"><div class="path">docs/motion-simulator.html</div><h3>Motion simulator <span class="chip ok">interactive</span></h3><p>Click a shape and watch <code>motion_shapes.py</code> drive it: path, speed commands, slow-down at corners, the lidar stop zone (drop a box) and odometry dropouts, compared with the real robot runs.</p></a>
+        <a class="card" href="docking-explained.html"><div class="path">docs/docking-explained.html</div><h3>How docking works <span class="chip ok">interactive</span></h3><p>The dock's infrared signals, the four docking stages and undocking, in a simplified animation you can try from any spot, plus the commands to dock and undock by hand.</p></a>
+        <a class="card" href="DO-IT-YOURSELF.md"><div class="path">docs/DO-IT-YOURSELF.md</div><h3>Do it yourself (Markdown)</h3><p>The hands-on steps as plain Markdown, for reading on GitHub.</p></a>
+        <a class="card" href="LIDAR-GUIDE.md"><div class="path">docs/LIDAR-GUIDE.md</div><h3>Lidar user guide (Markdown)</h3><p>The lidar guide as plain Markdown, for reading on GitHub.</p></a>
         <a class="card" href="network-and-connectivity.html"><div class="path">docs/network-and-connectivity.html</div><h3>Network and connectivity <span class="chip warn">open</span></h3><p>Network map, the Wi-Fi drops of 2026-10-04 and 2026-10-05, likely causes, the proposed fix and workarounds, the lab router and the proposal to use it.</p></a>
         <a class="card" href="NETWORK-FINDINGS.md"><div class="path">docs/NETWORK-FINDINGS.md</div><h3>Network findings (Markdown)</h3><p>The same content as plain Markdown, for reading on GitHub (without the diagram).</p></a>
         <a class="card" href="lidar-diagnosis.html"><div class="path">docs/lidar-diagnosis.html</div><h3>Lidar diagnosis <span class="chip ok">resolved</span></h3><p>The "lidar not detected" fault: checks from USB to scan data, measured values, mount sketch, dock power saver.</p></a>

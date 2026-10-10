@@ -44,6 +44,10 @@ python test_sim_runs.py    # 38 simulated runs: every shape, odometry gaps, dock
 
 The same tests run on GitHub on every push that changes `TurtleBot/` ([.github/workflows/turtlebot-tests.yml](../../.github/workflows/turtlebot-tests.yml)).
 
+## Documentation link check
+
+[`check_links.py`](check_links.py) checks every relative link and `#anchor` in the Markdown and HTML files under `TurtleBot/`, and exits 1 if any is broken. Run it from the repository root with `python TurtleBot/tests/check_links.py`. The GitHub workflow runs it too, so a broken link fails the check.
+
 To try one program by hand against the simulator: `python sim.py motion square --yes` (scenarios: `motion`, `shapes`, `wall`, `keep`, `report`, `snapshot`, `light`, `health`; environment variables `SIM_ODOM_GAP="t0,length"`, `SIM_DOCKED=1`, `SIM_WALL=metres`, `SIM_OBJECT="x0,vx"`, `SIM_ROOM` (room radius in m, 0 = no walls), `SIM_HEALTH="fault,fault"` (faults listed at the top of sim.py)).
 
 Passing these tests does not prove a program works on the robot. Timing, odometry dropouts and real sensors only show up on the robot; record those runs in the logs above.
