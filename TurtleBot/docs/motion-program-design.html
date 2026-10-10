@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion Program Design</title>
+<meta name="description" content="How examples/motion_shapes.py drives shapes on the TurtleBot 4: planner, closed-loop controller, 20 Hz loop, safety layers, the /odom pause finding and parameters.">
+<style>
+  /* Shared style for TurtleBot/docs pages. Tokens match turtlebot4-field-guide.html. */
+  :root{
+    --bg:#EEF2F4; --panel:#FFFFFF; --panel-alt:#E3EAED; --text:#16232F; --text-dim:#54636F;
+    --border:#C6D2D7; --accent:#0C8C82; --accent-strong:#075F58; --warn:#B85B26; --code-bg:#DDE6E9;
+    --ok:#2E7D32; --bad:#B3261E; --ok-bg:#E3F1E4; --bad-bg:#F8E4E2; --warn-bg:#F7E9DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+      --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+      --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+    --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+    --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.label-font,.eyebrow,th,.chip,.tile .k,figcaption,nav.toc a{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;}
+  code,pre,.mono{font-family:"IBM Plex Mono", Consolas, "Courier New", monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:0.88em; overflow-wrap:anywhere;}
+  pre{background:var(--code-bg); padding:12px 14px; border-radius:4px; overflow-x:auto; font-size:0.84rem; line-height:1.5; margin:0 0 16px;}
+  pre code{background:none; padding:0;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  a{color:var(--accent-strong);}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+
+  .page{display:grid; grid-template-columns:220px minmax(0,1fr); gap:0 44px; max-width:1220px; margin:0 auto; padding:0 28px 80px;}
+  nav.toc{position:sticky; top:0; align-self:start; padding-top:48px; max-height:100vh; overflow-y:auto;}
+  nav.toc .eyebrow{color:var(--text-dim); font-size:0.7rem;}
+  nav.toc ul{list-style:none; margin:0 0 24px; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.toc a{display:block; padding:6px 10px; border-radius:3px; color:var(--text-dim); text-decoration:none; font-size:0.86rem; font-weight:500;}
+  nav.toc a:hover{color:var(--text); background:var(--panel-alt);}
+  main{min-width:0; padding-top:48px;}
+  header.hero{margin-bottom:36px;}
+  .eyebrow{font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 12px;}
+  h1.title{font-size:clamp(2rem,5vw,3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{font-size:1.08rem; color:var(--text-dim); max-width:66ch; margin:0 0 20px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.84rem; color:var(--text-dim);}
+  .meta b{color:var(--text); font-weight:600;}
+
+  section{max-width:860px; padding:40px 0; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none; padding-top:0;}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .section-tag{font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.72rem; color:var(--text-dim); white-space:nowrap;}
+  h2{font-size:1.5rem; font-weight:600;}
+  h3{font-size:1.05rem; font-weight:600; margin:24px 0 8px;}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin:3px 0;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .table-wrap{overflow-x:auto; margin:0 0 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
+  th,td{text-align:left; padding:9px 12px; border-top:1px solid var(--border); vertical-align:top;}
+  thead th{border-top:none; font-size:0.76rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim); background:var(--panel-alt); white-space:nowrap;}
+  tbody th{font-weight:600; color:var(--text-dim); white-space:nowrap;}
+  td.notes{min-width:230px;}
+  td.nowrap{white-space:nowrap;}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  .chip{display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.74rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap;}
+  .chip.ok{color:var(--ok); background:var(--ok-bg);}
+  .chip.bad{color:var(--bad); background:var(--bad-bg);}
+  .chip.warn{color:var(--warn); background:var(--warn-bg);}
+  .chip.info{color:var(--accent-strong); background:var(--panel-alt);}
+  .chip.todo{color:var(--text-dim); background:transparent; border-style:dashed;}
+
+  .note{padding:12px 16px; background:var(--panel-alt); border-left:3px solid var(--warn); border-radius:0 4px 4px 0; font-size:0.92rem; margin:18px 0;}
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .placeholder{border:2px dashed var(--warn); border-radius:6px; padding:14px 16px; margin:16px 0; background:var(--warn-bg);}
+  .placeholder > b:first-child{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; color:var(--warn); text-transform:uppercase; letter-spacing:0.06em; font-size:0.78rem; display:block; margin-bottom:4px;}
+  tr.ph td{color:var(--text-dim); font-style:italic; background:repeating-linear-gradient(135deg, transparent 0 8px, var(--warn-bg) 8px 10px);}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:0 0 16px;}
+  .card{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px; break-inside:avoid;}
+  .card h3{margin:0 0 8px; font-size:0.98rem; display:flex; justify-content:space-between; gap:8px; align-items:baseline;}
+  .card p{margin:0 0 6px; font-size:0.9rem; color:var(--text-dim);}
+  .card dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.86rem;}
+  .card dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .card dd{margin:0; font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.82rem; overflow-wrap:anywhere;}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 0 18px;}
+  .tile{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px 14px;}
+  .tile .k{font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .tile .v{font-size:1.6rem; font-weight:600; font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; line-height:1.2;}
+  .tile .s{font-size:0.8rem; color:var(--text-dim);}
+
+  /* step flow */
+  ol.flow{list-style:none; padding:0; margin:0 0 16px; counter-reset:f;}
+  ol.flow > li{counter-increment:f; position:relative; padding:0 0 22px 52px; margin:0;}
+  ol.flow > li::before{content:counter(f); position:absolute; left:0; top:0; width:34px; height:34px; border-radius:50%; background:var(--panel); border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono", Consolas, monospace; font-weight:600;}
+  ol.flow > li::after{content:""; position:absolute; left:16px; top:36px; bottom:2px; width:2px; background:var(--border);}
+  ol.flow > li:last-child::after{display:none;}
+  ol.flow h3{margin:4px 0 6px;}
+
+  .verdict{border:2px solid var(--ok); background:var(--ok-bg); border-radius:8px; padding:16px 20px; margin:0 0 24px;}
+  .verdict h2{color:var(--ok); font-size:1.25rem; margin-bottom:6px;}
+  .verdict p:last-child{margin-bottom:0;}
+
+  .layers{display:flex; flex-direction:column; gap:6px; margin:0 0 16px;}
+  .layer{display:grid; grid-template-columns:34px minmax(0,1.3fr) minmax(0,1fr) 110px; gap:12px; align-items:center; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-left:5px solid var(--accent); border-radius:4px; font-size:0.88rem;}
+  .layer .n{font-family:"IBM Plex Mono", Consolas, monospace; color:var(--text-dim);}
+  .layer b{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .layer .when{color:var(--text-dim); font-size:0.84rem;}
+  .layer.pre{border-left-color:var(--text-dim);}
+  .layer.run{border-left-color:var(--warn);}
+  .layer.last{border-left-color:var(--bad);}
+
+  figure{margin:0 0 18px;}
+  figure.diagram{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:0.82rem; color:var(--text-dim); margin-top:10px; max-width:70ch;}
+  figure.narrow svg{max-width:560px; margin:0 auto;}
+  td:first-child code{white-space:nowrap;}
+  .shapes{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .shapes figure{margin:0;}
+
+  /* SVG classes (themeable) */
+  .sv-line{stroke:var(--text-dim); fill:none; stroke-width:1.5;}
+  .sv-thin{stroke:var(--border); fill:none; stroke-width:1;}
+  .sv-path{stroke:var(--accent); fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .sv-accent{stroke:var(--accent-strong); fill:none; stroke-width:2;}
+  .sv-warn{stroke:var(--warn); fill:none; stroke-width:2;}
+  .sv-bad{stroke:var(--bad); fill:none; stroke-width:2;}
+  .sv-dash{stroke-dasharray:5 4;}
+  .sv-fill-panel{fill:var(--panel); stroke:var(--text-dim); stroke-width:1.5;}
+  .sv-fill-alt{fill:var(--panel-alt); stroke:var(--border); stroke-width:1;}
+  .sv-fill-accent{fill:var(--accent); opacity:0.18; stroke:var(--accent); stroke-width:1.5;}
+  .sv-fill-warn{fill:var(--warn); opacity:0.16;}
+  .sv-fill-bad{fill:var(--bad); opacity:0.14;}
+  .sv-dot{fill:var(--accent-strong);}
+  .sv-dot-warn{fill:var(--warn);}
+  .sv-text{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:13px;}
+  .sv-small{fill:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:11px;}
+  .sv-mono{fill:var(--text-dim); font-family:"IBM Plex Mono", Consolas, monospace; font-size:10.5px;}
+  .sv-title{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:14px; font-weight:600;}
+  .sv-acc-text{fill:var(--accent-strong); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-warn-text{fill:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-bad-text{fill:var(--bad); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .arrowhead{fill:var(--text-dim);}
+  .arrowhead-acc{fill:var(--accent-strong);}
+
+  footer{max-width:860px; margin-top:30px; padding-top:18px; border-top:1px solid var(--border); font-size:0.84rem; color:var(--text-dim);}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:minmax(0,1fr); padding:0 16px 60px;}
+    nav.toc{min-width:0;}
+    nav.toc{position:sticky; top:0; z-index:5; padding-top:0; background:var(--bg); max-height:none; border-bottom:1px solid var(--border);}
+    nav.toc .eyebrow{display:none;}
+    nav.toc ul{flex-direction:row; overflow-x:auto; gap:4px; padding:12px 0; margin:0;}
+    nav.toc a{white-space:nowrap;}
+    main{padding-top:20px;}
+    .layer{grid-template-columns:28px 1fr; }
+    .layer .when,.layer .act{grid-column:2;}
+  }
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel-alt:#f2f2f2; --text:#000; --text-dim:#333; --border:#bbb; --code-bg:#f2f2f2;}
+    body{background:#fff; font-size:10.5pt;}
+    nav.toc{display:none;}
+    .page{display:block; padding:0; max-width:none;}
+    main{padding-top:0;}
+    section{padding:18px 0; max-width:none; break-inside:auto;}
+    .card,.tile,figure,.layer,tr,.verdict,.placeholder{break-inside:avoid;}
+    h2,h3{break-after:avoid;}
+    a{color:#000;}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-size:0.8em;}
+    pre{white-space:pre-wrap;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="toc" aria-label="Contents">
+    <p class="eyebrow">Contents</p>
+    <ul>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#planner">Segment planner</a></li>
+      <li><a href="#shapes">Shape paths</a></li>
+      <li><a href="#controller">Controller</a></li>
+      <li><a href="#loop">20 Hz loop</a></li>
+      <li><a href="#safety">Safety layers</a></li>
+      <li><a href="#odom-pause">/odom pause finding</a></li>
+      <li><a href="#parameters">Parameters</a></li>
+      <li><a href="#stopping">Stopping and exit codes</a></li>
+    </ul>
+    <p class="eyebrow">Other pages</p>
+    <ul>
+      <li><a href="index.html">Docs index</a></li>
+      <li><a href="../examples/README.md">How to run it</a></li>
+      <li><a href="test-results.html">Test results</a></li>
+      <li><a href="lidar-diagnosis.html">Lidar diagnosis</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">TurtleBot 4 &middot; design note &middot; examples/motion_shapes.py</p>
+      <h1 class="title">Motion program design</h1>
+      <p class="dek"><code>motion_shapes.py</code> drives the robot along a square, triangle, in-place rotation, back-and-forth or figure eight. It plans each shape as a list of segments, closes the loop on wheel odometry, and wraps the motion in several independent safety checks. This page explains how it works and why, for anyone who wants to change it or write a similar program.</p>
+      <div class="meta">
+        <span><b>Source</b> <a href="../examples/motion_shapes.py">examples/motion_shapes.py</a></span>
+        <span><b>How to run</b> <a href="../examples/README.md">examples/README.md</a></span>
+        <span><b>State</b> as of 2026-10-04 (odometry handling: fix 2)</span>
+      </div>
+    </header>
+
+    <section id="overview">
+      <div class="section-head"><span class="section-tag">01</span><h2>Overview</h2></div>
+      <div class="tiles">
+        <div class="tile"><div class="k">Shapes</div><div class="v">5</div><div class="s">square, rotate, back_and_forth, triangle, figure_eight</div></div>
+        <div class="tile"><div class="k">Control loop</div><div class="v">20 Hz</div><div class="s">one cycle every 50 ms</div></div>
+        <div class="tile"><div class="k">Speed cap</div><div class="v">0.15 m/s</div><div class="s">default 0.10 m/s; turns 0.5 rad/s, cap 1.0</div></div>
+        <div class="tile"><div class="k">Front stop</div><div class="v">0.25 m</div><div class="s">within &plusmn;30&deg;, while driving forward</div></div>
+      </div>
+      <p>One ROS 2 node, written in Python with <code>rclpy</code>. It runs on the robot, publishes <code>geometry_msgs/msg/TwistStamped</code> on <code>/cmd_vel</code> (this robot does not accept plain <code>Twist</code> there), and reads <code>/odom</code>, <code>/scan</code>, TF, <code>/dock_status</code> and <code>/hazard_detection</code>. Nothing in it changes the robot's configuration.</p>
+    </section>
+
+    <section id="architecture">
+      <div class="section-head"><span class="section-tag">02</span><h2>Architecture</h2></div>
+      <figure class="diagram">
+        <svg viewBox="0 0 760 380" role="img" aria-labelledby="arch-t arch-d">
+          <title id="arch-t">Architecture of motion_shapes.py</title>
+          <desc id="arch-d">Sensor topics feed callbacks that store the latest state. A planner turns the shape into segments. A 20 Hz control loop reads the state, checks safety every cycle and publishes velocity on /cmd_vel to the Create 3 base. A finally block always sends zero velocity at the end.</desc>
+          <defs>
+            <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker>
+          </defs>
+          <!-- inputs -->
+          <rect x="10" y="40" width="190" height="40" rx="5" class="sv-fill-alt"/><text x="20" y="58" class="sv-text">/odom</text><text x="20" y="73" class="sv-mono">Odometry, about 20 Hz</text>
+          <rect x="10" y="95" width="190" height="40" rx="5" class="sv-fill-alt"/><text x="20" y="113" class="sv-text">/scan + TF</text><text x="20" y="128" class="sv-mono">LaserScan 7.75 Hz, yaw +90&deg;</text>
+          <rect x="10" y="150" width="190" height="40" rx="5" class="sv-fill-alt"/><text x="20" y="168" class="sv-text">/dock_status</text><text x="20" y="183" class="sv-mono">is_docked</text>
+          <rect x="10" y="205" width="190" height="40" rx="5" class="sv-fill-alt"/><text x="20" y="223" class="sv-text">/hazard_detection</text><text x="20" y="238" class="sv-mono">bump, cliff, stall, wheel drop</text>
+          <rect x="10" y="258" width="190" height="34" rx="5" class="sv-fill-alt"/><text x="20" y="280" class="sv-text">~/STOP file</text>
+          <rect x="10" y="300" width="190" height="34" rx="5" class="sv-fill-alt"/><text x="20" y="322" class="sv-text">SIGINT / SIGTERM</text>
+          <!-- node -->
+          <rect x="230" y="10" width="330" height="362" rx="10" class="sv-fill-panel"/>
+          <text x="245" y="31" class="sv-title">motion_shapes (rclpy node)</text>
+          <rect x="245" y="42" width="140" height="200" rx="6" class="sv-fill-alt"/>
+          <text x="255" y="62" class="sv-acc-text">callbacks</text>
+          <text x="255" y="82" class="sv-small">on_odom: x, y, yaw,</text>
+          <text x="255" y="96" class="sv-small">summed heading, time</text>
+          <text x="255" y="118" class="sv-small">on_scan: nearest in</text>
+          <text x="255" y="132" class="sv-small">front sector, time</text>
+          <text x="255" y="154" class="sv-small">on_dock: is_docked</text>
+          <text x="255" y="176" class="sv-small">on_hazard: first</text>
+          <text x="255" y="190" class="sv-small">hazard (backup limit</text>
+          <text x="255" y="204" class="sv-small">ignored)</text>
+          <text x="255" y="228" class="sv-mono">latest state only</text>
+          <rect x="400" y="42" width="145" height="58" rx="6" class="sv-fill-alt"/>
+          <text x="410" y="62" class="sv-acc-text">planner</text>
+          <text x="410" y="80" class="sv-small">plan_segments, add_timing</text>
+          <text x="410" y="94" class="sv-small">segments + timeouts</text>
+          <rect x="400" y="115" width="145" height="72" rx="6" class="sv-fill-alt"/>
+          <text x="410" y="135" class="sv-acc-text">control loop, 20 Hz</text>
+          <text x="410" y="153" class="sv-small">run_segment: straight,</text>
+          <text x="410" y="167" class="sv-small">turn or arc command,</text>
+          <text x="410" y="181" class="sv-small">odom hold, stall check</text>
+          <rect x="400" y="202" width="145" height="108" rx="6" class="sv-fill-alt"/>
+          <text x="410" y="222" class="sv-warn-text">check_safety</text>
+          <text x="410" y="240" class="sv-small">every cycle, also when</text>
+          <text x="410" y="254" class="sv-small">standing still: stop request,</text>
+          <text x="410" y="268" class="sv-small">STOP file, hazard, stale</text>
+          <text x="410" y="282" class="sv-small">odom or scan, obstacle,</text>
+          <text x="410" y="296" class="sv-small">total timeout</text>
+          <rect x="245" y="324" width="300" height="38" rx="6" class="sv-fill-alt"/>
+          <text x="255" y="341" class="sv-bad-text">finally: stop_robot</text>
+          <text x="255" y="355" class="sv-small">zero velocity for 0.5 s, on every exit path</text>
+          <!-- arrows inputs -> node -->
+          <line x1="200" y1="60" x2="243" y2="60" class="sv-line" marker-end="url(#aa)"/>
+          <line x1="200" y1="115" x2="243" y2="115" class="sv-line" marker-end="url(#aa)"/>
+          <line x1="200" y1="170" x2="243" y2="170" class="sv-line" marker-end="url(#aa)"/>
+          <line x1="200" y1="225" x2="243" y2="225" class="sv-line" marker-end="url(#aa)"/>
+          <line x1="200" y1="275" x2="398" y2="275" class="sv-line" marker-end="url(#aa)"/>
+          <line x1="200" y1="305" x2="398" y2="305" class="sv-line" marker-end="url(#aa)"/>
+          <!-- internal -->
+          <line x1="385" y1="150" x2="398" y2="150" class="sv-line" marker-end="url(#aa)"/>
+          <line x1="385" y1="230" x2="398" y2="230" class="sv-line" marker-end="url(#aa)"/>
+          <line x1="472" y1="100" x2="472" y2="113" class="sv-line" marker-end="url(#aa)"/>
+          <line x1="472" y1="202" x2="472" y2="189" class="sv-line" marker-end="url(#aa)"/>
+          <!-- outputs -->
+          <rect x="595" y="125" width="155" height="50" rx="5" class="sv-fill-alt"/><text x="605" y="146" class="sv-text">/cmd_vel</text><text x="605" y="163" class="sv-mono">TwistStamped, base_link</text>
+          <rect x="595" y="225" width="155" height="50" rx="5" class="sv-fill-alt"/><text x="605" y="246" class="sv-text">Create 3 base</text><text x="605" y="263" class="sv-mono">create3_repub</text>
+          <line x1="545" y1="150" x2="593" y2="150" class="sv-line" marker-end="url(#aa)"/>
+          <line x1="672" y1="175" x2="672" y2="223" class="sv-line" marker-end="url(#aa)"/>
+          <path d="M545,343 L578,343 L578,165 L593,165" class="sv-bad" marker-end="url(#aa)"/>
+        </svg>
+        <figcaption>Callbacks only store the latest values; all decisions are made in the control loop, so the safety checks always see one consistent snapshot per cycle. The red path is the zero-velocity burst that runs on every exit, including errors and Ctrl+C.</figcaption>
+      </figure>
+      <h3>Run sequence</h3>
+      <ol>
+        <li>Clamp the settings to the caps and build the plan. Refuse if the plan needs more than 120 s or <code>~/STOP</code> exists.</li>
+        <li>Wait up to 30 s for <code>/odom</code> and <code>/dock_status</code>. Refuse if the robot is docked.</li>
+        <li>Wait up to 30 s for <code>/scan</code>, read the lidar yaw from TF, and check the path ahead: first leg + 0.25 m clear (radius + 0.25 m for a circle; nothing for a turn).</li>
+        <li>Listen 1 s for hazards with a clean slate.</li>
+        <li>Dry run: stop here. Otherwise ask "Type yes" (or require <code>--yes</code> when detached).</li>
+        <li>Drive each segment, stand still 0.5 s between segments, then print planned against odometry end pose.</li>
+      </ol>
+    </section>
+
+    <section id="planner">
+      <div class="section-head"><span class="section-tag">03</span><h2>Segment planner</h2></div>
+      <p>Every shape is a list of three kinds of segment: <b>straight</b> (distance in m), <b>turn</b> in place (signed angle, + is left) and <b>arc</b> (a full circle, + left, &minus; right, radius in m). Expected time is distance/speed or angle/turn rate; each segment's timeout is 2 &times; expected + 5 s. Values below are for the defaults (side 0.40 m, 0.10 m/s, 0.5 rad/s, 0.5 s pause after each segment).</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Shape</th><th>Segments</th><th class="num">Expected per segment</th><th class="num">Timeout per segment</th><th class="num">Plan total</th></tr></thead>
+          <tbody>
+            <tr><td><code>square</code></td><td>4 &times; (straight 0.40 m, turn +90&deg;)</td><td class="num">4.0 s / 3.1 s</td><td class="num">13.0 s / 11.3 s</td><td class="num">about 33 s</td></tr>
+            <tr><td><code>triangle</code></td><td>3 &times; (straight 0.40 m, turn +120&deg;)</td><td class="num">4.0 s / 4.2 s</td><td class="num">13.0 s / 13.4 s</td><td class="num">about 28 s</td></tr>
+            <tr><td><code>rotate</code></td><td>turn +360&deg;</td><td class="num">12.6 s</td><td class="num">30.1 s</td><td class="num">about 13 s</td></tr>
+            <tr><td><code>back_and_forth</code></td><td>straight 0.40 m, turn +180&deg;, straight 0.40 m, turn +180&deg;</td><td class="num">4.0 s / 6.3 s</td><td class="num">13.0 s / 17.6 s</td><td class="num">about 23 s</td></tr>
+            <tr><td><code>figure_eight</code></td><td>arc +360&deg; r 0.20 m, arc &minus;360&deg; r 0.20 m</td><td class="num">12.6 s</td><td class="num">30.1 s</td><td class="num">about 26 s</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Headings are tracked as a running sum of small yaw changes (<code>HeadingTracker</code>), not as the raw yaw, so a 360&deg; turn ends at +360&deg; instead of wrapping to 0&deg;. Turn targets are cumulative (the planned heading after all turns so far), so small errors in one turn are corrected by the next instead of piling up.</p>
+      <p><code>back_and_forth</code> turns round instead of reversing: the Create 3 limits driving backwards and the lidar stop covers only the front.</p>
+    </section>
+
+    <section id="shapes">
+      <div class="section-head"><span class="section-tag">04</span><h2>Shape paths</h2></div>
+      <p>Top view, start at the dot, robot initially facing right. Drawn to scale (default 0.40 m side, 0.20 m circle radius).</p>
+      <div class="shapes">
+        <figure class="diagram">
+          <svg viewBox="0 0 220 215" role="img" aria-label="Square path, 0.40 m sides, left turns">
+            <defs><marker id="sq" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead-acc"/></marker></defs>
+            <path d="M50,170 L170,170 L170,50 L50,50 Z" class="sv-path"/>
+            <line x1="100" y1="170" x2="112" y2="170" class="sv-accent" marker-end="url(#sq)"/>
+            <line x1="170" y1="118" x2="170" y2="106" class="sv-accent" marker-end="url(#sq)"/>
+            <line x1="122" y1="50" x2="110" y2="50" class="sv-accent" marker-end="url(#sq)"/>
+            <line x1="50" y1="100" x2="50" y2="112" class="sv-accent" marker-end="url(#sq)"/>
+            <circle cx="50" cy="170" r="6" class="sv-dot"/>
+            <line x1="50" y1="196" x2="170" y2="196" class="sv-line"/><line x1="50" y1="190" x2="50" y2="202" class="sv-line"/><line x1="170" y1="190" x2="170" y2="202" class="sv-line"/>
+            <text x="110" y="211" text-anchor="middle" class="sv-small">0.40 m</text>
+            <text x="178" y="178" class="sv-small">+90&deg;</text>
+            <text x="110" y="115" text-anchor="middle" class="sv-text">square</text>
+            <text x="110" y="131" text-anchor="middle" class="sv-mono">8 segments</text>
+          </svg>
+          <figcaption>4 &times; forward 0.40 m, turn left 90&deg;. Needs the area ahead and to the left.</figcaption>
+        </figure>
+        <figure class="diagram">
+          <svg viewBox="0 0 220 215" role="img" aria-label="Triangle path, 0.40 m sides, 120 degree left turns">
+            <defs><marker id="tr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead-acc"/></marker></defs>
+            <path d="M50,170 L170,170 L110,66.1 Z" class="sv-path"/>
+            <line x1="100" y1="170" x2="112" y2="170" class="sv-accent" marker-end="url(#tr)"/>
+            <line x1="143" y1="123.2" x2="137" y2="112.8" class="sv-accent" marker-end="url(#tr)"/>
+            <line x1="83" y1="112.8" x2="77" y2="123.2" class="sv-accent" marker-end="url(#tr)"/>
+            <circle cx="50" cy="170" r="6" class="sv-dot"/>
+            <line x1="50" y1="196" x2="170" y2="196" class="sv-line"/><line x1="50" y1="190" x2="50" y2="202" class="sv-line"/><line x1="170" y1="190" x2="170" y2="202" class="sv-line"/>
+            <text x="110" y="211" text-anchor="middle" class="sv-small">0.40 m</text>
+            <text x="176" y="166" class="sv-small">+120&deg;</text>
+            <text x="110" y="56" text-anchor="middle" class="sv-small">+120&deg;</text>
+            <text x="110" y="148" text-anchor="middle" class="sv-text">triangle</text>
+          </svg>
+          <figcaption>3 &times; forward 0.40 m, turn left 120&deg; (equilateral, 60&deg; inside corners).</figcaption>
+        </figure>
+        <figure class="diagram">
+          <svg viewBox="0 0 220 215" role="img" aria-label="Rotate in place 360 degrees">
+            <defs><marker id="ro" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead-acc"/></marker></defs>
+            <circle cx="110" cy="105" r="30" class="sv-fill-panel"/>
+            <line x1="110" y1="105" x2="136" y2="105" class="sv-line"/>
+            <path d="M175,105 A65,65 0 1 0 160,146" class="sv-path" marker-end="url(#ro)"/>
+            <circle cx="110" cy="105" r="4" class="sv-dot"/>
+            <text x="110" y="196" text-anchor="middle" class="sv-text">rotate: +360&deg; in place</text>
+            <text x="110" y="211" text-anchor="middle" class="sv-mono">0.5 rad/s, about 12.6 s</text>
+          </svg>
+          <figcaption>One full left turn about the robot's centre. No lidar obstacle stop while turning in place (the round base sweeps no new floor); bumper and all other checks stay on.</figcaption>
+        </figure>
+        <figure class="diagram">
+          <svg viewBox="0 0 220 215" role="img" aria-label="Back and forth, 0.40 m out and back with 180 degree turns">
+            <defs><marker id="bf" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead-acc"/></marker></defs>
+            <line x1="50" y1="110" x2="170" y2="110" class="sv-path"/>
+            <line x1="70" y1="92" x2="150" y2="92" class="sv-accent" marker-end="url(#bf)"/>
+            <text x="110" y="84" text-anchor="middle" class="sv-small">1. out</text>
+            <line x1="150" y1="128" x2="70" y2="128" class="sv-accent" marker-end="url(#bf)"/>
+            <text x="110" y="144" text-anchor="middle" class="sv-small">3. back</text>
+            <path d="M170,124 A14,14 0 1 0 170,96" class="sv-warn" marker-end="url(#bf)"/>
+            <text x="190" y="88" text-anchor="middle" class="sv-small">2. 180&deg;</text>
+            <path d="M50,96 A14,14 0 1 0 50,124" class="sv-warn" marker-end="url(#bf)"/>
+            <text x="30" y="150" text-anchor="middle" class="sv-small">4. 180&deg;</text>
+            <circle cx="50" cy="110" r="6" class="sv-dot"/>
+            <line x1="50" y1="176" x2="170" y2="176" class="sv-line"/><line x1="50" y1="170" x2="50" y2="182" class="sv-line"/><line x1="170" y1="170" x2="170" y2="182" class="sv-line"/>
+            <text x="110" y="196" text-anchor="middle" class="sv-small">0.40 m</text>
+            <text x="110" y="40" text-anchor="middle" class="sv-text">back_and_forth</text>
+          </svg>
+          <figcaption>Out 0.40 m, turn 180&deg;, back 0.40 m, turn 180&deg;. Ends where it started, facing the start direction. The out and back legs are drawn apart only for clarity; they are the same line.</figcaption>
+        </figure>
+        <figure class="diagram">
+          <svg viewBox="0 0 220 260" role="img" aria-label="Figure eight, two circles of radius 0.20 m">
+            <defs><marker id="f8" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead-acc"/></marker></defs>
+            <circle cx="110" cy="70" r="60" class="sv-path"/>
+            <circle cx="110" cy="190" r="60" class="sv-path"/>
+            <line x1="114" y1="130" x2="126" y2="130" class="sv-accent" marker-end="url(#f8)"/>
+            <line x1="170" y1="76" x2="170" y2="64" class="sv-accent" marker-end="url(#f8)"/>
+            <line x1="170" y1="184" x2="170" y2="196" class="sv-accent" marker-end="url(#f8)"/>
+            <circle cx="110" cy="130" r="6" class="sv-dot"/>
+            <line x1="110" y1="70" x2="50" y2="70" class="sv-line sv-dash"/>
+            <text x="80" y="64" text-anchor="middle" class="sv-small">r 0.20 m</text>
+            <text x="110" y="40" text-anchor="middle" class="sv-small">1. left</text>
+            <text x="110" y="194" text-anchor="middle" class="sv-small">2. right</text>
+          </svg>
+          <figcaption>A full left circle, then a full right circle, radius 0.20 m, at 0.10 m/s and 0.5 rad/s. Needs 0.4 m to each side and ahead and behind.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="controller">
+      <div class="section-head"><span class="section-tag">05</span><h2>Closed-loop controller</h2></div>
+      <p>Each segment is measured from where it started. The controller is a simple proportional law with limits; no integral term, so it cannot wind up during an odometry hold.</p>
+      <div class="cards">
+        <div class="card">
+          <h3>Straight, with heading hold</h3>
+          <p>remaining = distance &minus; distance travelled since the segment start.</p>
+          <p><code>v = clamp(1.0 &middot; remaining, 0.03, speed)</code><br><code>w = clamp(1.5 &middot; heading error, &plusmn;0.3)</code></p>
+          <p>Done within 1 cm. The heading error is planned heading minus summed heading, so the robot steers back onto the planned line direction.</p>
+        </div>
+        <div class="card">
+          <h3>Turn in place</h3>
+          <p>remaining = planned cumulative heading &minus; summed heading (signed).</p>
+          <p><code>w = sign(remaining) &middot; clamp(1.5 &middot; |remaining|, 0.15, turn speed)</code></p>
+          <p>Done within 1.5&deg;. Because <i>remaining</i> is signed, an overshoot turns back.</p>
+        </div>
+        <div class="card">
+          <h3>Arc (circle)</h3>
+          <p>remaining = |angle| &minus; turned so far in the circle's direction.</p>
+          <p><code>w = clamp(1.5 &middot; remaining, 0.15, w nominal)</code><br><code>v = w &middot; radius</code></p>
+          <p>Slowing down keeps v / w = radius, so the circle stays round. Nominal w = speed / radius, limited to the turn speed by lowering v.</p>
+        </div>
+      </div>
+      <p>The slow-down terms make the robot creep over the last 10 cm or 10&deg; or so, which keeps overshoot small without needing a stop-and-correct phase.</p>
+    </section>
+
+    <section id="loop">
+      <div class="section-head"><span class="section-tag">06</span><h2>The 20 Hz loop</h2></div>
+      <p>Each cycle first spins ROS until the next 50 ms tick (callbacks run here and update the stored state), then does all the work at once: safety checks, segment timeout, odometry hold, command, publish, stall check. Ticks are scheduled from a fixed start time, so a slow cycle does not shift the following ones.</p>
+      <figure class="diagram">
+        <svg viewBox="0 0 780 240" role="img" aria-labelledby="loop-t loop-d">
+          <title id="loop-t">Timing of three control cycles</title>
+          <desc id="loop-d">Three 50 ms cycles. Most of each cycle is spent spinning ROS, where odometry arrives about every 50 ms and scans about every 129 ms. At each tick the loop computes and publishes one velocity command.</desc>
+          <defs><marker id="lt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker></defs>
+          <text x="10" y="54" class="sv-small">loop</text>
+          <text x="10" y="104" class="sv-small">/odom in</text>
+          <text x="10" y="144" class="sv-small">/scan in</text>
+          <text x="10" y="184" class="sv-small">/cmd_vel out</text>
+          <!-- x = 80 + t_ms * 4.6 -->
+          <rect x="80" y="38" width="216" height="26" rx="3" class="sv-fill-alt"/>
+          <rect x="296" y="38" width="14" height="26" rx="2" class="sv-fill-accent"/>
+          <rect x="310" y="38" width="216" height="26" rx="3" class="sv-fill-alt"/>
+          <rect x="526" y="38" width="14" height="26" rx="2" class="sv-fill-accent"/>
+          <rect x="540" y="38" width="216" height="26" rx="3" class="sv-fill-alt"/>
+          <rect x="756" y="38" width="14" height="26" rx="2" class="sv-fill-accent"/>
+          <text x="188" y="56" text-anchor="middle" class="sv-small">spin_for: callbacks update state</text>
+          <text x="303" y="28" text-anchor="middle" class="sv-acc-text">compute + publish</text>
+          <circle cx="135" cy="100" r="5" class="sv-dot"/><circle cx="365" cy="100" r="5" class="sv-dot"/><circle cx="595" cy="100" r="5" class="sv-dot"/>
+          <circle cx="172" cy="140" r="5" class="sv-dot"/><circle cx="765" cy="140" r="5" class="sv-dot"/>
+          <line x1="172" y1="150" x2="765" y2="150" class="sv-thin sv-dash"/>
+          <text x="468" y="163" text-anchor="middle" class="sv-mono">about 129 ms between scans: the same scan is used for several cycles</text>
+          <line x1="310" y1="172" x2="310" y2="194" class="sv-accent" /><line x1="540" y1="172" x2="540" y2="194" class="sv-accent"/><line x1="770" y1="172" x2="770" y2="194" class="sv-accent"/>
+          <line x1="80" y1="212" x2="770" y2="212" class="sv-line" marker-end="url(#lt)"/>
+          <text x="80" y="230" text-anchor="middle" class="sv-mono">0</text>
+          <text x="310" y="230" text-anchor="middle" class="sv-mono">50 ms</text>
+          <text x="540" y="230" text-anchor="middle" class="sv-mono">100 ms</text>
+          <text x="740" y="230" text-anchor="middle" class="sv-mono">150 ms</text>
+        </svg>
+        <figcaption>Schematic, not measured. With the robot still, the program saw odometry at most 0.104 s old, which is about two cycles.</figcaption>
+      </figure>
+      <h3>What happens at each tick</h3>
+      <ol>
+        <li><code>check_safety</code>: stop request, <code>~/STOP</code>, hazard, odometry older than 2.0 s, scan older than 1.0 s, obstacle (forward kinds only), total timeout.</li>
+        <li>Segment timeout.</li>
+        <li>Odometry older than 0.3 s: publish zero velocity, reset the stall reference, skip to the next tick.</li>
+        <li>Compute remaining distance or angle; leave the segment if within tolerance.</li>
+        <li>Publish <code>(v, w)</code> as <code>TwistStamped</code> with the current stamp and <code>frame_id = base_link</code>.</li>
+        <li>Stall check: if odometry has not moved 5 mm or 1&deg; for 3 s while commanding motion, abort.</li>
+      </ol>
+    </section>
+
+    <section id="safety">
+      <div class="section-head"><span class="section-tag">07</span><h2>Safety layers</h2></div>
+      <p>Defence in depth: each layer works on its own, so one failing sensor or bug does not leave the robot unguarded. Grey: before moving. Orange: while moving. Red: on every exit. The last line of defence is physical: a person next to the robot, and the Create 3's own wheel-drop and cliff stops.</p>
+      <div class="layers">
+        <div class="layer pre"><span class="n">1</span><span><b>Speed caps</b> &middot; 0.15 m/s, 1.0 rad/s, side &le; 1.0 m, plan &le; 120 s</span><span class="when">at start, whatever the options</span><span class="act chip info">clamp / refuse</span></div>
+        <div class="layer pre"><span class="n">2</span><span><b>Pre-checks</b> &middot; odometry and dock status present, not docked, scan present, path ahead clear, no hazard, no <code>~/STOP</code></span><span class="when">before the first command</span><span class="act chip info">refuse (exit 2)</span></div>
+        <div class="layer pre"><span class="n">3</span><span><b>Human confirmation</b> &middot; "Type yes", or <code>--yes</code> when detached</span><span class="when">before the first command</span><span class="act chip info">refuse</span></div>
+        <div class="layer run"><span class="n">4</span><span><b>Lidar front stop</b> &middot; anything &lt; 0.25 m within &plusmn;30&deg;</span><span class="when">straight and arc segments</span><span class="act chip warn">abort</span></div>
+        <div class="layer run"><span class="n">5</span><span><b>Hazard stop</b> &middot; bump, cliff, wheel drop, stall, proximity from the base</span><span class="when">every cycle</span><span class="act chip warn">abort</span></div>
+        <div class="layer run"><span class="n">6</span><span><b>Odometry hold / stale</b> &middot; hold at 0.3 s, abort at 2.0 s; scan stale at 1.0 s</span><span class="when">every cycle</span><span class="act chip warn">hold / abort</span></div>
+        <div class="layer run"><span class="n">7</span><span><b>Stall</b> &middot; no odometry progress for 3 s while commanding motion</span><span class="when">every cycle</span><span class="act chip warn">abort</span></div>
+        <div class="layer run"><span class="n">8</span><span><b>Timeouts</b> &middot; segment 2 &times; expected + 5 s; whole shape 120 s</span><span class="when">every cycle</span><span class="act chip warn">abort</span></div>
+        <div class="layer run"><span class="n">9</span><span><b>Stop requests</b> &middot; Ctrl+C, SIGTERM, <code>~/STOP</code> file</span><span class="when">every cycle</span><span class="act chip warn">stop (exit 130)</span></div>
+        <div class="layer last"><span class="n">10</span><span><b>Finally: zero velocity</b> &middot; 0.5 s burst of zero commands</span><span class="when">every exit path</span><span class="act chip bad">always</span></div>
+      </div>
+      <p>The lidar stop is off during in-place turns on purpose: the round base sweeps no new floor when it turns about its centre, and a check there would mostly trigger on objects at the robot's sides. Stale-scan and every other check stay on during turns.</p>
+    </section>
+
+    <section id="odom-pause">
+      <div class="section-head"><span class="section-tag">08</span><h2>Finding: /odom pauses at motion start</h2></div>
+      <p>The first real square run (2026-10-04) aborted after about 1 s with <code>odometry is stale (none for 0.5 s)</code>. The robot was then examined without motion, and with one short instrumented move.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Robot</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td>Program loop alone</td><td>still</td><td>worst odometry age 0.104 s</td></tr>
+            <tr><td>Publishing zero velocity</td><td>still</td><td>worst odometry age 0.100 s</td></tr>
+            <tr><td><code>ros2 topic hz /odom</code></td><td>still</td><td>19.98 Hz, largest gap 0.064 s</td></tr>
+            <tr><td>Instrumented move, 10 cm</td><td>moving</td><td>arrival gap 0.413 s, header-stamp gap 0.419 s, starting 0.12 s after motion start</td></tr>
+            <tr><td>Triangle, after fix 1</td><td>moving</td><td>1.0 s gap at a segment change; Pi load average 3.4</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The header stamps show the same gap as the arrival times, so the base stopped producing odometry; messages were not just delayed on the Pi.</p>
+      <figure class="diagram">
+        <svg viewBox="0 0 760 310" role="img" aria-labelledby="op-t op-d">
+          <title id="op-t">Odometry age around a motion start</title>
+          <desc id="op-d">Odometry age stays below 0.05 s while still. 0.12 s after the wheels start, odometry stops for 0.413 s, so its age climbs to 0.41 s. With fix 2 the program holds still once the age passes 0.3 s and resumes when fresh odometry arrives. The original 0.5 s abort limit was not reached in this move; fix 1 used 1.0 s and fix 2 aborts at 2.0 s.</desc>
+          <!-- plot area x 70..730 (t -0.2..1.0 s, 550 px/s), y 30..250 (age 0..1.1 s, 200 px/s) -->
+          <rect x="411" y="30" width="62" height="220" class="sv-fill-warn"/>
+          <text x="442" y="66" text-anchor="middle" class="sv-warn-text">held</text>
+          <line x1="70" y1="250" x2="730" y2="250" class="sv-line"/>
+          <line x1="70" y1="30" x2="70" y2="250" class="sv-line"/>
+          <line x1="70" y1="200" x2="730" y2="200" class="sv-thin"/><line x1="70" y1="150" x2="730" y2="150" class="sv-thin"/><line x1="70" y1="100" x2="730" y2="100" class="sv-thin"/><line x1="70" y1="50" x2="730" y2="50" class="sv-thin"/>
+          <text x="62" y="254" text-anchor="end" class="sv-mono">0</text>
+          <text x="62" y="204" text-anchor="end" class="sv-mono">0.25</text>
+          <text x="62" y="154" text-anchor="end" class="sv-mono">0.5</text>
+          <text x="62" y="104" text-anchor="end" class="sv-mono">0.75</text>
+          <text x="62" y="54" text-anchor="end" class="sv-mono">1.0</text>
+          <text x="70" y="270" text-anchor="middle" class="sv-mono">&minus;0.2</text>
+          <text x="180" y="270" text-anchor="middle" class="sv-mono">0</text>
+          <text x="290" y="270" text-anchor="middle" class="sv-mono">0.2</text>
+          <text x="400" y="270" text-anchor="middle" class="sv-mono">0.4</text>
+          <text x="510" y="270" text-anchor="middle" class="sv-mono">0.6</text>
+          <text x="620" y="270" text-anchor="middle" class="sv-mono">0.8</text>
+          <text x="730" y="270" text-anchor="middle" class="sv-mono">1.0</text>
+          <text x="400" y="292" text-anchor="middle" class="sv-small">time since the first motion command (s)</text>
+          <text x="16" y="140" transform="rotate(-90 16 140)" text-anchor="middle" class="sv-small">odometry age (s)</text>
+          <line x1="180" y1="30" x2="180" y2="250" class="sv-line sv-dash"/>
+          <text x="184" y="64" class="sv-small">wheels commanded</text>
+          <!-- thresholds -->
+          <line x1="70" y1="190" x2="730" y2="190" class="sv-warn sv-dash"/>
+          <text x="726" y="184" text-anchor="end" class="sv-warn-text">0.3 s: hold (fix 2)</text>
+          <line x1="70" y1="150" x2="730" y2="150" class="sv-bad sv-dash"/>
+          <text x="726" y="144" text-anchor="end" class="sv-bad-text">0.5 s: abort (original)</text>
+          <line x1="70" y1="50" x2="730" y2="50" class="sv-bad sv-dash"/>
+          <text x="726" y="44" text-anchor="end" class="sv-bad-text">1.0 s: abort (fix 1); fix 2 aborts at 2.0 s</text>
+          <!-- odom age series (generated) -->
+          <path d="M70.0,244.0 L81.0,240.0 L81.0,249.4 L108.5,240.0 L108.5,249.4 L136.0,240.0 L136.0,249.4 L163.5,240.0 L163.5,249.4 L191.0,240.0 L191.0,249.4 L218.5,240.0 L218.5,249.4 L246.0,240.0 L246.0,249.4 L473.2,167.4 L473.2,249.4 L500.6,240.0 L500.6,249.4 L528.1,240.0 L528.1,249.4 L555.6,240.0 L555.6,249.4 L583.1,240.0 L583.1,249.4 L610.7,240.0 L610.7,249.4 L638.1,240.0 L638.1,249.4 L665.6,240.0 L665.6,249.4 L693.1,240.0 L693.1,249.4 L720.6,240.0 L720.6,249.4 L730.0,246.6" class="sv-path" style="stroke-width:2"/>
+          <text x="482" y="172" class="sv-acc-text">0.41 s gap</text>
+        </svg>
+        <figcaption>Reconstruction of the instrumented 10 cm move from its measured numbers: odometry at 20 Hz, one gap of 0.413 s starting 0.12 s after the first motion command. The shading shows where fix 2 holds the robot still. Table view: see the measurements above.</figcaption>
+      </figure>
+      <h3>The two fixes</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Version</th><th>Rule</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>Original</td><td>Abort if odometry older than 0.5 s</td><td><span class="chip bad">aborted</span> square after about 1 s</td></tr>
+            <tr><td>Fix 1</td><td>Abort if older than 1.0 s</td><td><span class="chip ok">done</span> square, rotate, back_and_forth; <span class="chip bad">aborted</span> triangle on a 1.0 s gap at a segment change</td></tr>
+            <tr><td>Fix 2 (current)</td><td>Older than 0.3 s: send zero velocity and wait; abort only if older than 2.0 s. A hold resets the stall timer and is reported as "held still for N control cycles"</td><td><span class="chip ok">in use</span> Triangle completed through three holds (11, 8 and 1 cycles); a figure eight still aborted on a 2.0 s gap, with the robot standing still the whole time. See <a href="test-results.html">test results</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Why hold instead of driving on: during a gap the program does not know where the robot is, so driving on blind could overshoot a segment end. Holding costs a fraction of a second and keeps the distance and angle checks honest. The base also limits motion itself if <code>/cmd_vel</code> stops, but the program does not rely on that.</p>
+      <div class="placeholder"><b>Placeholder: root-cause characterisation</b>Numbers from the test campaign go here: gap length and frequency over many motion starts, whether gaps follow stops or turns too, effect of Pi load and of the camera. Tracked as <a href="../ROADMAP.md#tb-15-characterise-the-odom-pauses-at-motion-start">TB-15</a>.</div>
+    </section>
+
+    <section id="parameters">
+      <div class="section-head"><span class="section-tag">09</span><h2>Parameters</h2></div>
+      <p>Constants at the top of <code>motion_shapes.py</code> (values as of fix 2). Keep the caps when you change anything.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th class="num">Value</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>SIDE_LENGTH</code> / <code>MAX_SIDE_LENGTH</code></td><td class="num">0.40 / 1.0 m</td><td>Side of square and triangle, leg of back_and_forth (<code>--side</code>)</td></tr>
+            <tr><td><code>LINEAR_SPEED</code> / <code>MAX_LINEAR_SPEED</code> / <code>MIN_LINEAR_SPEED</code></td><td class="num">0.10 / 0.15 / 0.03 m/s</td><td>Forward speed, hard cap, slowest speed near the goal</td></tr>
+            <tr><td><code>ANGULAR_SPEED</code> / <code>MAX_ANGULAR_SPEED</code> / <code>MIN_ANGULAR_SPEED</code></td><td class="num">0.5 / 1.0 / 0.15 rad/s</td><td>Turn speed, hard cap, slowest turn near the goal</td></tr>
+            <tr><td><code>DISTANCE_TOLERANCE</code> / <code>ANGLE_TOLERANCE</code></td><td class="num">1 cm / 1.5&deg;</td><td>When a segment counts as done</td></tr>
+            <tr><td><code>LINEAR_SLOWDOWN</code> / <code>ANGULAR_SLOWDOWN</code></td><td class="num">1.0 / 1.5 1/s</td><td>Proportional slow-down near the goal</td></tr>
+            <tr><td><code>HEADING_HOLD_GAIN</code> / <code>MAX_HEADING_CORRECTION</code></td><td class="num">1.5 / 0.3 rad/s</td><td>Steering on straight segments</td></tr>
+            <tr><td><code>CIRCLE_RADIUS</code></td><td class="num">0.20 m</td><td>Figure-eight circle radius</td></tr>
+            <tr><td><code>OBSTACLE_STOP_DISTANCE</code> / <code>OBSTACLE_HALF_ANGLE</code></td><td class="num">0.25 m / 30&deg;</td><td>Lidar front stop</td></tr>
+            <tr><td><code>LIDAR_OFFSET_FALLBACK</code></td><td class="num">+90&deg;</td><td>Lidar yaw if TF is missing (measured +90&deg;)</td></tr>
+            <tr><td><code>TOTAL_TIMEOUT</code></td><td class="num">120 s</td><td>Whole shape</td></tr>
+            <tr><td><code>SEGMENT_TIMEOUT_FACTOR</code> / <code>SEGMENT_TIMEOUT_EXTRA</code></td><td class="num">2.0 / 5 s</td><td>Segment timeout = factor &times; expected + extra</td></tr>
+            <tr><td><code>ODOM_HOLD</code></td><td class="num">0.3 s</td><td>Hold still if odometry is older (fix 2)</td></tr>
+            <tr><td><code>ODOM_STALE</code></td><td class="num">2.0 s</td><td>Abort if odometry is older (0.5 s originally, 1.0 s in fix 1)</td></tr>
+            <tr><td><code>SCAN_STALE</code></td><td class="num">1.0 s</td><td>Abort if the scan is older</td></tr>
+            <tr><td><code>STALL_TIME</code> / <code>STALL_MIN_MOVE</code> / <code>STALL_MIN_TURN</code></td><td class="num">3 s / 5 mm / 1&deg;</td><td>Stall detection</td></tr>
+            <tr><td><code>STARTUP_WAIT</code></td><td class="num">30 s</td><td>Wait for <code>/odom</code>, <code>/dock_status</code>, <code>/scan</code></td></tr>
+            <tr><td><code>PAUSE</code> / <code>STOP_BURST</code></td><td class="num">0.5 / 0.5 s</td><td>Stand still between segments; zero-velocity burst at exit</td></tr>
+            <tr><td><code>CONTROL_RATE</code></td><td class="num">20 Hz</td><td>Control loop</td></tr>
+            <tr><td><code>STOP_FILE</code></td><td class="num"><code>~/STOP</code></td><td>Stop file</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="stopping">
+      <div class="section-head"><span class="section-tag">10</span><h2>Stopping and exit codes</h2></div>
+      <p>Ctrl+C in the program's terminal, <code>touch ~/STOP</code> or <code>pkill -INT -f motion_shapes.py</code> from another terminal on the robot each stop the robot within one cycle; the program then sends zero velocity for 0.5 s and exits. Delete <code>~/STOP</code> afterwards or the next run refuses to start. If software does not respond, lift the robot (wheel drop stops the wheels).</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th class="num">Exit code</th><th>Meaning</th><th>Log prefix</th></tr></thead>
+          <tbody>
+            <tr><td class="num">0</td><td>Shape done (or dry run finished)</td><td><code>done</code></td></tr>
+            <tr><td class="num">1</td><td>Aborted by a safety check</td><td><code>ABORTED:</code></td></tr>
+            <tr><td class="num">2</td><td>Setup failure: docked, no odometry, no lidar, <code>~/STOP</code> present, no <code>--yes</code> when detached, plan too long</td><td><code>SETUP FAILED:</code> or <code>REFUSING:</code></td></tr>
+            <tr><td class="num">130</td><td>Stopped by a person</td><td><code>STOPPED:</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>TurtleBot 4 lab documentation. Written 2026-10-04 from <code>examples/motion_shapes.py</code> as of fix 2. If the code changes, check the parameter table against it.</footer>
+  </main>
+</div>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 Plan of work for the lab's TurtleBot 4.
 
-**Last updated:** 2026-10-04 (robot state as of 2026-10-03)
+**Last updated:** 2026-10-10 (state as of 2026-10-10: no robot change since 2026-10-04; robot last reached briefly on 2026-10-05). Previous update: 2026-10-04 (robot state as of 2026-10-04, about 12:30 robot time)
 
 ## Purpose
 
@@ -18,7 +18,7 @@ How the robot is configured, and every change made to it, is recorded in [MAINTE
 4. Change only what the task needs. The robot is shared lab hardware.
 5. Record every change to the robot, or to shared accounts and network settings, in [MAINTENANCE.md](MAINTENANCE.md), with how to verify it and how to undo it. Add a dated entry to the [General Tasks log](../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt).
 6. When the acceptance criteria are met, set the status to **Done** with the date, and go through the [definition of done](#definition-of-done-for-any-change).
-7. New work gets the next free ID (TB-15, TB-16, and so on). Do not reuse or renumber IDs.
+7. New work gets the next free ID (TB-15, TB-16, and so on; on 2026-10-10 the last ID is TB-23, so the next is TB-24). Do not reuse or renumber IDs.
 
 Admin steps (`sudo`, Wi-Fi changes) need a person who knows the robot's `ubuntu` password to type it. Never write passwords, Wi-Fi keys or private keys in this repository: it is public.
 
@@ -40,6 +40,43 @@ Admin steps (`sudo`, Wi-Fi changes) need a person who knows the robot's `ubuntu`
 
 Commands run in a terminal on the robot (SSH or VS Code Remote-SSH), from the home folder, unless marked **On the laptop**. Text in angle brackets, such as `<robot-address>`, is a placeholder.
 
+## State on 2026-10-10
+
+No change was made to the robot after 2026-10-04 (details in [MAINTENANCE.md](MAINTENANCE.md#state-on-2026-10-10)). Times: 2026-10-04 entries are robot time (EDT), 2026-10-05 entries are laptop time (UTC+3). Evidence: [docs/network-and-connectivity.html](docs/network-and-connectivity.html) and the [network log](../General%20Tasks/TurtleBot4%20-%20network%20and%20connectivity.txt).
+
+| Item | State on 2026-10-10 | Tasks |
+|---|---|---|
+| Robot Wi-Fi (the main problem this week) | **Open.** On 2026-10-04 (about 15:42) the robot answered SSH once after being switched on, then dropped off for at least 25 minutes. On 2026-10-05 it answered for about a minute, then only in short windows (about 10 to 40 s). Likely cause: Wi-Fi power saving on the Pi (diagnosis, not confirmed). Fix proposed, **not applied** | [TB-20](#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving) (new, P0) |
+| `turtlebot4.local` | Failed to resolve intermittently on the campus Wi-Fi on 2026-10-04. Use the address on the display | [TB-08](#tb-08-stable-addressing), TB-20 |
+| Lab router | Linksys WRT54G set up on 2026-10-05 (`192.168.1.1`, LAN `192.168.1.x`). **The robot has not been moved to it.** Admin login was still the factory default when it was set up | [TB-21](#tb-21-decide-the-robots-network-students-or-the-lab-router), [TB-22](#tb-22-secure-the-lab-router) (new) |
+| New example programs | Written 2026-10-04 and tested offline (101 logic checks, 38 simulated runs, rerun 2026-10-10). Not copied to the robot (R12 not applied) | [TB-23](#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool) (new) |
+| `health_check.py` | Written 2026-10-04, tested offline; first robot run pending | [TB-19](#tb-19-read-only-health-check-script) (now Prepared), TB-23 |
+| Connect tool | `TurtleBotConnect.exe` (Windows) and `connect-turtlebot.sh` (macOS, Linux) in [tools/connect/](tools/connect/README.md). Work in progress was committed on 2026-10-05 (7007f51; its exe is v1.0.0 and does not match its source); the final design is v1.1.0. Not yet used with the real robot | TB-23 |
+| Motion programs | No runs since 2026-10-04. On 2026-10-04 square, rotate, back-and-forth and triangle completed; the figure eight aborted on a 2.0 s odometry gap with the robot held still ([test results](docs/test-results.html)) | [TB-16](#tb-16-motion-program-test-campaign-and-demo-shapes), [TB-03](#tb-03-complete-the-movement-test-with-the-lidar) |
+| Way of working | An hour-long unattended test campaign run by an AI subagent on 2026-10-04 was blocked by the AI tool's safety guard. Motion tests are run supervised, in short batches, with a person next to the robot | TB-16 |
+| `/odom` pauses | Cause not known; `motion_shapes.py` holds still through them | [TB-15](#tb-15-characterise-the-odom-pauses-at-motion-start) |
+| Clock fix | Still installed as last seen on 2026-10-04; decision open. The clock was also correct at 15:42 on 2026-10-04 after a power-on | [TB-17](#tb-17-decide-whether-to-keep-or-remove-the-clock-fix), [TB-01](#tb-01-restore-create-3-base-communication) |
+| Lidar | On USB again after the later power-on on 2026-10-04 (no `/scan` result recorded) | [TB-02](#tb-02-fix-lidar-detection) (Done), [TB-18](#tb-18-lidar-cable-strain-relief-and-label) |
+| Repository | GitHub Desktop switched the local clone to `main` with uncommitted TurtleBot changes (2026-10-05); resolved 2026-10-10, nothing lost. As seen on 2026-10-10, the TurtleBot work from a8c0b4e on is not on `main` yet; it was merged into `main` later on 2026-10-10 | [TB-12](#tb-12-documentation-follow-ups) |
+| Documentation | Brought up to date on 2026-10-10: network page, Wi-Fi troubleshooting, statuses, new tasks TB-20 to TB-23 | [TB-11](#tb-11-generalise-the-documentation), TB-12 |
+
+Status unchanged since 2026-10-04: TB-01 (waits for TB-17), TB-03 (not rerun), TB-04, TB-05, TB-06, TB-07, TB-13, TB-14, TB-18.
+
+## State on 2026-10-04
+
+Times are robot time (EDT, from the robot's journal). Details and evidence: [MAINTENANCE.md](MAINTENANCE.md), [docs/](docs/index.html) and the [2026-10-04 log](../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt).
+
+Working (new or confirmed today):
+- **Lidar fixed** ([TB-02](#tb-02-fix-lidar-detection), Done). The cause was a loose USB cable; the user reseated it before the 11:44 boot. Off the dock `/scan` runs at 7.75 Hz with 720 beams, and `clearance_check.py 0.6` exits 0.
+- **Base talking** on this boot: `/dock_status` received, Pi and base clocks within seconds. Undock succeeded at about 12:09.
+- **Motion program** [examples/motion_shapes.py](examples/motion_shapes.py) drove a 40 cm square (8 segments in 39 s, odometry end error 0.9 cm / +0.8 degrees), a 360 degree rotation (0.1 cm / +0.7 degrees) and a back-and-forth run (0.6 cm / +0.9 degrees). Errors are from odometry only; the floor was not measured.
+
+Not working or open:
+- The HTTPS clock fix is **still installed** and `undo-clock` was not run. It did no harm on this boot. Keep or remove is now a decision ([TB-17](#tb-17-decide-whether-to-keep-or-remove-the-clock-fix)); TB-01 stays open until it is made.
+- The base pauses `/odom` for 0.4 to 1.0 s when the wheels start ([TB-15](#tb-15-characterise-the-odom-pauses-at-motion-start)). `motion_shapes.py` now holds still during a pause instead of aborting.
+- `motion_test.sh` itself has not been rerun ([TB-03](#tb-03-complete-the-movement-test-with-the-lidar), in progress). The first runs of the motion programs are done; the longer test campaign is waiting for a supervised session ([TB-16](#tb-16-motion-program-test-campaign-and-demo-shapes)).
+- Unchanged from 2026-10-03: the long-term time strategy (TB-04), security hardening (TB-05), Wi-Fi drops during motion (TB-10), remote desktop (TB-06).
+
 ## State on 2026-10-03
 
 Working:
@@ -60,9 +97,9 @@ Not working or open:
 
 | ID | Title | Priority | Status | Depends on |
 |---|---|---|---|---|
-| [TB-01](#tb-01-restore-create-3-base-communication) | Restore Create 3 base communication | P0 | Prepared | None |
-| [TB-02](#tb-02-fix-lidar-detection) | Fix lidar detection | P0 | Open | None |
-| [TB-03](#tb-03-complete-the-movement-test-with-the-lidar) | Complete the movement test with the lidar | P1 | Open | TB-01, TB-02 |
+| [TB-01](#tb-01-restore-create-3-base-communication) | Restore Create 3 base communication | P0 | Prepared (base working on 2026-10-04 with the clock fix still installed; waits for TB-17) | TB-17 |
+| [TB-02](#tb-02-fix-lidar-detection) | Fix lidar detection | P0 | **Done** 2026-10-04 | None |
+| [TB-03](#tb-03-complete-the-movement-test-with-the-lidar) | Complete the movement test with the lidar | P1 | In progress (2026-10-04) | TB-01, TB-02 |
 | [TB-04](#tb-04-choose-a-reliable-time-strategy) | Choose a reliable time strategy | P1 | Open | TB-01 |
 | [TB-05](#tb-05-security-hardening) | Security hardening | P1 | Open | None |
 | [TB-06](#tb-06-remote-desktop-access) | Remote desktop access | P1 | Open | TB-04, TB-05, TB-07 |
@@ -70,12 +107,23 @@ Not working or open:
 | [TB-08](#tb-08-stable-addressing) | Stable addressing | P2 | Open | None |
 | [TB-09](#tb-09-ros-2-from-a-laptop-over-campus-wi-fi) | ROS 2 from a laptop over campus Wi-Fi | P2 | Open | TB-01 |
 | [TB-10](#tb-10-make-long-commands-survive-wi-fi-drops) | Make long commands survive Wi-Fi drops | P2 | Open | None |
-| [TB-11](#tb-11-generalise-the-documentation) | Generalise the documentation | P2 | In progress | None |
-| [TB-12](#tb-12-documentation-follow-ups) | Documentation follow-ups | P2 | Open | TB-11 |
+| [TB-11](#tb-11-generalise-the-documentation) | Generalise the documentation | P2 | In progress (2026-10-03; docs updated 2026-10-10) | None |
+| [TB-12](#tb-12-documentation-follow-ups) | Documentation follow-ups | P2 | In progress (2026-10-10) | TB-11 |
 | [TB-13](#tb-13-teleoperation-how-to) | Teleoperation how-to | P3 | Open | TB-01 |
 | [TB-14](#tb-14-onboarding-checklist-for-new-lab-members) | Onboarding checklist for new lab members | P3 | Open | TB-05, TB-11 |
+| [TB-15](#tb-15-characterise-the-odom-pauses-at-motion-start) | Characterise the `/odom` pauses at motion start | P2 | In progress (2026-10-04) | None |
+| [TB-16](#tb-16-motion-program-test-campaign-and-demo-shapes) | Motion program test campaign and demo shapes | P2 | Open (started 2026-10-04: first runs done; campaign waiting for a supervised session, no runs since 2026-10-04) | TB-02 |
+| [TB-17](#tb-17-decide-whether-to-keep-or-remove-the-clock-fix) | Decide whether to keep or remove the clock fix | P1 | Open (proposed 2026-10-04) | None |
+| [TB-18](#tb-18-lidar-cable-strain-relief-and-label) | Lidar cable strain relief and label | P2 | Open (proposed 2026-10-04) | None |
+| [TB-19](#tb-19-read-only-health-check-script) | Read-only health check script | P3 | Prepared (written 2026-10-04 as `examples/health_check.py`, tested offline; robot run pending, TB-23) | None |
+| [TB-20](#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving) | Fix the robot Wi-Fi drops (Wi-Fi power saving) | P0 | Prepared (fix proposed 2026-10-10, not applied) | None |
+| [TB-21](#tb-21-decide-the-robots-network-students-or-the-lab-router) | Decide the robot's network: Students or the lab router | P1 | Open (proposed 2026-10-10) | TB-20, TB-22 |
+| [TB-22](#tb-22-secure-the-lab-router) | Secure the lab router | P1 | Open (proposed 2026-10-10) | None |
+| [TB-23](#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool) | First robot run of the new programs and the connect tool | P1 | Open (proposed 2026-10-10) | TB-20 |
 
-Suggested order: TB-01 and TB-02 in one session at the robot, then TB-03. Do TB-05 soon, because the factory passwords are public and the robot is reachable from the whole `Students` network. Take a backup (TB-07) before the first risky change in TB-04, TB-05 or TB-06.
+Suggested order (updated 2026-10-10): **TB-20 first**, because nothing else can be done on the robot while it drops off the Wi-Fi. Then TB-22 and the network decision TB-21 (secure the router before the robot uses it). Then TB-23 (copy the new programs and run them, and the connect tool, for the first time; supervised, in short batches), which also feeds TB-19, TB-16 and TB-15. TB-17 (the clock decision, which closes TB-01) can be done in the same sessions. Do TB-05 soon. Take a backup (TB-07) before the first risky change in TB-04, TB-05, TB-06 or TB-21.
+
+Previous order (2026-10-04): TB-17 (decide on the clock fix), which closes TB-01; finish TB-03 and TB-16 while the lidar and base work. Do TB-05 soon, because the factory passwords are public and the robot is reachable from the whole `Students` network. Take a backup (TB-07) before the first risky change in TB-04, TB-05 or TB-06. (Original order on 2026-10-03: TB-01 and TB-02 in one session at the robot, then TB-03.)
 
 ---
 
@@ -83,9 +131,11 @@ Suggested order: TB-01 and TB-02 in one session at the robot, then TB-03. Do TB-
 
 ### TB-01 Restore Create 3 base communication
 
-**Priority:** P0 | **Status:** Prepared | **Depends on:** None
+**Priority:** P0 | **Status:** Prepared | **Depends on:** TB-17 (added 2026-10-04)
 
 **Goal.** The Create 3 base publishes `/dock_status` and `/battery_state` to ROS again, and dock and undock work, with the HTTPS clock fix removed.
+
+**Update 2026-10-04.** On the boot at about 11:44 (robot time) the base talked to ROS without any action: `/dock_status` arrived, the Pi and base clocks agreed within seconds, and undock succeeded at about 12:09. The clock fix (R7, R8) is still installed and `undo-clock` was **not** run; the user decided not to touch the clock while ROS runs. Whether to remove the fix at all is now [TB-17](#tb-17-decide-whether-to-keep-or-remove-the-clock-fix). If TB-17 decides to keep it, rewrite this goal and close the task on the base criteria alone. The steps below remain the procedure if the fix is removed or the base goes silent again.
 
 **Why it matters.** Without data from the base, nothing that moves or docks works. TB-03, TB-09 and TB-13 are blocked until this is done. The base was observed to talk to ROS only when the Pi and base clocks agree; the HTTPS clock fix broke that twice on 2026-10-03 (details in [MAINTENANCE.md](MAINTENANCE.md)).
 
@@ -178,8 +228,8 @@ Suggested order: TB-01 and TB-02 in one session at the robot, then TB-03. Do TB-
 **Acceptance criteria.**
 - [ ] `/etc/systemd/system/tb4-https-time.timer`, `tb4-https-time.service`, `/usr/local/sbin/tb4-https-time` and the `10-wait-for-clock.conf` drop-in no longer exist.
 - [ ] `systemctl is-active turtlebot4` prints `active`.
-- [ ] `/dock_status` and `/battery_state` each print a message within 60 s.
-- [ ] Undock and dock goals are accepted and succeed (checked in TB-03, or by hand with the commands in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md)).
+- [ ] `/dock_status` and `/battery_state` each print a message within 60 s. (2026-10-04: `/dock_status` received with the clock fix still installed; `/battery_state` not recorded.)
+- [ ] Undock and dock goals are accepted and succeed (checked in TB-03, or by hand with the commands in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md)). (2026-10-04: undock succeeded at about 12:09; dock result to be recorded.)
 - [ ] The reboot-test result (base data with or without a manual base restart) is recorded.
 - [ ] MAINTENANCE.md and the General Tasks log are updated.
 
@@ -195,7 +245,9 @@ Suggested order: TB-01 and TB-02 in one session at the robot, then TB-03. Do TB-
 
 ### TB-02 Fix lidar detection
 
-**Priority:** P0 | **Status:** Open | **Depends on:** None
+**Priority:** P0 | **Status:** **Done** 2026-10-04 | **Depends on:** None
+
+**Outcome (2026-10-04).** Root cause: a loose USB connection. The user reseated the lidar USB cable (same cable, same port) before booting the robot at about 11:44 robot time; no software change was needed and steps 2 to 11 below were not required. Evidence: `lsusb` shows `10c4:ea60` Silicon Labs CP210x; `/dev/RPLIDAR` points to `ttyUSB0`; the driver reported firmware 1.29, hardware revision 7, health 0; after undocking `/scan` ran at 7.75 Hz with 720 beams (519 valid, median 1.44 m); `clearance_check.py 0.6` printed "nearest in front 1.73 m" and exited 0. Full record: [MAINTENANCE.md](MAINTENANCE.md#incident-lidar-not-detected-2026-10-03-resolved-2026-10-04), [docs/lidar-diagnosis.html](docs/lidar-diagnosis.html), [docs/LIDAR-FINDINGS.md](docs/LIDAR-FINDINGS.md). Follow-up: [TB-18](#tb-18-lidar-cable-strain-relief-and-label). The steps are kept for the next time the lidar disappears.
 
 **Goal.** The Raspberry Pi detects the lidar on USB (`/dev/RPLIDAR` exists) and `/scan` publishes when the robot is off the dock.
 
@@ -243,11 +295,11 @@ Suggested order: TB-01 and TB-02 in one session at the robot, then TB-03. Do TB-
 11. Record any port or cable change in [MAINTENANCE.md](MAINTENANCE.md) and the outcome in the General Tasks log.
 
 **Acceptance criteria.**
-- [ ] `lsusb` lists a Silicon Labs (CP210x) device.
-- [ ] `/dev/RPLIDAR` exists.
-- [ ] Off the dock, `scan_test.py` prints distances and `clearance_check.py` exits 0 or 1.
-- [ ] The lidar is still detected after a reboot.
-- [ ] Port or cable changes are recorded in MAINTENANCE.md.
+- [x] `lsusb` lists a Silicon Labs (CP210x) device. (2026-10-04: `10c4:ea60`)
+- [x] `/dev/RPLIDAR` exists. (2026-10-04: link to `ttyUSB0`)
+- [x] Off the dock, `scan_test.py` prints distances and `clearance_check.py` exits 0 or 1. (2026-10-04: `clearance_check.py 0.6` exit 0; `/scan` checked with `ros2 topic hz` and `ros2 topic echo --full-length` instead of `scan_test.py`)
+- [x] The lidar is still detected after a reboot. (2026-10-04: detected on the 11:44 boot, which came after the reseat. A second, separate reboot has not been checked yet; note it the next time the robot restarts. Update 2026-10-10: after the robot was powered off and switched on again on 2026-10-04, a single SSH check at about 15:42 robot time found the lidar on USB; no `/scan` result was recorded.)
+- [x] Port or cable changes are recorded in MAINTENANCE.md. (No port or cable change; the reseat is recorded.)
 
 **Risks and rollback.**
 - Unplugging the wrong cable can cut the base link or the camera. Identify the lidar cable before unplugging (a photo of it is a TB-12 item).
@@ -258,11 +310,81 @@ Suggested order: TB-01 and TB-02 in one session at the robot, then TB-03. Do TB-
 
 ---
 
+### TB-20 Fix the robot Wi-Fi drops (Wi-Fi power saving)
+
+**Priority:** P0 | **Status:** Prepared (fix proposed 2026-10-10, not applied) | **Depends on:** None
+
+**Goal.** The robot stays reachable over SSH on `Students`, and the cause of the drops seen on 2026-10-04 and 2026-10-05 is confirmed or ruled out.
+
+**Why it matters.** Since 2026-10-04 the robot answers SSH only briefly. On 2026-10-04 (about 15:42 robot time) it answered once after being switched on, then stayed away for at least 25 minutes. On 2026-10-05 (afternoon, UTC+3) it answered for about a minute, then only in short windows of about 10 to 40 s. Nothing on this roadmap that needs the robot can be done reliably until this is fixed. The laptop's Wi-Fi stayed fine and the robot's logs showed no Wi-Fi disconnects. That fits the leading diagnosis, which is **not confirmed**: Wi-Fi power saving on the Raspberry Pi (on by default in Ubuntu; the `Students` profile written on 2026-10-03 sets no value) keeps the Pi associated with the access point but stops it answering incoming connections most of the time. Record: [MAINTENANCE.md, Wi-Fi incident](MAINTENANCE.md#incident-robot-drops-off-the-wi-fi-2026-10-04-and-2026-10-05).
+
+**Steps.**
+
+1. Get a session. Robot on its dock; read the address on its display and connect by address, not by `turtlebot4.local`, retrying if needed ([HOW-TO-CONNECT.md](HOW-TO-CONNECT.md#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found)). A person who knows the `ubuntu` password must be there.
+2. Collect evidence first (read only). Record the output in the network log.
+
+   ```bash
+   nmcli -g 802-11-wireless.powersave connection show Students
+   iw dev wlan0 get power_save
+   journalctl -u NetworkManager -b --no-pager | tail -n 50
+   ```
+
+   The first prints the profile's power-save value. `iw` may not be installed on this image **[to verify]**; if it is, it prints whether power saving is on for `wlan0` right now.
+3. Apply the fix. `sudo` asks for the `ubuntu` password. The Wi-Fi reconnects, so SSH may drop for a few seconds; no reboot. If the session drops after the first command, log in again and run the second. **[prepared]**
+
+   ```bash
+   sudo nmcli connection modify Students 802-11-wireless.powersave 2
+   sudo nmcli connection up Students
+   ```
+
+4. Verify the setting. Expected: the value for "disable", 2. **[prepared]**
+
+   ```bash
+   nmcli -g 802-11-wireless.powersave connection show Students
+   ```
+
+5. Verify the effect. From a laptop on `Students`, with the robot on its dock, try to connect once a minute for 30 minutes and note each failure. `BatchMode=yes` makes ssh fail instead of asking for a password, so set up key login first. **[to verify]**
+
+   On the laptop (macOS, Linux or Git Bash):
+
+   ```bash
+   for i in $(seq 1 30); do date +%T; ssh -o ConnectTimeout=5 -o BatchMode=yes ubuntu@<robot-address> uptime || echo FAILED; sleep 60; done
+   ```
+
+   On the laptop (Windows PowerShell):
+
+   ```powershell
+   1..30 | ForEach-Object { Get-Date -Format T; ssh -o ConnectTimeout=5 -o BatchMode=yes ubuntu@<robot-address> uptime; if ($LASTEXITCODE -ne 0) { "FAILED" }; Start-Sleep 60 }
+   ```
+
+   Repeat on a second day.
+6. Reboot test: `sudo reboot`, wait 2 minutes, then repeat step 4 and a shorter step 5. The setting is stored in the profile, so it should survive.
+7. Record the change in [MAINTENANCE.md](MAINTENANCE.md) as R14 (location `/etc/NetworkManager/system-connections/Students.nmconnection`, verify and undo as below), set the incident and Known issues rows to the new status, and update the troubleshooting in HOW-TO-CONNECT.md and the [network page](docs/network-and-connectivity.html).
+8. If the drops continue with power saving off: record that the first cause is ruled out, then look at the others listed in the incident record (mDNS on campus, roaming), at the NetworkManager log during a drop, and at the lab network option (TB-21).
+
+**Acceptance criteria.**
+- [ ] The power-save value before the fix is recorded.
+- [ ] `nmcli -g 802-11-wireless.powersave connection show Students` prints the value for "disable" (2), also after a reboot.
+- [ ] From a laptop on `Students`, 30 connection attempts by address over 30 minutes all succeed, on two different days.
+- [ ] R14 is in MAINTENANCE.md with verify and undo; the incident record and Known issues are updated.
+- [ ] Or: the fix is shown not to help, this is recorded, and the next step is chosen.
+
+**Risks and rollback.**
+- The Wi-Fi reconnects when the profile is brought up again, so SSH may drop for a few seconds. No reboot is needed.
+- With power saving off the Wi-Fi may use a little more battery (not measured).
+- Rollback: `sudo nmcli connection modify Students 802-11-wireless.powersave 0` (0 is the default), then `sudo nmcli connection up Students`.
+
+**Estimated effort:** 30 minutes at the robot, plus 30 minutes of observation on each of two days. Needs a person who can type the `ubuntu` password.
+
+---
+
 ## P1: important
 
 ### TB-03 Complete the movement test with the lidar
 
-**Priority:** P1 | **Status:** Open | **Depends on:** TB-01, TB-02
+**Priority:** P1 | **Status:** In progress (2026-10-04) | **Depends on:** TB-01, TB-02
+
+**Progress 2026-10-04.** TB-02 is done and the base talks, so the preconditions hold in practice (TB-01 is formally open only for the clock decision). `motion_test.sh` itself has **not** been rerun. Forward driving with the lidar active has been shown by [examples/motion_shapes.py](examples/motion_shapes.py), which stops if anything is within 0.25 m and ±30 degrees in front while driving forward: square, rotate and back-and-forth completed. Undock succeeded at about 12:09. Still to do: one end-to-end `motion_test.sh` run, the blocked-path run (step 5) and recording the dock result. Results go to [docs/test-results.html](docs/test-results.html).
 
 **Goal.** Run `motion_test.sh` end to end: undock, lidar clearance check, 20 cm forward drive, 360° spin, dock.
 
@@ -403,6 +525,8 @@ After the next power cycle the Pi starts at its factory date again, so expect to
 **Goal.** No factory passwords remain, every authorized SSH key has a known owner, and (optionally) SSH accepts keys only.
 
 **Why it matters.** The `ubuntu` account and the `Turtlebot4` access point probably still use the factory default passwords, which are published in the public TurtleBot 4 manual. Devices on `Students` can reach each other, so anyone on that network can try SSH on the robot. A lab SSH public key from one person's workstation is authorized on the robot; its ownership should be recorded and reviewed.
+
+**Update 2026-10-10.** The lab router set up on 2026-10-05 is a separate device with its own factory admin login; securing it is [TB-22](#tb-22-secure-the-lab-router). The robot is not on that network, so this task is unchanged.
 
 **Steps.**
 
@@ -582,6 +706,207 @@ Rollback for (a): stop and disable xrdp; purge exactly the packages listed for t
 
 ---
 
+### TB-17 Decide whether to keep or remove the clock fix
+
+**Priority:** P1 | **Status:** Open (proposed 2026-10-04) | **Depends on:** None
+
+**Goal.** A recorded decision on the HTTPS clock fix (R7 timer, service and script; R8 drop-in): remove it with `undo-clock` as planned on 2026-10-03, or keep it, possibly changed.
+
+**Why it matters.** On 2026-10-03 the fix silenced the base twice. On 2026-10-04 it was still installed, the clock was correct and the base talked, so the reason for removing it is less clear than it was. Its 15 minute timer can still step the clock while ROS runs if the boot-time fetch fails. TB-01 and TB-04 both wait on this decision.
+
+**Evidence so far (2026-10-10).**
+
+| Boot (robot time, EDT) | Clock right at boot? | `tb4-https-time` result | Base talked? |
+|---|---|---|---|
+| 2026-10-04, about 11:44 | Yes (2026) | Not recorded | Yes (`/dock_status`, clocks within seconds) |
+| 2026-10-04, about 15:38 (power-on after the robot was off between sessions) | Correct at 15:42 (uptime 4 min) | Not recorded | Not recorded |
+
+No later boot is recorded.
+
+**Steps.**
+
+1. Collect evidence without changing anything (read only). Over the next few boots, record for each: whether the clock was right at boot, whether `tb4-https-time` succeeded or failed, whether it stepped the clock, and whether the base talked.
+
+   ```bash
+   journalctl -u tb4-https-time -b --no-pager
+   systemctl list-timers --all | grep tb4
+   timeout 60 ros2 topic echo --once /dock_status
+   ```
+
+2. Weigh the options against the evidence:
+   - **Remove** (`sudo ./undo-clock`, then restart the base application, TB-01 steps 4 to 6). Clock wrong after power cycles, but nothing steps it while ROS runs.
+   - **Keep as is.** Clock usually right; risk of a step while ROS runs when the boot fetch fails.
+   - **Keep the boot fetch, remove the 15 minute timer** so the clock is only set before ROS starts. Needs an admin change; propose it here first. **[to verify]**
+3. Agree the choice with the lab supervisor, record it here and in MAINTENANCE.md (R7, R8), and update TB-01 and TB-04.
+
+**Acceptance criteria.**
+- [ ] Evidence from at least three boots is recorded.
+- [ ] The decision, the date and who made it are recorded here and in MAINTENANCE.md.
+- [ ] TB-01 is closed or rewritten to match the decision.
+
+**Risks and rollback.** Collecting evidence changes nothing. Removing the fix: rollback is not recommended (see TB-01). Any clock change while ROS runs can silence the base; restart the base application if it does.
+
+**Estimated effort:** 15 minutes per boot to collect evidence; 30 minutes for the decision.
+
+---
+
+### TB-21 Decide the robot's network: Students or the lab router
+
+**Priority:** P1 | **Status:** Open (proposed 2026-10-10) | **Depends on:** TB-20 (its result informs the decision), TB-22 (secure the router before the robot uses it)
+
+**Goal.** A recorded decision on which Wi-Fi the robot uses: stay on `Students`, or move to the lab router with `Students` and the robot's own `Turtlebot4` access point as fallbacks. If the decision is to move, the robot has a working lab-router profile and a fixed address.
+
+**Why it matters.** On `Students` the robot's address comes from campus DHCP and can change, `turtlebot4.local` is unreliable, the robot roams between access points while it drives, and anyone on `Students` can reach it (TB-05). The lab router set up on 2026-10-05 ([MAINTENANCE.md, Lab router](MAINTENANCE.md#lab-router-not-used-by-the-robot-yet)) is expected to give a stable address, no campus roaming or client limits, and likely working ROS 2 discovery between a laptop and the robot (TB-09). None of these benefits has been tested with the robot. A laptop on the lab router keeps internet through the router's uplink (DNS and HTTPS worked on 2026-10-05), so no second Wi-Fi adapter is needed.
+
+**Options.**
+
+| Option | What it means | For | Against |
+|---|---|---|---|
+| A. Stay on `Students` | Keep R1 as it is, plus the TB-20 fix | No robot change beyond TB-20; works anywhere on campus | Address can change; mDNS unreliable on campus; roaming; reachable from the whole `Students` network |
+| B. Lab router first, `Students` and `Turtlebot4` as fallbacks (proposal) | A new NetworkManager Wi-Fi profile for the lab router with a higher autoconnect priority than `Students` (10), and a DHCP reservation on the router | Stable address; no campus roaming or client limits; a lab-only network; likely working ROS 2 discovery | 802.11g, 2.4 GHz only: fine for SSH and topics like `/odom`, but `/scan` and camera bandwidth must be checked; end-of-life router firmware (TB-22); users must join the lab Wi-Fi (password from the maintainer) |
+
+**Steps.** Step 1 decides; steps 2 to 8 are the proposal for option B. Every robot step needs `sudo` and a person who knows the `ubuntu` password. Do it with a person at the robot, the robot on its dock, and the laptop on the lab router's network. Nothing here has been run.
+
+1. Decide with the TB-20 result: if the robot is reliable on `Students` after TB-20, option A may be enough. Agree the choice with the lab supervisor and record it, the date and the reasons here and in MAINTENANCE.md. Stop here for option A.
+2. Prerequisites: TB-22 steps 1 and 2 are done; the exact SSID is read from the router's Wireless page; the robot's Wi-Fi hardware address is read (`cat /sys/class/net/wlan0/address`, as in TB-08 step 1).
+3. On the router: reserve a fixed address for that hardware address (DHCP reservation). Check first that the WRT54G firmware offers this **[to verify]**. Record the reserved address in HOW-TO-CONNECT.md (a private lab address, not secret).
+4. On the robot: create the profile with autoconnect off. Use the same method as R1 so the Wi-Fi password is typed at a hidden prompt and never appears on a command line or in this repository. `write_keyfile.py` (copy in `~/wifi-switch/`) writes a profile with autoconnect off and priority 10. Replace `<lab SSID>` with the exact name. **[to verify]**
+
+   ```bash
+   sudo -v
+   read -r -s -p "Lab Wi-Fi password: " PSK; echo
+   printf '%s' "$PSK" | sudo python3 ~/wifi-switch/write_keyfile.py "/etc/NetworkManager/system-connections/<lab SSID>.nmconnection" "<lab SSID>"
+   unset PSK
+   sudo nmcli connection load "/etc/NetworkManager/system-connections/<lab SSID>.nmconnection"
+   ```
+
+5. Test it once. Recommended: adapt `start.sh` and `controller.sh` from [setup/](setup/), which moved the robot to `Students` on 2026-10-03 with a 3-minute test phase and an automatic return. Manual alternative: `sudo nmcli connection up "<lab SSID>"`. The robot leaves `Students`, so an SSH session over `Students` ends; read the new address on the display and connect from the laptop on the lab network. Because the new profile has autoconnect off, a reboot returns the robot to `Students`. **[to verify]**
+6. Check on the lab network:
+
+   ```bash
+   nmcli -t -f NAME,DEVICE connection show --active
+   ip -4 -br addr show wlan0
+   timeout 60 ros2 topic echo --once /dock_status
+   ```
+
+   Expected: `<lab SSID>:wlan0`, the reserved `192.168.1.x` address, one `/dock_status` message. Then from a laptop with ROS 2 (TB-09): `ros2 topic list`, and `ros2 topic hz /scan` off the dock, compared with the robot's own 7.75 Hz (2026-10-04). Use compressed camera topics only.
+7. Make it permanent and test the fallback:
+
+   ```bash
+   sudo nmcli connection modify "<lab SSID>" connection.autoconnect yes connection.autoconnect-priority 20
+   ```
+
+   Reboot and check that the robot comes back on the lab network by itself. Then switch the router off and check that the robot returns to `Students` (priority 10). **[to verify]**
+8. Record the profile and the reservation in MAINTENANCE.md as new change-register rows (R14 onward) with verify and undo, and update HOW-TO-CONNECT.md (which Wi-Fi to join, the fixed address), README.md and the [network page](docs/network-and-connectivity.html).
+
+**Verify (option B).**
+
+```bash
+nmcli -f connection.id,connection.autoconnect,connection.autoconnect-priority connection show "<lab SSID>"
+nmcli -t -f NAME,DEVICE connection show --active
+ip -4 -br addr show wlan0
+```
+
+Expected: autoconnect `yes`, priority `20`; `<lab SSID>:wlan0` active; the reserved address.
+
+**Undo (option B).** `sudo nmcli connection delete "<lab SSID>"`. The robot returns to `Students` (or its own access point); an SSH session over the lab network ends, so reconnect on `Students` with the address on the display. Then remove the reservation on the router.
+
+**Acceptance criteria.**
+- [ ] The decision (A or B), the date, the reasons and who decided are recorded here and in MAINTENANCE.md.
+- [ ] If B: after two reboots on different days the robot is back on the lab network with the same address; it falls back to `Students` when the router is off; from a laptop, 30 connection attempts over 30 minutes all succeed (as in TB-20).
+- [ ] If B: `/scan` received on a laptop reaches about the robot's own rate, or the limit is recorded.
+- [ ] If B: the change-register rows, HOW-TO-CONNECT.md and README.md are updated.
+
+**Risks and rollback.**
+- Losing the connection during the switch: do it at the robot, and prefer the scripted test phase with automatic return.
+- 2.4 GHz 802.11g is slow: fine for SSH and `/odom`; check `/scan` and the camera.
+- The router firmware is end of life (TB-22).
+- When the router is off or out of range the robot falls back to `Students`, then to its own access point. The display always shows the current address.
+- Rollback: the undo above.
+
+**Estimated effort:** decision 30 minutes; option B 1 to 2 hours at the robot, plus test time on two days.
+
+---
+
+### TB-22 Secure the lab router
+
+**Priority:** P1 | **Status:** Open (proposed 2026-10-10) | **Depends on:** None
+
+**Goal.** The lab router no longer uses a factory admin login, its admin page is reachable from the lab network only, its settings are recorded without secrets, and a decision on replacing it is recorded.
+
+**Why it matters.** When the router was set up on 2026-10-05 its admin login was still the factory default. Anyone on its network could change its settings. The WRT54G firmware is very old (end of life). If the robot moves to this network (TB-21), the router becomes part of the robot's setup.
+
+**Steps.** On a laptop connected to the router, preferably by cable. All **[to verify]** on this router's firmware.
+
+1. Open `http://192.168.1.1` and change the admin password. Store it in the lab password manager (for example an entry "Lab router WRT54G: admin"). Never put it in this repository, in chat messages or in the logs.
+2. Check that remote management (admin access from the router's Internet side) is off, so the admin page can only be reached from the lab network.
+3. Record in MAINTENANCE.md (Lab router table): the firmware version (router's status page), the exact SSID, the security mode (WPA2-Personal, AES) and the DHCP range. The Wi-Fi password goes in the password manager only.
+4. Decide whether to keep the WRT54G or replace it with a current router (newer firmware, 5 GHz). Record the decision.
+
+**Acceptance criteria.**
+- [ ] The factory admin login no longer works; the new login is in the lab password manager.
+- [ ] Remote management is off.
+- [ ] Firmware version and exact SSID are recorded in MAINTENANCE.md, and no secret appears in the repository.
+- [ ] The keep-or-replace decision is recorded.
+
+**Risks and rollback.**
+- A forgotten admin login means a factory reset, which also erases the router's settings (SSID, Wi-Fi password, reservations). Store the new login before you log out.
+- Changing settings over the router's own Wi-Fi can drop your connection; use a cable.
+- Rollback: change the settings back on the admin page.
+
+**Estimated effort:** 30 minutes; a replacement adds purchase and setup time.
+
+---
+
+### TB-23 First robot run of the new programs and the connect tool
+
+**Priority:** P1 | **Status:** Open (proposed 2026-10-10) | **Depends on:** TB-20 (the robot must stay reachable)
+
+**Goal.** The programs written on 2026-10-04 and the connect tool have each run on the real robot at least once, and the results are recorded, so the docs can drop "not yet tested on the robot".
+
+**Why it matters.** `health_check.py`, `sensor_report.py`, `lidar_snapshot.py`, `lightring_status.py`, `more_shapes.py`, `wall_approach.py`, `keep_distance.py` and `campaign.sh` were tested offline only (101 logic checks and 38 simulated runs, see [tests/README.md](tests/README.md)) and are not on the robot (MAINTENANCE.md R12, not applied). The connect tool ([tools/connect/README.md](tools/connect/README.md)) was tested against a simulated robot only. A complete figure eight is also still missing (TB-16). Offline tests cannot show timing, `/odom` gaps or real sensor data.
+
+**Steps.** Motion runs are supervised, in short batches, with a person next to the robot (lesson of 2026-10-04). Go through the [safety checklist](examples/README.md#safety-checklist-before-anything-moves) before anything moves, and dry-run every moving program first.
+
+Part A, the programs:
+
+1. Copy the programs (this applies R12). On the laptop, from `TurtleBot/examples/`:
+
+   ```bash
+   scp *.py *.sh ubuntu@<robot-address>:robot_code/
+   ```
+
+   This also replaces `motion_shapes.py` on the robot with the repo version. Record R12 as applied in MAINTENANCE.md, with the date and the file list.
+2. On the dock (read only): `python3 health_check.py`, and compare each row with a manual run of the [verification checklist](MAINTENANCE.md#verification-checklist) (TB-19). Then `python3 sensor_report.py --seconds 60` and `python3 lightring_status.py --seconds 30`.
+3. Off the dock (undock detached, see [examples/README.md](examples/README.md#undock-and-dock)): `python3 health_check.py` again (it checks `/scan` off the dock), `python3 lidar_snapshot.py`, then `scan_plot_html.py` on the laptop.
+4. Moving programs, one at a time, `--dry-run` first, then one real run detached with `--yes`: `motion_shapes.py figure_eight`, `more_shapes.py star`, `wall_approach.py`, `keep_distance.py --duration 30`, and a short `campaign.sh` list.
+5. Record the results in [docs/test-results.html](docs/test-results.html), the status lines in [examples/README.md](examples/README.md) and the step log.
+
+Part B, the connect tool (v1.1.0):
+
+6. On Windows, run `TurtleBotConnect.exe` against the real robot: options 2 (find), 1 (connect), 3 (key login), 4 (status), 5 (VS Code), 6 (SSH config shortcut) and 8 (copy a file). Note the SmartScreen prompt on first run.
+7. On macOS or Linux, the same with `connect-turtlebot.sh`.
+8. During a supervised `motion_shapes.py rotate` run, use option 7 (emergency stop): the robot must stop and `~/STOP` must exist. Remove it afterwards with `rm ~/STOP`.
+9. Check the host-key pinning: the tool connects to the lab robot (ED25519 fingerprint `SHA256:P2rMsKzoIV+vsYEUViVNEFf9H8ORHn+qYbEhaTciyi4`) and refuses another SSH device before any password prompt. **[to verify]** how to point it at a second device for this test.
+10. Record the results in the step log, and ask the tool's maintainer to update the status line in tools/connect/README.md.
+
+**Acceptance criteria.**
+- [ ] R12 is recorded as applied in MAINTENANCE.md, with the date and file list.
+- [ ] `health_check.py` ran on and off the dock, and its rows match a manual checklist run (TB-19).
+- [ ] Each new program ran once on the robot, or its failure is recorded with the log.
+- [ ] One complete figure eight is recorded in docs/test-results.html.
+- [ ] The connect tool connected to the real robot from Windows and from macOS or Linux; option 7 stopped a running motion program; the pinning refused a different device.
+- [ ] "Not yet tested on the robot" is removed from the status lines of the programs that ran.
+
+**Risks and rollback.**
+- Collision: speeds are capped (0.15 m/s), the lidar front stop is active, and a person stands next to the robot.
+- Copying changes only `~/robot_code`. Rollback: delete the files listed under R12.
+- Option 3 adds one line to `~/.ssh/authorized_keys` on the robot; record its owner (TB-05). Option 6 edits the laptop's SSH config and keeps a backup.
+
+**Estimated effort:** half a day at the robot, in two or three short sessions.
+
+---
+
 ## P2: improvements
 
 ### TB-07 SD card backups
@@ -630,6 +955,8 @@ The factory image from the official manual remains the last-resort restore, but 
 
 **Why it matters.** The robot's address comes from DHCP (10.87.10.205/18 was observed) and can change. `turtlebot4.local` (mDNS) works on `Students` and the display shows the current address, but some tools and laptops resolve `.local` names poorly.
 
+**Update 2026-10-10.** On 2026-10-04 `turtlebot4.local` failed to resolve intermittently on the campus Wi-Fi, so the display address is the reliable method for now. The address was again `10.87.10.205` on 2026-10-04. A DHCP reservation on the lab's own router is an alternative to an IT reservation on `Students` ([TB-21](#tb-21-decide-the-robots-network-students-or-the-lab-router)).
+
 **Steps.**
 
 1. Read the Wi-Fi hardware address, and check that the `Students` profile does not use a random one (an empty value, `preserve` or `permanent` means the real address is used). **[to verify]**
@@ -660,6 +987,8 @@ The factory image from the official manual remains the last-resort restore, but 
 **Goal.** A laptop with ROS 2 Jazzy on `Students` sees the robot's topics, so RViz2 and laptop-side nodes can be used.
 
 **Why it matters.** Running heavy tools on the laptop keeps load off the Pi. Campus Wi-Fi may block the multicast that ROS 2 discovery uses. mDNS works on `Students`, which shows some multicast passes, but ROS 2 discovery uses different multicast groups, so it must be tested.
+
+**Update 2026-10-10.** Still not tested. mDNS failed intermittently on campus on 2026-10-04. The lab router (TB-21) is expected to make discovery between a laptop and the robot likely to work, because there is no campus Wi-Fi in between; not tested either.
 
 **Steps.** All **[to verify]**.
 
@@ -714,6 +1043,8 @@ The factory image from the official manual remains the last-resort restore, but 
 
 **Why it matters.** While the robot moves it can briefly leave the Wi-Fi as it switches between campus access points. When SSH drops, a running `ros2 action send_goal` is cancelled. This happened on 2026-10-03 just as docking started. Running scripts detached (`setsid nohup`) is the documented workaround.
 
+**Update 2026-10-10.** A second Wi-Fi problem, the main one of that week, appeared on 2026-10-04 and 2026-10-05: the robot answered SSH only in short windows ([TB-20](#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving)). Roaming, the subject of this task, is the third likely cause in that list. Detached runs remain the workaround for drops during motion.
+
 **Steps.**
 
 1. Keep using detached runs for motion (see [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md)).
@@ -748,11 +1079,13 @@ The factory image from the official manual remains the last-resort restore, but 
 
 ### TB-11 Generalise the documentation
 
-**Priority:** P2 | **Status:** In progress (2026-10-03) | **Depends on:** None
+**Priority:** P2 | **Status:** In progress (2026-10-03; docs updated 2026-10-10) | **Depends on:** None
 
 **Goal.** Documentation that any lab member can follow on any laptop, with the configuration and change history kept separately.
 
 **Why it matters.** The first guide was written for one person's laptop (its shortcuts, SSH aliases and second Wi-Fi adapter).
+
+**Progress 2026-10-10.** Steps 1 to 3 are done. The docs were brought up to date with the week of 2026-10-04 to 2026-10-10: network and connectivity page, Wi-Fi troubleshooting in HOW-TO-CONNECT.md, connect tool in the README quick start, consistent statuses across all files. Still open: a new lab member trying the guide (first criterion).
 
 **Steps.**
 1. Rewrite [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md) as a general user guide, and add [README.md](README.md) as the entry point.
@@ -761,9 +1094,9 @@ The factory image from the official manual remains the last-resort restore, but 
 
 **Acceptance criteria.**
 - [ ] A new lab member can connect and run `hello_robot.py` using only README.md and HOW-TO-CONNECT.md.
-- [ ] No step in the user guide depends on one person's workstation.
-- [ ] Every change made to the robot so far appears in MAINTENANCE.md with verify and undo steps.
-- [ ] Links between the four documents work.
+- [x] No step in the user guide depends on one person's workstation. (Reviewed 2026-10-10: the main flows use `ubuntu@turtlebot4.local` or the address on the display; the SSH config shortcut is optional.)
+- [x] Every change made to the robot so far appears in MAINTENANCE.md with verify and undo steps. (2026-10-10: R1 to R13; no robot change since 2026-10-04.)
+- [x] Links between the four documents work. (2026-10-10: a link check of every Markdown and HTML file under `TurtleBot/` found 0 broken relative links or anchors.)
 
 **Risks and rollback.** Documentation only; Git history keeps earlier versions.
 
@@ -773,11 +1106,13 @@ The factory image from the official manual remains the last-resort restore, but 
 
 ### TB-12 Documentation follow-ups
 
-**Priority:** P2 | **Status:** Open | **Depends on:** TB-11
+**Priority:** P2 | **Status:** In progress (2026-10-10) | **Depends on:** TB-11
 
 **Goal.** Keep the documentation accurate and easy to follow over time.
 
 **Why it matters.** Several open tasks need someone to find a cable or button quickly, and the docs will drift as the robot changes and people leave.
+
+**Progress 2026-10-10.** Stale statements corrected (step 3): the claim that `~/robot_code` holds copies of every program in `examples/` (only R4 and R11 are there; R12 is not applied); the 2026-10-04 run summary in HOW-TO-CONNECT.md, which left out the triangle and the figure eight; the TB-19 status (the script exists); the 2026-10-03 log's pointer to a HOW-TO-CONNECT section that moved to MAINTENANCE.md (a correction note was appended to the log). Step 6 was added after the 2026-10-05 repository incident.
 
 **Steps.**
 1. Add photos (in a folder such as `TurtleBot/images/`) of: the robot's display and buttons; the lidar USB cable at both ends and the Pi's USB ports; the USB-C link to the base (to avoid unplugging it); access to the SD card. Check that no password label, screen with secrets, or person is visible.
@@ -785,15 +1120,99 @@ The factory image from the official manual remains the last-resort restore, but 
 3. Correct stale statements when found. For example, the "next steps" plan at the end of the General Tasks log predates the Wi-Fi switch.
 4. When the original author leaves: remove workstation-specific notes (desktop shortcuts, second Wi-Fi adapter, their SSH aliases), and remove their public key from the robot (see TB-05). Record both in MAINTENANCE.md.
 5. Make the example programs neutral where they include a person's name (for example the message in `hello_robot.py`).
+6. Added 2026-10-10: work on a branch, and merge it into `main` when it is finished; GitHub's `main` is what lab members read. Commit or discard changes before switching branches (lesson of the 2026-10-05 branch switch, [MAINTENANCE.md](MAINTENANCE.md#repository-note-branch-switch-in-github-desktop-2026-10-05-resolved-2026-10-10)). As seen on 2026-10-10, the TurtleBot work from a8c0b4e (2026-10-04) on is on `turtlebot/lidar-check-and-motion-programs` and not yet on `main`. Done later on 2026-10-10: the branch, including the finished connect tool 1.1.0, was merged into `main`.
 
 **Acceptance criteria.**
 - [ ] The photos are in the repo and linked from HOW-TO-CONNECT.md or MAINTENANCE.md.
 - [ ] MAINTENANCE.md matches the robot (spot-check three entries).
 - [ ] No workstation-specific notes remain once the original author has left.
+- [x] The finished TurtleBot work is merged into `main`, and every link in `main` points at a file that exists on `main` (2026-10-10; link check of every TurtleBot Markdown and HTML file: 0 problems).
 
 **Risks and rollback.** Documentation only, apart from the key removal in step 4 (reversible by re-adding the key).
 
 **Estimated effort:** 2 hours, then a few minutes per change.
+
+---
+
+### TB-15 Characterise the /odom pauses at motion start
+
+**Priority:** P2 | **Status:** In progress (2026-10-04) | **Depends on:** None
+
+**Goal.** Know when, how often and why the Create 3 base stops publishing `/odom` for 0.4 to 1.0 s, and make sure the example programs handle it.
+
+**Why it matters.** The first `motion_shapes.py` runs aborted on stale odometry. An instrumented 10 cm move showed a 0.413 s gap in arrival and a 0.419 s gap in header stamps 0.12 s after the wheels started, so the base itself pauses. A triangle run later hit a 1.0 s gap at a segment change with a Pi load average of 3.4. No gap was seen with the robot still (19.98 Hz, largest gap 0.064 s). Details: [MAINTENANCE.md](MAINTENANCE.md#finding-odom-pauses-at-motion-start).
+
+**Steps.**
+
+1. Log `/odom` arrival time and header stamp during repeated short moves (start, stop, turn), with and without the camera running, and note the Pi load (`uptime`).
+2. Check whether other base topics (for example `/imu`, `/wheel_vels`) pause at the same moments. **[to verify]** topic names on this robot.
+3. Look for known reports in the Create 3 and TurtleBot 4 issue trackers and release notes.
+4. Record gap length, frequency and conditions in [docs/test-results.html](docs/test-results.html) and MAINTENANCE.md.
+5. Keep the program-side handling (hold at 0.3 s, abort at 2.0 s) unless the data shows a better threshold.
+
+**Acceptance criteria.**
+- [ ] Gap statistics over at least 20 motion starts are recorded. (_Placeholder: test campaign numbers_)
+- [ ] The likely cause is stated with its evidence, or "unknown" with what was ruled out.
+- [ ] Example programs that drive the robot tolerate the measured gaps.
+
+**Risks and rollback.** Short moves only, with the usual safety checklist. No configuration change.
+
+**Estimated effort:** 2 to 3 hours.
+
+---
+
+### TB-16 Motion program test campaign and demo shapes
+
+**Priority:** P2 | **Status:** Open (first runs 2026-10-04; campaign waiting for a supervised session, no runs since 2026-10-04) | **Depends on:** TB-02
+
+**Update 2026-10-10.** No runs since 2026-10-04. On 2026-10-04 an hour-long unattended test campaign run by an AI subagent was blocked by the AI tool's safety guard. Lesson: robot motion tests are run supervised, in short batches, with a person next to the robot; do step 1 that way. The new moving programs must first be copied to the robot ([TB-23](#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool)), and the robot must stay reachable ([TB-20](#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving)).
+
+**Goal.** Every shape in `motion_shapes.py` (and the other moving examples) has a recorded, repeatable result, including a floor measurement, so lab members can use them as demos and as a starting point.
+
+**Why it matters.** On 2026-10-04 square, rotate and back-and-forth completed with odometry end errors under 1 cm and 1 degree, triangle completed after the second odometry fix (1.0 cm, +2.2 deg, with three short holds) and figure eight aborted on a 2.0 s odometry gap (robot held still), the safety stops have not all been exercised, and the real (floor) error was not measured.
+
+**Steps.**
+
+1. Run each shape at least three times, detached, from the same taped start mark. Record duration, odometry end error and the measured floor error.
+2. Exercise each safety stop once: obstacle in front, `~/STOP`, Ctrl+C, `pkill -INT`, lift (wheel drop), and a dry run on the dock (must refuse a real run).
+3. Fill the runs table in [docs/test-results.html](docs/test-results.html) and update the status block in [examples/README.md](examples/README.md).
+4. Pick one or two shapes as the standard lab demo and write the exact command in HOW-TO-CONNECT.md.
+
+**Acceptance criteria.**
+- [ ] Every shape has at least three recorded runs with odometry and floor error. (_Placeholder: test campaign results_)
+- [ ] Every safety stop has been triggered once and stopped the robot.
+- [ ] The results page and the examples README are updated.
+
+**Risks and rollback.** Collision: speed is capped at 0.15 m/s, lidar front stop active, a person stands next to the robot. No configuration change.
+
+**Estimated effort:** half a day.
+
+---
+
+### TB-18 Lidar cable strain relief and label
+
+**Priority:** P2 | **Status:** Open (proposed 2026-10-04) | **Depends on:** None
+
+**Goal.** The lidar USB cable cannot work loose easily, and anyone can identify it quickly.
+
+**Why it matters.** A loose lidar USB cable caused the lidar outage from 2026-10-03 to 2026-10-04 (TB-02). The same fault is likely to return as the robot moves and is handled.
+
+**Steps.**
+
+1. With the robot shut down, photograph the lidar cable at both ends and its route (a TB-12 item). Check that no password label or screen is visible.
+2. Add strain relief with a cable tie or clip so the plugs are not pulled by the cable's weight. Do not block the lidar's view or the moving parts, and do not touch the USB-C link to the base.
+3. Label the cable "LIDAR USB" at the Pi end.
+4. Boot, undock and check `/scan` (MAINTENANCE.md verification step 6).
+5. Add the photos to the repo and record the change in MAINTENANCE.md.
+
+**Acceptance criteria.**
+- [ ] Strain relief and label fitted; photos in the repo.
+- [ ] `/scan` publishes off the dock after the change.
+- [ ] Recorded in MAINTENANCE.md.
+
+**Risks and rollback.** Pulling the wrong cable can cut the base link or the camera; identify the cable first. Rollback: cut the tie.
+
+**Estimated effort:** 30 minutes.
 
 ---
 
@@ -859,6 +1278,29 @@ The factory image from the official manual remains the last-resort restore, but 
 
 ---
 
+### TB-19 Read-only health check script
+
+**Priority:** P3 | **Status:** Prepared (proposed and written 2026-10-04 as [examples/health_check.py](examples/health_check.py), tested offline; first robot run pending, part of [TB-23](#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool)) | **Depends on:** None
+
+**Goal.** One command on the robot runs the [MAINTENANCE.md verification checklist](MAINTENANCE.md#verification-checklist) and prints pass or fail per item.
+
+**Why it matters.** On 2026-10-04 the lidar check took a dozen separate commands, and two of them needed retries because of command-line gotchas (128-entry truncation, a missing `--qos-reliability` option). A script makes the check quick and repeatable for anyone.
+
+**Steps.**
+
+1. Write `health_check.py` in [examples/](examples/) (written 2026-10-04, tested offline; first robot run pending): Wi-Fi profile and address, `turtlebot4` active, ROS environment, `/dock_status`, lidar device and (off the dock only) `/scan` rate and beam count, clock and clock-fix files. Read only: no `sudo`, no motion.
+2. Test it docked and undocked, and add sample output to the examples README.
+
+**Acceptance criteria.**
+- [ ] The script runs without `sudo` and changes nothing.
+- [ ] Its output matches a manual run of the checklist.
+
+**Risks and rollback.** Read only. Delete the file to roll back.
+
+**Estimated effort:** 1 to 2 hours.
+
+---
+
 ## Definition of done for any change
 
 A change to the robot, a laptop setup used by the lab, or a shared account is done only when all of these are true:
@@ -879,6 +1321,12 @@ A change to the robot, a laptop setup used by the lab, or a shared account is do
 | [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md) | User guide: connecting, running code, troubleshooting |
 | [MAINTENANCE.md](MAINTENANCE.md) | Configuration record, change register with undo steps, incident report, known issues |
 | [General Tasks log](../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt) | Dated step-by-step log of the setup, including what failed |
+| [2026-10-04 log](../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt) | Lidar check and motion programs, including what failed |
+| [Network log](../General%20Tasks/TurtleBot4%20-%20network%20and%20connectivity.txt) | Wi-Fi drops, lab router and repository incident, 2026-10-04 evening to 2026-10-10, including what failed |
+| [docs/](docs/index.html) | Illustrated pages: lidar diagnosis, motion program design, test results, network and connectivity |
+| [docs/network-and-connectivity.html](docs/network-and-connectivity.html) | The Wi-Fi drops, likely causes, fix and workarounds, the lab router and the proposal (TB-20 to TB-22). Markdown version: [docs/NETWORK-FINDINGS.md](docs/NETWORK-FINDINGS.md) |
+| [examples/README.md](examples/README.md) | How to run the example programs safely, including `motion_shapes.py` |
+| [tests/](tests/) | Test campaign for the example programs |
 | [setup/](setup/) | Scripts used to configure the robot, including `undo-clock.sh` |
 | [examples/](examples/) | Example programs and `motion_test.sh` |
 | [turtlebot4-field-guide.html](turtlebot4-field-guide.html) | Background on the platform, ROS 2 concepts and commands |

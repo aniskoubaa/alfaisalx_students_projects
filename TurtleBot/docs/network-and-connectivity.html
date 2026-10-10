@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Network and Connectivity</title>
+<meta name="description" content="TurtleBot 4 network map, the robot Wi-Fi drops of 2026-10-04 and 2026-10-05 with likely causes, the proposed fix and workarounds, and the lab router set up on 2026-10-05 with the proposal to use it.">
+<style>
+  /* Shared style for TurtleBot/docs pages. Tokens match turtlebot4-field-guide.html. */
+  :root{
+    --bg:#EEF2F4; --panel:#FFFFFF; --panel-alt:#E3EAED; --text:#16232F; --text-dim:#54636F;
+    --border:#C6D2D7; --accent:#0C8C82; --accent-strong:#075F58; --warn:#B85B26; --code-bg:#DDE6E9;
+    --ok:#2E7D32; --bad:#B3261E; --ok-bg:#E3F1E4; --bad-bg:#F8E4E2; --warn-bg:#F7E9DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+      --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+      --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+    --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+    --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.label-font,.eyebrow,th,.chip,.tile .k,figcaption,nav.toc a{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;}
+  code,pre,.mono{font-family:"IBM Plex Mono", Consolas, "Courier New", monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:0.88em; overflow-wrap:anywhere;}
+  pre{background:var(--code-bg); padding:12px 14px; border-radius:4px; overflow-x:auto; font-size:0.84rem; line-height:1.5; margin:0 0 16px;}
+  pre code{background:none; padding:0;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  a{color:var(--accent-strong);}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+
+  .page{display:grid; grid-template-columns:220px minmax(0,1fr); gap:0 44px; max-width:1220px; margin:0 auto; padding:0 28px 80px;}
+  nav.toc{position:sticky; top:0; align-self:start; padding-top:48px; max-height:100vh; overflow-y:auto;}
+  nav.toc .eyebrow{color:var(--text-dim); font-size:0.7rem;}
+  nav.toc ul{list-style:none; margin:0 0 24px; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.toc a{display:block; padding:6px 10px; border-radius:3px; color:var(--text-dim); text-decoration:none; font-size:0.86rem; font-weight:500;}
+  nav.toc a:hover{color:var(--text); background:var(--panel-alt);}
+  main{min-width:0; padding-top:48px;}
+  header.hero{margin-bottom:36px;}
+  .eyebrow{font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 12px;}
+  h1.title{font-size:clamp(2rem,5vw,3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{font-size:1.08rem; color:var(--text-dim); max-width:66ch; margin:0 0 20px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.84rem; color:var(--text-dim);}
+  .meta b{color:var(--text); font-weight:600;}
+
+  section{max-width:860px; padding:40px 0; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none; padding-top:0;}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .section-tag{font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.72rem; color:var(--text-dim); white-space:nowrap;}
+  h2{font-size:1.5rem; font-weight:600;}
+  h3{font-size:1.05rem; font-weight:600; margin:24px 0 8px;}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin:3px 0;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .table-wrap{overflow-x:auto; margin:0 0 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
+  th,td{text-align:left; padding:9px 12px; border-top:1px solid var(--border); vertical-align:top;}
+  thead th{border-top:none; font-size:0.76rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim); background:var(--panel-alt); white-space:nowrap;}
+  tbody th{font-weight:600; color:var(--text-dim); white-space:nowrap;}
+  td.notes{min-width:230px;}
+  td.nowrap{white-space:nowrap;}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  .chip{display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.74rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap;}
+  .chip.ok{color:var(--ok); background:var(--ok-bg);}
+  .chip.bad{color:var(--bad); background:var(--bad-bg);}
+  .chip.warn{color:var(--warn); background:var(--warn-bg);}
+  .chip.info{color:var(--accent-strong); background:var(--panel-alt);}
+  .chip.todo{color:var(--text-dim); background:transparent; border-style:dashed;}
+
+  .note{padding:12px 16px; background:var(--panel-alt); border-left:3px solid var(--warn); border-radius:0 4px 4px 0; font-size:0.92rem; margin:18px 0;}
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .placeholder{border:2px dashed var(--warn); border-radius:6px; padding:14px 16px; margin:16px 0; background:var(--warn-bg);}
+  .placeholder > b:first-child{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; color:var(--warn); text-transform:uppercase; letter-spacing:0.06em; font-size:0.78rem; display:block; margin-bottom:4px;}
+  tr.ph td{color:var(--text-dim); font-style:italic; background:repeating-linear-gradient(135deg, transparent 0 8px, var(--warn-bg) 8px 10px);}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:0 0 16px;}
+  .card{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px; break-inside:avoid;}
+  .card h3{margin:0 0 8px; font-size:0.98rem; display:flex; justify-content:space-between; gap:8px; align-items:baseline;}
+  .card p{margin:0 0 6px; font-size:0.9rem; color:var(--text-dim);}
+  .card dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.86rem;}
+  .card dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .card dd{margin:0; font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.82rem; overflow-wrap:anywhere;}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 0 18px;}
+  .tile{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px 14px;}
+  .tile .k{font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .tile .v{font-size:1.6rem; font-weight:600; font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; line-height:1.2;}
+  .tile .s{font-size:0.8rem; color:var(--text-dim);}
+
+  /* step flow */
+  ol.flow{list-style:none; padding:0; margin:0 0 16px; counter-reset:f;}
+  ol.flow > li{counter-increment:f; position:relative; padding:0 0 22px 52px; margin:0;}
+  ol.flow > li::before{content:counter(f); position:absolute; left:0; top:0; width:34px; height:34px; border-radius:50%; background:var(--panel); border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono", Consolas, monospace; font-weight:600;}
+  ol.flow > li::after{content:""; position:absolute; left:16px; top:36px; bottom:2px; width:2px; background:var(--border);}
+  ol.flow > li:last-child::after{display:none;}
+  ol.flow h3{margin:4px 0 6px;}
+
+  .verdict{border:2px solid var(--ok); background:var(--ok-bg); border-radius:8px; padding:16px 20px; margin:0 0 24px;}
+  .verdict h2{color:var(--ok); font-size:1.25rem; margin-bottom:6px;}
+  .verdict p:last-child{margin-bottom:0;}
+
+  .layers{display:flex; flex-direction:column; gap:6px; margin:0 0 16px;}
+  .layer{display:grid; grid-template-columns:34px minmax(0,1.3fr) minmax(0,1fr) 110px; gap:12px; align-items:center; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-left:5px solid var(--accent); border-radius:4px; font-size:0.88rem;}
+  .layer .n{font-family:"IBM Plex Mono", Consolas, monospace; color:var(--text-dim);}
+  .layer b{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .layer .when{color:var(--text-dim); font-size:0.84rem;}
+  .layer.pre{border-left-color:var(--text-dim);}
+  .layer.run{border-left-color:var(--warn);}
+  .layer.last{border-left-color:var(--bad);}
+
+  figure{margin:0 0 18px;}
+  figure.diagram{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:0.82rem; color:var(--text-dim); margin-top:10px; max-width:70ch;}
+  figure.narrow svg{max-width:560px; margin:0 auto;}
+  td:first-child code{white-space:nowrap;}
+  .shapes{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .shapes figure{margin:0;}
+
+  /* SVG classes (themeable) */
+  .sv-line{stroke:var(--text-dim); fill:none; stroke-width:1.5;}
+  .sv-thin{stroke:var(--border); fill:none; stroke-width:1;}
+  .sv-path{stroke:var(--accent); fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .sv-accent{stroke:var(--accent-strong); fill:none; stroke-width:2;}
+  .sv-warn{stroke:var(--warn); fill:none; stroke-width:2;}
+  .sv-bad{stroke:var(--bad); fill:none; stroke-width:2;}
+  .sv-dash{stroke-dasharray:5 4;}
+  .sv-fill-panel{fill:var(--panel); stroke:var(--text-dim); stroke-width:1.5;}
+  .sv-fill-alt{fill:var(--panel-alt); stroke:var(--border); stroke-width:1;}
+  .sv-fill-accent{fill:var(--accent); opacity:0.18; stroke:var(--accent); stroke-width:1.5;}
+  .sv-fill-warn{fill:var(--warn); opacity:0.16;}
+  .sv-fill-bad{fill:var(--bad); opacity:0.14;}
+  .sv-dot{fill:var(--accent-strong);}
+  .sv-dot-warn{fill:var(--warn);}
+  .sv-text{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:13px;}
+  .sv-small{fill:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:11px;}
+  .sv-mono{fill:var(--text-dim); font-family:"IBM Plex Mono", Consolas, monospace; font-size:10.5px;}
+  .sv-title{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:14px; font-weight:600;}
+  .sv-acc-text{fill:var(--accent-strong); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-warn-text{fill:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-bad-text{fill:var(--bad); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .arrowhead{fill:var(--text-dim);}
+  .arrowhead-acc{fill:var(--accent-strong);}
+
+  footer{max-width:860px; margin-top:30px; padding-top:18px; border-top:1px solid var(--border); font-size:0.84rem; color:var(--text-dim);}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:minmax(0,1fr); padding:0 16px 60px;}
+    nav.toc{min-width:0;}
+    nav.toc{position:sticky; top:0; z-index:5; padding-top:0; background:var(--bg); max-height:none; border-bottom:1px solid var(--border);}
+    nav.toc .eyebrow{display:none;}
+    nav.toc ul{flex-direction:row; overflow-x:auto; gap:4px; padding:12px 0; margin:0;}
+    nav.toc a{white-space:nowrap;}
+    main{padding-top:20px;}
+    .layer{grid-template-columns:28px 1fr; }
+    .layer .when,.layer .act{grid-column:2;}
+  }
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel-alt:#f2f2f2; --text:#000; --text-dim:#333; --border:#bbb; --code-bg:#f2f2f2;}
+    body{background:#fff; font-size:10.5pt;}
+    nav.toc{display:none;}
+    .page{display:block; padding:0; max-width:none;}
+    main{padding-top:0;}
+    section{padding:18px 0; max-width:none; break-inside:auto;}
+    .card,.tile,figure,.layer,tr,.verdict,.placeholder{break-inside:avoid;}
+    h2,h3{break-after:avoid;}
+    a{color:#000;}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-size:0.8em;}
+    pre{white-space:pre-wrap;}
+  }
+  /* page: network-and-connectivity */
+  .scroll-x{overflow-x:auto;}
+  .scroll-x svg{min-width:680px;}
+  tbody th{vertical-align:top;}
+  @media print{ .scroll-x{overflow:visible;} .scroll-x svg{min-width:0;} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="toc" aria-label="Contents">
+    <p class="eyebrow">Contents</p>
+    <ul>
+      <li><a href="#summary">Summary</a></li>
+      <li><a href="#map">Network map</a></li>
+      <li><a href="#timeline">Timeline and evidence</a></li>
+      <li><a href="#causes">Likely causes</a></li>
+      <li><a href="#fix">Proposed fix</a></li>
+      <li><a href="#workarounds">Workarounds</a></li>
+      <li><a href="#router">Lab router</a></li>
+      <li><a href="#proposal">Proposal</a></li>
+      <li><a href="#unknown">Not known yet</a></li>
+    </ul>
+    <p class="eyebrow">Other pages</p>
+    <ul>
+      <li><a href="index.html">Docs index</a></li>
+      <li><a href="NETWORK-FINDINGS.md">Markdown version</a></li>
+      <li><a href="../HOW-TO-CONNECT.md">How to connect</a></li>
+      <li><a href="../MAINTENANCE.md">Maintenance record</a></li>
+      <li><a href="../ROADMAP.md">Roadmap</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">TurtleBot 4 &middot; incident record &middot; TB-20, TB-21, TB-22</p>
+      <h1 class="title">Network and connectivity</h1>
+      <p class="dek">How a laptop reaches the lab's TurtleBot 4, why the robot kept dropping off the Wi-Fi on 2026-10-04 and 2026-10-05, what to do about it, and the lab router set up on 2026-10-05 as a possible dedicated network. Sources: the session record of 2026-10-03 to 2026-10-10 and this repository. Unknowns are marked as such.</p>
+      <div class="meta">
+        <span><b>Status on 2026-10-10</b> <span class="chip warn">fix proposed, not applied</span> <span class="chip todo">cause not confirmed</span> <span class="chip info">robot not on the lab router</span></span>
+        <span><b>Times</b> 2026-10-04: robot clock, EDT (UTC-4). 2026-10-03 and 2026-10-05: laptop clock, UTC+3</span>
+      </div>
+    </header>
+
+    <section id="summary">
+      <div class="section-head"><span class="section-tag">01</span><h2>Summary</h2></div>
+      <div class="tiles">
+        <div class="tile"><div class="k">Answer windows</div><div class="v">10&ndash;40 s</div><div class="s">2026-10-05: the robot answered SSH only in short windows</div></div>
+        <div class="tile"><div class="k">Longest silence watched</div><div class="v">about 25 min</div><div class="s">2026-10-04 from about 15:42; it did not come back</div></div>
+        <div class="tile"><div class="k">Laptop Wi-Fi</div><div class="v">fine</div><div class="s">the whole time, so the problem is on the robot side</div></div>
+        <div class="tile"><div class="k">Wi-Fi disconnects in robot logs</div><div class="v">none</div><div class="s">which log was read is not recorded</div></div>
+      </div>
+      <ul>
+        <li><b>Problem:</b> since 2026-10-04 the robot answers SSH only briefly, then drops off the network. <code>turtlebot4.local</code> also failed to resolve now and then.</li>
+        <li><b>Likely cause:</b> Wi-Fi power saving on the Raspberry Pi. This is a diagnosis, not confirmed.</li>
+        <li><b>Fix:</b> turn power saving off in the robot's <code>Students</code> Wi-Fi profile. It needs <code>sudo</code>. Proposed, <b>not applied</b> as of 2026-10-10 (<a href="../ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving">ROADMAP TB-20</a>).</li>
+        <li><b>Until then:</b> connect by the address on the robot's display, and retry (<a href="#workarounds">workarounds</a>).</li>
+        <li><b>Lab router:</b> a Linksys WRT54G was set up on 2026-10-05 as a dedicated lab network. The robot has not been moved to it. Moving it is a proposal (<a href="../ROADMAP.md#tb-21-decide-the-robots-network-students-or-the-lab-router">TB-21</a>); securing the router comes first (<a href="../ROADMAP.md#tb-22-secure-the-lab-router">TB-22</a>).</li>
+      </ul>
+      <div class="note"><b>Nothing on the robot was changed</b> for any of this. Since 2026-10-04 the only robot change is the user file <code>~/robot_code/motion_shapes.py</code> (R11). No <code>sudo</code> was used by the assistant. Full record: <a href="../MAINTENANCE.md#incident-robot-drops-off-the-wi-fi-2026-10-04-and-2026-10-05">MAINTENANCE.md, Wi-Fi incident</a>.</div>
+    </section>
+
+    <section id="map">
+      <div class="section-head"><span class="section-tag">02</span><h2>Network map</h2></div>
+      <p>Three networks lead to the robot today, and a fourth is set up but not used by the robot. The robot's Pi has one Wi-Fi interface, <code>wlan0</code>, which is either on <code>Students</code> or runs the robot's own access point.</p>
+      <figure class="diagram">
+        <div class="scroll-x">
+        <svg viewBox="0 0 920 560" role="img" aria-labelledby="net-t net-d">
+          <title id="net-t">Networks around the lab TurtleBot 4</title>
+          <desc id="net-d">A laptop reaches the robot's Raspberry Pi over the campus Students Wi-Fi (normal), or over the robot's own access point Turtlebot4 at 10.42.0.1 (fallback). The Pi talks to the Create 3 base over a USB link, Pi 192.168.186.3 and base 192.168.186.2. The lab router, a Linksys WRT54G at 192.168.1.1 with a wall Ethernet uplink to the campus network, is set up, but the robot is not on it; connecting the robot to it is a proposal.</desc>
+
+          <!-- campus network -->
+          <rect x="20" y="16" width="600" height="150" rx="8" class="sv-fill-alt"/>
+          <text x="36" y="40" class="sv-title">Campus network (university)</text>
+          <text x="36" y="70" class="sv-text">Wired: wall Ethernet ports</text>
+          <text x="36" y="88" class="sv-mono">first hop 10.22.10.253</text>
+          <text x="36" y="128" class="sv-small">Students Wi-Fi: robot DHCP subnet</text>
+          <text x="36" y="146" class="sv-mono">10.87.0.0/18</text>
+          <rect x="350" y="52" width="70" height="28" rx="4" class="sv-fill-panel"/><text x="377" y="71" class="sv-small">AP</text>
+          <rect x="440" y="52" width="70" height="28" rx="4" class="sv-fill-panel"/><text x="467" y="71" class="sv-small">AP</text>
+          <rect x="530" y="52" width="70" height="28" rx="4" class="sv-fill-panel"/><text x="557" y="71" class="sv-small">AP</text>
+          <text x="350" y="104" class="sv-small">Students Wi-Fi access points (WPA2-Personal)</text>
+          <text x="350" y="122" class="sv-small">Roaming between them drops SSH while</text>
+          <text x="350" y="138" class="sv-small">the robot drives (seen 2026-10-03)</text>
+
+          <!-- internet -->
+          <line x1="620" y1="60" x2="670" y2="60" class="sv-line"/>
+          <rect x="670" y="16" width="230" height="114" rx="8" class="sv-fill-panel"/>
+          <text x="686" y="40" class="sv-title">Internet</text>
+          <text x="686" y="62" class="sv-small">From Students: HTTPS only</text>
+          <text x="686" y="80" class="sv-small">(NTP and ping blocked)</text>
+          <text x="686" y="100" class="sv-small">Through the lab router: DNS and</text>
+          <text x="686" y="118" class="sv-small">HTTPS work, ping gets no reply</text>
+
+          <!-- laptop -->
+          <rect x="230" y="220" width="170" height="100" rx="8" class="sv-fill-panel"/>
+          <text x="246" y="244" class="sv-title">Your laptop</text>
+          <text x="246" y="264" class="sv-small">Windows, macOS or Linux</text>
+          <text x="246" y="284" class="sv-mono">ssh ubuntu@&lt;address&gt;</text>
+          <text x="246" y="304" class="sv-small">any lab member's computer</text>
+
+          <!-- laptop to Students -->
+          <line x1="360" y1="220" x2="400" y2="166" class="sv-accent"/>
+          <text x="244" y="200" class="sv-acc-text">Students Wi-Fi</text>
+
+          <!-- robot -->
+          <rect x="560" y="200" width="340" height="240" rx="10" class="sv-fill-alt"/>
+          <text x="576" y="222" class="sv-title">TurtleBot 4</text>
+          <rect x="576" y="234" width="170" height="176" rx="6" class="sv-fill-panel"/>
+          <text x="588" y="256" class="sv-text">Raspberry Pi 4</text>
+          <text x="588" y="274" class="sv-small">Ubuntu 24.04, ROS 2 Jazzy</text>
+          <text x="588" y="300" class="sv-acc-text">wlan0 (Wi-Fi)</text>
+          <text x="588" y="318" class="sv-mono">Students: 10.87.x.x</text>
+          <text x="588" y="334" class="sv-mono">e.g. 10.87.10.205</text>
+          <text x="588" y="350" class="sv-mono">own AP: 10.42.0.1</text>
+          <text x="588" y="370" class="sv-small">turtlebot4.local (mDNS):</text>
+          <text x="588" y="384" class="sv-small">unreliable on campus</text>
+          <text x="588" y="402" class="sv-mono">usb0: 192.168.186.3</text>
+          <rect x="786" y="234" width="100" height="176" rx="6" class="sv-fill-panel"/>
+          <text x="798" y="256" class="sv-text">Create 3</text>
+          <text x="798" y="274" class="sv-small">base</text>
+          <text x="798" y="318" class="sv-mono">192.168.186.2</text>
+          <text x="798" y="336" class="sv-mono">web :80</text>
+          <text x="798" y="354" class="sv-small">robot only</text>
+          <line x1="746" y1="330" x2="786" y2="330" class="sv-accent"/>
+          <text x="750" y="322" class="sv-small">USB</text>
+          <text x="576" y="430" class="sv-small">Pi to base: USB-C network 192.168.186.x, not reachable from a laptop</text>
+
+          <!-- Students to robot -->
+          <line x1="560" y1="166" x2="700" y2="234" class="sv-accent"/>
+          <text x="634" y="176" class="sv-small">priority 10, DHCP 10.87.x.x</text>
+          <text x="634" y="192" class="sv-warn-text">drops off since 2026-10-04</text>
+
+          <!-- fallback: robot's own access point -->
+          <line x1="400" y1="295" x2="576" y2="320" class="sv-line sv-dash"/>
+          <text x="410" y="284" class="sv-small">Turtlebot4 (fallback)</text>
+          <text x="410" y="340" class="sv-small">10.42.0.1, no internet</text>
+          <text x="410" y="356" class="sv-small">5 GHz, priority 0</text>
+
+          <!-- lab router -->
+          <rect x="20" y="440" width="310" height="110" rx="8" class="sv-fill-panel"/>
+          <text x="36" y="464" class="sv-title">Lab router: Linksys WRT54G</text>
+          <text x="36" y="484" class="sv-small">802.11g, 2.4 GHz only; very old firmware</text>
+          <text x="36" y="502" class="sv-mono">admin 192.168.1.1, LAN 192.168.1.x</text>
+          <text x="36" y="520" class="sv-small">Wi-Fi name starts with AlfaisalX</text>
+          <text x="36" y="540" class="sv-warn-text">Robot NOT on it (2026-10-10)</text>
+          <line x1="100" y1="440" x2="100" y2="166" class="sv-line"/>
+          <text x="108" y="300" class="sv-small">uplink: wall Ethernet</text>
+          <text x="108" y="316" class="sv-small">(router's Internet port)</text>
+          <line x1="280" y1="320" x2="280" y2="440" class="sv-line"/>
+          <text x="290" y="376" class="sv-small">cable test, 2026-10-05:</text>
+          <text x="290" y="392" class="sv-mono">laptop got 192.168.1.103</text>
+
+          <!-- proposal: robot on the lab router -->
+          <line x1="330" y1="495" x2="600" y2="440" class="sv-warn sv-dash"/>
+          <text x="360" y="522" class="sv-warn-text">proposal (TB-21): not set up</text>
+          <text x="360" y="538" class="sv-small">2.4 GHz 802.11g: check /scan and camera</text>
+
+          <!-- legend -->
+          <line x1="640" y1="478" x2="680" y2="478" class="sv-accent"/><text x="690" y="482" class="sv-small">in use</text>
+          <line x1="640" y1="500" x2="680" y2="500" class="sv-line sv-dash"/><text x="690" y="504" class="sv-small">fallback only</text>
+          <line x1="640" y1="522" x2="680" y2="522" class="sv-warn sv-dash"/><text x="690" y="526" class="sv-small">proposal, not set up</text>
+          <line x1="640" y1="544" x2="680" y2="544" class="sv-line"/><text x="690" y="548" class="sv-small">cable</text>
+        </svg>
+        </div>
+        <figcaption>The robot uses <code>Students</code> when it is in range (NetworkManager priority 10) and falls back to its own access point <code>Turtlebot4</code> otherwise (priority 0). The lab router is a real device, set up on 2026-10-05, but the robot has not been connected to it. Addresses as recorded from 2026-10-03 to 2026-10-05; the robot's <code>Students</code> address comes from DHCP and can change, so read it on the display. On a narrow screen, scroll the diagram sideways.</figcaption>
+      </figure>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Network</th><th>Who is on it</th><th>Addresses</th><th>Status on 2026-10-10</th></tr></thead>
+          <tbody>
+            <tr><td><code>Students</code> (campus Wi-Fi)</td><td>Laptops; the robot's <code>wlan0</code> (priority 10)</td><td>Robot by DHCP, <code>10.87.x.x</code> (<code>10.87.10.205</code> on 2026-10-03 and 2026-10-04), subnet <code>10.87.0.0/18</code></td><td><span class="chip warn">drops</span> Normal network; robot drops off since 2026-10-04</td></tr>
+            <tr><td><code>Turtlebot4</code> (robot's own access point)</td><td>A laptop that joins it; used by the robot only when <code>Students</code> is not available (priority 0)</td><td>Robot always <code>10.42.0.1</code>; laptops <code>10.42.0.x</code>. 5 GHz. No internet</td><td><span class="chip info">fallback</span> Unchanged</td></tr>
+            <tr><td>Pi to Create 3 link</td><td>The Pi (<code>usb0</code>) and the base</td><td>Pi <code>192.168.186.3</code>, base <code>192.168.186.2</code> (web page on port 80)</td><td><span class="chip ok">internal</span> Not reachable from a laptop</td></tr>
+            <tr><td>Lab router (Linksys WRT54G)</td><td>A laptop on a cable (2026-10-05 test). Not the robot</td><td>Admin <code>192.168.1.1</code>; LAN <code>192.168.1.x</code> by DHCP (laptop got <code>192.168.1.103</code>)</td><td><span class="chip todo">proposal</span> Set up; robot not moved</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="timeline">
+      <div class="section-head"><span class="section-tag">03</span><h2>Timeline and evidence</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>When</th><th>Clock</th><th>What was seen</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td class="nowrap">2026-10-03, during the motion test (about 20:31)</td><td>Laptop, UTC+3</td><td class="notes">SSH dropped as docking started; the robot briefly left the Wi-Fi while moving, likely roaming between campus access points. The dock command was re-sent detached and the robot docked.</td><td><span class="chip warn">known</span></td></tr>
+            <tr><td class="nowrap">2026-10-04, about 11:44 to 12:31</td><td>Robot, EDT</td><td class="notes">Lidar checks and motion runs over SSH (<a href="test-results.html">test results</a>).</td><td><span class="chip ok">worked</span></td></tr>
+            <tr><td class="nowrap">2026-10-04, between sessions</td><td>Robot, EDT</td><td class="notes">The robot was off the network for about 1.5 hours. It was powered off between sessions; the cause of the drop is not confirmed.</td><td><span class="chip todo">not confirmed</span></td></tr>
+            <tr><td class="nowrap">2026-10-04, about 15:42</td><td>Robot, EDT</td><td class="notes">After being switched on, the robot answered SSH once: up 4 min, address <code>10.87.10.205</code>, clock correct, lidar on USB. Then it dropped off the network. <code>turtlebot4.local</code> failed to resolve intermittently. It did not come back during about 25 minutes of watching.</td><td><span class="chip bad">dropped</span></td></tr>
+            <tr><td class="nowrap">2026-10-05, afternoon</td><td>Laptop, UTC+3</td><td class="notes">SSH by address and by key worked for about a minute, then the robot disappeared again. Afterwards it answered only in short windows (about 10 to 40 s). The laptop's Wi-Fi stayed fine the whole time. The robot's logs showed no Wi-Fi disconnects.</td><td><span class="chip bad">dropped</span></td></tr>
+            <tr><td class="nowrap">2026-10-05</td><td>Laptop, UTC+3</td><td class="notes">Lab router set up and measured with a laptop on a cable (<a href="#router">section 07</a>). The robot was not moved to it.</td><td><span class="chip ok">router up</span></td></tr>
+            <tr><td class="nowrap">2026-10-10</td><td>n/a</td><td class="notes">Documentation updated. The fix is still not applied and the robot has not been rechecked.</td><td><span class="chip warn">open</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The 2026-10-04 lidar and motion log is in <a href="../../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt">General Tasks</a>; the step log for this page is <a href="../../General%20Tasks/TurtleBot4%20-%20network%20and%20connectivity.txt">TurtleBot4 - network and connectivity.txt</a>.</p>
+    </section>
+
+    <section id="causes">
+      <div class="section-head"><span class="section-tag">04</span><h2>Likely causes</h2></div>
+      <p>A diagnosis from the evidence above, most likely first. <b>None of the three is confirmed.</b></p>
+      <div class="cards">
+        <div class="card">
+          <h3>1. Wi-Fi power saving <span class="chip warn">most likely</span></h3>
+          <p>Power saving is on by default in Ubuntu, and the robot's <code>Students</code> profile (written on 2026-10-03 by <code>write_keyfile.py</code>) sets no value. With it on, the Pi stays associated with the access point but stops answering incoming connections most of the time.</p>
+          <p>Fits: no disconnects in the robot's logs, a healthy laptop Wi-Fi, and short answer windows. Check: <a href="../ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving">TB-20</a> step 2.</p>
+        </div>
+        <div class="card">
+          <h3>2. mDNS on campus <span class="chip info">names only</span></h3>
+          <p><code>turtlebot4.local</code> depends on mDNS, which is unreliable on the campus Wi-Fi. This explains the name failures, not the failures by address.</p>
+          <p>Avoid it: use the address on the robot's display, for example <code>ssh ubuntu@10.87.10.205</code>.</p>
+        </div>
+        <div class="card">
+          <h3>3. Roaming <span class="chip info">while driving</span></h3>
+          <p>Campus access points move the robot between them, which drops SSH while the robot drives. Known since 2026-10-03.</p>
+          <p>Avoid it: run motion programs detached (<code>setsid nohup</code>), so they keep going when SSH drops.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="fix">
+      <div class="section-head"><span class="section-tag">05</span><h2>Proposed fix for cause 1</h2></div>
+      <p><span class="chip warn">proposed, not applied</span> Run in a terminal on the robot by a person who knows the <code>ubuntu</code> password (<code>sudo</code> asks for it). Connect by the display address first, retrying if needed.</p>
+<pre><code>sudo nmcli connection modify Students 802-11-wireless.powersave 2
+sudo nmcli connection up Students</code></pre>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr><th>Verify</th><td><code>nmcli -g 802-11-wireless.powersave connection show Students</code> should print the value for "disable", 2. Then check from a laptop that the robot keeps answering over a longer time (TB-20: 30 attempts over 30 minutes, on two days).</td></tr>
+            <tr><th>Undo</th><td>The same command with <code>powersave 0</code> (the default): <code>sudo nmcli connection modify Students 802-11-wireless.powersave 0</code>, then <code>sudo nmcli connection up Students</code>.</td></tr>
+            <tr><th>Risk</th><td>The Wi-Fi reconnects, so SSH may drop for a few seconds. No reboot. If the session drops after the first command, log in again and run the second.</td></tr>
+            <tr><th>Record</th><td>When applied: add it to the MAINTENANCE.md change register as R14, with the date, and update the incident and Known issues.</td></tr>
+            <tr><th>If it does not help</th><td>Record that cause 1 is ruled out, read the robot's NetworkManager log during a drop, and consider the lab router (<a href="#proposal">section 08</a>).</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="workarounds">
+      <div class="section-head"><span class="section-tag">06</span><h2>Workarounds that worked</h2></div>
+      <ol>
+        <li><b>Connect by IP address.</b> Read the address on the robot's display and use it instead of <code>turtlebot4.local</code>, for example <code>ssh ubuntu@10.87.10.205</code>.</li>
+        <li><b>Retry in a loop.</b> The robot answers in short windows, so keep trying. These loops reconnect until you log out normally (ssh exits with 255 when it cannot connect or loses the connection). Set up key login first; press Ctrl+C to stop trying.</li>
+      </ol>
+<pre><code># macOS and Linux (also Git Bash on Windows)
+while true; do ssh -o ConnectTimeout=5 -o ServerAliveInterval=10 ubuntu@10.87.10.205; [ $? -ne 255 ] &amp;&amp; break; sleep 5; done</code></pre>
+<pre><code># Windows PowerShell
+while ($true) { ssh -o ConnectTimeout=5 -o ServerAliveInterval=10 ubuntu@10.87.10.205; if ($LASTEXITCODE -ne 255) { break }; Start-Sleep 5 }</code></pre>
+      <ol start="3">
+        <li><b>The robot's own access point.</b> When the display shows <code>10.42.0.1</code>, join <code>Turtlebot4</code>. To keep internet at the same time the laptop needs a second Wi-Fi adapter (or Ethernet, or phone tethering).</li>
+      </ol>
+      <p>Step-by-step instructions for users: <a href="../HOW-TO-CONNECT.md#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found">HOW-TO-CONNECT.md, Troubleshooting</a>.</p>
+    </section>
+
+    <section id="router">
+      <div class="section-head"><span class="section-tag">07</span><h2>Lab router (set up 2026-10-05)</h2></div>
+      <p>Set up on 2026-10-05 by Ibrahim, with the AI assistant, as a dedicated lab network. <b>The robot has not been moved to it, and nothing on the robot was changed for it.</b> No login or Wi-Fi password is recorded here.</p>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr><th>Model</th><td>Linksys WRT54G: old 802.11g, 2.4 GHz only. Firmware very old (end of life); version not recorded</td></tr>
+            <tr><th>Admin page</th><td><code>http://192.168.1.1</code>. Admin login still the factory default when it was set up (to-do below)</td></tr>
+            <tr><th>LAN</th><td><code>192.168.1.x</code> with DHCP; a laptop on a cable got <code>192.168.1.103</code></td></tr>
+            <tr><th>Uplink</th><td>The university wall Ethernet cable in the router's <b>Internet</b> port. The first cable gave no internet; a different cable worked</td></tr>
+            <tr><th>Wi-Fi</th><td>SSID starting with <code>AlfaisalX</code> (exact final name not confirmed in the record; read it on the router's Wireless page). WPA2-Personal with AES</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Measured on 2026-10-05 (laptop on a cable)</h3>
+      <div class="tiles">
+        <div class="tile"><div class="k">Packet loss</div><div class="v">0 %</div><div class="s">to the router and the campus network</div></div>
+        <div class="tile"><div class="k">Round trip</div><div class="v">about 7 ms</div><div class="s">to the router; about 6 ms to the first campus hop <code>10.22.10.253</code></div></div>
+        <div class="tile"><div class="k">Download</div><div class="v">12&ndash;13 Mbit/s</div><div class="s">two runs; about 3 Mbit/s on Students Wi-Fi in the same test</div></div>
+        <div class="tile"><div class="k">Internet</div><div class="v">DNS, HTTPS ok</div><div class="s">ICMP ping to the internet gets no reply through this wall port</div></div>
+      </div>
+      <p>Not measured: throughput over the router's Wi-Fi, NTP through the router, ROS 2 discovery, and any robot traffic.</p>
+      <h3>Security to-dos (<a href="../ROADMAP.md#tb-22-secure-the-lab-router">TB-22</a>)</h3>
+      <ul>
+        <li><span class="chip todo">to-do</span> Change the factory admin login; keep the new one in the lab password manager, never in this repository.</li>
+        <li><span class="chip todo">to-do</span> Keep the admin page reachable from the lab network only: the WRT54G firmware is end of life.</li>
+        <li><span class="chip todo">to-do</span> Consider a newer router.</li>
+      </ul>
+    </section>
+
+    <section id="proposal">
+      <div class="section-head"><span class="section-tag">08</span><h2>Proposal: put the robot on the lab router</h2></div>
+      <p><span class="chip todo">proposal, not done</span> A robot change that needs <code>sudo</code>. The full steps, with commands, are in <a href="../ROADMAP.md#tb-21-decide-the-robots-network-students-or-the-lab-router">ROADMAP.md, TB-21</a>. First decide, using the result of the power-saving fix, whether staying on <code>Students</code> is enough.</p>
+      <ol class="flow">
+        <li><h3>Secure the router</h3><p>TB-22 first: admin login changed, admin page LAN-only. Read the exact SSID and the robot's Wi-Fi hardware address.</p></li>
+        <li><h3>Fixed address</h3><p>A DHCP reservation for the robot on the router (check that the WRT54G firmware offers it).</p></li>
+        <li><h3>New Wi-Fi profile on the robot</h3><p>A NetworkManager profile for the lab router with a higher autoconnect priority than <code>Students</code> (10), for example 20. The Wi-Fi password is typed at a hidden prompt, as for <code>Students</code>. The <code>Turtlebot4</code> access point stays as the last fallback.</p></li>
+        <li><h3>Test with a way back</h3><p>Try it once with autoconnect off, ideally with a scripted test phase that returns to <code>Students</code> by itself, as on 2026-10-03.</p></li>
+        <li><h3>Check and record</h3><p>Same address after reboots, fallback to <code>Students</code> with the router off, SSH stable for 30 minutes, <code>/scan</code> rate on a laptop. Record the change in MAINTENANCE.md with verify and undo.</p></li>
+      </ol>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Expected benefit</th><th>Risk or cost</th></tr></thead>
+          <tbody>
+            <tr><td>A stable address (reservation), no reliance on <code>turtlebot4.local</code></td><td>2.4 GHz 802.11g is slow: fine for SSH and topics like <code>/odom</code>; check <code>/scan</code> and camera bandwidth</td></tr>
+            <tr><td>No campus roaming or client limits</td><td>End-of-life router firmware (TB-22)</td></tr>
+            <tr><td>Likely working ROS 2 discovery between a laptop and the robot (<a href="../ROADMAP.md#tb-09-ros-2-from-a-laptop-over-campus-wi-fi">TB-09</a>); not tested</td><td>Users must join the lab Wi-Fi (password from the maintainer)</td></tr>
+            <tr><td>Laptops on the lab network keep internet through the router's uplink</td><td>Outside the router's range, or with it off, the robot falls back to <code>Students</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><b>Verify:</b> <code>nmcli -t -f NAME,DEVICE connection show --active</code> shows the lab profile on <code>wlan0</code>, and <code>ip -4 -br addr show wlan0</code> shows the reserved <code>192.168.1.x</code> address. <b>Undo:</b> <code>sudo nmcli connection delete "&lt;lab SSID&gt;"</code>; the robot returns to <code>Students</code>; then remove the reservation on the router.</p>
+    </section>
+
+    <section id="unknown">
+      <div class="section-head"><span class="section-tag">09</span><h2>Not known yet</h2></div>
+      <ul>
+        <li>Whether power saving is actually on for <code>wlan0</code> on this robot (the value has not been read).</li>
+        <li>Why the robot did not come back at all for about 25 minutes on 2026-10-04, and why it was off the network for about 1.5 hours earlier that day.</li>
+        <li>Which robot log was read on 2026-10-05.</li>
+        <li>Whether the drops also happen on the lab router network.</li>
+        <li>The lab router's exact SSID and firmware version, and whether its firmware offers DHCP reservations.</li>
+        <li>Whether NTP works through the lab router (relevant to the clock problem, <a href="../ROADMAP.md#tb-04-choose-a-reliable-time-strategy">TB-04</a>).</li>
+      </ul>
+    </section>
+
+    <footer>TurtleBot 4 lab documentation. Written 2026-10-10 from the session record of 2026-10-03 to 2026-10-10. 2026-10-04 times are the robot's clock (EDT); 2026-10-03 and 2026-10-05 times are laptop time (UTC+3). No passwords, Wi-Fi keys or router logins on this page.</footer>
+  </main>
+</div>
+</body>
+</html>

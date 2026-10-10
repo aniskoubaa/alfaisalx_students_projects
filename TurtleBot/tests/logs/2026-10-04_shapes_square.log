@@ -1,0 +1,35 @@
+12:23:09 shape square: 8 segments, about 33 s in total
+12:23:09   1. forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:23:09   2. turn left 90 deg at 0.50 rad/s (about 3.1 s, timeout 11.3 s)
+12:23:09   3. forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:23:09   4. turn left 90 deg at 0.50 rad/s (about 3.1 s, timeout 11.3 s)
+12:23:09   5. forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:23:09   6. turn left 90 deg at 0.50 rad/s (about 3.1 s, timeout 11.3 s)
+12:23:09   7. forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:23:09   8. turn left 90 deg at 0.50 rad/s (about 3.1 s, timeout 11.3 s)
+12:23:10 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+12:23:11 odometry OK, docked: False
+12:23:11 waiting up to 30 s for /scan
+12:23:12 lidar yaw in the robot frame (from TF): 90 deg
+12:23:12 lidar OK: nearest in front 1.64 m, nearest anywhere 0.55 m
+12:23:13 starting. To stop: Ctrl+C, or "touch ~/STOP", or "pkill -INT -f motion_shapes.py"
+12:23:13 segment 1/8: forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:23:18 segment 1 done in 5.2 s
+12:23:19 segment 2/8: turn left 90 deg at 0.50 rad/s (about 3.1 s, timeout 11.3 s)
+12:23:23 segment 2 done in 3.6 s
+12:23:23 segment 3/8: forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:23:28 segment 3 done in 5.1 s
+12:23:29 segment 4/8: turn left 90 deg at 0.50 rad/s (about 3.1 s, timeout 11.3 s)
+12:23:32 segment 4 done in 3.7 s
+12:23:33 segment 5/8: forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:23:38 segment 5 done in 5.1 s
+12:23:38 segment 6/8: turn left 90 deg at 0.50 rad/s (about 3.1 s, timeout 11.3 s)
+12:23:42 segment 6 done in 3.7 s
+12:23:43 segment 7/8: forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:23:48 segment 7 done in 5.1 s
+12:23:48 segment 8/8: turn left 90 deg at 0.50 rad/s (about 3.1 s, timeout 11.3 s)
+12:23:52 segment 8 done in 3.6 s
+12:23:52 planned end: x +0.000 m, y +0.000 m, heading change +360.0 deg
+12:23:52 odometry end: x +0.002 m, y -0.009 m, heading change +360.8 deg
+12:23:52 error: position 0.9 cm, heading +0.8 deg (odometry only; the real error is larger, measure it on the floor)
+12:23:52 done

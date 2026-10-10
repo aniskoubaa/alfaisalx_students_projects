@@ -1,0 +1,63 @@
+===== rotate
+12:25:41 shape rotate: 1 segments, about 13 s in total
+12:25:41   1. turn left 360 deg at 0.50 rad/s (about 12.6 s, timeout 30.1 s)
+12:25:42 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+12:25:42 lidar yaw in the robot frame (from TF): 90 deg
+12:25:43 odometry OK, docked: False
+12:25:43 waiting up to 30 s for /scan
+12:25:43 lidar OK: nearest in front 1.64 m, nearest anywhere 0.69 m
+12:25:44 starting. To stop: Ctrl+C, or "touch ~/STOP", or "pkill -INT -f motion_shapes.py"
+12:25:44 segment 1/1: turn left 360 deg at 0.50 rad/s (about 12.6 s, timeout 30.1 s)
+12:25:57 segment 1 done in 13.4 s
+12:25:58 planned end: x +0.000 m, y +0.000 m, heading change +360.0 deg
+12:25:58 odometry end: x +0.000 m, y -0.001 m, heading change +360.7 deg
+12:25:58 error: position 0.1 cm, heading +0.7 deg (odometry only; the real error is larger, measure it on the floor)
+12:25:58 done
+===== back_and_forth
+12:26:03 shape back_and_forth: 4 segments, about 23 s in total
+12:26:03   1. forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:26:03   2. turn left 180 deg at 0.50 rad/s (about 6.3 s, timeout 17.6 s)
+12:26:03   3. forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:26:03   4. turn left 180 deg at 0.50 rad/s (about 6.3 s, timeout 17.6 s)
+12:26:04 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+12:26:04 lidar yaw in the robot frame (from TF): 90 deg
+12:26:05 odometry OK, docked: False
+12:26:05 waiting up to 30 s for /scan
+12:26:05 lidar OK: nearest in front 1.64 m, nearest anywhere 0.73 m
+12:26:06 starting. To stop: Ctrl+C, or "touch ~/STOP", or "pkill -INT -f motion_shapes.py"
+12:26:06 segment 1/4: forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:26:11 segment 1 done in 5.4 s
+12:26:12 segment 2/4: turn left 180 deg at 0.50 rad/s (about 6.3 s, timeout 17.6 s)
+12:26:19 segment 2 done in 6.8 s
+12:26:19 segment 3/4: forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:26:24 segment 3 done in 5.1 s
+12:26:25 segment 4/4: turn left 180 deg at 0.50 rad/s (about 6.3 s, timeout 17.6 s)
+12:26:31 segment 4 done in 6.8 s
+12:26:32 planned end: x +0.000 m, y +0.000 m, heading change +360.0 deg
+12:26:32 odometry end: x -0.001 m, y -0.006 m, heading change +360.9 deg
+12:26:32 error: position 0.6 cm, heading +0.9 deg (odometry only; the real error is larger, measure it on the floor)
+12:26:32 done
+===== triangle
+12:26:37 shape triangle: 6 segments, about 28 s in total
+12:26:37   1. forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:26:37   2. turn left 120 deg at 0.50 rad/s (about 4.2 s, timeout 13.4 s)
+12:26:37   3. forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:26:37   4. turn left 120 deg at 0.50 rad/s (about 4.2 s, timeout 13.4 s)
+12:26:37   5. forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:26:37   6. turn left 120 deg at 0.50 rad/s (about 4.2 s, timeout 13.4 s)
+12:26:38 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+12:26:38 lidar yaw in the robot frame (from TF): 90 deg
+12:26:40 odometry OK, docked: False
+12:26:40 waiting up to 30 s for /scan
+12:26:40 lidar OK: nearest in front 1.65 m, nearest anywhere 0.73 m
+12:26:41 starting. To stop: Ctrl+C, or "touch ~/STOP", or "pkill -INT -f motion_shapes.py"
+12:26:41 segment 1/6: forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:26:46 segment 1 done in 5.1 s
+12:26:46 segment 2/6: turn left 120 deg at 0.50 rad/s (about 4.2 s, timeout 13.4 s)
+12:26:51 segment 2 done in 4.9 s
+12:26:52 segment 3/6: forward 0.40 m at 0.10 m/s (about 4.0 s, timeout 13.0 s)
+12:26:57 segment 3 done in 5.4 s
+12:26:58 segment 4/6: turn left 120 deg at 0.50 rad/s (about 4.2 s, timeout 13.4 s)
+12:26:58 ABORTED: odometry is stale (none for 1.0 s)
+STOPPED CHAIN at triangle (exit 1)
+CHAIN_END

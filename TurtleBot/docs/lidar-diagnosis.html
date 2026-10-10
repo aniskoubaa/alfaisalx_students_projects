@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lidar Diagnosis</title>
+<meta name="description" content="How the TurtleBot 4 'lidar not detected' fault of 2026-10-03 was diagnosed and resolved on 2026-10-04, with the measured values.">
+<style>
+  /* Shared style for TurtleBot/docs pages. Tokens match turtlebot4-field-guide.html. */
+  :root{
+    --bg:#EEF2F4; --panel:#FFFFFF; --panel-alt:#E3EAED; --text:#16232F; --text-dim:#54636F;
+    --border:#C6D2D7; --accent:#0C8C82; --accent-strong:#075F58; --warn:#B85B26; --code-bg:#DDE6E9;
+    --ok:#2E7D32; --bad:#B3261E; --ok-bg:#E3F1E4; --bad-bg:#F8E4E2; --warn-bg:#F7E9DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+      --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+      --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+    --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+    --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.label-font,.eyebrow,th,.chip,.tile .k,figcaption,nav.toc a{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;}
+  code,pre,.mono{font-family:"IBM Plex Mono", Consolas, "Courier New", monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:0.88em; overflow-wrap:anywhere;}
+  pre{background:var(--code-bg); padding:12px 14px; border-radius:4px; overflow-x:auto; font-size:0.84rem; line-height:1.5; margin:0 0 16px;}
+  pre code{background:none; padding:0;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  a{color:var(--accent-strong);}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+
+  .page{display:grid; grid-template-columns:220px minmax(0,1fr); gap:0 44px; max-width:1220px; margin:0 auto; padding:0 28px 80px;}
+  nav.toc{position:sticky; top:0; align-self:start; padding-top:48px; max-height:100vh; overflow-y:auto;}
+  nav.toc .eyebrow{color:var(--text-dim); font-size:0.7rem;}
+  nav.toc ul{list-style:none; margin:0 0 24px; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.toc a{display:block; padding:6px 10px; border-radius:3px; color:var(--text-dim); text-decoration:none; font-size:0.86rem; font-weight:500;}
+  nav.toc a:hover{color:var(--text); background:var(--panel-alt);}
+  main{min-width:0; padding-top:48px;}
+  header.hero{margin-bottom:36px;}
+  .eyebrow{font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 12px;}
+  h1.title{font-size:clamp(2rem,5vw,3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{font-size:1.08rem; color:var(--text-dim); max-width:66ch; margin:0 0 20px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.84rem; color:var(--text-dim);}
+  .meta b{color:var(--text); font-weight:600;}
+
+  section{max-width:860px; padding:40px 0; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none; padding-top:0;}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .section-tag{font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.72rem; color:var(--text-dim); white-space:nowrap;}
+  h2{font-size:1.5rem; font-weight:600;}
+  h3{font-size:1.05rem; font-weight:600; margin:24px 0 8px;}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin:3px 0;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .table-wrap{overflow-x:auto; margin:0 0 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
+  th,td{text-align:left; padding:9px 12px; border-top:1px solid var(--border); vertical-align:top;}
+  thead th{border-top:none; font-size:0.76rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim); background:var(--panel-alt); white-space:nowrap;}
+  tbody th{font-weight:600; color:var(--text-dim); white-space:nowrap;}
+  td.notes{min-width:230px;}
+  td.nowrap{white-space:nowrap;}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  .chip{display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.74rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap;}
+  .chip.ok{color:var(--ok); background:var(--ok-bg);}
+  .chip.bad{color:var(--bad); background:var(--bad-bg);}
+  .chip.warn{color:var(--warn); background:var(--warn-bg);}
+  .chip.info{color:var(--accent-strong); background:var(--panel-alt);}
+  .chip.todo{color:var(--text-dim); background:transparent; border-style:dashed;}
+
+  .note{padding:12px 16px; background:var(--panel-alt); border-left:3px solid var(--warn); border-radius:0 4px 4px 0; font-size:0.92rem; margin:18px 0;}
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .placeholder{border:2px dashed var(--warn); border-radius:6px; padding:14px 16px; margin:16px 0; background:var(--warn-bg);}
+  .placeholder > b:first-child{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; color:var(--warn); text-transform:uppercase; letter-spacing:0.06em; font-size:0.78rem; display:block; margin-bottom:4px;}
+  tr.ph td{color:var(--text-dim); font-style:italic; background:repeating-linear-gradient(135deg, transparent 0 8px, var(--warn-bg) 8px 10px);}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:0 0 16px;}
+  .card{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px; break-inside:avoid;}
+  .card h3{margin:0 0 8px; font-size:0.98rem; display:flex; justify-content:space-between; gap:8px; align-items:baseline;}
+  .card p{margin:0 0 6px; font-size:0.9rem; color:var(--text-dim);}
+  .card dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.86rem;}
+  .card dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .card dd{margin:0; font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.82rem; overflow-wrap:anywhere;}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 0 18px;}
+  .tile{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px 14px;}
+  .tile .k{font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .tile .v{font-size:1.6rem; font-weight:600; font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; line-height:1.2;}
+  .tile .s{font-size:0.8rem; color:var(--text-dim);}
+
+  /* step flow */
+  ol.flow{list-style:none; padding:0; margin:0 0 16px; counter-reset:f;}
+  ol.flow > li{counter-increment:f; position:relative; padding:0 0 22px 52px; margin:0;}
+  ol.flow > li::before{content:counter(f); position:absolute; left:0; top:0; width:34px; height:34px; border-radius:50%; background:var(--panel); border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono", Consolas, monospace; font-weight:600;}
+  ol.flow > li::after{content:""; position:absolute; left:16px; top:36px; bottom:2px; width:2px; background:var(--border);}
+  ol.flow > li:last-child::after{display:none;}
+  ol.flow h3{margin:4px 0 6px;}
+
+  .verdict{border:2px solid var(--ok); background:var(--ok-bg); border-radius:8px; padding:16px 20px; margin:0 0 24px;}
+  .verdict h2{color:var(--ok); font-size:1.25rem; margin-bottom:6px;}
+  .verdict p:last-child{margin-bottom:0;}
+
+  .layers{display:flex; flex-direction:column; gap:6px; margin:0 0 16px;}
+  .layer{display:grid; grid-template-columns:34px minmax(0,1.3fr) minmax(0,1fr) 110px; gap:12px; align-items:center; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-left:5px solid var(--accent); border-radius:4px; font-size:0.88rem;}
+  .layer .n{font-family:"IBM Plex Mono", Consolas, monospace; color:var(--text-dim);}
+  .layer b{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .layer .when{color:var(--text-dim); font-size:0.84rem;}
+  .layer.pre{border-left-color:var(--text-dim);}
+  .layer.run{border-left-color:var(--warn);}
+  .layer.last{border-left-color:var(--bad);}
+
+  figure{margin:0 0 18px;}
+  figure.diagram{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:0.82rem; color:var(--text-dim); margin-top:10px; max-width:70ch;}
+  figure.narrow svg{max-width:560px; margin:0 auto;}
+  td:first-child code{white-space:nowrap;}
+  .shapes{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .shapes figure{margin:0;}
+
+  /* SVG classes (themeable) */
+  .sv-line{stroke:var(--text-dim); fill:none; stroke-width:1.5;}
+  .sv-thin{stroke:var(--border); fill:none; stroke-width:1;}
+  .sv-path{stroke:var(--accent); fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .sv-accent{stroke:var(--accent-strong); fill:none; stroke-width:2;}
+  .sv-warn{stroke:var(--warn); fill:none; stroke-width:2;}
+  .sv-bad{stroke:var(--bad); fill:none; stroke-width:2;}
+  .sv-dash{stroke-dasharray:5 4;}
+  .sv-fill-panel{fill:var(--panel); stroke:var(--text-dim); stroke-width:1.5;}
+  .sv-fill-alt{fill:var(--panel-alt); stroke:var(--border); stroke-width:1;}
+  .sv-fill-accent{fill:var(--accent); opacity:0.18; stroke:var(--accent); stroke-width:1.5;}
+  .sv-fill-warn{fill:var(--warn); opacity:0.16;}
+  .sv-fill-bad{fill:var(--bad); opacity:0.14;}
+  .sv-dot{fill:var(--accent-strong);}
+  .sv-dot-warn{fill:var(--warn);}
+  .sv-text{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:13px;}
+  .sv-small{fill:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:11px;}
+  .sv-mono{fill:var(--text-dim); font-family:"IBM Plex Mono", Consolas, monospace; font-size:10.5px;}
+  .sv-title{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:14px; font-weight:600;}
+  .sv-acc-text{fill:var(--accent-strong); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-warn-text{fill:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-bad-text{fill:var(--bad); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .arrowhead{fill:var(--text-dim);}
+  .arrowhead-acc{fill:var(--accent-strong);}
+
+  footer{max-width:860px; margin-top:30px; padding-top:18px; border-top:1px solid var(--border); font-size:0.84rem; color:var(--text-dim);}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:minmax(0,1fr); padding:0 16px 60px;}
+    nav.toc{min-width:0;}
+    nav.toc{position:sticky; top:0; z-index:5; padding-top:0; background:var(--bg); max-height:none; border-bottom:1px solid var(--border);}
+    nav.toc .eyebrow{display:none;}
+    nav.toc ul{flex-direction:row; overflow-x:auto; gap:4px; padding:12px 0; margin:0;}
+    nav.toc a{white-space:nowrap;}
+    main{padding-top:20px;}
+    .layer{grid-template-columns:28px 1fr; }
+    .layer .when,.layer .act{grid-column:2;}
+  }
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel-alt:#f2f2f2; --text:#000; --text-dim:#333; --border:#bbb; --code-bg:#f2f2f2;}
+    body{background:#fff; font-size:10.5pt;}
+    nav.toc{display:none;}
+    .page{display:block; padding:0; max-width:none;}
+    main{padding-top:0;}
+    section{padding:18px 0; max-width:none; break-inside:auto;}
+    .card,.tile,figure,.layer,tr,.verdict,.placeholder{break-inside:avoid;}
+    h2,h3{break-after:avoid;}
+    a{color:#000;}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-size:0.8em;}
+    pre{white-space:pre-wrap;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="toc" aria-label="Contents">
+    <p class="eyebrow">Contents</p>
+    <ul>
+      <li><a href="#verdict">Verdict</a></li>
+      <li><a href="#symptoms">Symptoms</a></li>
+      <li><a href="#flow">Diagnosis flow</a></li>
+      <li><a href="#evidence">Evidence</a></li>
+      <li><a href="#mount">Mount and front sector</a></li>
+      <li><a href="#power-saver">Dock power saver</a></li>
+      <li><a href="#gotchas">Gotchas</a></li>
+      <li><a href="#followups">Follow-ups</a></li>
+    </ul>
+    <p class="eyebrow">Other pages</p>
+    <ul>
+      <li><a href="index.html">Docs index</a></li>
+      <li><a href="LIDAR-FINDINGS.md">Markdown version</a></li>
+      <li><a href="motion-program-design.html">Motion program design</a></li>
+      <li><a href="test-results.html">Test results</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">TurtleBot 4 &middot; incident record &middot; TB-02</p>
+      <h1 class="title">Lidar diagnosis</h1>
+      <p class="dek">On 2026-10-03 the lidar spun but the Raspberry Pi could not see it on USB, so there was no <code>/scan</code>. On 2026-10-04 the USB cable was reseated, and each layer from USB up to scan data was checked. This page records the checks and the values measured.</p>
+      <div class="meta">
+        <span><b>Status</b> <span class="chip ok">Resolved 2026-10-04</span></span>
+        <span><b>Root cause</b> loose USB connection</span>
+        <span><b>Software changes</b> none</span>
+        <span><b>Times</b> robot clock, EDT (UTC-4)</span>
+      </div>
+    </header>
+
+    <section id="verdict">
+      <div class="verdict">
+        <h2>Verdict: lidar fixed by reseating the USB cable</h2>
+        <p>The lidar and its driver work. The USB data connection between the lidar and the Pi was loose. After the user reseated the cable (same cable, same port) and booted the robot at about 11:44, all four layers passed: the CP210x USB bridge enumerated, <code>/dev/RPLIDAR</code> appeared, the driver reported health 0, and off the dock <code>/scan</code> ran at 7.75&nbsp;Hz with 720 beams.</p>
+        <p>"No <code>/scan</code> while docked" is the TurtleBot 4 power saver, not a fault.</p>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k">Scan rate</div><div class="v">7.75 Hz</div><div class="s">period 0.119&ndash;0.139 s</div></div>
+        <div class="tile"><div class="k">Beams</div><div class="v">720</div><div class="s">0.5&deg; apart, 519 valid (72 %)</div></div>
+        <div class="tile"><div class="k">Range seen</div><div class="v">0.26&ndash;6.80 m</div><div class="s">median 1.44 m</div></div>
+        <div class="tile"><div class="k">Health</div><div class="v">0</div><div class="s">firmware 1.29, hw rev 7</div></div>
+      </div>
+    </section>
+
+    <section id="symptoms">
+      <div class="section-head"><span class="section-tag">01</span><h2>Symptoms on 2026-10-03</h2></div>
+      <ul>
+        <li>The lidar spun, so it had power.</li>
+        <li><code>lsusb</code> listed no Silicon Labs CP210x device, docked or undocked.</li>
+        <li><code>/dev/RPLIDAR</code> did not exist; the driver log said <code>cannot bind to the specified serial port '/dev/RPLIDAR'</code>.</li>
+        <li>A full power cycle (Pi shut down, base off and on) did not help.</li>
+      </ul>
+      <p>The lidar's motor and its USB data link are separate. A spinning lidar that is missing from <code>lsusb</code> points at the data connection: cable, connector or the lidar's USB adapter board.</p>
+    </section>
+
+    <section id="flow">
+      <div class="section-head"><span class="section-tag">02</span><h2>Diagnosis flow</h2></div>
+      <p>Check from the bottom up and stop at the first layer that fails. All checks are read only and run in a terminal on the robot (<code>ssh ubuntu@turtlebot4.local</code>).</p>
+      <ol class="flow">
+        <li>
+          <h3>Physical and USB <span class="chip ok">pass</span></h3>
+          <p>Is the USB bridge enumerated and is the device link there?</p>
+<pre><code>lsusb | grep -i -E "silicon labs|cp210"
+ls -la /dev/RPLIDAR /dev/ttyUSB0</code></pre>
+          <p>2026-10-04: <code>10c4:ea60</code> Silicon Labs CP210x UART Bridge; <code>/dev/RPLIDAR -&gt; ttyUSB0</code>. If this fails: reseat both ends, then try another port, another cable, then the lidar on a laptop (<a href="../ROADMAP.md#tb-02-fix-lidar-detection">TB-02 steps</a>).</p>
+        </li>
+        <li>
+          <h3>Driver <span class="chip ok">pass</span></h3>
+          <p>Did <code>rplidar_composition</code> open the port and read the device?</p>
+<pre><code>journalctl -u turtlebot4 -b --no-pager | grep -i rplidar</code></pre>
+          <p>2026-10-04: started with S/N, firmware 1.29, hardware revision 7, health status 0, scan mode Sensitivity.</p>
+        </li>
+        <li>
+          <h3>ROS graph <span class="chip ok">pass</span></h3>
+          <p>Is <code>/scan</code> advertised, and in the expected environment?</p>
+<pre><code>ros2 topic info -v /scan</code></pre>
+          <p>2026-10-04: 1 publisher (reliable), subscriber <code>turtlebot4_diagnostics</code> (best effort).</p>
+        </li>
+        <li>
+          <h3>Data, off the dock <span class="chip ok">pass</span></h3>
+          <p>Undock first: the lidar is stopped on the dock. Then measure rate and content.</p>
+<pre><code>ros2 topic hz /scan
+ros2 topic echo --once --full-length /scan
+python3 ~/robot_code/clearance_check.py 0.6; echo "exit code $?"</code></pre>
+          <p>2026-10-04: 7.75 Hz, 720 beams, 72 % valid; <code>clearance_check.py</code> exit 0.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section id="evidence">
+      <div class="section-head"><span class="section-tag">03</span><h2>Evidence (2026-10-04)</h2></div>
+      <div class="cards">
+        <div class="card">
+          <h3>USB device <span class="chip ok">ok</span></h3>
+          <dl>
+            <dt>lsusb</dt><dd>10c4:ea60 Silicon Labs CP210x UART Bridge</dd>
+            <dt>link</dt><dd>/dev/RPLIDAR -&gt; ttyUSB0</dd>
+            <dt>port</dt><dd>crw-rw-rw- root dialout</dd>
+            <dt>dmesg</dt><dd>not read (needs sudo)</dd>
+          </dl>
+        </div>
+        <div class="card">
+          <h3>Driver <span class="chip ok">ok</span></h3>
+          <dl>
+            <dt>node</dt><dd>rplidar_composition</dd>
+            <dt>S/N</dt><dd>6DE9ED95C4E493C8A5E69EF0FC394B6C</dd>
+            <dt>firmware</dt><dd>1.29</dd>
+            <dt>hardware</dt><dd>rev 7</dd>
+            <dt>health</dt><dd>0</dd>
+            <dt>mode</dt><dd>Sensitivity, 12 m max, 7.9K samples/s</dd>
+          </dl>
+        </div>
+        <div class="card">
+          <h3>ROS environment <span class="chip ok">ok</span></h3>
+          <dl>
+            <dt>domain</dt><dd>ROS_DOMAIN_ID=0</dd>
+            <dt>RMW</dt><dd>rmw_fastrtps_cpp</dd>
+            <dt>discovery</dt><dd>ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET</dd>
+            <dt>nodes</dt><dd>/rplidar_composition, /turtlebot4_base_node, /oakd, /turtlebot4_diagnostics</dd>
+          </dl>
+        </div>
+        <div class="card">
+          <h3>/scan topic <span class="chip ok">ok</span></h3>
+          <dl>
+            <dt>publisher</dt><dd>1, RELIABLE</dd>
+            <dt>subscriber</dt><dd>turtlebot4_diagnostics, BEST_EFFORT</dd>
+            <dt>rate</dt><dd>7.75 Hz</dd>
+            <dt>period</dt><dd>0.119&ndash;0.139 s, std 0.0064 s</dd>
+          </dl>
+        </div>
+        <div class="card">
+          <h3>Scan content <span class="chip ok">ok</span></h3>
+          <dl>
+            <dt>frame</dt><dd>rplidar_link</dd>
+            <dt>angles</dt><dd>-3.124 to 3.1416 rad</dd>
+            <dt>increment</dt><dd>0.008715 rad (720 beams)</dd>
+            <dt>limits</dt><dd>0.15 to 12.0 m</dd>
+            <dt>valid</dt><dd>519 / 720 (72 %)</dd>
+            <dt>ranges</dt><dd>0.261&ndash;6.800 m, median 1.442 m</dd>
+          </dl>
+        </div>
+        <div class="card">
+          <h3>Program check <span class="chip ok">exit 0</span></h3>
+          <dl>
+            <dt>command</dt><dd>clearance_check.py 0.6</dd>
+            <dt>offset</dt><dd>lidar frame offset 90 deg</dd>
+            <dt>beams</dt><dd>78 in front</dd>
+            <dt>nearest</dt><dd>1.73 m in front</dd>
+          </dl>
+        </div>
+        <div class="card">
+          <h3>Base and motion <span class="chip ok">ok</span></h3>
+          <dl>
+            <dt>/dock_status</dt><dd>received</dd>
+            <dt>clocks</dt><dd>Pi and base within seconds</dd>
+            <dt>/cmd_vel</dt><dd>TwistStamped; sub create3_repub (BEST_EFFORT)</dd>
+            <dt>undock</dt><dd>SUCCEEDED about 12:09</dd>
+          </dl>
+        </div>
+        <div class="card">
+          <h3>Clock fix <span class="chip warn">still installed</span></h3>
+          <dl>
+            <dt>timer</dt><dd>tb4-https-time.timer present</dd>
+            <dt>drop-in</dt><dd>10-wait-for-clock.conf present</dd>
+            <dt>clock</dt><dd>correct (2026) this boot</dd>
+            <dt>decision</dt><dd>keep or remove: TB-17</dd>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <section id="mount">
+      <div class="section-head"><span class="section-tag">04</span><h2>Mount and front sector</h2></div>
+      <p>The lidar is mounted turned +90&deg; about the vertical axis. Transform <code>base_link</code> &rarr; <code>rplidar_link</code>: translation (&minus;0.040, 0, 0.193)&nbsp;m, yaw +90&deg;. A beam at laser angle <i>a</i> points at robot angle <i>a</i>&nbsp;+&nbsp;90&deg;, so straight ahead of the robot is laser angle &minus;90&deg;, and the &plusmn;30&deg; front sector is laser angles &minus;120&deg; to &minus;60&deg; (about 120 beams; 78 were valid in the scan above). <code>clearance_check.py</code> and <code>motion_shapes.py</code> read this offset from TF.</p>
+      <figure class="diagram narrow">
+        <svg viewBox="0 0 520 470" role="img" aria-labelledby="mount-t mount-d">
+          <title id="mount-t">Top view of the robot with the lidar frame and the front sector</title>
+          <desc id="mount-d">The robot faces up. The lidar sits 4 cm behind the robot centre. Its zero-angle axis points to the robot's left. The front sector spans plus and minus 30 degrees around the robot's forward direction, with arcs at 0.25 m (motion_shapes stop) and 0.6 m (clearance_check limit).</desc>
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker>
+            <marker id="aha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrowhead-acc"/></marker>
+          </defs>
+          <!-- guide ring and angle labels (laser frame) -->
+          <circle cx="260" cy="250" r="180" class="sv-thin sv-dash"/>
+          <text x="260" y="62" text-anchor="middle" class="sv-mono">laser &minus;90&deg; = robot front</text>
+          <text x="66" y="246" text-anchor="middle" class="sv-mono">laser 0&deg;</text>
+          <text x="66" y="260" text-anchor="middle" class="sv-mono">(robot left)</text>
+          <text x="456" y="246" text-anchor="middle" class="sv-mono">laser &plusmn;180&deg;</text>
+          <text x="456" y="260" text-anchor="middle" class="sv-mono">(robot right)</text>
+          <text x="260" y="448" text-anchor="middle" class="sv-mono">laser +90&deg; = robot back</text>
+          <!-- front sector 0.6 m -->
+          <path d="M260,250 L185,120.1 A150,150 0 0 1 335,120.1 Z" class="sv-fill-accent"/>
+          <!-- 0.25 m stop arc -->
+          <path d="M228.75,195.87 A62.5,62.5 0 0 1 291.25,195.87" class="sv-warn"/>
+          <text x="300" y="186" class="sv-warn-text">0.25 m stop</text>
+          <text x="300" y="112" class="sv-acc-text">0.6 m clear check</text>
+          <text x="176" y="112" text-anchor="end" class="sv-small">laser &minus;60&deg;</text>
+          <text x="344" y="135" class="sv-small">laser &minus;120&deg;</text>
+          <text x="214" y="150" text-anchor="middle" class="sv-small">+30&deg;</text>
+          <text x="306" y="150" text-anchor="middle" class="sv-small">&minus;30&deg;</text>
+          <!-- nearest obstacle off scale -->
+          <line x1="260" y1="118" x2="260" y2="74" class="sv-accent sv-dash" marker-end="url(#aha)"/>
+          <text x="268" y="86" class="sv-small">nearest in front 1.73 m (off scale)</text>
+          <!-- robot body: Create 3 about 0.34 m across; scale 250 px per m -->
+          <circle cx="260" cy="240" r="43" class="sv-fill-panel"/>
+          <line x1="260" y1="240" x2="260" y2="205" class="sv-line" marker-end="url(#ah)"/>
+          <text x="214" y="236" text-anchor="end" class="sv-small">base_link x</text>
+          <!-- lidar -->
+          <circle cx="260" cy="250" r="9" class="sv-fill-alt"/>
+          <circle cx="260" cy="250" r="2.5" class="sv-dot"/>
+          <line x1="260" y1="250" x2="150" y2="250" class="sv-accent" marker-end="url(#aha)"/>
+          <text x="152" y="282" class="sv-acc-text">rplidar_link x</text>
+          <text x="152" y="296" class="sv-small">(yaw +90&deg; from base_link)</text>
+          <text x="312" y="300" class="sv-small">lidar 4 cm behind centre,</text>
+          <text x="312" y="314" class="sv-small">0.193 m above base_link</text>
+        </svg>
+        <figcaption>Top view, robot facing up, roughly to scale (0.25 m and 0.6 m arcs measured from the lidar). Green wedge: the &plusmn;30&deg; front sector used by <code>clearance_check.py</code> (0.6 m) and by <code>motion_shapes.py</code> (stop at 0.25 m while driving forward).</figcaption>
+      </figure>
+    </section>
+
+    <section id="power-saver">
+      <div class="section-head"><span class="section-tag">05</span><h2>Dock power saver</h2></div>
+      <p>The TurtleBot 4 node stops the lidar while the robot is docked, to save power. On the dock <code>/scan</code> still has its publisher but carries no messages. This is expected and is the first thing to rule out when <code>/scan</code> is silent.</p>
+      <figure class="diagram">
+        <svg viewBox="0 0 660 240" role="img" aria-labelledby="ps-t ps-d">
+          <title id="ps-t">Lidar power saver states</title>
+          <desc id="ps-d">Two states. On the dock the lidar is stopped and /scan is silent. Off the dock the lidar runs and /scan publishes at 7.75 Hz. Undocking moves to the running state; docking moves back.</desc>
+          <defs>
+            <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker>
+          </defs>
+          <circle cx="40" cy="22" r="6" class="sv-dot"/>
+          <path d="M46,22 L110,22 L110,56" class="sv-line" marker-end="url(#ah2)"/>
+          <text x="120" y="26" class="sv-small">boot on the dock (11:44)</text>
+          <rect x="20" y="60" width="260" height="100" rx="8" class="sv-fill-panel"/>
+          <text x="40" y="88" class="sv-title">On the dock</text>
+          <text x="40" y="110" class="sv-text">lidar stopped</text>
+          <text x="40" y="128" class="sv-text">/scan: publisher, no messages</text>
+          <text x="40" y="146" class="sv-mono">"RPLIDAR stopped"</text>
+          <rect x="380" y="60" width="260" height="100" rx="8" class="sv-fill-panel"/>
+          <text x="400" y="88" class="sv-title">Off the dock</text>
+          <text x="400" y="110" class="sv-text">lidar spinning, driver reading</text>
+          <text x="400" y="128" class="sv-text">/scan: about 7.75 Hz</text>
+          <text x="400" y="146" class="sv-mono">"RPLIDAR started"</text>
+          <line x1="282" y1="88" x2="376" y2="88" class="sv-line" marker-end="url(#ah2)"/>
+          <text x="330" y="80" text-anchor="middle" class="sv-acc-text">undock</text>
+          <line x1="378" y1="134" x2="284" y2="134" class="sv-line" marker-end="url(#ah2)"/>
+          <text x="330" y="152" text-anchor="middle" class="sv-acc-text">dock</text>
+          <text x="20" y="190" class="sv-small">2026-10-04, robot time:</text>
+          <text x="20" y="208" class="sv-mono">11:44 boot on dock  &#8594;  11:48 "RPLIDAR stopped"</text>
+          <text x="20" y="226" class="sv-mono">12:09 undock SUCCEEDED  &#8594;  12:09:54 "RPLIDAR started"</text>
+        </svg>
+        <figcaption>States of the lidar under the TurtleBot 4 power saver, with the journal events seen on 2026-10-04. Lifting the robot off the dock by hand also counts as undocked.</figcaption>
+      </figure>
+    </section>
+
+    <section id="gotchas">
+      <div class="section-head"><span class="section-tag">06</span><h2>Gotchas found on the way</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>What happened</th><th>Why</th><th>What to do</th></tr></thead>
+          <tbody>
+            <tr><td><code>ros2 topic echo /scan</code> showed only part of <code>ranges</code>, ending in <code>...</code></td><td>The echo command truncates arrays at 128 entries by default</td><td>Add <code>--full-length</code></td></tr>
+            <tr><td><code>ros2 topic hz /scan</code> with a <code>--qos-reliability</code> option failed</td><td><code>ros2 topic hz</code> in Jazzy has no <code>--qos-reliability</code> option</td><td>Run it without the option; it receives <code>/scan</code></td></tr>
+            <tr><td><code>/scan</code> silent although the lidar is fine</td><td>Dock power saver</td><td>Undock, wait a few seconds</td></tr>
+            <tr><td><code>dmesg</code> refused</td><td>Kernel log needs <code>sudo</code> on this robot</td><td>Use <code>lsusb</code> and <code>/dev/RPLIDAR</code>, or ask an admin</td></tr>
+            <tr><td>Front of the robot is not laser angle 0</td><td>Lidar mounted with yaw +90&deg;</td><td>Read the offset from TF, as <code>clearance_check.py</code> does</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="followups">
+      <div class="section-head"><span class="section-tag">07</span><h2>Follow-ups</h2></div>
+      <ul>
+        <li>Confirm detection after the next, separate reboot. Only the boot right after the reseat has been checked. Update 2026-10-10: after the robot was powered off and switched on again on 2026-10-04, a single SSH check at about 15:42 (robot time) found the lidar on USB; no <code>/scan</code> result was recorded. Keep checking after restarts.</li>
+        <li>Strain relief and a label for the lidar cable: <a href="../ROADMAP.md#tb-18-lidar-cable-strain-relief-and-label">TB-18</a>.</li>
+        <li>Read-only health check script covering these checks: <a href="../ROADMAP.md#tb-19-read-only-health-check-script">TB-19</a>. Written as <a href="../examples/health_check.py">examples/health_check.py</a> and tested offline; first robot run pending (2026-10-10).</li>
+        <li>Admin record: <a href="../MAINTENANCE.md#incident-lidar-not-detected-2026-10-03-resolved-2026-10-04">MAINTENANCE.md</a>. Step log: <a href="../../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt">General Tasks log</a>.</li>
+      </ul>
+    </section>
+
+    <footer>TurtleBot 4 lab documentation. Written 2026-10-04. Robot times are the robot's clock (EDT); the 2026-10-03 notes use UTC+3. No credentials on this page.</footer>
+  </main>
+</div>
+</body>
+</html>

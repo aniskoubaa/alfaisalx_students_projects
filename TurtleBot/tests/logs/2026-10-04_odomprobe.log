@@ -1,0 +1,6 @@
+12:20:16 waiting up to 30 s for odom, dock, scan
+12:20:16 lidar yaw in the robot frame (from TF): 90 deg
+12:20:17 front clear 1.73 m
+12:20:20 segment done in 2.4 s
+odom msgs 98, max arrival gap 0.413 s
+  gap arrival 0.413 s, stamp gap 0.419 s, at t=+0.12 s from motion start
