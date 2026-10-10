@@ -57,7 +57,7 @@ No change was made to the robot after 2026-10-04 (details in [MAINTENANCE.md](MA
 | `/odom` pauses | Cause not known; `motion_shapes.py` holds still through them | [TB-15](#tb-15-characterise-the-odom-pauses-at-motion-start) |
 | Clock fix | Still installed as last seen on 2026-10-04; decision open. The clock was also correct at 15:42 on 2026-10-04 after a power-on | [TB-17](#tb-17-decide-whether-to-keep-or-remove-the-clock-fix), [TB-01](#tb-01-restore-create-3-base-communication) |
 | Lidar | On USB again after the later power-on on 2026-10-04 (no `/scan` result recorded) | [TB-02](#tb-02-fix-lidar-detection) (Done), [TB-18](#tb-18-lidar-cable-strain-relief-and-label) |
-| Repository | GitHub Desktop switched the local clone to `main` with uncommitted TurtleBot changes (2026-10-05); resolved 2026-10-10, nothing lost. As seen on 2026-10-10, the TurtleBot work from a8c0b4e on is not on `main` yet | [TB-12](#tb-12-documentation-follow-ups) |
+| Repository | GitHub Desktop switched the local clone to `main` with uncommitted TurtleBot changes (2026-10-05); resolved 2026-10-10, nothing lost. As seen on 2026-10-10, the TurtleBot work from a8c0b4e on is not on `main` yet; it was merged into `main` later on 2026-10-10 | [TB-12](#tb-12-documentation-follow-ups) |
 | Documentation | Brought up to date on 2026-10-10: network page, Wi-Fi troubleshooting, statuses, new tasks TB-20 to TB-23 | [TB-11](#tb-11-generalise-the-documentation), TB-12 |
 
 Status unchanged since 2026-10-04: TB-01 (waits for TB-17), TB-03 (not rerun), TB-04, TB-05, TB-06, TB-07, TB-13, TB-14, TB-18.
@@ -1120,13 +1120,13 @@ The factory image from the official manual remains the last-resort restore, but 
 3. Correct stale statements when found. For example, the "next steps" plan at the end of the General Tasks log predates the Wi-Fi switch.
 4. When the original author leaves: remove workstation-specific notes (desktop shortcuts, second Wi-Fi adapter, their SSH aliases), and remove their public key from the robot (see TB-05). Record both in MAINTENANCE.md.
 5. Make the example programs neutral where they include a person's name (for example the message in `hello_robot.py`).
-6. Added 2026-10-10: work on a branch, and merge it into `main` when it is finished; GitHub's `main` is what lab members read. Commit or discard changes before switching branches (lesson of the 2026-10-05 branch switch, [MAINTENANCE.md](MAINTENANCE.md#repository-note-branch-switch-in-github-desktop-2026-10-05-resolved-2026-10-10)). As seen on 2026-10-10, the TurtleBot work from a8c0b4e (2026-10-04) on is on `turtlebot/lidar-check-and-motion-programs` and not yet on `main`.
+6. Added 2026-10-10: work on a branch, and merge it into `main` when it is finished; GitHub's `main` is what lab members read. Commit or discard changes before switching branches (lesson of the 2026-10-05 branch switch, [MAINTENANCE.md](MAINTENANCE.md#repository-note-branch-switch-in-github-desktop-2026-10-05-resolved-2026-10-10)). As seen on 2026-10-10, the TurtleBot work from a8c0b4e (2026-10-04) on is on `turtlebot/lidar-check-and-motion-programs` and not yet on `main`. Done later on 2026-10-10: the branch, including the finished connect tool 1.1.0, was merged into `main`.
 
 **Acceptance criteria.**
 - [ ] The photos are in the repo and linked from HOW-TO-CONNECT.md or MAINTENANCE.md.
 - [ ] MAINTENANCE.md matches the robot (spot-check three entries).
 - [ ] No workstation-specific notes remain once the original author has left.
-- [ ] The finished TurtleBot work is merged into `main`, and every link in `main` points at a file that exists on `main`.
+- [x] The finished TurtleBot work is merged into `main`, and every link in `main` points at a file that exists on `main` (2026-10-10; link check of every TurtleBot Markdown and HTML file: 0 problems).
 
 **Risks and rollback.** Documentation only, apart from the key removal in step 4 (reversible by re-adding the key).
 

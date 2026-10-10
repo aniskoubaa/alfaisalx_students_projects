@@ -1,0 +1,4 @@
+# Files that run on the robot (Linux) keep LF line endings, also in Windows clones,
+# so a script copied to the robot with scp works there. See MAINTENANCE.md, Maintainer notes.
+*.sh text eol=lf
+*.py text eol=lf

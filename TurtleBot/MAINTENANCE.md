@@ -519,6 +519,7 @@ Run on the robot (`ssh ubuntu@turtlebot4.local`, or the address on its display).
 ## Maintainer notes
 
 - Copy files to the robot with `scp` or VS Code, not through a shell heredoc: a heredoc collapsed double backslashes and broke a Python file.
+- Shell scripts and Python programs that run on the robot keep Linux (LF) line endings, also in Windows clones: `TurtleBot/.gitattributes` (added 2026-10-10) sets `*.sh` and `*.py` to `eol=lf`. Before it, a Windows clone with `core.autocrlf=true` checked these files out with CRLF endings, and a `.sh` file copied to the robot from such a clone fails in bash (`$'\r': command not found`). The files stored in git were always LF.
 - Right after the robot joins Students, `turtlebot4.local` could briefly resolve to the wrong address; the first VS Code connect timed out until the SSH `ConnectTimeout` was lowered to 5 s. R6 addresses the cause.
 - On the laptop, a VS Code extension install failed with `ENOTFOUND` while Wi-Fi 2 still listed the robot's DNS server (`10.42.0.1`); it worked once the adapter showed Disconnected.
 - Windows may show an "8-digit PIN" box when joining `Turtlebot4`. That is the WPS screen; choose "Connect using a security key instead".
@@ -533,7 +534,7 @@ Run on the robot (`ssh ubuntu@turtlebot4.local`, or the address on its display).
 | What happened | On 2026-10-05 GitHub Desktop switched the local clone to `main` while TurtleBot changes were uncommitted. The changes were carried over and conflicted in `TurtleBot/README.md`, and an unrelated RAPTOR report got staged. On `main` the README then pointed at files that only existed on the TurtleBot branch, which made the guide look broken |
 | Resolved | 2026-10-10: conflict cleared, `main` updated, nothing lost |
 | Robot impact | None (repository only) |
-| Branches as seen on 2026-10-10 | In the local clone (remote refs as last fetched), `main` (906b14b, 2026-10-09) contains the TurtleBot commits up to 4d59c85 (2026-10-04). a8c0b4e (2026-10-04) and 7007f51 (2026-10-05) are on the branch `turtlebot/lidar-check-and-motion-programs` only. Merging that branch into `main` once it is finished is open ([ROADMAP.md, TB-12](ROADMAP.md#tb-12-documentation-follow-ups)) |
+| Branches as seen on 2026-10-10 | In the local clone (remote refs as last fetched), `main` (906b14b, 2026-10-09) contains the TurtleBot commits up to 4d59c85 (2026-10-04). a8c0b4e (2026-10-04) and 7007f51 (2026-10-05) are on the branch `turtlebot/lidar-check-and-motion-programs` only. Merging that branch into `main` once it is finished is open ([ROADMAP.md, TB-12](ROADMAP.md#tb-12-documentation-follow-ups)). Later on 2026-10-10 the branch was merged into `main`, which closes this point |
 
 Lessons:
 - Commit or discard changes before switching branches.
