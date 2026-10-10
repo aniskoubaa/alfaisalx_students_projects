@@ -1319,15 +1319,12 @@ namespace TurtleBotConnect
             }
         }
 
-        // A path as ssh expects it in an option or config file: ~/... when under the user profile,
-        // forward slashes, and double quotes when it contains a space.
+        // A path as ssh expects it in an option or config file: absolute, forward slashes, and double quotes
+        // when it contains a space. No ~: Windows OpenSSH expands ~ through an account lookup that fails for
+        // some accounts (get_passwd: lookup_sid() failed), and the file would then not be found.
         static string SshPathValue(string path)
         {
-            string p = path;
-            string home = UserProfile();
-            if (!string.IsNullOrEmpty(home) && p.StartsWith(home.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase))
-                p = "~" + p.Substring(home.TrimEnd('\\').Length);
-            p = p.Replace('\\', '/');
+            string p = Path.GetFullPath(path).Replace('\\', '/');
             return p.Contains(" ") ? "\"" + p + "\"" : p;
         }
 

@@ -2,7 +2,7 @@
 
 A small tool that opens a terminal on the lab's TurtleBot 4 with one double-click on Windows, or one command on macOS and Linux. It does the steps in [HOW-TO-CONNECT.md](../../HOW-TO-CONNECT.md) for you: it finds the robot, opens an SSH session, sets up key login, shows the robot's status, stops the motion programs in an emergency, copies files and fixes a changed host key.
 
-It uses the `ssh` that is already on your computer, and ssh asks for any password itself. The tool never stores, reads or sends a password.
+It uses the `ssh` that is already on your computer, and ssh asks for any password itself. The tool never stores, reads or sends a password. Before any password prompt it checks that the other end really is the lab robot, using the robot's host key built into the tool (see [Host key pinning](#host-key-pinning)).
 
 | File | What it is |
 |---|---|
@@ -12,7 +12,7 @@ It uses the `ssh` that is already on your computer, and ssh asks for any passwor
 | `build.cmd` | Builds the exe from the source with the compiler that ships with Windows |
 | `connect-turtlebot.sh` | The same tool for macOS and Linux (bash script) |
 
-Status on 2026-10-04: every menu option and command was tested on Windows 11 and in bash (Git Bash, and Ubuntu 24.04 under WSL) against a simulated robot: a stand-in for `ssh` that runs the robot-side commands in Ubuntu's bash, and a stand-in for VS Code's `code` command. It has not yet been used with the real robot, which was switched off that day, and it has not been run on a Mac.
+Status on 2026-10-10 (version 1.1.0): every menu option and command was tested on Windows 11 and in bash (Git Bash, and Ubuntu 24.04 under WSL) against a simulated robot: a stand-in for `ssh` that runs the robot-side commands in Ubuntu's bash, and a stand-in for VS Code's `code` command. Host key pinning was tested with the real `ssh` clients (Windows OpenSSH 9.5 and Git Bash OpenSSH 9.9) against a real OpenSSH 9.6 server. The tool has not yet been used with the real robot, and it has not been run on a Mac.
 
 ## Windows
 
@@ -73,13 +73,13 @@ The program looks for the robot when an option needs it. It tries, at the same t
 | 3 Set up key login | One time per computer. Creates your key `~/.ssh/turtlebot4_ed25519` if you have none (it asks whether to protect it with a passphrase), adds the public key to the robot (type the robot password one last time), then checks that key login works | `ssh-keygen -t ed25519 ...`, then `ssh ubuntu@<robot> "... >> ~/.ssh/authorized_keys"` |
 | 4 Robot status | Read only. Name, uptime, Wi-Fi address, whether `turtlebot4.service` runs, whether the lidar USB device `/dev/RPLIDAR` exists, battery % and whether the robot is on its dock. The battery and dock part asks ROS and can take up to a minute. | `ssh ubuntu@<robot> "<status commands>"` |
 | 5 Open in VS Code | Opens `~/robot_code` on the robot in VS Code. Needs VS Code with Microsoft's **Remote - SSH** extension. Without key login (3) and the shortcut (6), VS Code asks for the password, sometimes several times. | `code --remote ssh-remote+ubuntu@<robot> /home/ubuntu/robot_code` |
-| 6 SSH config shortcut | Adds a `Host turtlebot4` block to your SSH config, so `ssh turtlebot4` and `scp file turtlebot4:robot_code/` work and VS Code lists the robot. Backs the file up first, only appends, and does nothing if a `Host turtlebot4` entry already exists. | appends to `~/.ssh/config` |
+| 6 SSH config shortcut | Adds a `Host turtlebot4` block to your SSH config, so `ssh turtlebot4` and `scp file turtlebot4:robot_code/` work and VS Code lists the robot. The block includes the same [host key check](#host-key-pinning) as the tool. Backs the file up first, only appends, and does nothing if a `Host turtlebot4` entry already exists. | appends to `~/.ssh/config` |
 | 7 EMERGENCY stop | Creates `~/STOP` on the robot and stops `motion_shapes.py`, `more_shapes.py`, `wall_approach.py`, `keep_distance.py`, `campaign.sh` and running `ros2 action send_goal` commands. A running motion program stops the wheels within a second. `~/STOP` then blocks new runs until someone types `rm ~/STOP` on the robot. | `ssh ubuntu@<robot> "touch ~/STOP; pkill ..."` |
 | 8 Copy a file | Copies a file or folder from your computer into `~/robot_code` on the robot. You can drag the file onto the window. | `scp <file> ubuntu@<robot>:robot_code/` |
-| 9 Fix "host key changed" | For the warning `REMOTE HOST IDENTIFICATION HAS CHANGED`. Explains when this is expected, asks you to type `yes`, then forgets the old identity. **Ask the lab maintainer first**: the warning can also mean a device is pretending to be the robot. | `ssh-keygen -R <robot>` |
+| 9 Fix "host key changed" | Explains the built-in robot key (see [Host key pinning](#host-key-pinning)): if the tool refuses the robot, the maintainer must update the tool, and nothing on your computer needs fixing. For plain `ssh` users who see `REMOTE HOST IDENTIFICATION HAS CHANGED`, it asks you to type `yes`, then forgets the old identity in your `~/.ssh/known_hosts`. **Ask the lab maintainer first**: the warning can also mean a device is pretending to be the robot. | `ssh-keygen -R <robot>` |
 | 0 Exit | | |
 
-The dimmed line under each action shows the command being run, so you can learn the plain `ssh` commands from [HOW-TO-CONNECT.md](../../HOW-TO-CONNECT.md).
+The dimmed line under each action shows the command being run, so you can learn the plain `ssh` commands from [HOW-TO-CONNECT.md](../../HOW-TO-CONNECT.md). Every ssh and scp call also carries the host key options described in [Host key pinning](#host-key-pinning); the dimmed line shows them as `[robot host key check]`. The menu header shows the fingerprint being checked.
 
 **Safety:** if the robot is heading for danger, pick it up. The Create 3 base stops its wheels when lifted. Option 7 is for stopping programs; it is no substitute for staying next to the robot.
 
@@ -97,7 +97,8 @@ The menu appears when you start the program without arguments. For scripts and q
 | `--host <address>` | Use this robot name or address instead of searching |
 | `--user <name>` | Log in as another user (default `ubuntu`) |
 | `--key <path>` | Use another private key file (default `~/.ssh/turtlebot4_ed25519`) |
-| `--help`, `--version` | Show help or the version (1.0.0) |
+| `--trust-new-host-key` | Do not check the built-in robot key; ssh asks instead. Only after the lab maintainer confirms a reinstall (see [Host key pinning](#host-key-pinning)) |
+| `--help`, `--version` | Show help or the version (1.1.0) |
 
 On macOS and Linux, use `./connect-turtlebot.sh` with the same commands and options.
 
@@ -123,11 +124,67 @@ Exit codes: `0` OK, `1` robot not found, `2` ssh missing or a usage error, anyth
 
 It shows the same menu and accepts the same commands as the Windows program. It needs `ssh` (included in macOS and most Linux systems) and works with the old bash 3.2 that macOS ships. For option 5 the `code` command must be installed: on macOS, open VS Code, press Cmd+Shift+P and run **Shell Command: Install 'code' command in PATH**. To drop a file for option 8, drag it from Finder onto the Terminal window.
 
+## Host key pinning
+
+Every SSH server has a host key that proves its identity. Both programs have the lab robot's public host key built in (it is public, not a secret):
+
+```text
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINezwwah6HhR6o0ONkI77+B+XmFckK7JhQHI1Fn1nyBb
+fingerprint SHA256:P2rMsKzoIV+vsYEUViVNEFf9H8ORHn+qYbEhaTciyi4
+```
+
+Before each ssh or scp call, the tool writes this key into a known_hosts file of its own, under the name `turtlebot4-lab`. On Windows that file is `%APPDATA%\TurtleBotConnect\known_hosts`; on macOS and Linux it is `~/.config/turtlebot-connect/known_hosts`. The tool then runs ssh with:
+
+```text
+-o HostKeyAlias=turtlebot4-lab -o UserKnownHostsFile=<that file> -o StrictHostKeyChecking=yes
+-o HostKeyAlgorithms=ssh-ed25519 -o CheckHostIP=no
+```
+
+Whatever address the robot answers on (`turtlebot4.local`, `10.42.0.1` or a `10.87.x.x` address), the device must prove that it holds the robot's key. If it cannot, ssh stops before it asks for a password, so a device that pretends to be the robot never sees your password. The tool never reads or changes your own `~/.ssh/known_hosts`. Option 6 puts the same settings into the `turtlebot4` shortcut, so `ssh turtlebot4`, `scp` and VS Code get the same check.
+
+The built-in key was taken from the `known_hosts` file of the laptop used to set up the robot, where it was recorded under all three addresses (checked on 2026-10-04). The next time a maintainer has the robot at hand, they should confirm it on the robot itself with the command in [Updating the key after a reinstall](#updating-the-key-after-a-reinstall).
+
+### What you see when the key does not match
+
+ssh prints its own warning (`REMOTE HOST IDENTIFICATION HAS CHANGED!` and `Host key verification failed.`), and the tool adds:
+
+```text
+The device at 10.87.10.205 is not the lab robot as this program knows it: its SSH host key is not the
+built-in robot key. ssh stopped before asking for any password, so nothing was sent.
+Either this address is not the lab robot (another device on the network), or the robot was reinstalled.
+Ask the lab maintainer. If the robot was reinstalled, the pinned key in this program must be updated
+(README.md in this program's folder, section Host key pinning).
+Expected fingerprint: SHA256:P2rMsKzoIV+vsYEUViVNEFf9H8ORHn+qYbEhaTciyi4
+```
+
+Either the address now belongs to another device (the university Wi-Fi can give the robot's old address to someone else, or someone could be impersonating the robot), or the robot was reinstalled and has a new key. Ask the lab maintainer. Do not edit the tool's own known_hosts file: the tool rewrites it every time.
+
+### If the robot was reinstalled: `--trust-new-host-key`
+
+If the maintainer confirms the robot was reinstalled but the tool has not been updated yet, start it with `--trust-new-host-key`, for example `TurtleBotConnect.exe --trust-new-host-key` (menu) or `./connect-turtlebot.sh --trust-new-host-key connect`. The tool then runs ssh with `StrictHostKeyChecking=ask` and your normal `~/.ssh/known_hosts`. ssh shows the robot's fingerprint and asks whether to continue. Type `yes` (or paste the fingerprint) only if it matches the one the maintainer reads on the robot. While this option is on, the menu shows "Robot identity: NOT checked".
+
+### Updating the key after a reinstall
+
+For maintainers:
+
+1. Read the new key on the robot itself, not over a connection you have not checked. Use a monitor and keyboard on the Raspberry Pi, or put the SD card in another computer and read `etc/ssh/ssh_host_ed25519_key.pub` on its root partition:
+
+   ```bash
+   cat /etc/ssh/ssh_host_ed25519_key.pub
+   ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+   ```
+
+2. Copy the first two fields of the `cat` output (`ssh-ed25519 AAAA...`) into `PinnedHostKeyDefault` in `TurtleBotConnect.cs` and `PINNED_HOST_KEY` in `connect-turtlebot.sh`. Update the fingerprint in the comment next to each.
+3. Raise the version in both files, run `build.cmd`, and commit the `.cs`, `.sh`, `.exe` and `.exe.sha256` together.
+4. Update the fingerprint in this README and in [HOW-TO-CONNECT.md](../../HOW-TO-CONNECT.md), and record the reinstall in [MAINTENANCE.md](../../MAINTENANCE.md).
+
+Users then only need the new program: it rewrites its known_hosts file on the next run. People who used option 6 keep working too, because their shortcut reads the same file.
+
 ## Privacy and security
 
 - **No passwords are stored.** The robot password, and your key's passphrase if you set one, are typed only into ssh's own prompt. The tool never sees or saves them, and never puts them on a command line. The repository contains no passwords; keep it that way.
 - **Your private key stays on your computer.** Each lab member creates their own key with option 3; never share or copy key files, and never commit them. A key without a passphrase is convenient, but anyone who copies the file can log in to the robot. A passphrase protects it at the cost of typing the passphrase at each login.
-- **New robots are trusted automatically.** The tool runs ssh with `StrictHostKeyChecking=accept-new`: the first connection to a name or address saves the robot's identity without the usual yes/no question, and a later change is refused with a warning (option 9). On a shared network a device could, in theory, pretend to be the robot at that first contact. To check, compare the fingerprint the lab maintainer gets on the robot (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`) with the one your computer saved (`ssh-keygen -l -F turtlebot4.local`, or the address you used).
+- **The robot must prove its identity.** The robot's public host key is built into the tool (see [Host key pinning](#host-key-pinning)). A device that cannot prove it holds that key is refused before ssh asks for a password, whatever its address. The tool never reads or changes your `~/.ssh/known_hosts`, except that with `--trust-new-host-key` ssh may add the robot there after you answer `yes`.
 - **The Windows program is not code-signed.** Check its SHA-256, or build it yourself from the source in this folder.
 
 What the tool writes:
@@ -137,7 +194,8 @@ What the tool writes:
 | The last robot address that answered | Windows: `%APPDATA%\TurtleBotConnect\last_host.txt`. macOS and Linux: `~/.config/turtlebot-connect/last_host.txt` | Whenever the robot answers |
 | Your key pair | `~/.ssh/turtlebot4_ed25519` and `~/.ssh/turtlebot4_ed25519.pub` (Windows: `%USERPROFILE%\.ssh\...`) | Option 3, only if the key does not exist yet |
 | A `Host turtlebot4` block, and a backup of your previous file | `~/.ssh/config` and `~/.ssh/config.bak-<date>-<time>` | Option 6 only |
-| The robot's identity | `~/.ssh/known_hosts` (written by ssh itself) | First connection to each name or address |
+| The robot's built-in host key (one line: `turtlebot4-lab ssh-ed25519 ...`) | Windows: `%APPDATA%\TurtleBotConnect\known_hosts`. macOS and Linux: `~/.config/turtlebot-connect/known_hosts` | Before each ssh or scp call, only if the file is missing or different |
+| The robot's identity, only if you accept it | `~/.ssh/known_hosts` (written by ssh itself) | Only with `--trust-new-host-key`, after you answer `yes` to ssh |
 | Removal of one identity, keeping the old file | `~/.ssh/known_hosts`, `~/.ssh/known_hosts.old` (by ssh-keygen) | Option 9, after you type `yes` |
 | One line with your public key | `~/.ssh/authorized_keys` on the robot | Option 3 |
 | The stop file | `~/STOP` on the robot | Option 7 |
@@ -153,7 +211,8 @@ Option 4 (status) changes nothing on the robot.
 | "ssh (the OpenSSH Client) was not found" | Add **OpenSSH Client** under **Settings > System > Optional features**, or run `Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0` in an administrator PowerShell. |
 | "The robot did not answer" | Follow the steps it prints: the robot is on and has chimed (about 2 minutes after it starts), your computer is on the same Wi-Fi (`Students` for a `10.87.x.x` display, `Turtlebot4` for `10.42.0.1`), or type the address from the display. See [HOW-TO-CONNECT.md, Troubleshooting](../../HOW-TO-CONNECT.md#troubleshooting). |
 | `Permission denied` | Wrong password (nothing shows while you type), or your key is not on the robot yet: run option 3. |
-| `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!` | Ask the lab maintainer whether the robot was reinstalled or its address changed, then use option 9. |
+| "The device at ... is not the lab robot as this program knows it" (after `Host key verification failed`) | That address is not the robot, or the robot was reinstalled. Ask the lab maintainer; see [Host key pinning](#host-key-pinning). |
+| `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!` with plain `ssh`, not this tool | Ask the lab maintainer whether the robot was reinstalled or its address changed, then use option 9. |
 | Status says "ROS did not answer" | The robot started less than 2 minutes ago, or the Create 3 base is stuck: see [Restart the Create 3 base application](../../HOW-TO-CONNECT.md#restart-the-create-3-base-application). |
 | A motion program says `REFUSING: /home/ubuntu/STOP exists` | Option 7 left the stop file. When it is safe, log in and type `rm ~/STOP`. |
 | VS Code asks for the password again and again | Run option 3 (key login), then option 6 (shortcut), then option 5 again. Check that the **Remote - SSH** extension is installed. |
@@ -170,7 +229,7 @@ Do the robot part first, while your key still logs you in.
 2. **Windows (PowerShell):**
 
    ```powershell
-   Remove-Item -Recurse "$env:APPDATA\TurtleBotConnect"
+   Remove-Item -Recurse "$env:APPDATA\TurtleBotConnect"     # last_host.txt and the tool's known_hosts
    Remove-Item "$env:USERPROFILE\.ssh\turtlebot4_ed25519", "$env:USERPROFILE\.ssh\turtlebot4_ed25519.pub"
    ```
 
@@ -182,7 +241,7 @@ Do the robot part first, while your key still logs you in.
    ```
 
 3. **SSH config (only if you used option 6):** open `~/.ssh/config` (Windows: `%USERPROFILE%\.ssh\config`) in a text editor and delete the `Host turtlebot4` block, or put back the `config.bak-<date>-<time>` backup if you have not changed the file since. Delete the backups you no longer need.
-4. **Optional:** forget the robot's identity with `ssh-keygen -R turtlebot4.local` (and the same for any address you used).
+4. **Optional, only if you also used plain `ssh` or `--trust-new-host-key`:** forget the robot's identity with `ssh-keygen -R turtlebot4.local` (and the same for any address you used).
 5. Delete `TurtleBotConnect.exe` or `connect-turtlebot.sh`.
 
 Only delete a key file called `turtlebot4_ed25519` if it was created for the robot. Your other SSH keys are never touched.
@@ -192,7 +251,8 @@ Only delete a key file called `turtlebot4_ed25519` if it was created for the rob
 - `TurtleBotConnect.cs` must stay C# 5 (no `$"..."`, `?.`, `nameof`, tuples or `=>` members) so that the compiler built into Windows can build it. After changing it, run `build.cmd` and commit the `.cs`, `.exe` and `.exe.sha256` together.
 - The remote status and stop commands are identical in `TurtleBotConnect.cs` (`StatusScript`, `StopCommand`) and `connect-turtlebot.sh` (`STATUS_SCRIPT`, `STOP_COMMAND`). Change both, and keep double quotes out of them: the Windows program passes each one as a single quoted argument.
 - In the stop command, the patterns are written like `'motion_shape[s].py'`. They match the same programs as `motion_shapes.py`, but not the robot's shell that runs the command, whose own command line contains the pattern. Without the brackets, `pkill -TERM -f campaign.sh` kills that shell (tested on 2026-10-04 with Ubuntu's bash 5.2 and procps): the command stops halfway and a running `ros2 action send_goal` is not stopped.
-- Hidden test options: `--ssh-config <path>` (option 6 writes to this file instead of `~/.ssh/config`) and `--known-hosts <path>` (option 9 edits this file).
+- The pinned key (`PinnedHostKeyDefault` in the `.cs`, `PINNED_HOST_KEY` in the `.sh`) must be the same in both files. To change it, see [Updating the key after a reinstall](#updating-the-key-after-a-reinstall).
+- Hidden test options: `--ssh-config <path>` (option 6 writes to this file instead of `~/.ssh/config`), `--known-hosts <path>` (option 9 edits this file; with `--trust-new-host-key`, ssh uses it instead of `~/.ssh/known_hosts`) and `--pinned-key "ssh-ed25519 <base64>"` (pins another server's key, to test against a test SSH server).
 - `.gitattributes` keeps `connect-turtlebot.sh` at LF line endings and `build.cmd` at CRLF. Git on Windows does not record the executable bit; set it once with `git update-index --chmod=+x TurtleBot/tools/connect/connect-turtlebot.sh`.
 
 Back to [HOW-TO-CONNECT.md](../../HOW-TO-CONNECT.md).
