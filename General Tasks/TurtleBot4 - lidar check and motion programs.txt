@@ -48,3 +48,8 @@ Next steps / plan:
 3. Run motion_test.sh end to end, including the blocked-path run (TB-03). Dock at the end and record the result.
 4. Decide on the clock fix (TB-17). Note whether the lidar is still detected after the next reboot.
 5. Strain relief and label for the lidar cable, with photos (TB-18).
+
+Update (appended 2026-10-10):
+- 2026-10-04 ~12:28 to 12:32 robot time (results of the reruns announced above; raw logs in TurtleBot/tests/logs/2026-10-04_shapes_rest2.log and _rest3.log): triangle with fix 2 at 12:28:16 correctly refused to start ("path not clear: 0.48 m in front, need more than 0.65 m"); the robot was turned 180 deg with /rotate_angle (SUCCEEDED); triangle with fix 2 at 12:30:47 DONE, odometry end error 1.0 cm / +2.2 deg, held still 3 times (11, 8 and 1 control cycles) waiting for odometry.
+- 2026-10-04 12:31:31 robot time: FAILED: figure_eight with fix 2 completed its left circle (13.2 s), then ABORTED in the right circle on a 2.0 s odometry gap ("odometry is stale (none for 2.0 s)"); the robot held still for the whole gap, as designed. A complete figure eight is still missing (ROADMAP TB-16, TB-23).
+- 2026-10-04 afternoon and 2026-10-05: the robot dropped off the Wi-Fi before the new programs could be copied to it; no robot runs have been made since 2026-10-04. Continued in "TurtleBot4 - network and connectivity.txt" in this folder.
