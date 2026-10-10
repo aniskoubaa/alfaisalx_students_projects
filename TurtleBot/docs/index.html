@@ -193,6 +193,7 @@
     <p class="eyebrow">Contents</p>
     <ul>
       <li><a href="#start">Start here</a></li>
+      <li><a href="#week">This week</a></li>
       <li><a href="#pages">Illustrated pages</a></li>
       <li><a href="#records">Records and plans</a></li>
       <li><a href="#code">Programs and tests</a></li>
@@ -206,6 +207,7 @@
       <h1 class="title">TurtleBot 4 documentation</h1>
       <p class="dek">Everything written about the lab's TurtleBot 4 (Raspberry Pi 4 on an iRobot Create 3 base, Ubuntu 24.04, ROS 2 Jazzy). Log in from any computer with <code>ssh ubuntu@turtlebot4.local</code>, or with the address on the robot's display. Passwords are not stored here; ask the lab maintainer.</p>
       <div class="meta">
+        <span><b>State on 2026-10-10</b> <span class="chip bad">robot drops off Wi-Fi</span> <span class="chip warn">fix proposed, not applied</span> <span class="chip info">lab router set up, robot not on it</span> <span class="chip todo">new programs not on the robot yet</span></span>
         <span><b>State on 2026-10-04</b> <span class="chip ok">lidar fixed</span> <span class="chip ok">base talking</span> <span class="chip ok">shapes driving</span> <span class="chip warn">clock fix still installed</span> <span class="chip warn">/odom pauses</span></span>
       </div>
     </header>
@@ -216,49 +218,73 @@
         <a class="card" href="../README.md"><div class="path">README.md</div><h3>Folder index</h3><p>What each file is for, and a four-step quick start.</p></a>
         <a class="card" href="../HOW-TO-CONNECT.md"><div class="path">HOW-TO-CONNECT.md</div><h3>Connect and run code</h3><p>Networks, SSH, keys, VS Code, running the examples, turning the robot off, troubleshooting.</p></a>
         <a class="card" href="../turtlebot4-field-guide.html"><div class="path">turtlebot4-field-guide.html</div><h3>Field guide</h3><p>Beginner overview of the hardware and ROS 2.</p></a>
+        <a class="card" href="../tools/connect/README.md"><div class="path">tools/connect/</div><h3>Connect tool <span class="chip todo">not yet run on the robot</span></h3><p><code>TurtleBotConnect.exe</code> (Windows 10 or 11, no installation) and <code>connect-turtlebot.sh</code> (macOS, Linux), version 1.1.0. A menu to connect, find the robot, set up key login, show status, open VS Code, add an SSH shortcut, stop the motion programs in an emergency, copy a file and fix "host key changed". It only talks to a device with the lab robot's host key. The exe is unsigned: SmartScreen asks once (More info, Run anyway), or build it from source.</p></a>
       </div>
     </section>
 
+    <section id="week">
+      <div class="section-head"><span class="section-tag">02</span><h2>This week (2026-10-04 to 2026-10-10)</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>What happened</th><th>Status on 2026-10-10</th></tr></thead>
+          <tbody>
+            <tr><td class="nowrap">2026-10-04</td><td>Lidar fixed (loose USB cable); <code>motion_shapes.py</code> drove square, rotate, back-and-forth and triangle; the figure eight aborted on an odometry gap. New programs and offline tests written. An unattended AI test campaign was blocked by the AI tool's safety guard</td><td><span class="chip ok">done</span> Motion tests now supervised, in short batches</td></tr>
+            <tr><td class="nowrap">2026-10-04, about 15:42 (robot time)</td><td>After being switched on, the robot answered SSH once, then dropped off the Wi-Fi; <code>turtlebot4.local</code> failed now and then</td><td><span class="chip bad">open</span> <a href="network-and-connectivity.html">Network page</a></td></tr>
+            <tr><td class="nowrap">2026-10-05</td><td>SSH worked for about a minute, then only in 10 to 40 s windows. Likely cause: Wi-Fi power saving (not confirmed)</td><td><span class="chip warn">fix proposed, not applied</span> ROADMAP TB-20</td></tr>
+            <tr><td class="nowrap">2026-10-05</td><td>Lab router (Linksys WRT54G, <code>192.168.1.1</code>) set up and measured. Connect tool work in progress committed (7007f51)</td><td><span class="chip todo">proposal</span> Robot not on the router (TB-21); router admin login to change (TB-22)</td></tr>
+            <tr><td class="nowrap">2026-10-05</td><td>GitHub Desktop switched the local clone to <code>main</code> with uncommitted TurtleBot changes</td><td><span class="chip ok">resolved 2026-10-10</span> Nothing lost</td></tr>
+            <tr><td class="nowrap">2026-10-10</td><td>Documentation brought up to date; connect tool final design v1.1.0</td><td><span class="chip todo">pending</span> First robot runs of the new programs and the tool (TB-23)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Robot changes this week: none (the only change since 2026-10-03 is <code>~/robot_code/motion_shapes.py</code>, added on 2026-10-04). Details: <a href="../MAINTENANCE.md#state-on-2026-10-10">MAINTENANCE.md, state on 2026-10-10</a> and <a href="../ROADMAP.md#state-on-2026-10-10">ROADMAP.md, state on 2026-10-10</a>.</p>
+    </section>
+
     <section id="pages">
-      <div class="section-head"><span class="section-tag">02</span><h2>Illustrated pages</h2></div>
+      <div class="section-head"><span class="section-tag">03</span><h2>Illustrated pages</h2></div>
       <div class="doclist">
+        <a class="card" href="network-and-connectivity.html"><div class="path">docs/network-and-connectivity.html</div><h3>Network and connectivity <span class="chip warn">open</span></h3><p>Network map, the Wi-Fi drops of 2026-10-04 and 2026-10-05, likely causes, the proposed fix and workarounds, the lab router and the proposal to use it.</p></a>
+        <a class="card" href="NETWORK-FINDINGS.md"><div class="path">docs/NETWORK-FINDINGS.md</div><h3>Network findings (Markdown)</h3><p>The same content as plain Markdown, for reading on GitHub (without the diagram).</p></a>
         <a class="card" href="lidar-diagnosis.html"><div class="path">docs/lidar-diagnosis.html</div><h3>Lidar diagnosis <span class="chip ok">resolved</span></h3><p>The "lidar not detected" fault: checks from USB to scan data, measured values, mount sketch, dock power saver.</p></a>
         <a class="card" href="LIDAR-FINDINGS.md"><div class="path">docs/LIDAR-FINDINGS.md</div><h3>Lidar findings (Markdown)</h3><p>The same diagnosis as plain Markdown, for reading on GitHub.</p></a>
         <a class="card" href="motion-program-design.html"><div class="path">docs/motion-program-design.html</div><h3>Motion program design</h3><p>How <code>motion_shapes.py</code> plans, controls and guards a run; the <code>/odom</code> pause finding; parameters.</p></a>
-        <a class="card" href="test-results.html"><div class="path">docs/test-results.html</div><h3>Test results <span class="chip todo">in progress</span></h3><p>Shape runs with odometry errors, <code>/odom</code> measurements, safety stop tests, floor measurements.</p></a>
+        <a class="card" href="test-results.html"><div class="path">docs/test-results.html</div><h3>Test results <span class="chip todo">in progress</span></h3><p>Shape runs with odometry errors, <code>/odom</code> measurements, safety stop tests, floor measurements. No new runs since 2026-10-04.</p></a>
       </div>
     </section>
 
     <section id="records">
-      <div class="section-head"><span class="section-tag">03</span><h2>Records and plans</h2></div>
+      <div class="section-head"><span class="section-tag">04</span><h2>Records and plans</h2></div>
       <div class="doclist">
-        <a class="card" href="../MAINTENANCE.md"><div class="path">MAINTENANCE.md</div><h3>Maintenance record</h3><p>Configuration, every change with verify and undo, incidents, known issues, verification checklist.</p></a>
-        <a class="card" href="../ROADMAP.md"><div class="path">ROADMAP.md</div><h3>Roadmap</h3><p>Open work in priority order (TB-01 to TB-19) with steps and acceptance criteria.</p></a>
+        <a class="card" href="../MAINTENANCE.md"><div class="path">MAINTENANCE.md</div><h3>Maintenance record</h3><p>Configuration, every change with verify and undo, incidents (including the Wi-Fi drops), the lab router, known issues, verification checklist.</p></a>
+        <a class="card" href="../ROADMAP.md"><div class="path">ROADMAP.md</div><h3>Roadmap</h3><p>Open work in priority order (TB-01 to TB-23) with steps and acceptance criteria. Top of the list on 2026-10-10: TB-20, the Wi-Fi fix.</p></a>
       </div>
     </section>
 
     <section id="code">
-      <div class="section-head"><span class="section-tag">04</span><h2>Programs and tests</h2></div>
+      <div class="section-head"><span class="section-tag">05</span><h2>Programs and tests</h2></div>
       <div class="doclist">
         <a class="card" href="../examples/README.md"><div class="path">examples/README.md</div><h3>Examples guide</h3><p>How to copy, dry-run and run each example safely, and how to stop the robot.</p></a>
         <a class="card" href="../examples/motion_shapes.py"><div class="path">examples/motion_shapes.py</div><h3>motion_shapes.py <span class="chip warn">moves</span></h3><p>Square, triangle, rotate, back-and-forth, figure eight, closed-loop on odometry.</p></a>
         <a class="card" href="../examples/clearance_check.py"><div class="path">examples/clearance_check.py</div><h3>clearance_check.py</h3><p>One lidar scan, nearest object within &plusmn;30&deg; ahead. Does not move.</p></a>
         <a class="card" href="../examples/motion_test.sh"><div class="path">examples/motion_test.sh</div><h3>motion_test.sh <span class="chip warn">moves</span></h3><p>Undock, clearance check, 20 cm forward, 360&deg; spin, dock.</p></a>
-        <a class="card" href="../examples/"><div class="path">examples/</div><h3>All examples</h3><p><code>hello_robot.py</code>, <code>scan_test.py</code>, <code>drive_test.py</code> and the rest. Copies live in <code>~/robot_code</code> on the robot.</p></a>
+        <a class="card" href="../examples/health_check.py"><div class="path">examples/health_check.py</div><h3>health_check.py <span class="chip todo">not yet run on the robot</span></h3><p>One-command health checklist: Wi-Fi, ROS service, base, clock, lidar, odometry gaps, temperature, disk. Read only. Tested offline.</p></a>
+        <a class="card" href="../examples/"><div class="path">examples/</div><h3>All examples</h3><p><code>hello_robot.py</code>, <code>scan_test.py</code>, <code>drive_test.py</code> and the rest. Copies of the first six are in <code>~/robot_code</code> on the robot; the newer programs are not on the robot yet (2026-10-10).</p></a>
         <a class="card" href="../tests/"><div class="path">tests/</div><h3>Test campaign</h3><p>Scripts and raw results for the example programs.</p></a>
+        <a class="card" href="../tests/README.md"><div class="path">tests/README.md</div><h3>Tests guide</h3><p>Robot run logs of 2026-10-04, diagnostic scripts, and the offline tests (101 logic checks, 38 simulated runs) that also run on GitHub.</p></a>
         <a class="card" href="../setup/"><div class="path">setup/</div><h3>Admin scripts</h3><p>Scripts used to configure the robot. Read MAINTENANCE.md before running any.</p></a>
       </div>
     </section>
 
     <section id="logs">
-      <div class="section-head"><span class="section-tag">05</span><h2>Step logs</h2></div>
+      <div class="section-head"><span class="section-tag">06</span><h2>Step logs</h2></div>
       <div class="doclist">
         <a class="card" href="../../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt"><div class="path">General Tasks/...connect to university Wi-Fi.txt</div><h3>2026-10-03 log</h3><p>Wi-Fi setup, clock fix incident, first motion test; failures included.</p></a>
         <a class="card" href="../../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt"><div class="path">General Tasks/...lidar check and motion programs.txt</div><h3>2026-10-04 log</h3><p>Lidar diagnosis, motion program runs, the stale-odometry aborts; failures included.</p></a>
+        <a class="card" href="../../General%20Tasks/TurtleBot4%20-%20network%20and%20connectivity.txt"><div class="path">General Tasks/...network and connectivity.txt</div><h3>2026-10-04 evening to 2026-10-10 log</h3><p>Robot Wi-Fi drops, lab router set-up and measurements, the repository incident; failures included.</p></a>
       </div>
     </section>
 
-    <footer>TurtleBot 4 lab documentation. Public repository: never add passwords, Wi-Fi keys or private keys. Official manual: <a href="https://turtlebot.github.io/turtlebot4-user-manual/">turtlebot.github.io/turtlebot4-user-manual</a>.</footer>
+    <footer>TurtleBot 4 lab documentation. Last updated 2026-10-10. Public repository: never add passwords, Wi-Fi keys or private keys. Official manual: <a href="https://turtlebot.github.io/turtlebot4-user-manual/">turtlebot.github.io/turtlebot4-user-manual</a>.</footer>
   </main>
 </div>
 </body>

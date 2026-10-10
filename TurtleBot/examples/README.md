@@ -40,7 +40,7 @@ New to the robot? First follow [HOW-TO-CONNECT.md](../HOW-TO-CONNECT.md) to join
 | `campaign.sh` | Runs a list of `motion_shapes.py` / `more_shapes.py` commands one after another with a sensor report before and after, logged to a file; stops at the first failure. | **Yes** | Off the dock; run detached |
 | `motion_common.py` | Not a program: shared safety code (start-up checks, total timeout, 1.2 m fence) used by `more_shapes.py`, `wall_approach.py` and `keep_distance.py`. | - | Copy it with them |
 
-Copies of these files live in `~/robot_code` on the robot. Run them there with `python3 <file>` (or `bash motion_test.sh`). ROS programs take 10 to 20 s to start on the Pi, and `ros2` command-line calls 30 to 60 s, so be patient before deciding nothing is happening.
+As of 2026-10-10, `~/robot_code` on the robot holds copies of the first six files only (`hello_robot.py` to `motion_shapes.py`; the robot's `motion_shapes.py` may be older than this one). The other programs, from `sensor_report.py` down, are not on the robot yet: [copy them](#copy-the-files-to-the-robot) first (MAINTENANCE.md R12). Run them there with `python3 <file>` (or `bash motion_test.sh`). ROS programs take 10 to 20 s to start on the Pi, and `ros2` command-line calls 30 to 60 s, so be patient before deciding nothing is happening.
 
 ## Copy the files to the robot
 
@@ -58,7 +58,7 @@ The newer motion programs need their helpers next to them. To copy everything in
 scp *.py *.sh ubuntu@turtlebot4.local:robot_code/
 ```
 
-Use the display address instead of `turtlebot4.local` if the name does not work, for example `ubuntu@10.42.0.1:robot_code/` on the robot's own Wi-Fi.
+Use the display address instead of `turtlebot4.local` if the name does not work, for example `ubuntu@10.42.0.1:robot_code/` on the robot's own Wi-Fi. On the campus Wi-Fi the name has failed now and then since 2026-10-04, and the robot has been dropping off the Wi-Fi: if a copy stops halfway, connect by the display address and copy again ([HOW-TO-CONNECT.md, Troubleshooting](../HOW-TO-CONNECT.md#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found)).
 
 **VS Code Remote-SSH**: connect to `ubuntu@turtlebot4.local`, open `/home/ubuntu/robot_code`, and drag the file into the Explorer panel (or create it there and paste the code). Setup steps are in [HOW-TO-CONNECT.md, Write and run code](../HOW-TO-CONNECT.md#write-and-run-code).
 
@@ -281,7 +281,7 @@ A safety stop looks like `ABORTED: obstacle 0.24 m ahead (limit 0.25 m)`, and a 
 
 ## Sensor programs that do not move the robot
 
-> **Status: not yet tested on the robot.** Logic checked off the robot only (unit tests and a simulated robot).
+> **Status: not yet tested on the robot.** Logic checked off the robot only (unit tests and a simulated robot). Still the case on 2026-10-10: not copied to the robot yet (MAINTENANCE.md R12); the first robot run is planned in [ROADMAP.md, TB-23](../ROADMAP.md#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool).
 
 These are safe to run at any time. Run them from `~/robot_code` on the robot.
 
@@ -327,7 +327,7 @@ Number of lit LEDs = battery level (6 = full). Green ≥ 50 %, yellow 20 to 50 %
 
 ## More motion programs
 
-> **Status: not yet tested on the robot.** Logic checked off the robot only (unit tests and a simulated robot with odometry gaps, stop file, signals and bumps).
+> **Status: not yet tested on the robot.** Logic checked off the robot only (unit tests and a simulated robot with odometry gaps, stop file, signals and bumps). Still the case on 2026-10-10: not copied to the robot yet (MAINTENANCE.md R12); the first robot run is planned in [ROADMAP.md, TB-23](../ROADMAP.md#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool).
 
 All of these **move the robot**. They need `motion_shapes.py` and `motion_common.py` in the same folder, and they behave like `motion_shapes.py`: same [checklist](#safety-checklist-before-anything-moves), `--dry-run` first, `--yes` when detached, the same [ways to stop](#how-to-stop-the-robot) (Ctrl+C, `touch ~/STOP`, `pkill -INT -f <program>`), the same exit codes, and the same stops (docked, bump/cliff hazards, obstacle within 0.25 m ahead, odometry hold at 0.3 s and abort at 2.0 s, stale lidar, stall, timeouts). On top of that they abort if odometry puts the robot more than **1.2 m from its start point**, and they refuse plans that would go more than 1.0 m from it. Speeds stay capped at 0.15 m/s and 1.0 rad/s.
 
@@ -391,7 +391,7 @@ A list file has one command per line, for example `more_shapes.py star --side 0.
 
 ## health_check.py: read-only health checklist
 
-> **Status: not yet tested on the robot.** Logic checked off the robot only (unit tests and a simulated robot with faked system commands and files).
+> **Status: not yet tested on the robot.** Logic checked off the robot only (unit tests and a simulated robot with faked system commands and files). Still the case on 2026-10-10: not copied to the robot yet (MAINTENANCE.md R12); the first robot run is planned in [ROADMAP.md, TB-23](../ROADMAP.md#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool).
 
 One command for the [MAINTENANCE.md verification checklist](../MAINTENANCE.md#verification-checklist) (ROADMAP TB-19). It **never moves the robot**, publishes nothing, changes nothing and needs no `sudo`. It works on or off the dock. Run it in a login shell on the robot, so ROS is set up:
 

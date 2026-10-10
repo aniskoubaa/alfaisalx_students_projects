@@ -1,8 +1,10 @@
 # Connecting to the TurtleBot 4
 
-This guide shows how to reach the lab's TurtleBot 4 from your own computer (Windows, macOS or Linux), log in, write and run code on it, and turn it off safely. It is written for any lab member, including people who have not used SSH or ROS 2 before. Every command works from a fresh computer; nothing depends on a particular laptop. Facts that can change are dated (most were checked on 2026-10-03).
+This guide shows how to reach the lab's TurtleBot 4 from your own computer (Windows, macOS or Linux), log in, write and run code on it, and turn it off safely. It is written for any lab member, including people who have not used SSH or ROS 2 before. Every command works from a fresh computer; nothing depends on a particular laptop. Facts that can change are dated (most were checked on 2026-10-03). Since 2026-10-04 the robot has been dropping off the Wi-Fi: if it answers only sometimes, see [Troubleshooting](#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found) (updated 2026-10-10).
 
-**Shortcut (added 2026-10-04):** the [connect tool](tools/connect/README.md) does steps 2 to 4 and the key setup for you: `TurtleBotConnect.exe` on Windows, `connect-turtlebot.sh` on macOS and Linux. You still need to join the right Wi-Fi (step 3) and know the passwords. This guide explains what the tool does, and works without it.
+**Shortcut (added 2026-10-04):** the [connect tool](tools/connect/README.md) does steps 2 and 4 and the key setup for you: `TurtleBotConnect.exe` on Windows, `connect-turtlebot.sh` on macOS and Linux. You still need to join the right Wi-Fi (step 3) and know the passwords. This guide explains what the tool does, and works without it.
+
+What the tool offers (version 1.1.0, described 2026-10-10): a numbered menu with 1 Connect (opens a robot terminal), 2 Find the robot (the last address that worked, `turtlebot4.local`, `10.42.0.1`, or an address you type), 3 Set up key login (once per computer), 4 Robot status (read only), 5 Open in VS Code, 6 Add a `turtlebot4` shortcut to your SSH config (it backs the file up first), 7 EMERGENCY stop of the motion programs (creates `~/STOP` and stops the example programs), 8 Copy a file to the robot, and 9 Fix "host key changed". It only talks to a device that presents the lab robot's ED25519 host key (the fingerprint in [Step 4](#what-you-will-see)), so a stale campus address that now belongs to another device is refused before any password prompt. After a robot reinstall, `--trust-new-host-key` lets it accept the new key, and a maintainer must then update the pinned key. The Windows program needs no installation (Windows 10 or 11) but is not code-signed: on the first run SmartScreen warns, choose **More info**, then **Run anyway**, or build it from its source with `build.cmd`, which uses the C# compiler that comes with Windows. As of 2026-10-10 the tool has not yet been used with the real robot ([ROADMAP.md, TB-23](ROADMAP.md#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool)).
 
 For a beginner's overview of the robot's hardware and ROS 2, read the [TurtleBot 4 field guide](turtlebot4-field-guide.html). For what has been changed on the robot, and how to verify or undo it, see [MAINTENANCE.md](MAINTENANCE.md).
 
@@ -33,9 +35,10 @@ For a beginner's overview of the robot's hardware and ROS 2, read the [TurtleBot
 | Software | TurtleBot 4 image 2.0.2, Ubuntu 24.04.1 Server (no desktop), ROS 2 Jazzy |
 | ROS 2 middleware | Fast DDS, `ROS_DOMAIN_ID` 0 |
 | Login | User `ubuntu`, hostname `turtlebot4` |
-| Normal network | University Wi-Fi `Students`. Robot address from DHCP, shown on the display (starts with `10.87.`). Also reachable as `turtlebot4.local`. |
+| Normal network | University Wi-Fi `Students`. Robot address from DHCP, shown on the display (starts with `10.87.`). Also reachable as `turtlebot4.local`, but since 2026-10-04 the name has failed now and then on campus: if it does, use the address on the display. |
 | Fallback network | The robot's own Wi-Fi `Turtlebot4` (5 GHz). Robot address is always `10.42.0.1`. No internet. |
-| Code folder on the robot | `~/robot_code` (holds copies of the programs in [`examples/`](examples/)) |
+| Lab router (added 2026-10-10) | A lab Wi-Fi network (Linksys router, `192.168.1.x`) was set up on 2026-10-05. **The robot is not on it**; moving it there is a proposal ([ROADMAP.md, TB-21](ROADMAP.md#tb-21-decide-the-robots-network-students-or-the-lab-router)). |
+| Code folder on the robot | `~/robot_code`. As of 2026-10-10 it holds copies of `hello_robot.py`, `scan_test.py`, `clearance_check.py`, `drive_test.py`, `motion_test.sh` and `motion_shapes.py` from [`examples/`](examples/); the newer programs must be copied first ([examples/README.md](examples/README.md#copy-the-files-to-the-robot)) |
 | Official manual | https://turtlebot.github.io/turtlebot4-user-manual/ |
 
 ## Before you start
@@ -75,14 +78,14 @@ The robot has two network modes. It uses the university `Students` Wi-Fi when th
 Ways to find the robot's address in university mode (most useful first):
 
 1. **Read the robot's display.** It always shows the current address.
-2. **Use the name `turtlebot4.local`** instead of an address. This uses mDNS (the robot runs avahi) and works out of the box on Windows 10 and later, macOS and most Linux systems. It also works on the robot's own Wi-Fi. As of 2026-10-03 avahi on the robot is limited to `wlan0`, so the name returns only the Wi-Fi address.
+2. **Use the name `turtlebot4.local`** instead of an address. This uses mDNS (the robot runs avahi) and works out of the box on Windows 10 and later, macOS and most Linux systems. It also works on the robot's own Wi-Fi. As of 2026-10-03 avahi on the robot is limited to `wlan0`, so the name returns only the Wi-Fi address. On 2026-10-04 the name failed to resolve now and then on the campus Wi-Fi (mDNS is unreliable there), so if it fails, use the display address (method 1).
 3. **From a computer with ROS 2 Jazzy on the same network** (Fast DDS, `ROS_DOMAIN_ID` 0):
 
    ```bash
    ros2 topic echo --once /ip
    ```
 
-   Running ROS 2 on a laptop against the robot over campus Wi-Fi had not been tested as of 2026-10-03, so treat this method as unverified.
+   Running ROS 2 on a laptop against the robot over campus Wi-Fi had not been tested as of 2026-10-03 (still untested on 2026-10-10), so treat this method as unverified.
 4. **If you already have a shell on the robot:**
 
    ```bash
@@ -134,6 +137,8 @@ On the university Wi-Fi, replace the example address with the one on the display
 ```bash
 ssh ubuntu@10.87.10.205
 ```
+
+On the campus Wi-Fi the address is the more reliable choice: since 2026-10-04 the name has failed now and then. If the connection works for a moment and then drops, see [The robot answers only sometimes](#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found).
 
 ### What you will see
 
@@ -280,7 +285,7 @@ On the university Wi-Fi the robot can reach GitHub over HTTPS, so `git clone htt
 
 ### Run the examples
 
-Copies of the programs in [`examples/`](examples/) are in `~/robot_code` on the robot. In a terminal on the robot:
+Copies of the six programs in the table below are in `~/robot_code` on the robot (`motion_shapes.py` may be an older version than the repository's). The newer programs in [`examples/`](examples/) (`health_check.py`, `sensor_report.py` and others) were not on the robot as of 2026-10-10; copy them first as described in [examples/README.md](examples/README.md#copy-the-files-to-the-robot). In a terminal on the robot:
 
 ```bash
 cd ~/robot_code
@@ -300,7 +305,9 @@ ROS programs are slow to start on the Raspberry Pi: allow 10 to 20 s before deci
 
 Status on 2026-10-03: `motion_test.sh` undocked, spun and docked successfully (docking needed a re-send after the SSH session dropped). The forward drive was skipped because there was no lidar data.
 
-Status on 2026-10-04: the lidar works again, and `motion_shapes.py` drove a square, a 360° rotation and a back-and-forth run (results in [docs/test-results.html](docs/test-results.html)). `motion_test.sh` has not been rerun yet. Step-by-step instructions for every example, including how to stop the robot, are in [examples/README.md](examples/README.md); how `motion_shapes.py` works is in [docs/motion-program-design.html](docs/motion-program-design.html).
+Status on 2026-10-04: the lidar works again, and `motion_shapes.py` drove a square, a 360° rotation, a back-and-forth run and (after a second odometry fix) a triangle; a figure eight aborted on a 2.0 s odometry gap with the robot held still (results in [docs/test-results.html](docs/test-results.html)). `motion_test.sh` has not been rerun yet.
+
+Status on 2026-10-10: no robot runs since 2026-10-04. Since the afternoon of 2026-10-04 the robot has not been reachable reliably over Wi-Fi ([Troubleshooting](#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found)). Moving tests are run supervised, in short batches, with a person next to the robot. Step-by-step instructions for every example, including how to stop the robot, are in [examples/README.md](examples/README.md); how `motion_shapes.py` works is in [docs/motion-program-design.html](docs/motion-program-design.html).
 
 When you write your own scripts: ROS is loaded automatically only in interactive shells. A script started in another way (for example `ssh ubuntu@turtlebot4.local "bash myscript.sh"`) should begin with `source /etc/turtlebot4/setup.bash`, as `motion_test.sh` does. The [Developer quick reference](#developer-quick-reference) lists the topics and actions.
 
@@ -352,8 +359,9 @@ Always shut down the Pi before cutting power, so its SD card is not damaged. The
 |---|---|---|
 | Display stays blank, or no chime after a few minutes | The robot is off or still starting | Make sure it sits properly on the dock, then wait 2 minutes. |
 | Display shows `10.42.0.1` | `Students` was not available, so the robot fell back to its own Wi-Fi | Join `Turtlebot4` ([Step 3](#step-3-connect-your-computer-to-the-same-network)) and run `ssh ubuntu@10.42.0.1`. |
-| `Could not resolve hostname turtlebot4.local`, or the name hangs | mDNS is not working on your computer or network, or your computer is on a different network | Connect by the address on the display instead, for example `ssh ubuntu@10.87.10.205`. Check that your computer is on `Students`. |
-| `Connection timed out` or `No route to host` | Your computer and the robot are on different networks, or the robot is still starting | Check both are on the same network (other campus networks were not tested). Put the robot back on the dock and wait 2 minutes. |
+| `Could not resolve hostname turtlebot4.local`, or the name hangs | mDNS is not working on your computer or network (on the campus Wi-Fi it has failed now and then since 2026-10-04), or your computer is on a different network | Connect by the address on the display instead, for example `ssh ubuntu@10.87.10.205`. Check that your computer is on `Students`. See [below](#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found). |
+| `Connection timed out` or `No route to host` | Your computer and the robot are on different networks, the robot is still starting, or the robot has dropped off the Wi-Fi (seen on 2026-10-04 and 2026-10-05) | Check both are on the same network (other campus networks were not tested). Put the robot back on the dock and wait 2 minutes. If it still fails, see [below](#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found). |
+| SSH works for a few seconds or a minute, then freezes or times out; the robot answers only sometimes | The robot drops off the Wi-Fi. Likely cause: Wi-Fi power saving on the robot (not confirmed; fix proposed, not applied as of 2026-10-10) | Connect by the display address and retry; keep sessions short and run long jobs detached. Details [below](#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found). |
 | Windows asks for an 8-digit PIN when joining `Turtlebot4` | That is the WPS screen | Click **Connect using a security key instead** and type the Wi-Fi password. |
 | No internet while joined to `Turtlebot4` | The robot's Wi-Fi has no internet | Use a second connection for internet (USB Wi-Fi adapter, Ethernet or phone tethering). |
 | After leaving `Turtlebot4`, downloads fail with `ENOTFOUND` | Your computer still uses the robot (`10.42.0.1`) as its DNS server | Make sure the adapter shows Disconnected from `Turtlebot4`, then try again. |
@@ -367,6 +375,38 @@ Always shut down the Pi before cutting power, so its SD card is not damaged. The
 | `scan_test.py` or `clearance_check.py` get no data | The robot is on the dock (lidar powered down), or the lidar is not detected | Undock first. See [Known issues](#known-issues). |
 | `/dock_status` or `/battery_state` stop arriving; dock and undock commands time out | The Create 3 base application is stuck | [Restart the base application](#restart-the-create-3-base-application). |
 | `git`, `pip` or `apt` fail with certificate or "not yet valid" errors | The robot's clock is wrong | Copy code from your computer (VS Code or `scp`). See [Known issues](#known-issues). |
+
+### The robot answers only sometimes, drops off the Wi-Fi, or `turtlebot4.local` is not found
+
+Added 2026-10-10. **What was seen.** On 2026-10-04 (about 15:42 robot time) the robot answered SSH once after being switched on, then dropped off the network and did not come back during about 25 minutes. On 2026-10-05 SSH by address and by key worked for about a minute, then the robot answered only in short windows of about 10 to 40 s. The laptop's Wi-Fi was fine the whole time, so the problem is on the robot's side. `turtlebot4.local` also failed to resolve now and then. The likely cause is Wi-Fi power saving on the robot; this is a diagnosis, not confirmed, and the proposed fix had **not been applied** as of 2026-10-10. Full record: [MAINTENANCE.md](MAINTENANCE.md#incident-robot-drops-off-the-wi-fi-2026-10-04-and-2026-10-05) and [docs/network-and-connectivity.html](docs/network-and-connectivity.html).
+
+**What you can do:**
+
+1. **Check your own connection first.** On `Students`, open any website. If that fails too, the problem is on your side; fix that first.
+2. **Use the address on the robot's display, not the name.** For example `ssh ubuntu@10.87.10.205` on `Students`; read the current address on the display, because it can change. The name depends on mDNS, which is unreliable on the campus Wi-Fi.
+3. **Retry.** The robot answers in short windows, so a connection that timed out can work a few seconds later. The loops below reconnect until you log out normally. ssh exits with code 255 when it cannot connect or the connection is lost, and `ServerAliveInterval=10` makes it notice a dead connection after about 30 s (three missed replies). Set up [key login](#recommended-log-in-with-a-key-instead-of-a-password) first, so you do not type the password at every attempt. Replace the example address with the one on the display; press Ctrl+C to stop trying.
+
+   macOS and Linux (also Git Bash on Windows):
+
+   ```bash
+   while true; do ssh -o ConnectTimeout=5 -o ServerAliveInterval=10 ubuntu@10.87.10.205; [ $? -ne 255 ] && break; sleep 5; done
+   ```
+
+   Windows PowerShell:
+
+   ```powershell
+   while ($true) { ssh -o ConnectTimeout=5 -o ServerAliveInterval=10 ubuntu@10.87.10.205; if ($LASTEXITCODE -ne 255) { break }; Start-Sleep 5 }
+   ```
+
+4. **Keep sessions short and run long jobs detached** ([Moving the robot](#moving-the-robot-run-motion-scripts-detached)), so a drop does not stop your program. Copy files one at a time with `scp` and check they arrived.
+5. **Use the robot's own Wi-Fi when it is on it.** When the display shows `10.42.0.1`, join `Turtlebot4` ([Step 3](#step-3-connect-your-computer-to-the-same-network)). To keep internet at the same time, your computer needs a second Wi-Fi adapter (or Ethernet, or phone tethering).
+6. **If nothing answers for several minutes,** put the robot on its dock, check that the display shows an address, and tell the lab maintainer. Do not change the robot's Wi-Fi settings yourself.
+
+**What an admin can do** (needs the `ubuntu` password, so a person who knows it):
+
+- Apply and verify the proposed fix, which turns Wi-Fi power saving off in the robot's `Students` profile. Commands, verify and undo: [MAINTENANCE.md](MAINTENANCE.md#incident-robot-drops-off-the-wi-fi-2026-10-04-and-2026-10-05); task and acceptance test: [ROADMAP.md, TB-20](ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving).
+- Decide whether the robot should use the lab router instead, with a fixed address and no campus roaming ([ROADMAP.md, TB-21](ROADMAP.md#tb-21-decide-the-robots-network-students-or-the-lab-router)). This is a proposal: as of 2026-10-10 the robot is **not** on the lab router, so do not look for it there.
+- Record any change in [MAINTENANCE.md](MAINTENANCE.md) with verify and undo steps.
 
 ### Restart the Create 3 base application
 
@@ -390,9 +430,11 @@ Wait for the chime (about a minute), then run the check again.
 
 ## Known issues
 
-As of 2026-10-04 (current status and full details in [MAINTENANCE.md](MAINTENANCE.md)):
+As of 2026-10-10 (current status and full details in [MAINTENANCE.md](MAINTENANCE.md)):
 
-- **Lidar: fixed on 2026-10-04.** From 2026-10-03 to 2026-10-04 the lidar was not detected on USB because its USB cable was loose; reseating it fixed it. If `/scan` is silent, first check that the robot is off the dock (the lidar is switched off on the dock), then that `ls /dev/RPLIDAR` works. The diagnosis is in [docs/LIDAR-FINDINGS.md](docs/LIDAR-FINDINGS.md).
+- **The robot drops off the Wi-Fi (since 2026-10-04).** It answers SSH only for short periods. Fix proposed, not applied. Connect by the display address and retry: see [Troubleshooting](#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found).
+- **`turtlebot4.local` is unreliable on the campus Wi-Fi (since 2026-10-04).** Use the address on the robot's display.
+- **Lidar: fixed on 2026-10-04.** From 2026-10-03 to 2026-10-04 the lidar was not detected on USB because its USB cable was loose; reseating it fixed it. It was on USB again after a later power-on that day. If `/scan` is silent, first check that the robot is off the dock (the lidar is switched off on the dock), then that `ls /dev/RPLIDAR` works. The diagnosis is in [docs/LIDAR-FINDINGS.md](docs/LIDAR-FINDINGS.md).
 - **`/odom` can pause for up to about 1 s when the wheels start moving** (found on 2026-10-04). If your program stops when odometry is late, allow for this; `motion_shapes.py` holds still and waits.
 - **The robot's clock can be wrong.** The campus network blocks internet time servers (NTP), so the robot has no internet time source (on 2026-10-03 it said October 2024). Until the clock is right, `git`, `pip` and `apt` can fail with certificate errors; copy code from your computer instead. A clock fix installed on 2026-10-03 caused the Create 3 base to stop talking to ROS, and its removal is planned. Do not change the robot's clock by a large amount while ROS is running.
 
@@ -473,6 +515,8 @@ Remote desktop (RDP or VNC) is not set up. The robot runs Ubuntu Server with no 
 
 Anything that uses `sudo` (shutting down, changing Wi-Fi, installing packages) asks for the `ubuntu` password, which a person must type. Wi-Fi changes over SSH need it too. Configuration changes to the shared robot are recorded in [MAINTENANCE.md](MAINTENANCE.md), together with the admin scripts in [`setup/`](setup/) and how to undo each change. Read it before changing anything, and record your own changes there.
 
+Open admin work on the network (2026-10-10): the Wi-Fi power-saving fix ([ROADMAP.md, TB-20](ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving)), the decision on the robot's network ([TB-21](ROADMAP.md#tb-21-decide-the-robots-network-students-or-the-lab-router)) and securing the lab router ([TB-22](ROADMAP.md#tb-22-secure-the-lab-router)). These are proposals; nothing was changed on the robot for them.
+
 ## Related documents
 
 | Document | What it is for |
@@ -483,6 +527,8 @@ Anything that uses `sudo` (shutting down, changing Wi-Fi, installing packages) a
 | [turtlebot4-field-guide.html](turtlebot4-field-guide.html) | Beginner overview of the TurtleBot 4 hardware and ROS 2 (open it in a browser) |
 | [TurtleBot4 - connect to university Wi-Fi.txt](../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt) | Step-by-step log of the 2026-10-03 setup, including what failed |
 | [TurtleBot4 - lidar check and motion programs.txt](../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt) | Log of the 2026-10-04 lidar check and motion program work, including what failed |
+| [TurtleBot4 - network and connectivity.txt](../General%20Tasks/TurtleBot4%20-%20network%20and%20connectivity.txt) | Log of the Wi-Fi drops, the lab router and the repository incident (2026-10-04 evening to 2026-10-10), including what failed |
 | [examples/README.md](examples/README.md) | How to run the example programs safely, including `motion_shapes.py` |
-| [docs/index.html](docs/index.html) | Illustrated pages: lidar diagnosis, motion program design, test results |
+| [docs/index.html](docs/index.html) | Illustrated pages: lidar diagnosis, motion program design, test results, network and connectivity |
+| [docs/network-and-connectivity.html](docs/network-and-connectivity.html) | The networks around the robot, the Wi-Fi drops of 2026-10-04 and 2026-10-05, workarounds, and the lab router proposal. Markdown version: [docs/NETWORK-FINDINGS.md](docs/NETWORK-FINDINGS.md) |
 | [TurtleBot 4 user manual](https://turtlebot.github.io/turtlebot4-user-manual/) | Official documentation: setup, specifications, power on and off, tutorials |

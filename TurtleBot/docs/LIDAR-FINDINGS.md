@@ -118,6 +118,6 @@ Always undock (or lift the robot off the dock) before judging the lidar.
 
 ## Follow-ups
 
-- Confirm detection after the next, separate reboot (only the boot right after the reseat has been checked).
+- Confirm detection after the next, separate reboot (only the boot right after the reseat has been checked). Update 2026-10-10: after the robot was powered off and switched on again on 2026-10-04, a single SSH check at about 15:42 (robot time) found the lidar on USB; no `/scan` result was recorded. Keep checking after restarts.
 - Strain relief and a label for the lidar cable: [ROADMAP.md, TB-18](../ROADMAP.md#tb-18-lidar-cable-strain-relief-and-label).
-- Read-only health check script: [ROADMAP.md, TB-19](../ROADMAP.md#tb-19-read-only-health-check-script).
+- Read-only health check script: [ROADMAP.md, TB-19](../ROADMAP.md#tb-19-read-only-health-check-script). Written as [examples/health_check.py](../examples/health_check.py) and tested offline; first robot run pending (2026-10-10).

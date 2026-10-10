@@ -463,9 +463,9 @@ python3 ~/robot_code/clearance_check.py 0.6; echo "exit code $?"</code></pre>
     <section id="followups">
       <div class="section-head"><span class="section-tag">07</span><h2>Follow-ups</h2></div>
       <ul>
-        <li>Confirm detection after the next, separate reboot. Only the boot right after the reseat has been checked.</li>
+        <li>Confirm detection after the next, separate reboot. Only the boot right after the reseat has been checked. Update 2026-10-10: after the robot was powered off and switched on again on 2026-10-04, a single SSH check at about 15:42 (robot time) found the lidar on USB; no <code>/scan</code> result was recorded. Keep checking after restarts.</li>
         <li>Strain relief and a label for the lidar cable: <a href="../ROADMAP.md#tb-18-lidar-cable-strain-relief-and-label">TB-18</a>.</li>
-        <li>Read-only health check script covering these checks: <a href="../ROADMAP.md#tb-19-read-only-health-check-script">TB-19</a>.</li>
+        <li>Read-only health check script covering these checks: <a href="../ROADMAP.md#tb-19-read-only-health-check-script">TB-19</a>. Written as <a href="../examples/health_check.py">examples/health_check.py</a> and tested offline; first robot run pending (2026-10-10).</li>
         <li>Admin record: <a href="../MAINTENANCE.md#incident-lidar-not-detected-2026-10-03-resolved-2026-10-04">MAINTENANCE.md</a>. Step log: <a href="../../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt">General Tasks log</a>.</li>
       </ul>
     </section>

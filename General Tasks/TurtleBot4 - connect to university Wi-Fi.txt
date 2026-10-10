@@ -66,3 +66,6 @@ Next steps / plan:
    - "AU-Students" (username + password): turtlebot4-setup is not expected to handle this; needs a manual netplan config (PEAP / MSCHAPv2). Credentials end up stored on the shared robot, so a device account from IT is preferable to a personal one.
    - "AU-Students-WIFI" (web login page): not recommended for a robot without a screen and browser.
 4. Known campus risks to test for: the network may block devices from reaching each other (laptop cannot ping the robot), may block ROS 2 discovery (multicast), and the robot's address changes with DHCP.
+
+Correction (appended 2026-10-10):
+- The line above that says every change is listed in TurtleBot/HOW-TO-CONNECT.md, section "Changes made to the robot and laptop, and how to undo them", is out of date: on 2026-10-03 that list moved to TurtleBot/MAINTENANCE.md (change register R1 onward, and W1 to W7 for the laptop). The current plan is TurtleBot/ROADMAP.md. Later logs: "TurtleBot4 - lidar check and motion programs.txt" (2026-10-04) and "TurtleBot4 - network and connectivity.txt" (2026-10-04 evening to 2026-10-10).

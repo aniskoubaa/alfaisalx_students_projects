@@ -1,0 +1,61 @@
+Task: Keep the TurtleBot 4 reachable over Wi-Fi after it started dropping off the network (2026-10-04 evening to 2026-10-10), set up a lab router as a possible dedicated network, and record the repository incident of 2026-10-05
+
+Background:
+- Earlier logs in this folder: "TurtleBot4 - connect to university Wi-Fi.txt" (2026-10-03) and "TurtleBot4 - lidar check and motion programs.txt" (2026-10-04 morning).
+- Since 2026-10-03 the robot is on the university "Students" Wi-Fi (NetworkManager priority 10), with its own access point "Turtlebot4" (10.42.0.1) as fallback (priority 0). Its Students address comes from DHCP; it was 10.87.10.205 on 2026-10-03 and 2026-10-04.
+- Times: 2026-10-04 entries are the robot's clock (EDT, UTC-4), so 15:42 robot time is 22:42 in UTC+3. 2026-10-05 and 2026-10-10 entries are laptop time (UTC+3).
+- No sudo was used by the assistant and nothing was changed on the robot in this period. No passwords, Wi-Fi keys or router logins are written in this file (the repo is public).
+- Records: TurtleBot/MAINTENANCE.md (Wi-Fi incident, lab router, repository note), TurtleBot/ROADMAP.md (TB-20 to TB-23), TurtleBot/docs/network-and-connectivity.html.
+
+Tried / done:
+- 2026-10-04 (time not recorded): FAILED: an hour-long unattended robot test campaign run by an AI subagent was blocked by the AI tool's safety guard. Lesson: robot motion tests are run supervised, in short batches, with a person next to the robot. The campaign (ROADMAP TB-16) is still open.
+- 2026-10-04 (between sessions, time not recorded): the robot was off the network for about 1.5 hours. It was powered off between sessions; the cause of the drop is not confirmed.
+- 2026-10-04 ~15:42 robot time (22:42 UTC+3): after being switched on, the robot answered SSH once: up 4 min, address 10.87.10.205, clock correct (2026), lidar on USB. So the lidar was detected again after a power-on separate from the reseat (no /scan result recorded).
+- 2026-10-04 ~15:42 onward: FAILED: right after that check the robot dropped off the network. turtlebot4.local failed to resolve intermittently. It did not come back during about 25 minutes of watching.
+- 2026-10-04: FAILED: the new example programs (health_check.py, sensor_report.py, lidar_snapshot.py, lightring_status.py, more_shapes.py, wall_approach.py, keep_distance.py, motion_common.py, campaign.sh) could not be copied to the robot, because it went offline first. MAINTENANCE.md R12 stays "Not applied".
+- 2026-10-04 23:19 (UTC+3): commit a8c0b4e (lidar fixed, motion programs, health check, offline tests, docs) on the branch turtlebot/lidar-check-and-motion-programs.
+
+- 2026-10-05 16:17: commit 7007f51 by Ibrahim through GitHub Desktop: TurtleBot/tools/connect/ (the connect tool, work in progress) and the "Shortcut (added 2026-10-04)" paragraph in TurtleBot/HOW-TO-CONNECT.md. Note: the TurtleBotConnect.exe in that commit is v1.0.0 and does not match its source, which was half-way to v1.1.0.
+- 2026-10-05 afternoon: SSH to the robot by address and by key worked for about a minute, then the robot disappeared again.
+- 2026-10-05 afternoon: FAILED: after that the robot answered only in short windows (about 10 to 40 s). The laptop's Wi-Fi stayed fine the whole time, so the problem is on the robot side. The robot's logs showed no Wi-Fi disconnects (which log was read is not recorded).
+- 2026-10-05: Diagnosis (likely causes, most likely first; none confirmed):
+    1. Wi-Fi power saving on the Raspberry Pi (on by default in Ubuntu; the Students profile written by write_keyfile.py on 2026-10-03 sets no value): the Pi stays associated but stops answering incoming connections most of the time.
+    2. turtlebot4.local (mDNS) is unreliable on campus Wi-Fi: use the address on the robot's display instead (for example ssh ubuntu@10.87.10.205).
+    3. Campus access points move the robot between them (roaming), which also drops SSH while the robot drives (known since 2026-10-03).
+- 2026-10-05: Proposed fix for cause 1, NOT applied (needs sudo, so a person who knows the ubuntu password runs it on the robot):
+    sudo nmcli connection modify Students 802-11-wireless.powersave 2
+    sudo nmcli connection up Students
+  Verify: nmcli -g 802-11-wireless.powersave connection show Students (expect the value for "disable", 2). Undo: the same command with powersave 0 (the default), then nmcli connection up again. Risk: the Wi-Fi reconnects, SSH may drop for a few seconds; no reboot. Now ROADMAP TB-20.
+- 2026-10-05: Workarounds that worked: connect by IP address instead of turtlebot4.local; a retry loop on the laptop; the robot's own access point Turtlebot4 (10.42.0.1), which needs a second Wi-Fi adapter on the laptop to keep internet.
+
+- 2026-10-05: Lab router set up by Ibrahim with the AI assistant as a dedicated lab network: Linksys WRT54G (old 802.11g, 2.4 GHz only). Admin page http://192.168.1.1; LAN 192.168.1.x with DHCP (the laptop on a cable got 192.168.1.103).
+- 2026-10-05: Uplink: the university wall Ethernet cable in the router's Internet port. FAILED: the first cable gave no internet. A different cable worked.
+- 2026-10-05: Measured through the router with the laptop on a cable: 0 % loss, about 7 ms to the router and about 6 ms to the campus network (first hop 10.22.10.253); DNS and HTTPS work; download about 12 to 13 Mbit/s on two runs, against about 3 Mbit/s on the Students Wi-Fi in the same test. ICMP ping to the internet gets no reply through this wall port (websites work).
+- 2026-10-05: Router Wi-Fi: SSID set to a name starting with "AlfaisalX" (the exact final name is not confirmed in the record; read it on the router's Wireless page), WPA2-Personal with AES.
+- 2026-10-05: The robot was NOT moved to this network. Nothing on the robot was changed for it.
+- 2026-10-05: Security to-dos (not done): the router's admin login was still the factory default when it was set up, so change it; the WRT54G firmware is very old (end of life), so keep the admin page LAN-only and consider a newer router. Now ROADMAP TB-22.
+- 2026-10-05: Proposal (not done; a robot change that needs sudo): add the lab router as a NetworkManager Wi-Fi profile on the robot with a higher autoconnect priority than Students (keep the Turtlebot4 access point as fallback), and give the robot a fixed address (DHCP reservation on the router). Expected: stable address, no campus roaming or client limits, likely working ROS 2 discovery between a laptop and the robot (TB-09). Risk: 2.4 GHz 802.11g is slow; fine for SSH and topics like /odom, check /scan and camera bandwidth. Now ROADMAP TB-21, with steps, verify and undo.
+
+- 2026-10-05 (time not recorded): PROBLEM IN THE REPOSITORY: GitHub Desktop switched the local clone to "main" while TurtleBot changes were uncommitted. The changes were carried over and conflicted in TurtleBot/README.md, and an unrelated RAPTOR report got staged. On main the README then pointed at files that only existed on the TurtleBot branch, which made the guide look broken.
+
+- 2026-10-10: Repository incident resolved: conflict cleared, main updated, nothing lost. Lesson: commit or discard changes before switching branches; work on a branch and merge to main when it is finished; GitHub's main is what lab members read.
+- 2026-10-10: Checked in the local clone (remote refs as last fetched): main (906b14b, 2026-10-09) contains the TurtleBot commits up to 4d59c85 (2026-10-04 00:05); a8c0b4e and 7007f51 are only on turtlebot/lidar-check-and-motion-programs. Merging that branch into main when it is finished is still to do (ROADMAP TB-12).
+- 2026-10-10: The connect tool is being finished to v1.1.0 in a separate session (not edited in this documentation pass): TurtleBotConnect.exe (Windows 10/11, no install, built from TurtleBotConnect.cs with build.cmd) and connect-turtlebot.sh (macOS, Linux); menu options 1 to 9; it only talks to a device that presents the lab robot's ED25519 host key (SHA256:P2rMsKzoIV+vsYEUViVNEFf9H8ORHn+qYbEhaTciyi4), with --trust-new-host-key as the escape hatch after a reinstall. The exe is unsigned (SmartScreen: More info, Run anyway). Not yet used with the real robot.
+- 2026-10-10: Documentation brought up to date: MAINTENANCE.md (state as of 2026-10-10, Wi-Fi incident, lab router, repository note), ROADMAP.md (state on 2026-10-10, new TB-20 to TB-23), HOW-TO-CONNECT.md (troubleshooting for a robot that answers only sometimes), README.md (index and quick start with the connect tool), new docs/network-and-connectivity.html and docs/NETWORK-FINDINGS.md, docs/index.html and status lines elsewhere.
+- 2026-10-10: Stale statements found and corrected: "~/robot_code holds copies of all programs in examples/" (only the first six are there; R12 not applied); the HOW-TO-CONNECT run summary for 2026-10-04 left out the triangle and the aborted figure eight; ROADMAP TB-19 still said "proposed" although health_check.py exists.
+- 2026-10-10: Offline tests rerun on a Windows laptop (Python 3.13): test_pure.py 101 checks, 0 failures; test_sim_runs.py 38 scenarios, 0 failures. Link check of every Markdown and HTML file under TurtleBot/: 0 problems.
+
+Result:
+- Open: the robot drops off the Wi-Fi and answers SSH only in short windows. Likely cause Wi-Fi power saving (not confirmed). Fix proposed, NOT applied (TB-20).
+- Lab router (Linksys WRT54G, 192.168.1.1) is set up and works for a laptop on a cable. The robot is NOT on it. Its admin login still has to be changed (TB-22). Moving the robot there is a proposal (TB-21).
+- Repository incident of 2026-10-05 resolved on 2026-10-10; the TurtleBot branch still has to be merged into main.
+- Robot changes in this period: none. The only robot change since 2026-10-03 is ~/robot_code/motion_shapes.py (R11, 2026-10-04). Clock fix untouched.
+- Pending on the robot (unchanged since 2026-10-04): copy the new programs (R12); first robot runs of health_check.py, sensor_report.py, the new shapes and the connect tool; a complete figure eight; root cause of the /odom gaps (TB-15); the clock-fix decision (TB-17); the Wi-Fi power-saving fix (TB-20); moving the robot to the lab router (proposal, TB-21).
+
+Next steps / plan:
+1. TB-20: with a person at the robot who knows the ubuntu password, read the power-save value, apply the fix, verify it, and test from a laptop (30 connection attempts over 30 minutes, on two days). Record it as R14 in MAINTENANCE.md.
+2. TB-22: change the lab router's admin login (password manager only), keep its admin page LAN-only, record the exact SSID and firmware version.
+3. TB-21: decide Students or the lab router, using the TB-20 result.
+4. TB-23: copy the new programs (R12), then first robot runs of health_check.py, sensor_report.py, the new shapes (including a complete figure eight) and the connect tool. Supervised, in short batches, with a person next to the robot.
+5. TB-17: decide on the clock fix; record the boot evidence.
+6. TB-12: merge the TurtleBot branch into main once it is finished.
