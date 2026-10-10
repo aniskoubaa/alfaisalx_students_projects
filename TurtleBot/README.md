@@ -16,6 +16,10 @@ Documentation, example programs and setup scripts for the lab's TurtleBot 4 Stan
 | [examples/health_check.py](examples/health_check.py) | One-command robot health checklist (Wi-Fi, ROS service, base, clock, lidar, odometry gaps, temperature, disk). Read only. How to run it: [examples/README.md](examples/README.md#health_checkpy-read-only-health-checklist). Tested offline; first robot run pending |
 | [tests/](tests/README.md) | Robot run logs, diagnostic scripts, and offline tests that check the example programs on any computer (101 logic checks and 38 simulated runs; also run automatically on GitHub by [.github/workflows/turtlebot-tests.yml](../.github/workflows/turtlebot-tests.yml)) |
 | [docs/](docs/index.html) | Illustrated pages (open in a browser): start at [docs/index.html](docs/index.html) |
+| [docs/do-it-yourself.html](docs/do-it-yourself.html) | **Do it yourself, with no AI help:** power on, Wi-Fi, SSH, getting your code onto the robot, sensors, undock, drive, dock, stop and a first program, for Windows, macOS and Linux (interactive; Markdown version: [docs/DO-IT-YOURSELF.md](docs/DO-IT-YOURSELF.md)) |
+| [docs/lidar-guide.html](docs/lidar-guide.html) | **Lidar user guide:** how the RPLIDAR works, one scan field by field, the 90 degree mounting, a lidar explorer, the commands to get the data, and Python code to use it (interactive; Markdown version: [docs/LIDAR-GUIDE.md](docs/LIDAR-GUIDE.md)) |
+| [docs/motion-simulator.html](docs/motion-simulator.html) | Interactive simulator of `motion_shapes.py`: watch the robot drive a square or other shape, the speed commands, the lidar stop zone and odometry dropouts, compared with the real runs |
+| [docs/docking-explained.html](docs/docking-explained.html) | How the robot finds its dock (infrared signals, the docking stages, undocking), as a simplified interactive animation, plus the dock and undock commands |
 | [docs/network-and-connectivity.html](docs/network-and-connectivity.html) | The networks around the robot, the Wi-Fi drops of 2026-10-04 and 2026-10-05, likely causes, the proposed fix, workarounds, and the lab router proposal. Markdown version: [docs/NETWORK-FINDINGS.md](docs/NETWORK-FINDINGS.md) |
 | [docs/lidar-diagnosis.html](docs/lidar-diagnosis.html) | How the "lidar not detected" fault was diagnosed and fixed on 2026-10-04, with the measured values. Markdown version: [docs/LIDAR-FINDINGS.md](docs/LIDAR-FINDINGS.md) |
 | [docs/motion-program-design.html](docs/motion-program-design.html) | How `motion_shapes.py` works: segment planner, controller, safety layers, the `/odom` pause finding, parameters |
@@ -24,6 +28,8 @@ Documentation, example programs and setup scripts for the lab's TurtleBot 4 Stan
 | [setup/](setup/) | Admin scripts used to configure the robot. Read MAINTENANCE.md before running any of them. |
 
 ## Quick start
+
+Want to learn to do everything yourself? Follow [docs/do-it-yourself.html](docs/do-it-yourself.html) (open it in a browser; on GitHub read [docs/DO-IT-YOURSELF.md](docs/DO-IT-YOURSELF.md)). The steps below are the short version.
 
 1. Put the robot on its dock, wait about 2 minutes for the chime, and read the address on its display.
 2. Join the same Wi-Fi as the robot: `Students` if the address starts with `10.87.`, or the robot's own `Turtlebot4` network if it shows `10.42.0.1`. (The lab router network does not have the robot on it.)

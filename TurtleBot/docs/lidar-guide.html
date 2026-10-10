@@ -1,0 +1,1233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lidar User Guide</title>
+<meta name="description" content="How the TurtleBot 4 lidar (RPLIDAR A1M8) works, how its scan is laid out, why it is mounted turned 90 degrees, an interactive simulator, how to get the data by hand and in your own Python code, and troubleshooting.">
+<style>
+  /* Shared style for TurtleBot/docs pages. Tokens match turtlebot4-field-guide.html. */
+  :root{
+    --bg:#EEF2F4; --panel:#FFFFFF; --panel-alt:#E3EAED; --text:#16232F; --text-dim:#54636F;
+    --border:#C6D2D7; --accent:#0C8C82; --accent-strong:#075F58; --warn:#B85B26; --code-bg:#DDE6E9;
+    --ok:#2E7D32; --bad:#B3261E; --ok-bg:#E3F1E4; --bad-bg:#F8E4E2; --warn-bg:#F7E9DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+      --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+      --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+    --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+    --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.label-font,.eyebrow,th,.chip,.tile .k,figcaption,nav.toc a{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;}
+  code,pre,.mono{font-family:"IBM Plex Mono", Consolas, "Courier New", monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:0.88em; overflow-wrap:anywhere;}
+  pre{background:var(--code-bg); padding:12px 14px; border-radius:4px; overflow-x:auto; font-size:0.84rem; line-height:1.5; margin:0 0 16px;}
+  pre code{background:none; padding:0;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  a{color:var(--accent-strong);}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+
+  .page{display:grid; grid-template-columns:220px minmax(0,1fr); gap:0 44px; max-width:1220px; margin:0 auto; padding:0 28px 80px;}
+  nav.toc{position:sticky; top:0; align-self:start; padding-top:48px; max-height:100vh; overflow-y:auto;}
+  nav.toc .eyebrow{color:var(--text-dim); font-size:0.7rem;}
+  nav.toc ul{list-style:none; margin:0 0 24px; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.toc a{display:block; padding:6px 10px; border-radius:3px; color:var(--text-dim); text-decoration:none; font-size:0.86rem; font-weight:500;}
+  nav.toc a:hover{color:var(--text); background:var(--panel-alt);}
+  main{min-width:0; padding-top:48px;}
+  header.hero{margin-bottom:36px;}
+  .eyebrow{font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 12px;}
+  h1.title{font-size:clamp(2rem,5vw,3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{font-size:1.08rem; color:var(--text-dim); max-width:66ch; margin:0 0 20px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.84rem; color:var(--text-dim);}
+  .meta b{color:var(--text); font-weight:600;}
+
+  section{max-width:860px; padding:40px 0; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none; padding-top:0;}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .section-tag{font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.72rem; color:var(--text-dim); white-space:nowrap;}
+  h2{font-size:1.5rem; font-weight:600;}
+  h3{font-size:1.05rem; font-weight:600; margin:24px 0 8px;}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin:3px 0;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .table-wrap{overflow-x:auto; margin:0 0 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
+  th,td{text-align:left; padding:9px 12px; border-top:1px solid var(--border); vertical-align:top;}
+  thead th{border-top:none; font-size:0.76rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim); background:var(--panel-alt); white-space:nowrap;}
+  tbody th{font-weight:600; color:var(--text-dim); white-space:nowrap;}
+  td.notes{min-width:230px;}
+  td.nowrap{white-space:nowrap;}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  .chip{display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.74rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap;}
+  .chip.ok{color:var(--ok); background:var(--ok-bg);}
+  .chip.bad{color:var(--bad); background:var(--bad-bg);}
+  .chip.warn{color:var(--warn); background:var(--warn-bg);}
+  .chip.info{color:var(--accent-strong); background:var(--panel-alt);}
+  .chip.todo{color:var(--text-dim); background:transparent; border-style:dashed;}
+
+  .note{padding:12px 16px; background:var(--panel-alt); border-left:3px solid var(--warn); border-radius:0 4px 4px 0; font-size:0.92rem; margin:18px 0;}
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .placeholder{border:2px dashed var(--warn); border-radius:6px; padding:14px 16px; margin:16px 0; background:var(--warn-bg);}
+  .placeholder > b:first-child{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; color:var(--warn); text-transform:uppercase; letter-spacing:0.06em; font-size:0.78rem; display:block; margin-bottom:4px;}
+  tr.ph td{color:var(--text-dim); font-style:italic; background:repeating-linear-gradient(135deg, transparent 0 8px, var(--warn-bg) 8px 10px);}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:0 0 16px;}
+  .card{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px; break-inside:avoid;}
+  .card h3{margin:0 0 8px; font-size:0.98rem; display:flex; justify-content:space-between; gap:8px; align-items:baseline;}
+  .card p{margin:0 0 6px; font-size:0.9rem; color:var(--text-dim);}
+  .card dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.86rem;}
+  .card dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .card dd{margin:0; font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.82rem; overflow-wrap:anywhere;}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 0 18px;}
+  .tile{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px 14px;}
+  .tile .k{font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .tile .v{font-size:1.6rem; font-weight:600; font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; line-height:1.2;}
+  .tile .s{font-size:0.8rem; color:var(--text-dim);}
+
+  /* step flow */
+  ol.flow{list-style:none; padding:0; margin:0 0 16px; counter-reset:f;}
+  ol.flow > li{counter-increment:f; position:relative; padding:0 0 22px 52px; margin:0;}
+  ol.flow > li::before{content:counter(f); position:absolute; left:0; top:0; width:34px; height:34px; border-radius:50%; background:var(--panel); border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono", Consolas, monospace; font-weight:600;}
+  ol.flow > li::after{content:""; position:absolute; left:16px; top:36px; bottom:2px; width:2px; background:var(--border);}
+  ol.flow > li:last-child::after{display:none;}
+  ol.flow h3{margin:4px 0 6px;}
+
+  .verdict{border:2px solid var(--ok); background:var(--ok-bg); border-radius:8px; padding:16px 20px; margin:0 0 24px;}
+  .verdict h2{color:var(--ok); font-size:1.25rem; margin-bottom:6px;}
+  .verdict p:last-child{margin-bottom:0;}
+
+  .layers{display:flex; flex-direction:column; gap:6px; margin:0 0 16px;}
+  .layer{display:grid; grid-template-columns:34px minmax(0,1.3fr) minmax(0,1fr) 110px; gap:12px; align-items:center; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-left:5px solid var(--accent); border-radius:4px; font-size:0.88rem;}
+  .layer .n{font-family:"IBM Plex Mono", Consolas, monospace; color:var(--text-dim);}
+  .layer b{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .layer .when{color:var(--text-dim); font-size:0.84rem;}
+  .layer.pre{border-left-color:var(--text-dim);}
+  .layer.run{border-left-color:var(--warn);}
+  .layer.last{border-left-color:var(--bad);}
+
+  figure{margin:0 0 18px;}
+  figure.diagram{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:0.82rem; color:var(--text-dim); margin-top:10px; max-width:70ch;}
+  figure.narrow svg{max-width:560px; margin:0 auto;}
+  td:first-child code{white-space:nowrap;}
+  .shapes{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .shapes figure{margin:0;}
+
+  /* SVG classes (themeable) */
+  .sv-line{stroke:var(--text-dim); fill:none; stroke-width:1.5;}
+  .sv-thin{stroke:var(--border); fill:none; stroke-width:1;}
+  .sv-path{stroke:var(--accent); fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .sv-accent{stroke:var(--accent-strong); fill:none; stroke-width:2;}
+  .sv-warn{stroke:var(--warn); fill:none; stroke-width:2;}
+  .sv-bad{stroke:var(--bad); fill:none; stroke-width:2;}
+  .sv-dash{stroke-dasharray:5 4;}
+  .sv-fill-panel{fill:var(--panel); stroke:var(--text-dim); stroke-width:1.5;}
+  .sv-fill-alt{fill:var(--panel-alt); stroke:var(--border); stroke-width:1;}
+  .sv-fill-accent{fill:var(--accent); opacity:0.18; stroke:var(--accent); stroke-width:1.5;}
+  .sv-fill-warn{fill:var(--warn); opacity:0.16;}
+  .sv-fill-bad{fill:var(--bad); opacity:0.14;}
+  .sv-dot{fill:var(--accent-strong);}
+  .sv-dot-warn{fill:var(--warn);}
+  .sv-text{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:13px;}
+  .sv-small{fill:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:11px;}
+  .sv-mono{fill:var(--text-dim); font-family:"IBM Plex Mono", Consolas, monospace; font-size:10.5px;}
+  .sv-title{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:14px; font-weight:600;}
+  .sv-acc-text{fill:var(--accent-strong); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-warn-text{fill:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-bad-text{fill:var(--bad); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .arrowhead{fill:var(--text-dim);}
+  .arrowhead-acc{fill:var(--accent-strong);}
+
+  footer{max-width:860px; margin-top:30px; padding-top:18px; border-top:1px solid var(--border); font-size:0.84rem; color:var(--text-dim);}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:minmax(0,1fr); padding:0 16px 60px;}
+    nav.toc{min-width:0;}
+    nav.toc{position:sticky; top:0; z-index:5; padding-top:0; background:var(--bg); max-height:none; border-bottom:1px solid var(--border);}
+    nav.toc .eyebrow{display:none;}
+    nav.toc ul{flex-direction:row; overflow-x:auto; gap:4px; padding:12px 0; margin:0;}
+    nav.toc a{white-space:nowrap;}
+    main{padding-top:20px;}
+    .layer{grid-template-columns:28px 1fr; }
+    .layer .when,.layer .act{grid-column:2;}
+  }
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel-alt:#f2f2f2; --text:#000; --text-dim:#333; --border:#bbb; --code-bg:#f2f2f2;}
+    body{background:#fff; font-size:10.5pt;}
+    nav.toc{display:none;}
+    .page{display:block; padding:0; max-width:none;}
+    main{padding-top:0;}
+    section{padding:18px 0; max-width:none; break-inside:auto;}
+    .card,.tile,figure,.layer,tr,.verdict,.placeholder{break-inside:avoid;}
+    h2,h3{break-after:avoid;}
+    a{color:#000;}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-size:0.8em;}
+    pre{white-space:pre-wrap;}
+  }
+  /* page: lidar-guide */
+  .scroll-x{overflow-x:auto;}
+  .scroll-x svg{min-width:680px;}
+  .cmd{position:relative;}
+  .cmd .copy{position:absolute; top:6px; right:6px; font:600 0.72rem "IBM Plex Sans Condensed","Arial Narrow",sans-serif; padding:3px 8px; border:1px solid var(--border); background:var(--panel); color:var(--text-dim); border-radius:3px; cursor:pointer;}
+  .cmd .copy:hover{color:var(--text);}
+  .cmd pre{padding-right:64px;}
+  td.cmdcell code{white-space:normal;}
+  /* explorer */
+  .explorer{display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:18px; align-items:start; margin:0 0 18px;}
+  .stage{position:relative; background:var(--panel); border:1px solid var(--border); border-radius:6px; overflow:hidden; touch-action:pan-y;}
+  .stage svg{display:block; width:100%; height:auto; user-select:none; -webkit-user-select:none;}
+  .tip{position:absolute; pointer-events:none; transform:translate(-50%,-135%); background:var(--text); color:var(--bg); font:600 0.72rem "IBM Plex Mono",Consolas,monospace; padding:2px 6px; border-radius:3px; white-space:nowrap; display:none; z-index:3;}
+  .controls{display:flex; flex-direction:column; gap:12px;}
+  .group{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:10px 12px;}
+  .group h3{margin:0 0 8px; font-size:0.78rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .btnrow{display:flex; flex-wrap:wrap; gap:6px;}
+  button.b{font:600 0.82rem "IBM Plex Sans Condensed","Arial Narrow","Segoe UI",sans-serif; padding:7px 11px; min-height:36px; border:1px solid var(--border); background:var(--panel-alt); color:var(--text); border-radius:4px; cursor:pointer;}
+  button.b:hover{border-color:var(--accent);}
+  button.b[aria-pressed="true"]{background:var(--accent); color:#fff; border-color:var(--accent-strong);}
+  :root[data-theme="dark"] button.b[aria-pressed="true"]{color:#001;}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) button.b[aria-pressed="true"]{color:#001;} }
+  button.b:focus-visible,.copy:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  label.row{display:flex; align-items:center; gap:8px; font-size:0.88rem; margin:4px 0; flex-wrap:wrap;}
+  label.row input[type=range]{flex:1 1 140px; min-width:120px;}
+  label.row output{font:600 0.84rem "IBM Plex Mono",Consolas,monospace; min-width:5.5ch; text-align:right;}
+  select{font:inherit; font-size:0.86rem; padding:5px; background:var(--panel-alt); color:var(--text); border:1px solid var(--border); border-radius:4px; max-width:100%;}
+  dl.read{display:grid; grid-template-columns:auto 1fr; gap:3px 12px; margin:0; font-size:0.86rem;}
+  dl.read dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;}
+  dl.read dd{margin:0; font-family:"IBM Plex Mono",Consolas,monospace; font-size:0.82rem; overflow-wrap:anywhere;}
+  .formula{font-family:"IBM Plex Mono",Consolas,monospace; font-size:0.78rem; color:var(--text-dim); margin:8px 0 0; overflow-wrap:anywhere;}
+  .strip{margin:0 0 6px; position:relative;}
+  .strip canvas{display:block; width:100%; height:34px; border:1px solid var(--border); border-radius:3px; background:var(--panel-alt); cursor:crosshair; touch-action:pan-y;}
+  .strip .sector{position:absolute; top:0; height:34px; border:2px solid var(--warn); border-radius:2px; pointer-events:none; box-sizing:border-box;}
+  .strip .selmark{position:absolute; top:-3px; height:40px; width:2px; background:var(--text); pointer-events:none;}
+  .strip .marks{position:relative; height:34px; font:600 0.7rem "IBM Plex Sans Condensed","Arial Narrow",sans-serif; color:var(--text-dim);}
+  .strip .marks span{position:absolute; top:0; transform:translateX(-50%); white-space:nowrap; text-align:center; line-height:1.15;}
+  .strip .marks span::before{content:""; display:block; width:1px; height:6px; background:var(--text-dim); margin:0 auto 1px;}
+  .strip .marks span.l{transform:none;} .strip .marks span.l::before{margin:0 0 1px 0;}
+  .strip .marks span.r{transform:translateX(-100%);} .strip .marks span.r::before{margin:0 0 1px auto;}
+  .legend{display:flex; flex-wrap:wrap; gap:4px 14px; font-size:0.78rem; color:var(--text-dim); margin:0 0 6px;}
+  .legend i{display:inline-block; width:12px; height:12px; vertical-align:-2px; margin-right:4px; border-radius:2px; border:1px solid var(--border);}
+  /* SVG explorer classes */
+  .x-ring{stroke:var(--border); fill:none; stroke-width:1;}
+  .x-wall{stroke:var(--text); stroke-width:3.5; stroke-linecap:round;}
+  .x-box{fill:var(--panel-alt); stroke:var(--text); stroke-width:2;}
+  .x-box.dark{fill:var(--text); fill-opacity:0.6;}
+  .x-sel{stroke:var(--accent); stroke-width:3; stroke-dasharray:6 4;}
+  .x-ray{stroke:var(--accent); stroke-opacity:0.16; stroke-width:1; fill:none;}
+  .x-rayinv{stroke:var(--text-dim); stroke-opacity:0.12; stroke-width:1; fill:none;}
+  .x-dot{stroke:var(--accent-strong); stroke-width:4.5; stroke-linecap:round; fill:none;}
+  .x-dotf{stroke:var(--warn); stroke-width:4.5; stroke-linecap:round; fill:none;}
+  .x-wedge-ok{fill:var(--ok); fill-opacity:0.16; stroke:var(--ok); stroke-width:1.5;}
+  .x-wedge-bad{fill:var(--bad); fill-opacity:0.2; stroke:var(--bad); stroke-width:1.5;}
+  .x-robot{fill:var(--panel); stroke:var(--text); stroke-width:2;}
+  .x-fwd{fill:var(--accent-strong);}
+  .x-lidar{fill:var(--warn); stroke:var(--text); stroke-width:1;}
+  .x-axis-robot{stroke:var(--accent-strong); stroke-width:2.5; fill:none;}
+  .x-axis-laser{stroke:var(--warn); stroke-width:2.5; fill:none;}
+  .x-beam{stroke:var(--text); stroke-width:1.5; stroke-dasharray:4 3; fill:none;}
+  .x-ring-sel{fill:none; stroke:var(--text); stroke-width:2.5;}
+  .x-nearest{fill:none; stroke:var(--bad); stroke-width:2.5;}
+  .x-txt{fill:var(--text); font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:12px; font-weight:600; paint-order:stroke; stroke:var(--panel); stroke-width:3px; stroke-linejoin:round;}
+  .x-txt-acc{fill:var(--accent-strong);} .x-txt-warn{fill:var(--warn);}
+  .x-txt-dim{fill:var(--text-dim); font-weight:500; font-size:10.5px;}
+  .x-preview{stroke:var(--accent); stroke-width:3; stroke-dasharray:3 4;}
+  @media (max-width:900px){ .explorer{grid-template-columns:minmax(0,1fr);} }
+  @media print{ .controls button,.copy{display:none;} .explorer{display:block;} }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="toc" aria-label="Contents">
+    <p class="eyebrow">Contents</p>
+    <ul>
+      <li><a href="#what">What it is</a></li>
+      <li><a href="#scan">One scan</a></li>
+      <li><a href="#mounting">The +90&deg; mounting</a></li>
+      <li><a href="#explorer">Lidar explorer</a></li>
+      <li><a href="#hand">Get the data by hand</a></li>
+      <li><a href="#code">Use it in your code</a></li>
+      <li><a href="#trouble">Troubleshooting</a></li>
+      <li><a href="#safety">Safety</a></li>
+    </ul>
+    <p class="eyebrow">Other pages</p>
+    <ul>
+      <li><a href="index.html">Docs index</a></li>
+      <li><a href="LIDAR-GUIDE.md">Markdown version</a></li>
+      <li><a href="lidar-diagnosis.html">Lidar fault of 2026-10-03</a></li>
+      <li><a href="LIDAR-FINDINGS.md">Lidar findings (Markdown)</a></li>
+      <li><a href="../examples/README.md">Example programs</a></li>
+      <li><a href="../HOW-TO-CONNECT.md">How to connect</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">TurtleBot 4 &middot; user guide &middot; sensor</p>
+      <h1 class="title">Lidar user guide</h1>
+      <p class="dek">What the lidar on the lab TurtleBot 4 measures, how one scan is laid out, why the lidar is mounted turned 90&deg;, and how to get its data: by hand with ROS 2 commands, with the example programs, and in your own Python code. Section 4 is a simulator you can play with in the browser; it needs no robot.</p>
+      <div class="meta">
+        <span><b>Written</b> 2026-10-10 from the session record of 2026-10-03 to 2026-10-10 and the programs in <code>TurtleBot/examples/</code></span>
+        <span><b>Status</b> <span class="chip ok">values measured on this robot</span> <span class="chip todo">commands marked &ldquo;untested&rdquo; not yet run</span></span>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section id="what">
+      <div class="section-head"><span class="section-tag">01</span><h2>What it is and how it connects</h2></div>
+      <p>The robot carries an <b>RPLIDAR A1M8</b> on top. Inside its head a laser and a sensor spin around, measuring the distance to whatever the laser hits. One turn gives a distance in every direction around the robot (360&deg;). The TurtleBot 4 manual describes it as a 360&deg; laser range scanner with a 12 m range. &ldquo;Lidar&rdquo; means light detection and ranging; the program-side name for what it produces is a <i>laser scan</i>.</p>
+      <div class="tiles">
+        <div class="tile"><div class="k">Beams per scan</div><div class="v">720</div><div class="s">one every 0.5&deg;</div></div>
+        <div class="tile"><div class="k">Scans per second</div><div class="v">7.7</div><div class="s">measured 7.745 Hz</div></div>
+        <div class="tile"><div class="k">Range</div><div class="v">0.15&ndash;12 m</div><div class="s">outside this, no usable value</div></div>
+        <div class="tile"><div class="k">Typical valid beams</div><div class="v">72 %</div><div class="s">519 of 720 in the lab</div></div>
+      </div>
+      <h3>The data path</h3>
+      <figure class="diagram">
+        <div class="scroll-x">
+        <svg viewBox="0 0 960 170" role="img" aria-label="Data path: laser head, USB cable, driver node on the Raspberry Pi, the /scan topic, your program">
+          <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="arrowhead-acc"/></marker></defs>
+          <g>
+            <rect class="sv-fill-panel" x="10" y="30" width="150" height="100" rx="6"/>
+            <text class="sv-title" x="85" y="56" text-anchor="middle">1 Laser head</text>
+            <text class="sv-small" x="85" y="78" text-anchor="middle">RPLIDAR A1M8</text>
+            <text class="sv-small" x="85" y="94" text-anchor="middle">spins, measures</text>
+            <text class="sv-small" x="85" y="110" text-anchor="middle">distance per angle</text>
+            <rect class="sv-fill-panel" x="207" y="30" width="150" height="100" rx="6"/>
+            <text class="sv-title" x="282" y="56" text-anchor="middle">2 USB cable</text>
+            <text class="sv-small" x="282" y="78" text-anchor="middle">USB serial chip</text>
+            <text class="sv-small" x="282" y="94" text-anchor="middle">CP210x (10c4:ea60)</text>
+            <text class="sv-mono" x="282" y="112" text-anchor="middle">/dev/RPLIDAR</text>
+            <rect class="sv-fill-panel" x="404" y="30" width="150" height="100" rx="6"/>
+            <text class="sv-title" x="479" y="56" text-anchor="middle">3 Driver</text>
+            <text class="sv-mono" x="479" y="78" text-anchor="middle">rplidar_composition</text>
+            <text class="sv-small" x="479" y="94" text-anchor="middle">on the Raspberry Pi,</text>
+            <text class="sv-small" x="479" y="110" text-anchor="middle">started by turtlebot4.service</text>
+            <rect class="sv-fill-accent" x="601" y="30" width="150" height="100" rx="6"/>
+            <text class="sv-title" x="676" y="56" text-anchor="middle">4 /scan topic</text>
+            <text class="sv-mono" x="676" y="78" text-anchor="middle">sensor_msgs/LaserScan</text>
+            <text class="sv-small" x="676" y="94" text-anchor="middle">about 7.7 per second</text>
+            <text class="sv-small" x="676" y="110" text-anchor="middle">frame rplidar_link</text>
+            <rect class="sv-fill-panel" x="798" y="30" width="150" height="100" rx="6"/>
+            <text class="sv-title" x="873" y="56" text-anchor="middle">5 Your program</text>
+            <text class="sv-small" x="873" y="78" text-anchor="middle">subscribes to /scan</text>
+            <text class="sv-small" x="873" y="94" text-anchor="middle">with sensor-data QoS</text>
+            <text class="sv-small" x="873" y="110" text-anchor="middle">(section 6)</text>
+          </g>
+          <g stroke-width="2" class="sv-accent">
+            <line x1="160" y1="80" x2="205" y2="80" marker-end="url(#ah)"/>
+            <line x1="357" y1="80" x2="402" y2="80" marker-end="url(#ah)"/>
+            <line x1="554" y1="80" x2="599" y2="80" marker-end="url(#ah)"/>
+            <line x1="751" y1="80" x2="796" y2="80" marker-end="url(#ah)"/>
+          </g>
+          <text class="sv-small" x="480" y="158" text-anchor="middle">The lidar is switched off while the robot is on its dock, so stage 4 is empty there.</text>
+        </svg>
+        </div>
+        <figcaption>From the laser to your code. Stages 1 to 3 are fixed; you work at stage 5.</figcaption>
+      </figure>
+      <p>On this robot (checked 2026-10-04) the lidar appears to the Pi as a Silicon Labs CP210x USB-serial device (<code>lsusb</code> shows <code>10c4:ea60</code>), with the stable name <code>/dev/RPLIDAR</code> pointing at <code>/dev/ttyUSB0</code>. The driver is the <code>rplidar_composition</code> node (package <code>rplidar_ros</code>), started by <code>turtlebot4.service</code> when the robot boots. It reported firmware 1.29, hardware revision 7, health status 0, scan mode &ldquo;Sensitivity&rdquo; and a maximum distance of 12.0 m. The story of the one time this chain broke (a loose USB cable) is on <a href="lidar-diagnosis.html">the diagnosis page</a>; this guide does not repeat it.</p>
+      <div class="note"><b>Docked means off.</b> To save power the TurtleBot 4 stops the lidar while the robot is on its dock (the log says &ldquo;RPLIDAR stopped&rdquo; and &ldquo;RPLIDAR started&rdquo;). On the dock there is no <code>/scan</code>. That is normal, not a fault.</div>
+    </section>
+
+    <!-- 2 -->
+    <section id="scan">
+      <div class="section-head"><span class="section-tag">02</span><h2>One scan, explained</h2></div>
+      <p>Each message on <code>/scan</code> is one full turn of the lidar, in a <code>sensor_msgs/msg/LaserScan</code>. The distances are in one list, <code>ranges[]</code>. The list has no angles in it. Beam number <code>i</code> (0 to 719) was measured at an angle you work out from three numbers in the message. Values on this robot:</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Field</th><th>Meaning</th><th>This robot</th></tr></thead>
+        <tbody>
+          <tr><th><code>header.frame_id</code></th><td>The coordinate frame the angles belong to: the lidar&rsquo;s own.</td><td><code>rplidar_link</code></td></tr>
+          <tr><th><code>header.stamp</code></th><td>Time of the scan (the Pi&rsquo;s clock).</td><td>changes every message</td></tr>
+          <tr><th><code>angle_min</code></th><td>Angle of beam 0, in radians, in the lidar&rsquo;s frame.</td><td>&minus;3.1241 rad (&minus;179.0&deg;)</td></tr>
+          <tr><th><code>angle_max</code></th><td>Angle of the last beam.</td><td>3.1416 rad (180.0&deg;)</td></tr>
+          <tr><th><code>angle_increment</code></th><td>Angle step from one beam to the next.</td><td>0.0087145 rad (about 0.5&deg;)</td></tr>
+          <tr><th><code>range_min</code></th><td>Closest distance the lidar can report.</td><td>0.15 m</td></tr>
+          <tr><th><code>range_max</code></th><td>Farthest distance it can report.</td><td>12.0 m</td></tr>
+          <tr><th><code>ranges[]</code></th><td>Distance in metres for each beam, measured from the lidar.</td><td>720 values; typical lab scan: 0.26 to 6.80 m, median 1.44 m</td></tr>
+          <tr><th><code>time_increment</code>, <code>scan_time</code></th><td>Time between beams, and time for a whole turn.</td><td>not read from the message; one turn takes about 1/7.7 = 0.13 s (period seen: 0.119 to 0.139 s)</td></tr>
+          <tr><th><code>intensities[]</code></th><td>Signal strength per beam, if the driver fills it.</td><td>not checked on this robot</td></tr>
+        </tbody>
+      </table></div>
+      <h3>Index to angle to x, y</h3>
+      <pre><code>laser_angle = angle_min + i * angle_increment          # radians, in the lidar's frame
+robot_angle = laser_angle + 90 deg                      # radians, in the robot's frame (section 3)
+x = lidar_x + r * cos(robot_angle)                      # forward, metres   (lidar_x = -0.04)
+y =           r * sin(robot_angle)                      # left, metres
+
+# the other way round:
+i = round((laser_angle - angle_min) / angle_increment)</code></pre>
+      <p>Worked example, beam 178: laser angle = &minus;3.1241 + 178 &times; 0.0087145 = &minus;1.5729 rad = &minus;90.1&deg;. Robot angle = &minus;90.1&deg; + 90&deg; = &minus;0.1&deg;, so the beam points straight ahead. If it reads <code>r</code> = 1.00 m, then x = &minus;0.04 + 1.00 &times; cos(&minus;0.1&deg;) = 0.96 m and y = &minus;0.002 m. (Without the lidar&rsquo;s offset you get x = 1.00 m measured from the lidar, which is also correct if you want positions relative to the lidar.) The robot frame has x forward and y to the left, and positive angles turn to the left (counter-clockwise seen from above).</p>
+      <h3>What the unusual values mean</h3>
+      <ul>
+        <li><b><code>inf</code></b>: the beam did not hit anything within range (open door, far wall beyond 12 m), or the surface sent nothing back (glass, very dark or very shiny things). It is not an error.</li>
+        <li><b>Smaller than <code>range_min</code></b> (0.15 m): too close to measure reliably. Ignore it.</li>
+        <li><b><code>nan</code></b>: also no measurement. The test <code>range_min &lt; r &lt; range_max</code> rejects <code>inf</code>, <code>nan</code> and both out-of-limit cases in one line, which is what the example programs use.</li>
+        <li><b>About 72 % valid</b> is normal in a lab (519 of 720 beams on a typical scan). Never treat <code>inf</code> as &ldquo;distance 0&rdquo; or &ldquo;very far&rdquo; without deciding on purpose: a program that stops only when it sees a small number will drive happily at a black wall that returns <code>inf</code>.</li>
+      </ul>
+      <div class="note"><b>Note.</b> <code>angle_min</code> is &minus;3.1241, not &minus;&pi;, and the last beam is at +3.1416. So the beam at exactly 180&deg; (the robot&rsquo;s right) is index 719 (or 718.996 by the formula); the beam at &minus;179&deg; is index 0.</div>
+    </section>
+
+    <!-- 3 -->
+    <section id="mounting">
+      <div class="section-head"><span class="section-tag">03</span><h2>The +90&deg; mounting</h2></div>
+      <p>This is the one thing that confuses everybody. The lidar sits on top of the robot <b>turned 90&deg;</b>, so the angle the lidar calls 0&deg; is not the front of the robot. The transform from <code>base_link</code> (the robot) to <code>rplidar_link</code> (the lidar), measured on this robot, is: translation (&minus;0.040, 0, 0.193) m (4 cm behind the robot&rsquo;s centre, 19 cm up) and a rotation of <b>yaw +90&deg;</b>. Therefore:</p>
+      <p style="font-size:1.1rem"><b>robot angle = laser angle + 90&deg;</b>, so straight ahead is <b>laser &minus;90&deg;</b> (beam about 178).</p>
+      <figure class="diagram narrow">
+        <svg viewBox="0 0 560 380" role="img" aria-label="Top view of the robot with forward up. Front is laser minus 90 degrees, beam 178. Left is laser 0 degrees, beam 358 to 359. Behind is laser plus 90 degrees, beam 539. Right is laser plus or minus 180 degrees, beams 719 and 0.">
+          <defs>
+            <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="arrowhead-acc"/></marker>
+            <marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--warn)"/></marker>
+          </defs>
+          <circle class="sv-fill-panel" cx="280" cy="195" r="62"/>
+          <path d="M280 150 L300 182 L260 182 Z" class="sv-dot"/>
+          <text class="sv-small" x="280" y="236" text-anchor="middle">robot (top view)</text>
+          <circle cx="280" cy="206" r="6" fill="var(--warn)" stroke="var(--text)"/>
+          <line x1="280" y1="132" x2="280" y2="62" class="sv-accent" stroke-width="3" marker-end="url(#ah2)"/>
+          <line x1="218" y1="195" x2="150" y2="195" style="stroke:var(--warn)" stroke-width="3" marker-end="url(#ah3)"/>
+          <line x1="342" y1="195" x2="410" y2="195" class="sv-thin" stroke-width="2"/>
+          <line x1="280" y1="258" x2="280" y2="312" class="sv-thin" stroke-width="2"/>
+          <text class="sv-title" x="280" y="26" text-anchor="middle">FRONT</text>
+          <text class="sv-small" x="280" y="42" text-anchor="middle">robot 0&deg; = laser &minus;90&deg; = beam 178</text>
+          <text class="sv-title" x="12" y="150">LEFT</text>
+          <text class="sv-small" x="12" y="166">robot +90&deg;</text>
+          <text class="sv-warn-text" x="12" y="182">laser 0&deg;, beams 358-359</text>
+          <text class="sv-warn-text" x="12" y="232">laser&rsquo;s own &ldquo;forward&rdquo;</text>
+          <text class="sv-title" x="548" y="150" text-anchor="end">RIGHT</text>
+          <text class="sv-small" x="548" y="166" text-anchor="end">robot &minus;90&deg;</text>
+          <text class="sv-small" x="548" y="182" text-anchor="end">laser &plusmn;180&deg;</text>
+          <text class="sv-small" x="548" y="198" text-anchor="end">beams 719 and 0</text>
+          <text class="sv-title" x="280" y="334" text-anchor="middle">BEHIND</text>
+          <text class="sv-small" x="280" y="350" text-anchor="middle">robot &plusmn;180&deg; = laser +90&deg; = beam 539</text>
+          <text class="sv-acc-text" x="300" y="100">robot x axis</text>
+          <circle cx="280" cy="206" r="2" fill="var(--text)"/>
+        </svg>
+        <figcaption>Robot seen from above, front up. The orange dot is the lidar (4 cm behind the centre). The lidar&rsquo;s own 0&deg; points to the robot&rsquo;s left. Try the &ldquo;raw laser frame&rdquo; switch in section 4 to see the same picture turned the way the lidar sees it.</figcaption>
+      </figure>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Direction</th><th class="num">Robot angle</th><th class="num">Laser angle</th><th class="num">Beam index</th></tr></thead>
+        <tbody>
+          <tr><th>Front</th><td class="num">0&deg;</td><td class="num">&minus;90&deg;</td><td class="num">about 178</td></tr>
+          <tr><th>Left</th><td class="num">+90&deg;</td><td class="num">0&deg;</td><td class="num">358 / 359</td></tr>
+          <tr><th>Behind</th><td class="num">&plusmn;180&deg;</td><td class="num">+90&deg;</td><td class="num">about 539</td></tr>
+          <tr><th>Right</th><td class="num">&minus;90&deg;</td><td class="num">&plusmn;180&deg;</td><td class="num">719 and 0</td></tr>
+        </tbody>
+      </table></div>
+      <h3>How the example programs find the offset</h3>
+      <p>They ask ROS&rsquo;s transform system (TF) for the transform <code>base_link</code> &rarr; the scan&rsquo;s <code>frame_id</code>, take its yaw from the rotation (a quaternion), and add that yaw to every beam angle. In <code>clearance_check.py</code>: <code>tf_buffer.lookup_transform('base_link', node.scan.header.frame_id, rclpy.time.Time())</code>, then <code>yaw_of(t.transform.rotation)</code>. If you would rather not depend on TF you can hard-code +90&deg;, but then your program is wrong if the lidar is ever remounted.</p>
+      <p><b>The fallback if TF is missing.</b> <code>lidar_snapshot.py</code> waits 5 s and then uses <b>+90&deg;</b> with a warning. <code>clearance_check.py</code> used to assume <b>0&deg;</b> (&ldquo;the lidar faces forward&rdquo;), which on this robot is wrong by 90&deg; (it would look at the robot&rsquo;s left). Fixed in the repository on 2026-10-10: it now also falls back to +90&deg;, with a warning. The copy on the robot (copied 2026-10-03) still has the old fallback until the programs are copied again (<a href="../ROADMAP.md">ROADMAP.md</a>, TB-23); while TF works, both versions read the correct +90&deg;. The program in section 6 uses +90&deg;. To look at the transform yourself: <code>ros2 run tf2_ros tf2_echo base_link rplidar_link</code> <span class="chip ok">run on this robot 2026-10-04</span> (translation (&minus;0.040, 0, 0.193) m, yaw 90&deg;).</p>
+    </section>
+
+    <!-- 4 -->
+    <section id="explorer">
+      <div class="section-head"><span class="section-tag">04</span><h2>Lidar explorer</h2></div>
+      <p>A simulated lidar in a room you can change. It uses this robot&rsquo;s numbers: 720 beams from &minus;3.1241 rad in steps of 0.0087145 rad, range 0.15 to 12 m, the lidar 4 cm behind the robot&rsquo;s centre and turned +90&deg;. Hover over a dot (or tap it, or drag the beam slider) to read that beam. Drag a box to move it. <b>It is a simulation:</b> ideal flat walls, simple noise, and the &ldquo;glass or black&rdquo; setting is a rough stand-in for what real surfaces do.</p>
+      <div class="explorer">
+        <div>
+          <div class="stage" id="xstage">
+            <svg id="xsvg" viewBox="0 0 560 560" role="img" aria-label="Top-down view of the robot in a room with the simulated lidar dots. Use the controls and the beam slider to read individual beams.">
+              <g id="xrot"></g>
+            </svg>
+            <div class="tip" id="xtip"></div>
+          </div>
+          <p class="note" id="rawCap" style="margin-top:10px">Robot frame.</p>
+        </div>
+        <div class="controls">
+          <div class="group">
+            <h3>Room tools</h3>
+            <div class="btnrow" role="group" aria-label="Tool">
+              <button class="b" type="button" id="tool-inspect" aria-pressed="true">Inspect / drag</button>
+              <button class="b" type="button" id="tool-box" aria-pressed="false">Add box</button>
+              <button class="b" type="button" id="tool-wall" aria-pressed="false">Draw wall</button>
+              <button class="b" type="button" id="tool-erase" aria-pressed="false">Erase</button>
+            </div>
+            <label class="row" for="sizeSlider">Box size <input type="range" id="sizeSlider" min="0.2" max="1.5" step="0.05" value="0.5"><output id="sizeOut">0.50 m</output></label>
+            <div class="btnrow" style="margin-top:6px">
+              <select id="presetSel" aria-label="Preset room">
+                <option value="lab">Lab room, doorways, 3 boxes</option>
+                <option value="ahead">Box 1.0 m ahead</option>
+                <option value="corridor">Corridor (open end beyond 12 m)</option>
+                <option value="open">Open space</option>
+              </select>
+              <button class="b" type="button" id="btnReset">Reset room</button>
+            </div>
+            <div class="btnrow" style="margin-top:8px" role="group" aria-label="Keyboard-friendly object controls">
+              <button class="b" type="button" id="btnAdd">Add box ahead</button>
+              <button class="b" type="button" id="btnNext">Select next object</button>
+              <button class="b" type="button" id="nUp" aria-label="Move selected object forward">&uarr;</button>
+              <button class="b" type="button" id="nDown" aria-label="Move selected object back">&darr;</button>
+              <button class="b" type="button" id="nLeft" aria-label="Move selected object left">&larr;</button>
+              <button class="b" type="button" id="nRight" aria-label="Move selected object right">&rarr;</button>
+              <button class="b" type="button" id="btnDark">Toggle glass/black</button>
+              <button class="b" type="button" id="btnDel">Delete selected</button>
+            </div>
+          </div>
+          <div class="group">
+            <h3>View and sensor</h3>
+            <label class="row"><input type="checkbox" id="optRaw"> Show the raw laser frame (turn the picture 90&deg;)</label>
+            <label class="row"><input type="checkbox" id="optNoise" checked> Noise (1 cm) and 2 % random dropouts</label>
+            <label class="row"><input type="checkbox" id="optGlass"> Glass / black surface: boxes mostly return nothing</label>
+            <label class="row"><input type="checkbox" id="optBeams" checked> Draw the beams</label>
+            <button class="b" type="button" id="reroll">New noise</button>
+          </div>
+          <div class="group">
+            <h3>Selected beam</h3>
+            <label class="row" for="beamSlider">Beam <input type="range" id="beamSlider" min="0" max="719" step="1" value="178"><output id="beamOut">178</output></label>
+            <dl class="read">
+              <dt>Beam index</dt><dd id="rIdx">-</dd>
+              <dt>Laser angle</dt><dd id="rLaser">-</dd>
+              <dt>Robot angle</dt><dd id="rRobot">-</dd>
+              <dt>Range</dt><dd id="rRange">-</dd>
+              <dt>x, y (robot frame)</dt><dd id="rXY">-</dd>
+            </dl>
+            <p class="formula" id="rFormula"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="explorer">
+        <div class="group">
+          <h3>&ldquo;Ahead&rdquo; check: the same test as clearance_check.py</h3>
+          <label class="row" for="limitSlider">Limit <input type="range" id="limitSlider" min="0.3" max="1.5" step="0.05" value="0.6"><output id="limitOut">0.60 m</output></label>
+          <p style="font-size:0.88rem; margin:6px 0 8px">The shaded wedge is the area within the limit, &plusmn;30&deg; either side of straight ahead (green: empty, red: something inside). Orange dots are the beams in that sector; the red ring marks the nearest one. The program would print:</p>
+          <div class="cmd"><pre style="margin-bottom:8px; white-space:pre-wrap"><code id="cOut"></code></pre></div>
+          <span class="chip ok" id="cChip">exit 0 clear</span>
+        </div>
+        <div class="group">
+          <h3>This scan</h3>
+          <div class="tiles" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); margin:0">
+            <div class="tile"><div class="k">Valid beams</div><div class="v" id="sValid" style="font-size:1.15rem">-</div><div class="s">the rest are inf</div></div>
+            <div class="tile"><div class="k">Nearest, all around</div><div class="v" id="sNear" style="font-size:1.15rem">-</div></div>
+            <div class="tile"><div class="k">Nearest ahead</div><div class="v" id="sAhead" style="font-size:1.15rem">-</div></div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="margin-top:6px">The ranges[] list as a bar</h3>
+      <p style="font-size:0.9rem">All 720 values, beam 0 on the left. Warm colour = near, teal = far (6 m or more), grey = no usable return. The orange frame is the &plusmn;30&deg; &ldquo;ahead&rdquo; sector. Notice that the front is in the <i>middle of the left half</i> of the list, and the right of the robot is split between the two ends. Hover or tap the bar to pick a beam.</p>
+      <div class="legend"><span><i style="background:hsl(24,88%,54%)"></i>near</span><span><i style="background:hsl(102,74%,47%)"></i>middle</span><span><i style="background:hsl(180,60%,40%)"></i>far</span><span><i style="background:rgba(128,128,128,0.35)"></i>inf / invalid</span><span><i style="border:2px solid var(--warn); background:none"></i>ahead &plusmn;30&deg;</span></div>
+      <div class="strip">
+        <canvas id="xstrip" width="720" height="34" aria-label="Heat bar of the 720 range values; hover or tap to select a beam"></canvas>
+        <div class="sector" id="xsector"></div>
+        <div class="selmark" id="xselmark"></div>
+        <div class="marks" aria-hidden="true">
+          <span class="l" style="left:0">right 0</span>
+          <span style="left:24.7%">front 178</span>
+          <span style="left:49.9%">left 358-359</span>
+          <span style="left:74.9%">behind 539</span>
+          <span class="r" style="left:100%">right 719</span>
+        </div>
+      </div>
+      <p style="font-size:0.84rem; color:var(--text-dim); margin-top:0">To test it like a student: choose &ldquo;Box 1.0 m ahead&rdquo;, pick beam 178 and read its range (1.00 m: the box face is 1.0 m from the lidar, that is 0.96 m from the robot&rsquo;s centre), then slide the limit from 0.6 to 1.1 m and watch the exit code flip from 0 to 1. Add the &ldquo;glass / black&rdquo; setting and a black box: its beams vanish, and so does the exit code 1.</p>
+    </section>
+
+    <!-- 5 -->
+    <section id="hand">
+      <div class="section-head"><span class="section-tag">05</span><h2>Get the data by hand</h2></div>
+      <p>Run these in a terminal on the robot (connect first: <a href="../HOW-TO-CONNECT.md">How to connect</a>). Commands in a login shell already have ROS set up. ROS command-line calls are slow on the Pi: expect 30 to 60 s per command, and 10 to 20 s for a Python program to start. Be patient before assuming something is broken.</p>
+      <ol class="flow">
+        <li>
+          <h3>Undock first</h3>
+          <p>The lidar is off on the dock. Clear about 1 m behind the robot (it backs out and turns 180&deg;), then:</p>
+          <div class="cmd"><button class="copy" type="button">Copy</button><pre><code>ros2 action send_goal /undock irobot_create_msgs/action/Undock "{}"</code></pre></div>
+          <p>Verified on this robot 2026-10-04. It fails if the robot is already undocked, which is fine. Lifting the robot off the dock by hand also starts the lidar. Wait a few seconds for the &ldquo;RPLIDAR started&rdquo; log and the first scans.</p>
+        </li>
+        <li>
+          <h3>Is the topic there?</h3>
+          <div class="cmd"><button class="copy" type="button">Copy</button><pre><code>ros2 topic list | grep scan
+ros2 topic info /scan -v</code></pre></div>
+          <p>Expect <code>/scan</code>. The verbose info lists the publisher (<code>rplidar_composition</code>) with its QoS (quality of service) settings and the message type <code>sensor_msgs/msg/LaserScan</code>. On 2026-10-04 it showed one publisher (<code>rplidar_composition</code>, reliable) and one subscriber (<code>turtlebot4_diagnostics</code>, best effort). <span class="chip ok">run on this robot 2026-10-04</span></p>
+        </li>
+        <li>
+          <h3>How fast does it publish?</h3>
+          <div class="cmd"><button class="copy" type="button">Copy</button><pre><code>ros2 topic hz /scan</code></pre></div>
+          <p>Expect an average rate of about <b>7.7 Hz</b> (7.745 Hz measured, period 0.119 to 0.139 s). Stop with Ctrl+C. In Jazzy this command has no <code>--qos-reliability</code> option; you do not need one.</p>
+        </li>
+        <li>
+          <h3>Look at one raw message</h3>
+          <div class="cmd"><button class="copy" type="button">Copy</button><pre><code>ros2 topic echo --once --full-length /scan</code></pre></div>
+          <p>Without <code>--full-length</code>, <code>echo</code> cuts arrays at <b>128 entries</b> and prints <code>'...'</code>, so you would see only a sixth of <code>ranges[]</code> and wonder where the rest went. The full message is long (720 values). To read it in pieces, add <code>&gt; scan.txt</code> and open the file, or pipe to <code>less</code>. You will see the fields from section 2 and, in <code>ranges</code>, many <code>.inf</code> values.</p>
+        </li>
+        <li>
+          <h3>The example programs</h3>
+          <p>All are in <code>TurtleBot/examples/</code>; see <a href="../examples/README.md#sensor-programs-that-do-not-move-the-robot">their README</a> for copying them to the robot. None of them moves the robot. What each prints is taken from reading its source; it was not re-run for this guide.</p>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Run</th><th>What it prints</th></tr></thead>
+            <tbody>
+              <tr><td class="cmdcell"><code>python3 scan_test.py</code></td><td>One line per scan until Ctrl+C: <code>Nearest object: 1.44 m</code> (nearest valid beam in any direction, as a ROS log line). Does not use angles, so the mounting does not matter.</td></tr>
+              <tr><td class="cmdcell"><code>python3 clearance_check.py 0.6</code></td><td>Reads one scan and prints, for example, <code>lidar frame offset 90 deg, beams in front: 121, nearest in front: 1.17 m (limit 0.60 m)</code>. Argument = limit in metres (default 0.6). <b>Exit code</b> 0 = clear (nearest &gt; limit), 1 = blocked, 2 = no scan (<code>NO SCAN: the lidar is not publishing</code>). Check with <code>echo $?</code>. The explorer above reproduces this output.</td></tr>
+              <tr><td class="cmdcell"><code>python3 lidar_snapshot.py --count 3 --out ~/robot_code/room.json</code></td><td>Saves scans (angles in the robot frame) to JSON, or CSV if the name ends in <code>.csv</code>, then prints the percentage of valid beams, the lidar yaw and its source (<code>tf</code> or <code>fallback</code>), and the nearest return in each of 36 sectors of 10&deg; as a text bar chart. Exit 2 if no scan.</td></tr>
+              <tr><td class="cmdcell"><code>python3 scan_plot_html.py room.json</code></td><td>Runs on <b>any computer</b>, no ROS. Writes <code>room.html</code>: a polar plot, robot in the middle, front up. Options: <code>--out</code>, <code>--max-range</code>.</td></tr>
+              <tr><td class="cmdcell"><code>python3 sensor_report.py --seconds 20</code></td><td>A table of message rates and gaps for <code>/odom</code>, <code>/scan</code> (expect about 7.7 Hz), <code>/imu</code>, <code>/battery_state</code>, <code>/dock_status</code>, plus the lidar&rsquo;s valid-beam percentage, minimum and median range, and the lidar yaw from TF. Safe on the dock (it then shows <code>/scan</code> as missing).</td></tr>
+              <tr><td class="cmdcell"><code>python3 health_check.py</code></td><td>PASS / WARN / FAIL rows with fix hints; includes the lidar USB device (<code>lsusb</code>, <code>/dev/RPLIDAR</code>) and, off the dock, the <code>/scan</code> rate and valid beams. Exit 0 all fine, 1 a warning, 2 a failure.</td></tr>
+            </tbody>
+          </table></div>
+          <p>If a script says <code>ros2: command not found</code> or cannot import <code>rclpy</code>, see the troubleshooting table.</p>
+        </li>
+        <li>
+          <h3>Save a scan and plot it on your own computer</h3>
+          <p>1) On the robot (the examples are in <code>~/robot_code</code>):</p>
+          <div class="cmd"><button class="copy" type="button">Copy</button><pre><code>python3 ~/robot_code/lidar_snapshot.py --count 3 --out ~/robot_code/room.json</code></pre></div>
+          <p>2) On your computer, in the folder that contains <code>scan_plot_html.py</code> (<code>TurtleBot/examples</code> in this repository), copy the file back and plot it. Replace <code>&lt;address&gt;</code> with the robot&rsquo;s address from its display, or <code>turtlebot4.local</code>.</p>
+          <p><b>Windows (PowerShell)</b></p>
+          <div class="cmd"><button class="copy" type="button">Copy</button><pre><code>scp ubuntu@&lt;address&gt;:robot_code/room.json .
+python scan_plot_html.py room.json
+start room.html</code></pre></div>
+          <p><b>macOS</b></p>
+          <div class="cmd"><button class="copy" type="button">Copy</button><pre><code>scp ubuntu@&lt;address&gt;:robot_code/room.json .
+python3 scan_plot_html.py room.json
+open room.html</code></pre></div>
+          <p><b>Linux</b></p>
+          <div class="cmd"><button class="copy" type="button">Copy</button><pre><code>scp ubuntu@&lt;address&gt;:robot_code/room.json .
+python3 scan_plot_html.py room.json
+xdg-open room.html</code></pre></div>
+          <p>On Windows the command may be <code>python</code> or <code>py</code> depending on how Python was installed. <span class="chip todo">this whole chain was not run end to end for this guide</span></p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- 6 -->
+    <section id="code">
+      <div class="section-head"><span class="section-tag">06</span><h2>Use it in your own code</h2></div>
+      <p>A complete minimal ROS 2 (rclpy) program: it subscribes to <code>/scan</code>, finds the nearest obstacle within &plusmn;30&deg; of straight ahead (using the +90&deg; offset, read from TF with a fallback) and prints it twice a second. It follows the same pattern as <code>clearance_check.py</code>. It does not move the robot. It was checked with <code>python -m py_compile</code> and its calculation was run on a fake scan on a PC; <b>it has not been run on the robot</b>.</p>
+      <p>Three things matter. <b>Subscribe with <code>qos_profile_sensor_data</code></b> (best effort, small queue): it is the standard for sensors, and the example programs use it. <b>Skip invalid beams</b> with <code>range_min &lt; r &lt; range_max</code>. <b>Add the mounting yaw</b> before you decide what is &ldquo;ahead&rdquo;.</p>
+      <div class="cmd"><button class="copy" type="button">Copy</button><pre><code>"""Print the nearest obstacle in front of the robot, twice a second. Does not move the robot.
+
+"In front" means within +/-30 degrees of straight ahead in the ROBOT frame. The lidar on this
+robot is mounted turned +90 degrees, so the program reads the real mounting angle from TF
+(base_link -&gt; rplidar_link) and falls back to +90 degrees if TF is missing.
+Needs the robot off the dock (the lidar is switched off while docked).
+Usage: python3 front_distance.py        (stop with Ctrl+C)
+"""
+import math
+import time
+
+import rclpy
+import tf2_ros
+from rclpy.executors import ExternalShutdownException
+from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import LaserScan
+
+HALF_WIDTH = math.radians(30)   # "in front" = +/-30 degrees
+FALLBACK_YAW = math.radians(90)  # measured on this robot; used only if TF never arrives
+TF_WAIT = 5.0                   # s, wait this long for TF before using the fallback
+PRINT_PERIOD = 0.5              # s, print twice a second
+STALE_AFTER = 2.0               # s, no new scan for this long = say so
+
+
+def wrap(angle):
+    """Wrap an angle in radians to [-pi, pi]."""
+    return math.atan2(math.sin(angle), math.cos(angle))
+
+
+def yaw_of(q):
+    """Yaw (rotation about the vertical axis) of a quaternion."""
+    return math.atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z))
+
+
+def nearest_in_front(scan, yaw):
+    """Return (nearest range in metres or None, number of valid beams in front)."""
+    nearest, count = None, 0
+    for i, r in enumerate(scan.ranges):
+        if not (scan.range_min &lt; r &lt; scan.range_max):
+            continue                      # inf, nan, too close or too far: no usable return
+        laser_angle = scan.angle_min + i * scan.angle_increment
+        robot_angle = wrap(laser_angle + yaw)   # 0 = straight ahead, + = left
+        if abs(robot_angle) &lt;= HALF_WIDTH:
+            count += 1
+            if nearest is None or r &lt; nearest:
+                nearest = r
+    return nearest, count
+
+
+class FrontDistance(Node):
+    def __init__(self):
+        super().__init__('front_distance')
+        self.scan = None
+        self.scan_time = 0.0
+        self.first_scan_time = None
+        self.yaw = None
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        # Sensor data QoS (best effort) matches how the lidar driver publishes /scan.
+        self.create_subscription(LaserScan, '/scan', self.on_scan, qos_profile_sensor_data)
+        self.create_timer(PRINT_PERIOD, self.report)
+
+    def on_scan(self, msg):
+        self.scan = msg
+        self.scan_time = time.monotonic()
+        if self.first_scan_time is None:
+            self.first_scan_time = self.scan_time
+        if self.yaw is None:
+            try:
+                t = self.tf_buffer.lookup_transform('base_link', msg.header.frame_id, rclpy.time.Time())
+                self.yaw = yaw_of(t.transform.rotation)
+            except tf2_ros.TransformException:
+                pass                      # TF not there yet; try again on the next scan
+
+    def report(self):
+        now = time.monotonic()
+        if self.scan is None or now - self.scan_time &gt; STALE_AFTER:
+            print('no scan: is the robot on the dock? (the lidar is off there)', flush=True)
+            return
+        yaw = self.yaw
+        if yaw is None:
+            if now - self.first_scan_time &lt; TF_WAIT:
+                return                    # give TF a few seconds
+            yaw = FALLBACK_YAW
+            print('warning: no TF for the lidar, assuming it is turned +90 deg', flush=True)
+        nearest, count = nearest_in_front(self.scan, yaw)
+        if nearest is None:
+            print('nothing in front (no valid beam within +/-30 deg)', flush=True)
+        else:
+            print(f'nearest in front: {nearest:.2f} m ({count} beams)', flush=True)
+
+
+def main():
+    rclpy.init()
+    node = FrontDistance()
+    try:
+        rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    node.destroy_node()
+    rclpy.try_shutdown()
+
+
+if __name__ == '__main__':
+    main()</code></pre></div>
+      <h3>Copy it to the robot and run it</h3>
+      <p>Save the program as <code>front_distance.py</code> on your computer. Then, from that folder:</p>
+      <div class="cmd"><button class="copy" type="button">Copy</button><pre><code>scp front_distance.py ubuntu@&lt;address&gt;:robot_code/
+ssh ubuntu@&lt;address&gt;
+python3 ~/robot_code/front_distance.py</code></pre></div>
+      <p>The robot must be off the dock. Stop with Ctrl+C. Output looks like <code>nearest in front: 1.17 m (109 beams)</code>. If you start it from a script or <code>ssh host command</code> (a non-login shell), run <code>source /etc/turtlebot4/setup.bash</code> first. See <a href="../HOW-TO-CONNECT.md">How to connect</a> for the other ways to get code onto the robot (VS Code Remote-SSH, <code>nano</code>).</p>
+      <h3>Scan to x, y points</h3>
+      <p>To draw the scan, build a map, or fit lines, you usually want points rather than (angle, distance) pairs. This function converts a scan to points in the robot frame (x forward, y left, origin at the robot&rsquo;s centre). It needs no ROS to test: any object with <code>ranges</code>, <code>angle_min</code>, <code>angle_increment</code>, <code>range_min</code> and <code>range_max</code> works.</p>
+      <div class="cmd"><button class="copy" type="button">Copy</button><pre><code>import math
+
+LIDAR_YAW = math.radians(90)   # lidar mounting, from TF (see above); +90 deg on this robot
+LIDAR_X = -0.04                # lidar is 4 cm behind the robot centre (TF translation x)
+LIDAR_Y = 0.0
+
+
+def scan_to_xy(scan, yaw=LIDAR_YAW):
+    """Convert a LaserScan to a list of (x, y) points in metres in the robot frame.
+
+    x is forward, y is left, the origin is the robot centre (base_link).
+    Beams without a usable return (inf, nan, below range_min, above range_max) are skipped.
+    """
+    points = []
+    for i, r in enumerate(scan.ranges):
+        if not (scan.range_min &lt; r &lt; scan.range_max):
+            continue
+        laser_angle = scan.angle_min + i * scan.angle_increment   # angle in the lidar's own frame
+        a = laser_angle + yaw                                     # angle in the robot frame
+        # point in the robot frame = lidar position + range along that direction
+        points.append((LIDAR_X + r * math.cos(a), LIDAR_Y + r * math.sin(a)))
+    return points</code></pre></div>
+      <p>Call it inside <code>on_scan</code>: <code>points = scan_to_xy(msg, self.yaw)</code>. The saved files from <code>lidar_snapshot.py</code> contain the same kind of numbers (the CSV has <code>x_m, y_m</code> columns); note that program computes x, y from the lidar&rsquo;s position, without the 4 cm offset.</p>
+    </section>
+
+    <!-- 7 -->
+    <section id="trouble">
+      <div class="section-head"><span class="section-tag">07</span><h2>Troubleshooting</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Symptom</th><th>Likely cause</th><th>What to do</th></tr></thead>
+        <tbody>
+          <tr><th>No <code>/scan</code>, or no messages</th><td>The robot is on the dock. The lidar is off there.</td><td>Undock (section 5) or lift the robot off the dock; wait a few seconds.</td></tr>
+          <tr><th>No <code>/scan</code> shortly after boot</th><td>The robot is still starting (the Pi and the ROS programs take a while; it chimes and shows its address when ready).</td><td>Wait about 2 minutes after switching on (until the chime and the address on the display), then check again. Remember each ROS command is slow.</td></tr>
+          <tr><th>No <code>/scan</code> although undocked and started</th><td>The lidar is not detected on USB (this happened on 2026-10-03: a loose cable). The lidar may still spin, because the motor and the data link are separate.</td><td>On the robot: <code>lsusb | grep 10c4:ea60</code> must show a Silicon Labs CP210x line, and <code>ls -l /dev/RPLIDAR</code> must show a link to <code>ttyUSB0</code>. If either is missing, switch the robot off, reseat the lidar&rsquo;s USB cable (both ends if reachable), start again. See <a href="lidar-diagnosis.html">the diagnosis page</a>.</td></tr>
+          <tr><th><code>echo</code> shows only 128 values</th><td><code>ros2 topic echo</code> truncates long arrays.</td><td>Use <code>ros2 topic echo --once --full-length /scan</code>.</td></tr>
+          <tr><th>A script says <code>ros2: command not found</code> (or <code>No module named rclpy</code>)</th><td>A non-login shell (script, <code>ssh host command</code>, cron) does not load the ROS setup.</td><td>Run <code>source /etc/turtlebot4/setup.bash</code> first, in the same shell or at the top of the script.</td></tr>
+          <tr><th>My program waits forever, no callback</th><td>A QoS mismatch: the subscriber asks for a policy the publisher does not offer, so ROS connects them to nothing. Also possible: docked.</td><td>Subscribe with <code>qos_profile_sensor_data</code>, as in section 6. Check <code>ros2 topic hz /scan</code> works first.</td></tr>
+          <tr><th>Distances look rotated by 90&deg; (the wall in front shows up on the side)</th><td>Your code treats the laser angle as the robot angle.</td><td>Add the +90&deg; mounting offset (section 3). Front is laser &minus;90&deg;, about beam 178.</td></tr>
+          <tr><th>Many <code>inf</code> values</th><td>Normal: nothing within 12 m (open doors, big rooms), or glass, very dark or very shiny surfaces that do not return the light. About 72 % valid is typical in the lab.</td><td>Skip them with <code>range_min &lt; r &lt; range_max</code>. If the percentage is far lower than usual in a normal room, check that the head is clean and not blocked.</td></tr>
+          <tr><th>Viewing the scan in RViz from a laptop does not work</th><td>ROS 2 discovery across the network has not been tested on the campus Wi-Fi, and may not work there. See <a href="../ROADMAP.md#tb-09-ros-2-from-a-laptop-over-campus-wi-fi">TB-09</a>.</td><td>Use the working route: save a scan on the robot and plot it on your computer (section 5), or run RViz on the robot. <span class="chip todo">untested on campus</span></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <!-- 8 -->
+    <section id="safety">
+      <div class="section-head"><span class="section-tag">08</span><h2>Safety</h2></div>
+      <ul>
+        <li><b>Laser.</b> The RPLIDAR A1M8 contains a laser. For its safety class and the exact wording about looking at it, see the manufacturer&rsquo;s manual (and the TurtleBot 4 user manual). This page does not state a class because the wording was not checked here.</li>
+        <li><b>Do not touch the spinning head</b> while it turns, and do not hold it still.</li>
+        <li><b>Do not block or cover the head.</b> Anything on or around it gives wrong distances (and hides obstacles from your program). Keep it clean and keep cables clear of it.</li>
+        <li>Programs here only read the lidar. When you later use it to <i>drive</i> the robot, follow the lab rules in the <a href="../examples/README.md#safety-checklist-before-anything-moves">safety checklist</a>: 0.15 m/s at most, 1 m clear around the robot, a person next to it. Remember that glass and black surfaces can be invisible to the lidar, so a lidar-only stop is not a guarantee.</li>
+      </ul>
+    </section>
+
+    <footer>TurtleBot 4 lab documentation. Written 2026-10-10. Measured values are from the lab robot on 2026-10-04; the explorer is a simulation. Not verified on this robot: the commands marked &ldquo;untested&rdquo;, the two Python programs in section 6, the transfer-and-plot chain in section 5, and RViz from a laptop. No passwords, Wi-Fi keys or router logins on this page.</footer>
+  </main>
+</div>
+<script>
+// ==== core:start
+var N = 720, AMIN = -3.1241, AINC = 0.0087145, RMIN = 0.15, RMAX = 12.0;
+var LX = -0.04, LYAW = Math.PI / 2, HALF = 30 * Math.PI / 180;
+function wrapPi(a){ return Math.atan2(Math.sin(a), Math.cos(a)); }
+function laserAngle(i){ return AMIN + i * AINC; }
+function robotAngle(i){ return wrapPi(laserAngle(i) + LYAW); }
+function indexOfLaser(a){ return Math.round((a - AMIN) / AINC); }
+function isValid(r){ return isFinite(r) && r > RMIN && r < RMAX; }
+function pointOf(i, r){ var a = robotAngle(i); return { x: LX + r * Math.cos(a), y: r * Math.sin(a) }; }
+function raySeg(ox, oy, dx, dy, s){
+  var ex = s.x2 - s.x1, ey = s.y2 - s.y1, den = dx * ey - dy * ex;
+  if (Math.abs(den) < 1e-12) return null;
+  var qx = s.x1 - ox, qy = s.y1 - oy;
+  var t = (qx * ey - qy * ex) / den, u = (qx * dy - qy * dx) / den;
+  return (t >= 0 && u >= 0 && u <= 1) ? t : null;
+}
+function segmentsOf(objs){
+  var out = [];
+  objs.forEach(function(o){
+    if (o.type === 'box'){
+      var x0 = o.x - o.w / 2, x1 = o.x + o.w / 2, y0 = o.y - o.h / 2, y1 = o.y + o.h / 2;
+      var c = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+      for (var k = 0; k < 4; k++){
+        var p = c[k], q = c[(k + 1) % 4];
+        out.push({ x1: p[0], y1: p[1], x2: q[0], y2: q[1], dark: !!o.dark });
+      }
+    } else out.push({ x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2, dark: false });
+  });
+  return out;
+}
+function rng(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function makeNoise(seed){
+  var r = rng(seed), g = [], u = [], v = [];
+  for (var i = 0; i < N; i++){
+    var a = Math.max(r(), 1e-9), b = r();
+    g.push(Math.sqrt(-2 * Math.log(a)) * Math.cos(2 * Math.PI * b));
+    u.push(r()); v.push(r());
+  }
+  return { g: g, u: u, v: v };
+}
+// opts: {noise: bool, glass: bool, nz: makeNoise()}. Returns Float64Array of N ranges (Infinity = no return).
+function simulate(objs, opts){
+  var segs = segmentsOf(objs), res = new Float64Array(N), nz = opts.nz;
+  for (var i = 0; i < N; i++){
+    var a = robotAngle(i), dx = Math.cos(a), dy = Math.sin(a), best = Infinity, bs = null;
+    for (var k = 0; k < segs.length; k++){
+      var t = raySeg(LX, 0, dx, dy, segs[k]);
+      if (t !== null && t < best){ best = t; bs = segs[k]; }
+    }
+    var r = best;
+    if (r > RMAX) r = Infinity;
+    if (isFinite(r) && opts.glass && bs && bs.dark && nz.u[i] < 0.85) r = Infinity;
+    if (isFinite(r) && opts.noise){
+      if (nz.v[i] < 0.02) r = Infinity; else r += 0.01 * nz.g[i];
+    }
+    res[i] = r;
+  }
+  return res;
+}
+function clearance(ranges, limit){
+  var nearest = Infinity, count = 0, idx = -1;
+  for (var i = 0; i < N; i++){
+    var r = ranges[i];
+    if (!isValid(r)) continue;
+    if (Math.abs(robotAngle(i)) <= HALF + 1e-12){ count++; if (r < nearest){ nearest = r; idx = i; } }
+  }
+  return { nearest: nearest, count: count, idx: idx, code: nearest > limit ? 0 : 1 };
+}
+function stats(ranges){
+  var v = 0, mn = Infinity;
+  for (var i = 0; i < N; i++) if (isValid(ranges[i])){ v++; if (ranges[i] < mn) mn = ranges[i]; }
+  return { valid: v, nearest: mn };
+}
+function roomWalls(x0, x1, y0, y1, gapLeft, gapRight){
+  // gapLeft / gapRight = [xa, xb]: a doorway in the left (y1) or right (y0) wall between these x values
+  var w = [
+    { type: 'wall', fixed: true, x1: x0, y1: y0, x2: x0, y2: y1 },
+    { type: 'wall', fixed: true, x1: x1, y1: y0, x2: x1, y2: y1 }
+  ];
+  function side(y, gap){
+    if (gap){
+      w.push({ type: 'wall', fixed: true, x1: x0, y1: y, x2: gap[0], y2: y });
+      w.push({ type: 'wall', fixed: true, x1: gap[1], y1: y, x2: x1, y2: y });
+    } else w.push({ type: 'wall', fixed: true, x1: x0, y1: y, x2: x1, y2: y });
+  }
+  side(y1, gapLeft); side(y0, gapRight);
+  return w;
+}
+var PRESETS = {
+  lab: function(){ return roomWalls(-1.6, 3.6, -2.6, 2.6, [-0.2, 2.4], [-0.9, 1.2]).concat([
+    { type: 'box', x: 1.4, y: 0.5, w: 0.6, h: 0.5 },
+    { type: 'box', x: -0.7, y: -1.4, w: 0.5, h: 0.5 },
+    { type: 'box', x: 2.5, y: -1.5, w: 0.8, h: 0.4, dark: true }]); },
+  ahead: function(){ return roomWalls(-1.6, 3.6, -2.6, 2.6, null).concat([
+    { type: 'box', x: 1.46, y: 0, w: 1.0, h: 1.0 }]); },
+  corridor: function(){ return [
+    { type: 'wall', fixed: true, x1: -1.6, y1: -0.7, x2: 14, y2: -0.7 },
+    { type: 'wall', fixed: true, x1: -1.6, y1: 0.7, x2: 14, y2: 0.7 },
+    { type: 'wall', fixed: true, x1: -1.6, y1: -0.7, x2: -1.6, y2: 0.7 }]; },
+  open: function(){ return [
+    { type: 'wall', fixed: true, x1: -2.4, y1: -3.4, x2: -2.4, y2: 3.4 },
+    { type: 'box', x: 2.0, y: 1.2, w: 0.7, h: 0.7 },
+    { type: 'box', x: 1.6, y: -1.8, w: 0.5, h: 0.5, dark: true }]; }
+};
+// ==== core:end
+
+(function(){
+  var S = 80, C = 280, FOCUS_X = 1.0;
+  function $(id){ return document.getElementById(id); }
+  var svg = $('xsvg');
+  if (!svg) return;
+  var stage = $('xstage'), tip = $('xtip'), cv = $('xstrip');
+  var objs = PRESETS.lab(), nz = makeNoise(7), seed = 7;
+  var state = { tool: 'inspect', raw: false, noise: true, glass: false, beams: true, limit: 0.6, sel: 178, selObj: -1, boxSize: 0.5 };
+  var ranges = null, viewRot = 0, rotAnim = null, drag = null, preview = null, tipText = '';
+  var sxs = new Float64Array(N), sys_ = new Float64Array(N);
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function toS(x, y){ return [C - y * S, C - (x - FOCUS_X) * S]; }
+  function fromS(px, py){ return { x: FOCUS_X + (C - py) / S, y: (C - px) / S }; }
+  function f(n){ return n.toFixed(1); }
+  function deg(a){ return a * 180 / Math.PI; }
+  function fix2(r){ return isFinite(r) ? r.toFixed(2) : 'inf'; }
+  function recompute(){ ranges = simulate(objs, { noise: state.noise, glass: state.glass, nz: nz }); }
+
+  function label(x, y, txt, cls){
+    var p = toS(x, y);
+    return '<text class="x-txt ' + (cls || '') + '" data-sx="' + f(p[0]) + '" data-sy="' + f(p[1]) + '" x="' + f(p[0]) + '" y="' + f(p[1]) + '" text-anchor="middle">' + txt + '</text>';
+  }
+  function arrow(x1, y1, x2, y2, cls){
+    var a = toS(x1, y1), b = toS(x2, y2), ang = Math.atan2(b[1] - a[1], b[0] - a[0]), h = 9;
+    var l = [b[0] - h * Math.cos(ang - 0.4), b[1] - h * Math.sin(ang - 0.4)];
+    var r = [b[0] - h * Math.cos(ang + 0.4), b[1] - h * Math.sin(ang + 0.4)];
+    return '<path class="' + cls + '" d="M' + f(a[0]) + ' ' + f(a[1]) + ' L' + f(b[0]) + ' ' + f(b[1]) +
+      ' M' + f(l[0]) + ' ' + f(l[1]) + ' L' + f(b[0]) + ' ' + f(b[1]) + ' L' + f(r[0]) + ' ' + f(r[1]) + '"/>';
+  }
+
+  function render(){
+    var L = toS(LX, 0), h = '', m, k;
+    var cl = clearance(ranges, state.limit), st = stats(ranges);
+    for (m = 1; m <= 4; m++) h += '<circle class="x-ring" cx="' + f(L[0]) + '" cy="' + f(L[1]) + '" r="' + (m * S) + '"/>';
+    for (m = 1; m <= 4; m++){
+      var q = toS(LX + m * Math.cos(-0.35), m * Math.sin(-0.35));
+      h += '<text class="x-txt x-txt-dim" data-sx="' + f(q[0]) + '" data-sy="' + f(q[1]) + '" x="' + f(q[0]) + '" y="' + f(q[1]) + '" text-anchor="middle">' + m + ' m</text>';
+    }
+    // the +/-30 degree "ahead" wedge, radius = the limit
+    var pts = ['M' + f(L[0]) + ' ' + f(L[1])];
+    for (k = 0; k <= 16; k++){
+      var a = -HALF + k * (2 * HALF / 16), w = toS(LX + state.limit * Math.cos(a), state.limit * Math.sin(a));
+      pts.push('L' + f(w[0]) + ' ' + f(w[1]));
+    }
+    h += '<path class="' + (cl.code ? 'x-wedge-bad' : 'x-wedge-ok') + '" d="' + pts.join(' ') + ' Z"/>';
+    objs.forEach(function(o, n){
+      if (o.type === 'box'){
+        var tl = toS(o.x + o.w / 2, o.y + o.h / 2);
+        h += '<rect class="x-box' + (o.dark ? ' dark' : '') + '" x="' + f(tl[0]) + '" y="' + f(tl[1]) + '" width="' + f(o.h * S) + '" height="' + f(o.w * S) + '"/>';
+        if (n === state.selObj) h += '<rect class="x-sel" fill="none" x="' + f(tl[0] - 4) + '" y="' + f(tl[1] - 4) + '" width="' + f(o.h * S + 8) + '" height="' + f(o.w * S + 8) + '"/>';
+      } else {
+        var a1 = toS(o.x1, o.y1), a2 = toS(o.x2, o.y2);
+        h += '<line class="x-wall" x1="' + f(a1[0]) + '" y1="' + f(a1[1]) + '" x2="' + f(a2[0]) + '" y2="' + f(a2[1]) + '"' + (n === state.selObj ? ' style="stroke:var(--accent)"' : '') + '/>';
+      }
+    });
+    var vray = '', iray = '', dots = '', fdots = '';
+    for (var i = 0; i < N; i++){
+      var an = robotAngle(i), r = ranges[i];
+      if (isValid(r)){
+        var pp = pointOf(i, r), sp = toS(pp.x, pp.y);
+        sxs[i] = sp[0]; sys_[i] = sp[1];
+        var seg = 'M' + f(sp[0]) + ' ' + f(sp[1]) + 'h0';
+        if (Math.abs(an) <= HALF + 1e-12) fdots += seg; else dots += seg;
+        if (state.beams) vray += 'M' + f(L[0]) + ' ' + f(L[1]) + 'L' + f(sp[0]) + ' ' + f(sp[1]);
+      } else {
+        sxs[i] = NaN; sys_[i] = NaN;
+        if (state.beams){ var e = toS(LX + 7 * Math.cos(an), 7 * Math.sin(an)); iray += 'M' + f(L[0]) + ' ' + f(L[1]) + 'L' + f(e[0]) + ' ' + f(e[1]); }
+      }
+    }
+    h += '<path class="x-rayinv" d="' + iray + '"/><path class="x-ray" d="' + vray + '"/>';
+    h += '<path class="x-dot" d="' + dots + '"/><path class="x-dotf" d="' + fdots + '"/>';
+    if (cl.idx >= 0) h += '<circle class="x-nearest" cx="' + f(sxs[cl.idx]) + '" cy="' + f(sys_[cl.idx]) + '" r="9"/>';
+    var c0 = toS(0, 0);
+    h += '<circle class="x-robot" cx="' + f(c0[0]) + '" cy="' + f(c0[1]) + '" r="' + (0.17 * S) + '"/>';
+    var t1 = toS(0.17, 0), t2 = toS(0.04, 0.07), t3 = toS(0.04, -0.07);
+    h += '<path class="x-fwd" d="M' + f(t1[0]) + ' ' + f(t1[1]) + ' L' + f(t2[0]) + ' ' + f(t2[1]) + ' L' + f(t3[0]) + ' ' + f(t3[1]) + ' Z"/>';
+    h += '<circle class="x-lidar" cx="' + f(L[0]) + '" cy="' + f(L[1]) + '" r="5"/>';
+    h += arrow(LX, 0, 0.62, 0, 'x-axis-robot') + arrow(LX, 0, LX, 0.62, 'x-axis-laser');
+    h += label(0.80, 0, 'robot 0° (front)', 'x-txt-acc') + label(LX, 0.80, 'laser 0°', 'x-txt-warn');
+    h += label(-0.55, 0, 'behind', 'x-txt-dim') + label(LX, -0.55, 'right', 'x-txt-dim');
+    var s = state.sel;
+    if (s >= 0){
+      var ang = robotAngle(s), ok = isValid(ranges[s]), far2 = toS(LX + 7 * Math.cos(ang), 7 * Math.sin(ang));
+      h += '<line class="x-beam" x1="' + f(L[0]) + '" y1="' + f(L[1]) + '" x2="' + f(ok ? sxs[s] : far2[0]) + '" y2="' + f(ok ? sys_[s] : far2[1]) + '"/>';
+      if (ok) h += '<circle class="x-ring-sel" cx="' + f(sxs[s]) + '" cy="' + f(sys_[s]) + '" r="8"/>';
+    }
+    if (preview) h += '<line class="x-preview" x1="' + f(preview[0]) + '" y1="' + f(preview[1]) + '" x2="' + f(preview[2]) + '" y2="' + f(preview[3]) + '"/>';
+    $('xrot').innerHTML = h;
+    readout(cl, st);
+    strip();
+    applyRot();
+  }
+
+  function applyRot(){
+    $('xrot').setAttribute('transform', 'rotate(' + viewRot.toFixed(2) + ' ' + C + ' ' + C + ')');
+    var ts = svg.querySelectorAll('text[data-sx]');
+    for (var i = 0; i < ts.length; i++){
+      var t = ts[i];
+      t.setAttribute('transform', 'rotate(' + (-viewRot).toFixed(2) + ' ' + t.getAttribute('data-sx') + ' ' + t.getAttribute('data-sy') + ')');
+    }
+    placeTip();
+  }
+
+  function readout(cl, st){
+    var s = state.sel, r = ranges[s], la = laserAngle(s), ra = robotAngle(s), ok = isValid(r), p = ok ? pointOf(s, r) : null;
+    $('rIdx').textContent = s + ' of ' + (N - 1);
+    $('rLaser').textContent = deg(la).toFixed(1) + '°  (' + la.toFixed(4) + ' rad)';
+    $('rRobot').textContent = deg(ra).toFixed(1) + '°';
+    $('rRange').textContent = ok ? r.toFixed(3) + ' m' : (isFinite(r) ? r.toFixed(3) + ' m (below range_min, ignored)' : 'inf (no return)');
+    $('rXY').textContent = ok ? 'x = ' + p.x.toFixed(3) + ' m, y = ' + p.y.toFixed(3) + ' m' : 'none (no valid range)';
+    $('rFormula').textContent = 'laser angle = angle_min + i x angle_increment = ' + AMIN + ' + ' + s + ' x ' + AINC + ' = ' + la.toFixed(4) + ' rad. ' +
+      'Robot angle = laser angle + 90 deg = ' + deg(ra).toFixed(1) + ' deg.' + (ok ? ' x = ' + LX + ' + r cos(robot angle), y = r sin(robot angle).' : '');
+    $('sValid').textContent = st.valid + ' of ' + N + ' (' + Math.round(100 * st.valid / N) + ' %)';
+    $('sNear').textContent = isFinite(st.nearest) ? st.nearest.toFixed(2) + ' m' : 'none';
+    $('sAhead').textContent = isFinite(cl.nearest) ? cl.nearest.toFixed(2) + ' m' : 'none (inf)';
+    $('cOut').textContent = '$ python3 clearance_check.py ' + state.limit.toFixed(2) + '\nlidar frame offset 90 deg, beams in front: ' + cl.count +
+      ', nearest in front: ' + fix2(cl.nearest) + ' m (limit ' + state.limit.toFixed(2) + ' m)\n$ echo $?\n' + cl.code;
+    var chip = $('cChip');
+    chip.textContent = cl.code ? 'exit 1 blocked' : 'exit 0 clear';
+    chip.className = 'chip ' + (cl.code ? 'bad' : 'ok');
+    tipText = '#' + s + ' · ' + (ok ? r.toFixed(2) + ' m' : 'no return') + ' · robot ' + deg(ra).toFixed(0) + '°';
+    $('beamSlider').value = s;
+    $('beamOut').textContent = s;
+  }
+  function placeTip(){
+    var s = state.sel;
+    if (!ranges || !isValid(ranges[s])){ tip.style.display = 'none'; return; }
+    var th = viewRot * Math.PI / 180, dx = sxs[s] - C, dy = sys_[s] - C;
+    var px = C + dx * Math.cos(th) - dy * Math.sin(th), py = C + dx * Math.sin(th) + dy * Math.cos(th);
+    tip.textContent = tipText;
+    tip.style.left = (px / 560 * 100) + '%';
+    tip.style.top = (py / 560 * 100) + '%';
+    tip.style.display = 'block';
+  }
+
+  // ---- ranges[] strip
+  var sectorEl = $('xsector'), selEl = $('xselmark');
+  function strip(){
+    var ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(128,128,128,0.28)';
+    ctx.fillRect(0, 0, W, H);
+    for (var i = 0; i < N; i++){
+      var r = ranges[i];
+      if (!isValid(r)) continue;
+      var t = Math.min(1, r / 6);
+      ctx.fillStyle = 'hsl(' + Math.round(24 + 156 * t) + ',' + Math.round(88 - 28 * t) + '%,' + Math.round(54 - 14 * t) + '%)';
+      ctx.fillRect(i * W / N, 0, Math.ceil(W / N), H);
+    }
+    var lo = indexOfLaser(-Math.PI / 2 - HALF), hi = indexOfLaser(-Math.PI / 2 + HALF);
+    sectorEl.style.left = (lo / N * 100) + '%';
+    sectorEl.style.width = ((hi - lo + 1) / N * 100) + '%';
+    selEl.style.left = ((state.sel + 0.5) / N * 100) + '%';
+  }
+  function stripPick(ev){
+    var b = cv.getBoundingClientRect(), x = (ev.clientX - b.left) / b.width;
+    select(Math.max(0, Math.min(N - 1, Math.floor(x * N))));
+  }
+  cv.addEventListener('pointerdown', stripPick);
+  cv.addEventListener('pointermove', function(e){ if (e.pointerType === 'mouse') stripPick(e); });
+  function select(i){ state.sel = i; render(); }
+
+  // ---- pointer handling on the room
+  function svgPoint(ev){
+    var b = svg.getBoundingClientRect(), k = 560 / b.width;
+    var px = (ev.clientX - b.left) * k, py = (ev.clientY - b.top) * k;
+    var th = -viewRot * Math.PI / 180, dx = px - C, dy = py - C;   // undo the picture rotation
+    return [C + dx * Math.cos(th) - dy * Math.sin(th), C + dx * Math.sin(th) + dy * Math.cos(th), k];
+  }
+  function hitObj(w, tol){
+    for (var n = objs.length - 1; n >= 0; n--){
+      var o = objs[n];
+      if (o.type === 'box'){
+        if (Math.abs(w.x - o.x) <= o.w / 2 && Math.abs(w.y - o.y) <= o.h / 2) return n;
+      } else if (!o.fixed){
+        var ex = o.x2 - o.x1, ey = o.y2 - o.y1, l2 = ex * ex + ey * ey || 1e-9;
+        var u = Math.max(0, Math.min(1, ((w.x - o.x1) * ex + (w.y - o.y1) * ey) / l2));
+        if (Math.hypot(w.x - o.x1 - u * ex, w.y - o.y1 - u * ey) <= tol) return n;
+      }
+    }
+    return -1;
+  }
+  function pickDot(p){
+    var best = -1, bd = 16 * p[2];
+    for (var i = 0; i < N; i++){
+      if (!isFinite(sxs[i])) continue;
+      var d = Math.hypot(sxs[i] - p[0], sys_[i] - p[1]);
+      if (d < bd){ bd = d; best = i; }
+    }
+    return best;
+  }
+  function clampBox(o){ o.x = Math.max(-2.4, Math.min(4.3, o.x)); o.y = Math.max(-3.3, Math.min(3.3, o.y)); }
+  svg.addEventListener('pointerdown', function(ev){
+    var p = svgPoint(ev), w = fromS(p[0], p[1]);
+    if (state.tool === 'inspect'){
+      var n = hitObj(w, 0.1);
+      if (n >= 0 && objs[n].type === 'box'){
+        state.selObj = n; drag = { n: n, dx: objs[n].x - w.x, dy: objs[n].y - w.y };
+        svg.setPointerCapture(ev.pointerId); render(); return;
+      }
+      var d = pickDot(p);
+      if (d >= 0) select(d);
+    } else if (state.tool === 'box'){
+      if (objs.length < 40){
+        objs.push({ type: 'box', x: w.x, y: w.y, w: state.boxSize, h: state.boxSize });
+        clampBox(objs[objs.length - 1]); state.selObj = objs.length - 1; recompute(); render();
+      }
+    } else if (state.tool === 'wall'){
+      drag = { wall: true, x1: w.x, y1: w.y, x2: w.x, y2: w.y };
+      svg.setPointerCapture(ev.pointerId);
+    } else if (state.tool === 'erase'){
+      var m = hitObj(w, 0.12);
+      if (m >= 0 && !objs[m].fixed){ objs.splice(m, 1); state.selObj = -1; recompute(); render(); }
+    }
+    ev.preventDefault();
+  });
+  svg.addEventListener('pointermove', function(ev){
+    var p = svgPoint(ev), w = fromS(p[0], p[1]);
+    if (drag && drag.wall){
+      drag.x2 = w.x; drag.y2 = w.y;
+      var a = toS(drag.x1, drag.y1), b = toS(drag.x2, drag.y2);
+      preview = [a[0], a[1], b[0], b[1]]; render(); return;
+    }
+    if (drag){ var o = objs[drag.n]; o.x = w.x + drag.dx; o.y = w.y + drag.dy; clampBox(o); recompute(); render(); return; }
+    if (state.tool === 'inspect' && ev.pointerType === 'mouse'){
+      var d = pickDot(p);
+      if (d >= 0 && d !== state.sel) select(d);
+    }
+  });
+  function endDrag(){
+    if (drag && drag.wall){
+      preview = null;
+      if (Math.hypot(drag.x2 - drag.x1, drag.y2 - drag.y1) > 0.1 && objs.length < 40){
+        objs.push({ type: 'wall', x1: drag.x1, y1: drag.y1, x2: drag.x2, y2: drag.y2 });
+        state.selObj = objs.length - 1;
+      }
+      drag = null; recompute(); render(); return;
+    }
+    drag = null;
+  }
+  svg.addEventListener('pointerup', endDrag);
+  svg.addEventListener('pointercancel', endDrag);
+
+  // ---- controls
+  function setTool(t){
+    state.tool = t;
+    ['inspect', 'box', 'wall', 'erase'].forEach(function(k){ $('tool-' + k).setAttribute('aria-pressed', k === t ? 'true' : 'false'); });
+    svg.style.cursor = t === 'inspect' ? 'default' : 'crosshair';
+    stage.style.touchAction = t === 'inspect' ? 'pan-y' : 'none';
+    svg.style.touchAction = t === 'inspect' ? 'pan-y' : 'none';
+  }
+  ['inspect', 'box', 'wall', 'erase'].forEach(function(k){ $('tool-' + k).addEventListener('click', function(){ setTool(k); }); });
+  function animateTo(target){
+    if (rotAnim) cancelAnimationFrame(rotAnim);
+    if (reduce){ viewRot = target; applyRot(); return; }
+    var from = viewRot, t0 = null;
+    function step(ts){
+      if (t0 === null) t0 = ts;
+      var k = Math.min(1, (ts - t0) / 600), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      viewRot = from + (target - from) * e; applyRot();
+      if (k < 1) rotAnim = requestAnimationFrame(step);
+    }
+    rotAnim = requestAnimationFrame(step);
+  }
+  function setRaw(on, instant){
+    state.raw = on; $('optRaw').checked = on;
+    $('rawCap').textContent = on
+      ? 'Raw laser frame: the picture is turned 90° so the laser’s own 0° (orange arrow) points UP. The robot’s front now points to the RIGHT. The numbers do not change; only the drawing does.'
+      : 'Robot frame: the robot’s front points UP and its left is on the left. The orange arrow shows where the laser’s own 0° points: to the robot’s left.';
+    if (instant){ viewRot = on ? 90 : 0; applyRot(); } else animateTo(on ? 90 : 0);
+  }
+  $('optRaw').addEventListener('change', function(){ setRaw(this.checked, false); });
+  $('optNoise').addEventListener('change', function(){ state.noise = this.checked; recompute(); render(); });
+  $('optGlass').addEventListener('change', function(){ state.glass = this.checked; recompute(); render(); });
+  $('optBeams').addEventListener('change', function(){ state.beams = this.checked; render(); });
+  $('limitSlider').addEventListener('input', function(){ state.limit = parseFloat(this.value); $('limitOut').textContent = state.limit.toFixed(2) + ' m'; render(); });
+  $('sizeSlider').addEventListener('input', function(){ state.boxSize = parseFloat(this.value); $('sizeOut').textContent = state.boxSize.toFixed(2) + ' m'; });
+  $('beamSlider').addEventListener('input', function(){ select(parseInt(this.value, 10)); });
+  $('reroll').addEventListener('click', function(){ seed += 1; nz = makeNoise(seed); recompute(); render(); });
+  function loadPreset(name){ objs = PRESETS[name](); state.selObj = -1; recompute(); render(); }
+  $('presetSel').addEventListener('change', function(){ loadPreset(this.value); });
+  $('btnReset').addEventListener('click', function(){ loadPreset($('presetSel').value); });
+  $('btnAdd').addEventListener('click', function(){
+    if (objs.length < 40){ objs.push({ type: 'box', x: 1.5, y: 0, w: state.boxSize, h: state.boxSize }); state.selObj = objs.length - 1; recompute(); render(); }
+  });
+  $('btnNext').addEventListener('click', function(){
+    var n = state.selObj, c = 0;
+    do { n = (n + 1) % objs.length; c++; } while (objs[n].fixed && c <= objs.length);
+    state.selObj = objs[n].fixed ? -1 : n; render();
+  });
+  $('btnDel').addEventListener('click', function(){
+    var o = objs[state.selObj];
+    if (o && !o.fixed){ objs.splice(state.selObj, 1); state.selObj = -1; recompute(); render(); }
+  });
+  function nudge(dx, dy){
+    var o = objs[state.selObj];
+    if (!o || o.fixed) return;
+    if (o.type === 'box'){ o.x += dx; o.y += dy; clampBox(o); } else { o.x1 += dx; o.x2 += dx; o.y1 += dy; o.y2 += dy; }
+    recompute(); render();
+  }
+  $('nUp').addEventListener('click', function(){ nudge(0.1, 0); });
+  $('nDown').addEventListener('click', function(){ nudge(-0.1, 0); });
+  $('nLeft').addEventListener('click', function(){ nudge(0, 0.1); });
+  $('nRight').addEventListener('click', function(){ nudge(0, -0.1); });
+  $('btnDark').addEventListener('click', function(){
+    var o = objs[state.selObj];
+    if (o && o.type === 'box'){ o.dark = !o.dark; recompute(); render(); }
+  });
+  var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+  if (mq && mq.addEventListener) mq.addEventListener('change', function(){ render(); });
+
+  // ---- start
+  setTool('inspect');
+  $('limitOut').textContent = state.limit.toFixed(2) + ' m';
+  $('sizeOut').textContent = state.boxSize.toFixed(2) + ' m';
+  var hash = (location.hash || '').toLowerCase();
+  recompute();
+  if (hash.indexOf('autoplay') >= 0){
+    state.glass = true; $('optGlass').checked = true;
+    recompute();
+    var c0 = clearance(ranges, state.limit);
+    state.sel = c0.idx >= 0 ? c0.idx : 178;
+  }
+  setRaw(hash.indexOf('raw') >= 0, true);
+  render();
+
+  Array.prototype.forEach.call(document.querySelectorAll('button.copy'), function(b){
+    b.addEventListener('click', function(){
+      var pre = b.parentNode.querySelector('pre'), txt = pre ? pre.innerText : '';
+      function done(ok){ b.textContent = ok ? 'Copied' : 'Select, then Ctrl+C'; setTimeout(function(){ b.textContent = 'Copy'; }, 1500); }
+      try { navigator.clipboard.writeText(txt).then(function(){ done(true); }, function(){ done(false); }); } catch (e) { done(false); }
+    });
+  });
+})();
+
+</script>
+</body>
+</html>

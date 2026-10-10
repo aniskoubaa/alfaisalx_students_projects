@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Do It Yourself</title>
+<meta name="description" content="Step-by-step guide for a student to use the lab's TurtleBot 4 alone: power on, Wi-Fi, SSH, code, sensors, driving, stopping, power off, and a first program. Windows, macOS and Linux commands with copy buttons.">
+<style>
+  /* Shared style for TurtleBot/docs pages. Tokens match turtlebot4-field-guide.html. */
+  :root{
+    --bg:#EEF2F4; --panel:#FFFFFF; --panel-alt:#E3EAED; --text:#16232F; --text-dim:#54636F;
+    --border:#C6D2D7; --accent:#0C8C82; --accent-strong:#075F58; --warn:#B85B26; --code-bg:#DDE6E9;
+    --ok:#2E7D32; --bad:#B3261E; --ok-bg:#E3F1E4; --bad-bg:#F8E4E2; --warn-bg:#F7E9DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+      --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+      --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+    --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+    --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.label-font,.eyebrow,th,.chip,.tile .k,figcaption,nav.toc a{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;}
+  code,pre,.mono{font-family:"IBM Plex Mono", Consolas, "Courier New", monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:0.88em; overflow-wrap:anywhere;}
+  pre{background:var(--code-bg); padding:12px 14px; border-radius:4px; overflow-x:auto; font-size:0.84rem; line-height:1.5; margin:0 0 16px;}
+  pre code{background:none; padding:0;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  a{color:var(--accent-strong);}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+
+  .page{display:grid; grid-template-columns:220px minmax(0,1fr); gap:0 44px; max-width:1220px; margin:0 auto; padding:0 28px 80px;}
+  nav.toc{position:sticky; top:0; align-self:start; padding-top:48px; max-height:100vh; overflow-y:auto;}
+  nav.toc .eyebrow{color:var(--text-dim); font-size:0.7rem;}
+  nav.toc ul{list-style:none; margin:0 0 24px; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.toc a{display:block; padding:6px 10px; border-radius:3px; color:var(--text-dim); text-decoration:none; font-size:0.86rem; font-weight:500;}
+  nav.toc a:hover{color:var(--text); background:var(--panel-alt);}
+  main{min-width:0; padding-top:48px;}
+  header.hero{margin-bottom:36px;}
+  .eyebrow{font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 12px;}
+  h1.title{font-size:clamp(2rem,5vw,3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{font-size:1.08rem; color:var(--text-dim); max-width:66ch; margin:0 0 20px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.84rem; color:var(--text-dim);}
+  .meta b{color:var(--text); font-weight:600;}
+
+  section{max-width:860px; padding:40px 0; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none; padding-top:0;}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .section-tag{font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.72rem; color:var(--text-dim); white-space:nowrap;}
+  h2{font-size:1.5rem; font-weight:600;}
+  h3{font-size:1.05rem; font-weight:600; margin:24px 0 8px;}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin:3px 0;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .table-wrap{overflow-x:auto; margin:0 0 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
+  th,td{text-align:left; padding:9px 12px; border-top:1px solid var(--border); vertical-align:top;}
+  thead th{border-top:none; font-size:0.76rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim); background:var(--panel-alt); white-space:nowrap;}
+  tbody th{font-weight:600; color:var(--text-dim); white-space:nowrap;}
+  td.notes{min-width:230px;}
+  td.nowrap{white-space:nowrap;}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  .chip{display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.74rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap;}
+  .chip.ok{color:var(--ok); background:var(--ok-bg);}
+  .chip.bad{color:var(--bad); background:var(--bad-bg);}
+  .chip.warn{color:var(--warn); background:var(--warn-bg);}
+  .chip.info{color:var(--accent-strong); background:var(--panel-alt);}
+  .chip.todo{color:var(--text-dim); background:transparent; border-style:dashed;}
+
+  .note{padding:12px 16px; background:var(--panel-alt); border-left:3px solid var(--warn); border-radius:0 4px 4px 0; font-size:0.92rem; margin:18px 0;}
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .placeholder{border:2px dashed var(--warn); border-radius:6px; padding:14px 16px; margin:16px 0; background:var(--warn-bg);}
+  .placeholder > b:first-child{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; color:var(--warn); text-transform:uppercase; letter-spacing:0.06em; font-size:0.78rem; display:block; margin-bottom:4px;}
+  tr.ph td{color:var(--text-dim); font-style:italic; background:repeating-linear-gradient(135deg, transparent 0 8px, var(--warn-bg) 8px 10px);}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:0 0 16px;}
+  .card{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px; break-inside:avoid;}
+  .card h3{margin:0 0 8px; font-size:0.98rem; display:flex; justify-content:space-between; gap:8px; align-items:baseline;}
+  .card p{margin:0 0 6px; font-size:0.9rem; color:var(--text-dim);}
+  .card dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.86rem;}
+  .card dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .card dd{margin:0; font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.82rem; overflow-wrap:anywhere;}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 0 18px;}
+  .tile{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px 14px;}
+  .tile .k{font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .tile .v{font-size:1.6rem; font-weight:600; font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; line-height:1.2;}
+  .tile .s{font-size:0.8rem; color:var(--text-dim);}
+
+  /* step flow */
+  ol.flow{list-style:none; padding:0; margin:0 0 16px; counter-reset:f;}
+  ol.flow > li{counter-increment:f; position:relative; padding:0 0 22px 52px; margin:0;}
+  ol.flow > li::before{content:counter(f); position:absolute; left:0; top:0; width:34px; height:34px; border-radius:50%; background:var(--panel); border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono", Consolas, monospace; font-weight:600;}
+  ol.flow > li::after{content:""; position:absolute; left:16px; top:36px; bottom:2px; width:2px; background:var(--border);}
+  ol.flow > li:last-child::after{display:none;}
+  ol.flow h3{margin:4px 0 6px;}
+
+  .verdict{border:2px solid var(--ok); background:var(--ok-bg); border-radius:8px; padding:16px 20px; margin:0 0 24px;}
+  .verdict h2{color:var(--ok); font-size:1.25rem; margin-bottom:6px;}
+  .verdict p:last-child{margin-bottom:0;}
+
+  .layers{display:flex; flex-direction:column; gap:6px; margin:0 0 16px;}
+  .layer{display:grid; grid-template-columns:34px minmax(0,1.3fr) minmax(0,1fr) 110px; gap:12px; align-items:center; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-left:5px solid var(--accent); border-radius:4px; font-size:0.88rem;}
+  .layer .n{font-family:"IBM Plex Mono", Consolas, monospace; color:var(--text-dim);}
+  .layer b{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .layer .when{color:var(--text-dim); font-size:0.84rem;}
+  .layer.pre{border-left-color:var(--text-dim);}
+  .layer.run{border-left-color:var(--warn);}
+  .layer.last{border-left-color:var(--bad);}
+
+  figure{margin:0 0 18px;}
+  figure.diagram{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:0.82rem; color:var(--text-dim); margin-top:10px; max-width:70ch;}
+  figure.narrow svg{max-width:560px; margin:0 auto;}
+  td:first-child code{white-space:nowrap;}
+  .shapes{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .shapes figure{margin:0;}
+
+  /* SVG classes (themeable) */
+  .sv-line{stroke:var(--text-dim); fill:none; stroke-width:1.5;}
+  .sv-thin{stroke:var(--border); fill:none; stroke-width:1;}
+  .sv-path{stroke:var(--accent); fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .sv-accent{stroke:var(--accent-strong); fill:none; stroke-width:2;}
+  .sv-warn{stroke:var(--warn); fill:none; stroke-width:2;}
+  .sv-bad{stroke:var(--bad); fill:none; stroke-width:2;}
+  .sv-dash{stroke-dasharray:5 4;}
+  .sv-fill-panel{fill:var(--panel); stroke:var(--text-dim); stroke-width:1.5;}
+  .sv-fill-alt{fill:var(--panel-alt); stroke:var(--border); stroke-width:1;}
+  .sv-fill-accent{fill:var(--accent); opacity:0.18; stroke:var(--accent); stroke-width:1.5;}
+  .sv-fill-warn{fill:var(--warn); opacity:0.16;}
+  .sv-fill-bad{fill:var(--bad); opacity:0.14;}
+  .sv-dot{fill:var(--accent-strong);}
+  .sv-dot-warn{fill:var(--warn);}
+  .sv-text{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:13px;}
+  .sv-small{fill:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:11px;}
+  .sv-mono{fill:var(--text-dim); font-family:"IBM Plex Mono", Consolas, monospace; font-size:10.5px;}
+  .sv-title{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:14px; font-weight:600;}
+  .sv-acc-text{fill:var(--accent-strong); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-warn-text{fill:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-bad-text{fill:var(--bad); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .arrowhead{fill:var(--text-dim);}
+  .arrowhead-acc{fill:var(--accent-strong);}
+
+  footer{max-width:860px; margin-top:30px; padding-top:18px; border-top:1px solid var(--border); font-size:0.84rem; color:var(--text-dim);}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:minmax(0,1fr); padding:0 16px 60px;}
+    nav.toc{min-width:0;}
+    nav.toc{position:sticky; top:0; z-index:5; padding-top:0; background:var(--bg); max-height:none; border-bottom:1px solid var(--border);}
+    nav.toc .eyebrow{display:none;}
+    nav.toc ul{flex-direction:row; overflow-x:auto; gap:4px; padding:12px 0; margin:0;}
+    nav.toc a{white-space:nowrap;}
+    main{padding-top:20px;}
+    .layer{grid-template-columns:28px 1fr; }
+    .layer .when,.layer .act{grid-column:2;}
+  }
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel-alt:#f2f2f2; --text:#000; --text-dim:#333; --border:#bbb; --code-bg:#f2f2f2;}
+    body{background:#fff; font-size:10.5pt;}
+    nav.toc{display:none;}
+    .page{display:block; padding:0; max-width:none;}
+    main{padding-top:0;}
+    section{padding:18px 0; max-width:none; break-inside:auto;}
+    .card,.tile,figure,.layer,tr,.verdict,.placeholder{break-inside:avoid;}
+    h2,h3{break-after:avoid;}
+    a{color:#000;}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-size:0.8em;}
+    pre{white-space:pre-wrap;}
+  }
+
+  /* page: do-it-yourself */
+  .toolbar{display:flex; flex-wrap:wrap; gap:12px 22px; align-items:center; padding:12px 16px; margin:0 0 22px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .toolbar .grp{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  .toolbar label.lbl{font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.74rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .seg{display:inline-flex; border:1px solid var(--border); border-radius:5px; overflow:hidden;}
+  .seg button{font:inherit; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.9rem; font-weight:600; padding:7px 14px; border:0; border-right:1px solid var(--border); background:var(--panel); color:var(--text-dim); cursor:pointer; min-height:36px;}
+  .seg button:last-child{border-right:0;}
+  .seg button[aria-pressed="true"]{background:var(--accent); color:#fff;}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#06201D;} }
+  .seg button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  input[type=text],select{font:inherit; font-family:"IBM Plex Mono",Consolas,monospace; font-size:0.9rem; padding:7px 10px; border:1px solid var(--border); border-radius:5px; background:var(--code-bg); color:var(--text); min-height:36px; max-width:100%;}
+  input.addr-in{width:17ch;}
+  .btn{font:inherit; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.84rem; font-weight:600; padding:5px 12px; border:1px solid var(--border); border-radius:5px; background:var(--panel); color:var(--accent-strong); cursor:pointer; min-height:32px;}
+  .btn:hover{background:var(--panel-alt);}
+  .hint{font-size:0.8rem; color:var(--text-dim);}
+  .hint.bad{color:var(--bad);}
+  .progress{flex:1 1 220px; min-width:180px;}
+  .bar{flex:1 1 120px; min-width:100px; height:8px; border-radius:4px; background:var(--panel-alt); border:1px solid var(--border); overflow:hidden;}
+  .bar i{display:block; height:100%; width:0; background:var(--accent); transition:width .25s;}
+  @media (prefers-reduced-motion: reduce){ .bar i{transition:none;} }
+
+  .rules{margin:0 0 22px; padding:14px 18px; border:2px solid var(--warn); background:var(--warn-bg); border-radius:8px;}
+  .rules h2{font-size:1.1rem; color:var(--warn); margin-bottom:6px;}
+  .rules ul{margin:0; padding-left:20px;}
+
+  details.step{background:var(--panel); border:1px solid var(--border); border-radius:6px; margin:0 0 12px;}
+  details.step > summary{list-style:none; cursor:pointer; display:flex; align-items:center; gap:12px; padding:12px 16px; min-height:52px;}
+  details.step > summary::-webkit-details-marker{display:none;}
+  details.step > summary .num{flex:0 0 34px; width:34px; height:34px; border-radius:50%; border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono",Consolas,monospace; font-weight:600;}
+  details.step.done > summary .num{background:var(--accent); color:#fff; border-color:var(--accent);}
+  details.step > summary h3{margin:0; flex:1 1 auto; font-size:1.05rem;}
+  details.step > summary .chev{flex:0 0 auto; color:var(--text-dim); transition:transform .15s;}
+  details.step[open] > summary .chev{transform:rotate(90deg);}
+  @media (prefers-reduced-motion: reduce){ details.step > summary .chev{transition:none;} }
+  .donebox{display:inline-flex; align-items:center; gap:6px; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.82rem; color:var(--text-dim); white-space:nowrap; flex:0 0 auto; cursor:pointer;}
+  .donebox input{width:20px; height:20px; accent-color:var(--accent);}
+  .stepbody{padding:4px 18px 16px 18px; border-top:1px solid var(--border);}
+  .stepbody h3{font-size:1rem; margin:20px 0 8px; color:var(--accent-strong);}
+
+  .cmd{margin:0 0 14px; border:1px solid var(--border); border-radius:5px; background:var(--code-bg); overflow:hidden;}
+  .cmdhead{display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; padding:5px 8px 5px 12px; background:var(--panel-alt); border-bottom:1px solid var(--border); font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.78rem;}
+  .cmdhead .where{font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim);}
+  .cmdhead .where.robot{color:var(--accent-strong);}
+  .cmdhead .shell{color:var(--text-dim);}
+  .cmdhead .sp{flex:1 1 auto;}
+  .cmd pre{margin:0; border-radius:0; background:none; white-space:pre; overflow-x:auto;}
+  .cmd.out{border-style:dashed;}
+  .cmd.long pre{max-height:none;}
+  .addr{color:var(--accent-strong); font-weight:600;}
+  .copy{min-width:64px;}
+  .copy.ok{color:var(--ok); border-color:var(--ok);}
+
+  .fpbox{margin:0 0 16px; padding:12px 14px; border:1px solid var(--border); border-radius:6px; background:var(--panel-alt);}
+  .fpbox label{display:block; font-weight:600; margin-bottom:6px; font-size:0.92rem;}
+  .fpbox input[type=text]{width:100%;}
+  .fpres{margin-top:8px; min-height:1.5em;}
+
+  .builder{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr); gap:20px; align-items:start;}
+  .builder > *{min-width:0;}
+  .builder .ctl{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .ctl h3{margin:0 0 10px; font-size:1rem;}
+  .row{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 10px; align-items:center; margin:0 0 12px;}
+  .row label{font-size:0.9rem;}
+  .row output{font-family:"IBM Plex Mono",Consolas,monospace; font-weight:600; color:var(--accent-strong); text-align:right; white-space:nowrap;}
+  .row input[type=range]{grid-column:1 / -1; width:100%; accent-color:var(--accent); min-height:28px;}
+  .row .scale{grid-column:1 / -1; display:flex; justify-content:space-between; font-size:0.72rem; color:var(--text-dim);}
+  .checkline{display:flex; gap:8px; align-items:center; font-size:0.88rem; margin:8px 0 0;}
+  @media (max-width:760px){ .builder{grid-template-columns:minmax(0,1fr);} }
+
+  .symptom{margin:14px 0 0; padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:0 6px 6px 0;}
+  .symptom h3{margin:0 0 6px; font-size:1rem;}
+  .symptom .cause{margin:0 0 10px;}
+  .symptom .fixlbl{font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.74rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 6px;}
+  .note.info{border-left-color:var(--accent);}
+  .note.info b{color:var(--accent-strong);}
+  .note ul{margin:6px 0 0;}
+  .chip.untested{color:var(--warn); background:var(--warn-bg);}
+  .skip{position:absolute; left:-999px;}
+  @media (max-width:520px){
+    details.step > summary{flex-wrap:wrap;}
+    details.step > summary h3{flex:1 1 calc(100% - 100px);}
+    .donebox{margin-left:46px;}
+    .stepbody{padding:2px 12px 14px;}
+    input.addr-in{width:16ch;}
+  }
+  @media print{
+    .toolbar .seg,.toolbar .btn,.copy,.fpbox,.donebox{display:none;}
+    details.step{break-inside:auto;}
+    .cmd{break-inside:avoid;}
+    .cmd pre{white-space:pre-wrap;}
+  }
+
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="toc" aria-label="Contents">
+    <p class="eyebrow">Contents</p>
+    <ul>
+      <li><a href="#start">Before you start</a></li>
+      <li><a href="#step-1">1 Power on</a></li>
+      <li><a href="#step-2">2 Join Wi-Fi</a></li>
+      <li><a href="#step-3">3 SSH</a></li>
+      <li><a href="#step-4">4 Key login</a></li>
+      <li><a href="#step-5">5 Get code on</a></li>
+      <li><a href="#step-6">6 Run</a></li>
+      <li><a href="#step-7">7 Sensors</a></li>
+      <li><a href="#step-8">8 Undock, drive, dock</a></li>
+      <li><a href="#step-9">9 Stop</a></li>
+      <li><a href="#step-10">10 Power off</a></li>
+      <li><a href="#step-11">11 First program</a></li>
+      <li><a href="#builder">Command builder</a></li>
+      <li><a href="#trouble">Troubleshooting</a></li>
+    </ul>
+    <p class="eyebrow">Other pages</p>
+    <ul>
+      <li><a href="index.html">Docs index</a></li>
+      <li><a href="DO-IT-YOURSELF.md">Markdown version</a></li>
+      <li><a href="lidar-guide.html">Lidar guide</a></li>
+      <li><a href="../HOW-TO-CONNECT.md">How to connect</a></li>
+      <li><a href="../examples/README.md">Example programs</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">TurtleBot 4 &middot; hands-on</p>
+      <h1 class="title">Do it yourself</h1>
+      <p class="dek">Use the lab's TurtleBot 4 on your own, from a fresh Windows, macOS or Linux computer, with no AI help. Eleven steps: power on, Wi-Fi, SSH, your code, sensors, driving, stopping, power off, and your first program. Pick your system below and every command changes to match.</p>
+      <div class="meta"><span><b>Robot</b> TurtleBot 4 Standard, ROS 2 Jazzy</span><span><b>Login</b> <code>ubuntu</code>@<code>turtlebot4</code></span><span><b>Facts as of</b> 2026-10-10</span></div>
+    </header>
+
+    <div class="toolbar" id="toolbar">
+      <div class="grp"><label class="lbl" id="oslbl">Your computer</label>
+        <div class="seg" role="group" aria-labelledby="oslbl">
+          <button type="button" data-os-pick="win" aria-pressed="true">Windows</button>
+          <button type="button" data-os-pick="mac" aria-pressed="false">macOS</button>
+          <button type="button" data-os-pick="linux" aria-pressed="false">Linux</button>
+        </div></div>
+      <div class="grp"><label class="lbl" for="addrin">Robot address</label>
+        <input type="text" id="addrin" class="addr-in" value="10.87.10.205" autocomplete="off" spellcheck="false" inputmode="decimal" aria-describedby="addrhint">
+        <span class="hint" id="addrhint">from the robot's display</span></div>
+      <div class="grp progress"><span class="hint" id="progtxt">0 of 11 steps done</span>
+        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="11" aria-valuenow="0" aria-label="Steps done" id="progbar"><i id="progfill"></i></div>
+        <button type="button" class="btn" id="resetprog">Reset</button></div>
+    </div>
+
+    <section id="start">
+      <div class="section-head"><span class="section-tag">00</span><h2>Before you start</h2></div>
+      <p>You need a computer with Wi-Fi and an SSH client (Windows 10 and 11, macOS and most Linux systems already have <code>ssh</code>), the Wi-Fi password for the network the robot is on, and the robot's <code>ubuntu</code> password. Ask the lab maintainer for both passwords; they are never written in this repository. Optional: <a href="https://code.visualstudio.com/">VS Code</a> with the Remote - SSH extension. Full background: <a href="../HOW-TO-CONNECT.md">HOW-TO-CONNECT.md</a>.</p>
+      <div class="rules" role="note"><h2>Five safety rules for anything that moves</h2><ul>
+        <li>Speed never above <b>0.15 m/s</b>. The page's command builder cannot go higher.</li>
+        <li>About <b>1 m of clear floor</b> all round the robot: no cables, bags, feet or table legs, no stairs or drop-offs.</li>
+        <li><b>A person stands next to the robot</b> the whole time it moves.</li>
+        <li>To stop the robot at any moment: <b>pick it up</b>. The wheels stop when it is lifted. Other ways are in <a href="#step-9">step 9</a>.</li>
+        <li>Wi-Fi can drop while the robot drives. Long or moving jobs are safer <a href="../HOW-TO-CONNECT.md#moving-the-robot-run-motion-scripts-detached">run detached</a>.</li>
+      </ul></div>
+      <p>Commands marked <span class="chip untested">Not yet tested on this robot</span> follow the official definitions but have not been run on this robot. Everything else was run here or comes straight from <a href="../HOW-TO-CONNECT.md">HOW-TO-CONNECT.md</a>. The commands are always shown in a box labelled <b>On your computer</b> (a PowerShell or Terminal window on your laptop) or <b>On the robot</b> (after you logged in with <code>ssh</code>).</p>
+    </section>
+
+    <section id="steps">
+      <div class="section-head"><span class="section-tag">01-11</span><h2>The steps</h2></div>
+      <p class="hint">Click a step to open it. Tick <b>Done</b> to keep track; your ticks stay in this browser only.</p>
+<details class="step" id="step-1" data-step="1"><summary><span class="num">1</span><h3>Turn the robot on and read its address</h3><label class="donebox" title="Mark this step as done"><input type="checkbox" class="stepdone" data-step="1" aria-label="Step 1 done"> Done</label><span class="chev" aria-hidden="true">&#9656;</span></summary><div class="stepbody">
+<p>Place the robot on its charging dock. The dock must be plugged into power. The robot switches on by itself.</p>
+<p>Wait about 2 minutes. When the robot is ready it plays a chime and its <b>address</b> appears on the OLED display on top.</p>
+<div class="table-wrap"><table><thead><tr><th>The display shows</th><th>Which Wi-Fi your computer joins</th><th>Address you use</th></tr></thead><tbody><tr><td><code>10.87.x.x</code> (for example <code>10.87.10.205</code>)</td><td><code>Students</code> (the university Wi-Fi)</td><td>The address on the display. It comes from DHCP and can change, so read it again each day.</td></tr><tr><td><code>10.42.0.1</code></td><td><code>Turtlebot4</code> (the robot's own Wi-Fi, 5 GHz)</td><td>Always <code>10.42.0.1</code>. This network has no internet.</td></tr></tbody></table></div>
+<p>Write the address down, then type it into the <b>Robot address</b> box at the top of this page. Every command below then contains your address.</p>
+<div class="note"><b>If it stays blank.</b> Nothing on the display or no chime after a few minutes: check that the robot sits properly on the dock, wait 2 more minutes, and then tell the lab maintainer.</div>
+</div></details>
+<details class="step" id="step-2" data-step="2"><summary><span class="num">2</span><h3>Join the right Wi-Fi</h3><label class="donebox" title="Mark this step as done"><input type="checkbox" class="stepdone" data-step="2" aria-label="Step 2 done"> Done</label><span class="chev" aria-hidden="true">&#9656;</span></summary><div class="stepbody">
+<ul><li><b>Display shows <code>10.87.x.x</code>:</b> join <code>Students</code> on your computer as you normally would (one shared university password). Nothing else is needed.</li><li><b>Display shows <code>10.42.0.1</code>:</b> join <code>Turtlebot4</code> and type its password. Your computer gets a <code>10.42.0.x</code> address.</li></ul>
+<p>Ask the lab maintainer for the passwords. They are never written in this repository.</p>
+<ul><li>On Windows, a box may ask for an 8-digit PIN. That is a WPS screen, not the password: click <b>Connect using a security key instead</b>.</li><li><code>Turtlebot4</code> has no internet. With one Wi-Fi card your computer loses internet while it is joined; to keep internet, use a second connection (USB Wi-Fi adapter, Ethernet or phone tethering).</li><li>When you finish, reconnect to your normal network.</li></ul>
+<p>Details: <a href="../HOW-TO-CONNECT.md#step-3-connect-your-computer-to-the-same-network">Step 3 in HOW-TO-CONNECT</a>.</p>
+</div></details>
+<details class="step" id="step-3" data-step="3"><summary><span class="num">3</span><h3>Connect over SSH</h3><label class="donebox" title="Mark this step as done"><input type="checkbox" class="stepdone" data-step="3" aria-label="Step 3 done"> Done</label><span class="chev" aria-hidden="true">&#9656;</span></summary><div class="stepbody">
+<h3>Open a terminal</h3>
+<div class="table-wrap"><table><thead><tr><th>System</th><th>How</th></tr></thead><tbody><tr data-os="win"><td>Windows 10 or 11</td><td>Start menu, type <code>PowerShell</code> (or <code>Terminal</code> on Windows 11), press Enter. If you later see "ssh is not recognized", add <b>OpenSSH Client</b> under <b>Optional features</b> in Windows Settings.</td></tr><tr data-os="mac"><td>macOS</td><td>Press Cmd+Space, type <code>Terminal</code>, press Enter.</td></tr><tr data-os="linux"><td>Linux</td><td>Press Ctrl+Alt+T (Ubuntu) or open <b>Terminal</b> from the applications menu.</td></tr></tbody></table></div>
+<h3>Connect by the address</h3>
+<p>Use the address from the display. It is the same command on all three systems:</p>
+<div class="cmd"><div class="cmdhead"><span class="where pc">On your computer</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c1">Copy</button></div><pre><code id="c1">ssh ubuntu@<span class="addr">10.87.10.205</span></code></pre></div>
+<p>The name <code>turtlebot4.local</code> also exists, but on the campus Wi-Fi it has failed now and then since 2026-10-04. Use the address first, and the name only as a second try:</p>
+<div class="cmd"><div class="cmdhead"><span class="where pc">On your computer</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c2">Copy</button></div><pre><code id="c2">ssh ubuntu@turtlebot4.local</code></pre></div>
+<p>On the robot's own Wi-Fi the address is always <code>10.42.0.1</code>:</p>
+<div class="cmd"><div class="cmdhead"><span class="where pc">On your computer</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c3">Copy</button></div><pre><code id="c3">ssh ubuntu@10.42.0.1</code></pre></div>
+<h3>The first time: the fingerprint question</h3>
+<p>The first time you connect to a name or address, SSH asks whether to trust the robot. It looks like this:</p>
+<div class="cmd out"><div class="cmdhead"><span class="where">What you see</span></div><pre><code>The authenticity of host 'turtlebot4.local (10.87.10.205)' can't be established.
+ED25519 key fingerprint is SHA256:P2rMsKzoIV+vsYEUViVNEFf9H8ORHn+qYbEhaTciyi4.
+Are you sure you want to continue connecting (yes/no/[fingerprint])?</code></pre></div>
+<p>Compare the fingerprint on your screen, character by character, with this one (the lab robot's key, recorded 2026-10-04, the same for every name and address of the robot):</p>
+<div class="cmd"><div class="cmdhead"><span class="where none">Expected fingerprint</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c4">Copy</button></div><pre><code id="c4">SHA256:P2rMsKzoIV+vsYEUViVNEFf9H8ORHn+qYbEhaTciyi4</code></pre></div>
+<div class="fpbox"><label for="fpin">Check it here: paste the fingerprint line you see (or just the SHA256:... part)</label><input type="text" id="fpin" autocomplete="off" spellcheck="false" placeholder="SHA256:..."><div class="fpres" id="fpres" aria-live="polite"></div></div>
+<ul><li><b>It matches:</b> type <code>yes</code> and press Enter.</li><li><b>It does not match:</b> type <code>no</code>. You reached a different device (campus addresses change) or the robot was reinstalled. Ask the lab maintainer before typing any password.</li></ul>
+<h3>Password and prompt</h3>
+<p>SSH asks for the <code>ubuntu</code> password. Type it and press Enter. Nothing appears while you type; that is normal. Ask the lab maintainer for the password.</p>
+<p>When the prompt reads <code>ubuntu@turtlebot4:~$</code>, you are on the robot: every command you type now runs there. To leave:</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c5">Copy</button></div><pre><code id="c5">exit</code></pre></div>
+<h3>When it does not answer: retry</h3>
+<p>Since 2026-10-04 the robot sometimes drops off the campus Wi-Fi and answers only in short windows of 10 to 40 seconds. Check your own Wi-Fi first (open any website), use the display address, and retry. This loop reconnects until you log out normally (ssh exits with code 255 when it cannot connect). Press Ctrl+C to stop trying. Set up <a href="#step-4">key login</a> first so you do not type the password at every attempt.</p>
+<div class="cmd" data-os="mac linux"><div class="cmdhead"><span class="where pc">On your computer</span> <span class="shell">Terminal (macOS / Linux)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c6">Copy</button></div><pre><code id="c6">while true; do ssh -o ConnectTimeout=5 -o ServerAliveInterval=10 ubuntu@<span class="addr">10.87.10.205</span>; [ $? -ne 255 ] &amp;&amp; break; sleep 5; done</code></pre></div>
+<div class="cmd" data-os="win"><div class="cmdhead"><span class="where pc">On your computer</span> <span class="shell">PowerShell</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c7">Copy</button></div><pre><code id="c7">while ($true) { ssh -o ConnectTimeout=5 -o ServerAliveInterval=10 ubuntu@<span class="addr">10.87.10.205</span>; if ($LASTEXITCODE -ne 255) { break }; Start-Sleep 5 }</code></pre></div>
+<p>If nothing answers for several minutes, put the robot on its dock, check that the display shows an address, and tell the lab maintainer. Do not change the robot's Wi-Fi settings yourself. More: <a href="../HOW-TO-CONNECT.md#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found">HOW-TO-CONNECT, the robot answers only sometimes</a>, or use the <a href="#trouble">troubleshooting finder</a> below.</p>
+</div></details>
+<details class="step" id="step-4" data-step="4"><summary><span class="num">4</span><h3>Optional: log in with a key (one time per computer)</h3><label class="donebox" title="Mark this step as done"><input type="checkbox" class="stepdone" data-step="4" aria-label="Step 4 done"> Done</label><span class="chev" aria-hidden="true">&#9656;</span></summary><div class="stepbody">
+<p>An SSH key lets your computer log in without the password, which also makes VS Code and <code>scp</code> much smoother. You need the <code>ubuntu</code> password one last time, in part 2.</p>
+<h3>1. Create a key just for the robot</h3>
+<p>At the passphrase prompt press Enter twice for no passphrase, or set one.</p>
+<div class="cmd" data-os="mac linux"><div class="cmdhead"><span class="where pc">On your computer</span> <span class="shell">Terminal (macOS / Linux)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c8">Copy</button></div><pre><code id="c8">mkdir -p ~/.ssh &amp;&amp; chmod 700 ~/.ssh
+ssh-keygen -t ed25519 -f ~/.ssh/turtlebot4_ed25519</code></pre></div>
+<div class="cmd" data-os="win"><div class="cmdhead"><span class="where pc">On your computer</span> <span class="shell">PowerShell</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c9">Copy</button></div><pre><code id="c9">mkdir -Force $env:USERPROFILE\.ssh
+ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\turtlebot4_ed25519</code></pre></div>
+<p data-os="win">On Windows write <code>$env:USERPROFILE</code> rather than <code>~</code> in these commands: Windows PowerShell does not expand <code>~</code> for them.</p>
+<h3>2. Put the public key on the robot</h3>
+<div class="cmd" data-os="mac linux"><div class="cmdhead"><span class="where pc">On your computer</span> <span class="shell">Terminal (macOS / Linux)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c10">Copy</button></div><pre><code id="c10">ssh-copy-id -i ~/.ssh/turtlebot4_ed25519.pub ubuntu@<span class="addr">10.87.10.205</span></code></pre></div>
+<p data-os="win">Windows has no <code>ssh-copy-id</code>. First print the public key. It is one line starting with <code>ssh-ed25519</code>; select it and copy it:</p>
+<div class="cmd" data-os="win"><div class="cmdhead"><span class="where pc">On your computer</span> <span class="shell">PowerShell</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c11">Copy</button></div><pre><code id="c11">type $env:USERPROFILE\.ssh\turtlebot4_ed25519.pub</code></pre></div>
+<p data-os="win">Then run this, replacing <code>PASTE-KEY-HERE</code> with the line you copied (keep the single quotes):</p>
+<div class="cmd" data-os="win"><div class="cmdhead"><span class="where pc">On your computer</span> <span class="shell">PowerShell</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c12">Copy</button></div><pre><code id="c12">ssh ubuntu@<span class="addr">10.87.10.205</span> "mkdir -p ~/.ssh &amp;&amp; chmod 700 ~/.ssh &amp;&amp; echo 'PASTE-KEY-HERE' &gt;&gt; ~/.ssh/authorized_keys &amp;&amp; chmod 600 ~/.ssh/authorized_keys"</code></pre></div>
+<h3>3. Log in with the key</h3>
+<div class="cmd" data-os="mac linux"><div class="cmdhead"><span class="where pc">On your computer</span> <span class="shell">Terminal (macOS / Linux)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c13">Copy</button></div><pre><code id="c13">ssh -i ~/.ssh/turtlebot4_ed25519 ubuntu@<span class="addr">10.87.10.205</span></code></pre></div>
+<div class="cmd" data-os="win"><div class="cmdhead"><span class="where pc">On your computer</span> <span class="shell">PowerShell</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c14">Copy</button></div><pre><code id="c14">ssh -i $env:USERPROFILE\.ssh\turtlebot4_ed25519 ubuntu@<span class="addr">10.87.10.205</span></code></pre></div>
+<p>If no password is asked for, the key works. Keep the private key file (the one without <code>.pub</code>) on your own computer only and never commit it to a repository. To avoid typing <code>-i ...</code>, <a href="../HOW-TO-CONNECT.md#optional-save-a-shortcut-in-your-ssh-config">save a shortcut in your SSH config</a>.</p>
+<div class="note info"><b>Optional shortcut.</b> The <a href="../tools/connect/README.md">connect tool</a> does the key setup and more with a menu: <code>TurtleBotConnect.exe</code> on Windows (double-click; SmartScreen warns because it is not code-signed: <b>More info</b>, then <b>Run anyway</b>) and <code>connect-turtlebot.sh</code> on macOS and Linux. It is an optional shortcut. As of 2026-10-10 it has been tested against a simulated robot only, not yet with the real robot. It refuses any device that does not present the lab robot's host key.</div>
+</div></details>
+<details class="step" id="step-5" data-step="5"><summary><span class="num">5</span><h3>Get your code onto the robot</h3><label class="donebox" title="Mark this step as done"><input type="checkbox" class="stepdone" data-step="5" aria-label="Step 5 done"> Done</label><span class="chev" aria-hidden="true">&#9656;</span></summary><div class="stepbody">
+<p>The <code>ubuntu</code> account is shared by everyone. Keep your work in a clearly named file or folder inside <code>~/robot_code</code> and do not change other people's files. Pick one of three ways.</p>
+<h3>A. VS Code Remote-SSH (best for editing)</h3>
+<ol><li>Install <a href="https://code.visualstudio.com/">VS Code</a> and Microsoft's <b>Remote - SSH</b> extension.</li><li>Press F1, choose <b>Preferences: Open User Settings (JSON)</b> and add these two lines inside the outer braces (with a comma after the entry before them):</li></ol>
+<div class="cmd"><div class="cmdhead"><span class="where file">VS Code user settings</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c15">Copy</button></div><pre><code id="c15">"remote.SSH.localServerDownload": "always",
+"remote.SSH.connectTimeout": 30</code></pre></div>
+<ol><li>Press F1 (Cmd+Shift+P on macOS), choose <b>Remote-SSH: Connect to Host...</b> and type the line below. If it asks for the platform choose <b>Linux</b>; without a key it asks for the password.</li></ol>
+<div class="cmd"><div class="cmdhead"><span class="where file">Host to type in VS Code</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c16">Copy</button></div><pre><code id="c16">ubuntu@<span class="addr">10.87.10.205</span></code></pre></div>
+<ol><li>The first connection downloads about 200 MB and can take about 10 minutes on campus Wi-Fi. Later ones take seconds.</li><li>Choose <b>File &gt; Open Folder</b>, open <code>/home/ubuntu/robot_code</code>, and use <b>Terminal &gt; New Terminal</b> (Ctrl+`) for a terminal that runs on the robot.</li></ol>
+<h3>B. Write on your computer, copy with scp</h3>
+<p>Run these in a normal terminal on your computer (not inside an SSH session). They work the same on all three systems. One file:</p>
+<div class="cmd"><div class="cmdhead"><span class="where pc">On your computer</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c17">Copy</button></div><pre><code id="c17">scp myfile.py ubuntu@<span class="addr">10.87.10.205</span>:robot_code/</code></pre></div>
+<p>A whole folder:</p>
+<div class="cmd"><div class="cmdhead"><span class="where pc">On your computer</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c18">Copy</button></div><pre><code id="c18">scp -r myproject ubuntu@<span class="addr">10.87.10.205</span>:robot_code/</code></pre></div>
+<p>Add <code>-i</code> and your key path as with <code>ssh</code> if you made a key. Copying from your computer works even while the robot's clock is wrong. If a copy stops halfway, connect by the display address and copy again. Check what arrived (on the robot):</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c19">Copy</button></div><pre><code id="c19">ls -l ~/robot_code</code></pre></div>
+<h3>C. Edit on the robot with nano</h3>
+<p>Good for a quick change. Log in over SSH, then:</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c20">Copy</button></div><pre><code id="c20">cd ~/robot_code
+nano myfile.py</code></pre></div>
+<ul><li>Type or paste your code. Ctrl+O then Enter saves, Ctrl+X leaves nano.</li></ul>
+<div class="note"><b>Git on the robot.</b> Do not use <code>git clone</code>, <code>pip</code> or <code>apt</code> on the robot unless you must. Its clock is often wrong and they then fail with certificate errors ("not yet valid"). Copy from your computer instead. See <a href="../HOW-TO-CONNECT.md#known-issues">Known issues</a>.</div>
+</div></details>
+<details class="step" id="step-6" data-step="6"><summary><span class="num">6</span><h3>Run a program</h3><label class="donebox" title="Mark this step as done"><input type="checkbox" class="stepdone" data-step="6" aria-label="Step 6 done"> Done</label><span class="chev" aria-hidden="true">&#9656;</span></summary><div class="stepbody">
+<p>Log in to the robot first (step 3). Then run a program with <code>python3</code>. <code>hello_robot.py</code> is safe: it shows a text message on the robot's display and turns the light ring green for 5 seconds. It does not move the robot and works on the dock.</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c21">Copy</button></div><pre><code id="c21">cd ~/robot_code
+python3 hello_robot.py</code></pre></div>
+<div class="note"><b>Be patient.</b> ROS programs start slowly on the Raspberry Pi. Wait <b>10 to 20 seconds</b> before deciding a program does nothing, and <b>30 to 60 seconds</b> for <code>ros2</code> command-line calls.</div>
+<h3>Shell scripts need one extra line</h3>
+<p>ROS 2 is loaded automatically in the robot's interactive shells (the one you get after <code>ssh</code>). A script started another way does not have it, so start every script with <code>source /etc/turtlebot4/setup.bash</code>. Example <code>myscript.sh</code>:</p>
+<div class="cmd"><div class="cmdhead"><span class="where file">myscript.sh</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c22">Copy</button></div><pre><code id="c22">#!/bin/bash
+source /etc/turtlebot4/setup.bash
+ros2 topic list</code></pre></div>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c23">Copy</button></div><pre><code id="c23">bash myscript.sh</code></pre></div>
+<p>Other programs in <code>~/robot_code</code> and what they do: <a href="../examples/README.md">examples/README.md</a>. Newer ones must be copied first (<a href="../examples/README.md#copy-the-files-to-the-robot">how</a>).</p>
+</div></details>
+<details class="step" id="step-7" data-step="7"><summary><span class="num">7</span><h3>Look at the sensors</h3><label class="donebox" title="Mark this step as done"><input type="checkbox" class="stepdone" data-step="7" aria-label="Step 7 done"> Done</label><span class="chev" aria-hidden="true">&#9656;</span></summary><div class="stepbody">
+<p>These commands only read. They are safe at any time. Run them on the robot.</p>
+<h3>What topics exist</h3>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c24">Copy</button></div><pre><code id="c24">ros2 topic list</code></pre></div>
+<h3>Battery</h3>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c25">Copy</button></div><pre><code id="c25">timeout 60 ros2 topic echo --once /battery_state</code></pre></div>
+<h3>Dock status</h3>
+<p>Look for <code>is_docked: true</code> or <code>false</code>, and <code>dock_visible</code>.</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c26">Copy</button></div><pre><code id="c26">timeout 60 ros2 topic echo --once /dock_status</code></pre></div>
+<p>If nothing prints for a minute, the Create 3 base is stuck: see <a href="../HOW-TO-CONNECT.md#restart-the-create-3-base-application">Restart the base application</a>.</p>
+<h3>Lidar: one line</h3>
+<p>The lidar is switched off while the robot is on the dock, so undock first (step 8) and wait a few seconds. Then this prints the distance to the nearest object until you press Ctrl+C:</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c27">Copy</button></div><pre><code id="c27">python3 ~/robot_code/scan_test.py</code></pre></div>
+<p>For everything else about the lidar see the <a href="lidar-guide.html">lidar guide</a> (<a href="LIDAR-GUIDE.md">Markdown version</a>).</p>
+</div></details>
+<details class="step" id="step-8" data-step="8"><summary><span class="num">8</span><h3>Undock, drive, rotate and dock</h3><label class="donebox" title="Mark this step as done"><input type="checkbox" class="stepdone" data-step="8" aria-label="Step 8 done"> Done</label><span class="chev" aria-hidden="true">&#9656;</span></summary><div class="stepbody">
+<div class="note"><b>Safety first.</b> <b>This moves the robot.</b> Before every motion: about 1 m of clear floor all round; a person next to the robot; you know how to stop it (<a href="#step-9">step 9</a>); speed at or below 0.15 m/s. The full checklist is in <a href="../examples/README.md#safety-checklist-before-anything-moves">examples/README.md</a>.</div>
+<p>Run the commands on the robot, one at a time, and wait for each to finish (they can take up to a minute). Commands marked "not yet tested on this robot" follow the official Create 3 definitions but have not been run on this robot; try them with extra care.</p>
+<h3>1. Undock</h3>
+<p>The robot backs out of the dock and then turns 180 degrees. It fails if it is already undocked. Verified on this robot (2026-10-04).</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c28">Copy</button></div><pre><code id="c28">ros2 action send_goal /undock irobot_create_msgs/action/Undock "{}"</code></pre></div>
+<p>If Wi-Fi may drop, send it detached so it is not cancelled, then read the log (look for <code>SUCCEEDED</code>):</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c29">Copy</button></div><pre><code id="c29">setsid nohup ros2 action send_goal /undock irobot_create_msgs/action/Undock "{}" &gt; ~/robot_code/undock.log 2&gt;&amp;1 &amp;
+cat ~/robot_code/undock.log</code></pre></div>
+<h3>2. Drive by hand, slowly</h3>
+<p>This publishes a forward speed of 0.1 m/s ten times a second until you press <b>Ctrl+C</b>. Be ready to press it. <code>/cmd_vel</code> takes <code>TwistStamped</code>, not <code>Twist</code>.</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span> <span class="chip untested">Not yet tested on this robot</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c30">Copy</button></div><pre><code id="c30">ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/TwistStamped "{twist: {linear: {x: 0.1}}}"</code></pre></div>
+<p>Then send one stop message:</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span> <span class="chip untested">Not yet tested on this robot</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c31">Copy</button></div><pre><code id="c31">ros2 topic pub --once /cmd_vel geometry_msgs/msg/TwistStamped "{}"</code></pre></div>
+<h3>3. Drive a set distance</h3>
+<p><code>distance</code> is in metres and <code>max_translation_speed</code> in m/s. Keep the distance small and the speed at or below 0.15. Use the <a href="#builder">command builder</a> to make the line for any value.</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span> <span class="chip untested">Not yet tested on this robot</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c32">Copy</button></div><pre><code id="c32">ros2 action send_goal /drive_distance irobot_create_msgs/action/DriveDistance "{distance: 0.2, max_translation_speed: 0.1}"</code></pre></div>
+<h3>4. Rotate</h3>
+<p>The angle is in <b>radians</b>; positive turns left (counter-clockwise), negative turns right. 3.14159 is a half turn. Verified on this robot (2026-10-04).</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c33">Copy</button></div><pre><code id="c33">ros2 action send_goal /rotate_angle irobot_create_msgs/action/RotateAngle "{angle: 3.14159, max_rotation_speed: 0.5}"</code></pre></div>
+<p>A quarter turn to the left is 1.5708 rad. The <a href="#builder">command builder</a> converts degrees to radians for you.</p>
+<h3>5. Dock</h3>
+<p>The robot searches for the dock nearby, aligns and drives on. It fails if it is too far from the dock or already docked, and it cannot find a dock that is not plugged into power. If it is far away, carry it to a spot in front of the dock first. Verified on this robot (2026-10-03).</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c34">Copy</button></div><pre><code id="c34">ros2 action send_goal /dock irobot_create_msgs/action/Dock "{}"</code></pre></div>
+<p>Or detached:</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c35">Copy</button></div><pre><code id="c35">setsid nohup ros2 action send_goal /dock irobot_create_msgs/action/Dock "{}" &gt; ~/robot_code/dock.log 2&gt;&amp;1 &amp;
+cat ~/robot_code/dock.log</code></pre></div>
+<p>Check the result (<code>is_docked: true</code> means it is on the dock):</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c36">Copy</button></div><pre><code id="c36">timeout 60 ros2 topic echo --once /dock_status</code></pre></div>
+</div></details>
+<details class="step" id="step-9" data-step="9"><summary><span class="num">9</span><h3>Stop the robot safely</h3><label class="donebox" title="Mark this step as done"><input type="checkbox" class="stepdone" data-step="9" aria-label="Step 9 done"> Done</label><span class="chev" aria-hidden="true">&#9656;</span></summary><div class="stepbody">
+<p>Use whichever is fastest. <b>Picking the robot up always works</b>: the Create 3 stops its wheels when lifted.</p>
+<ul><li><b>Pick it up.</b> The wheels stop (wheel drop).</li><li><b>Ctrl+C</b> in the terminal where the command or program runs. For <code>ros2 topic pub</code> this stops publishing; follow with the stop message below.</li><li><b>The base's power button</b> also stops everything.</li><li><b>The stop message</b> (zero speed), from any terminal on the robot:</li></ul>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span> <span class="chip untested">Not yet tested on this robot</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c37">Copy</button></div><pre><code id="c37">ros2 topic pub --once /cmd_vel geometry_msgs/msg/TwistStamped "{}"</code></pre></div>
+<ul><li><b>The STOP file</b>, for the example motion programs (such as <code>motion_shapes.py</code>). From any other terminal on the robot (log in again if SSH dropped):</li></ul>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c38">Copy</button></div><pre><code id="c38">touch ~/STOP</code></pre></div>
+<p>Delete it afterwards, or the next run refuses to start:</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c39">Copy</button></div><pre><code id="c39">rm ~/STOP</code></pre></div>
+<ul><li><b>The stop signal</b>, for <code>motion_shapes.py</code>:</li></ul>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c40">Copy</button></div><pre><code id="c40">pkill -INT -f motion_shapes.py</code></pre></div>
+<ul><li><b>Connect tool, option 7 (EMERGENCY stop)</b>: does the STOP file and the stop signals for you. Not yet tested with the real robot.</li></ul>
+<div class="note"><b>Know what each one stops.</b> The <code>~/STOP</code> file and <code>pkill</code> only affect the example motion programs. Your own program (step 11) stops with Ctrl+C or by lifting the robot. If SSH has dropped, log in again, then use the STOP file or the stop message. Run longer motions <a href="../HOW-TO-CONNECT.md#moving-the-robot-run-motion-scripts-detached">detached</a> so a Wi-Fi drop does not leave them half done.</div>
+<p>More: <a href="../examples/README.md#how-to-stop-the-robot">examples/README.md, How to stop the robot</a>.</p>
+</div></details>
+<details class="step" id="step-10" data-step="10"><summary><span class="num">10</span><h3>Turn the robot off safely</h3><label class="donebox" title="Mark this step as done"><input type="checkbox" class="stepdone" data-step="10" aria-label="Step 10 done"> Done</label><span class="chev" aria-hidden="true">&#9656;</span></summary><div class="stepbody">
+<p>Leaving the robot on its dock is fine: it is designed to sit there charging. To switch it off completely (the procedure used successfully on 2026-10-03):</p>
+<ol><li>In an SSH session on the robot, shut down the Raspberry Pi. It asks for the <code>ubuntu</code> password and your SSH session ends.</li></ol>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c41">Copy</button></div><pre><code id="c41">sudo poweroff</code></pre></div>
+<ol><li>Wait about 20 seconds.</li><li>Lift the robot off the dock.</li><li>Press and hold the base's power button (the centre of the light ring) for about 7 to 10 seconds, until the light ring turns off.</li></ol>
+<div class="note"><b>Order matters.</b> Always shut down the Pi (<code>sudo poweroff</code>) before cutting power, so its SD card is not damaged. To turn the robot on again, place it on the dock (step 1). Details: <a href="../HOW-TO-CONNECT.md#turning-the-robot-off">HOW-TO-CONNECT, turning the robot off</a>.</div>
+</div></details>
+<details class="step" id="step-11" data-step="11"><summary><span class="num">11</span><h3>Write your first program</h3><label class="donebox" title="Mark this step as done"><input type="checkbox" class="stepdone" data-step="11" aria-label="Step 11 done"> Done</label><span class="chev" aria-hidden="true">&#9656;</span></summary><div class="stepbody">
+<p>This tiny program drives the robot forward at 0.1 m/s for 2 seconds (about 20 cm) and then stops. It is based on <a href="../examples/drive_test.py"><code>examples/drive_test.py</code></a>, which was run on this robot; this copy adds comments, a speed cap and two log lines and has <b>not itself been run on this robot yet</b>.</p>
+<div class="cmd"><div class="cmdhead"><span class="where file">my_first_drive.py</span> <span class="chip untested">Not yet tested on this robot</span><span class="sp"></span><button type="button" class="btn save" data-save="c42" data-name="my_first_drive.py">Save as my_first_drive.py</button><button type="button" class="btn copy" data-copy="c42">Copy</button></div><pre><code id="c42">#!/usr/bin/env python3
+"""my_first_drive.py: drive forward slowly for 2 seconds, then stop.
+
+MOVES THE ROBOT. Undock first and clear about 1 m of floor in front of it.
+Based on examples/drive_test.py (this copy has not been run on the robot yet).
+Stop it at any time with Ctrl+C or by lifting the robot.
+"""
+import rclpy                                # the ROS 2 Python library
+from rclpy.node import Node                 # a Node is one ROS 2 program
+from geometry_msgs.msg import TwistStamped  # a speed message WITH a time stamp
+
+# --- Settings you can change -----------------------------------------------
+SPEED = 0.1          # forward speed in metres per second
+DRIVE_TIME = 2.0     # how long to drive, in seconds
+RATE = 10            # how many speed messages to send per second
+# ---------------------------------------------------------------------------
+
+# Lab safety rule: never faster than 0.15 m/s. This line enforces it.
+SPEED = min(SPEED, 0.15)
+
+
+class MyFirstDrive(Node):
+    def __init__(self):
+        super().__init__('my_first_drive')    # the name of this node
+        # On this robot /cmd_vel takes TwistStamped, NOT Twist.
+        self.pub = self.create_publisher(TwistStamped, '/cmd_vel', 10)
+        self.ticks = 0                         # how many messages sent so far
+        # Call self.tick() RATE times per second.
+        self.create_timer(1.0 / RATE, self.tick)
+        self.get_logger().info('driving forward for %.1f s' % DRIVE_TIME)
+
+    def tick(self):
+        msg = TwistStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()  # stamp = now
+        msg.header.frame_id = 'base_link'                   # the robot's body
+        if self.ticks &lt; DRIVE_TIME * RATE:
+            msg.twist.linear.x = SPEED         # forward; everything else stays 0
+        # After DRIVE_TIME the message stays all zeros, which means "stop".
+        self.pub.publish(msg)
+        self.ticks += 1
+        # Keep sending zeros for 5 more ticks (0.5 s), then finish.
+        if self.ticks &gt;= DRIVE_TIME * RATE + 5:
+            raise SystemExit
+
+
+def main():
+    rclpy.init()
+    node = MyFirstDrive()
+    try:
+        rclpy.spin(node)                       # run until SystemExit or Ctrl+C
+    except (SystemExit, KeyboardInterrupt):
+        pass
+    node.pub.publish(TwistStamped())           # last message: all zeros = stop
+    node.get_logger().info('done')
+    node.destroy_node()
+    rclpy.try_shutdown()
+
+
+if __name__ == '__main__':
+    main()</code></pre></div>
+<h3>Put it on the robot</h3>
+<p>Easiest: on the robot, <code>nano my_first_drive.py</code> (step 5, option C) and paste the code. Or save it on your computer as <code>my_first_drive.py</code> (the page has a Save button) and copy it from the folder it is in:</p>
+<div class="cmd"><div class="cmdhead"><span class="where pc">On your computer</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c43">Copy</button></div><pre><code id="c43">scp my_first_drive.py ubuntu@<span class="addr">10.87.10.205</span>:robot_code/</code></pre></div>
+<h3>Run it</h3>
+<ol><li>Undock the robot (step 8, part 1) and wait a few seconds.</li><li>Check 1 m of clear floor in front and stand next to the robot.</li><li>Run it on the robot:</li></ol>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c44">Copy</button></div><pre><code id="c44">cd ~/robot_code
+python3 my_first_drive.py</code></pre></div>
+<p>Wait 10 to 20 seconds for ROS to start. Then the robot rolls forward for about 2 seconds, stops, and the program prints <code>done</code> and exits. Ctrl+C stops it earlier. Afterwards dock the robot (step 8, part 5).</p>
+<p>Ideas: change <code>DRIVE_TIME</code>, then try <code>msg.twist.angular.z</code> instead of <code>linear.x</code> to turn on the spot. Keep <code>SPEED</code> at or below 0.15.</p>
+</div></details>
+    </section>
+
+    <section id="builder">
+      <div class="section-head"><span class="section-tag">TOOL</span><h2>Command builder: drive and rotate</h2></div>
+      <p>Move the sliders. The two commands below update. Copy them and run them <b>on the robot</b>, after undocking (step 8), with the safety rules above. Speed stops at 0.15 m/s on purpose.</p>
+      <div class="builder">
+        <div class="ctl">
+          <h3>Drive a distance</h3>
+          <div class="row"><label for="sl-dist">Distance</label><output id="o-dist" for="sl-dist">0.20 m</output>
+            <input type="range" id="sl-dist" min="0.05" max="0.5" step="0.05" value="0.2"><span class="scale"><span>0.05 m</span><span>0.5 m</span></span></div>
+          <div class="row"><label for="sl-speed">Speed</label><output id="o-speed" for="sl-speed">0.10 m/s</output>
+            <input type="range" id="sl-speed" min="0.05" max="0.15" step="0.01" value="0.1"><span class="scale"><span>0.05 m/s</span><span>0.15 m/s (limit)</span></span></div>
+          <h3>Rotate</h3>
+          <div class="row"><label for="sl-angle">Angle (+ left, - right)</label><output id="o-angle" for="sl-angle">90 deg</output>
+            <input type="range" id="sl-angle" min="-180" max="180" step="5" value="90"><span class="scale"><span>-180</span><span>0</span><span>180</span></span></div>
+          <div class="row"><label for="sl-turn">Turn speed</label><output id="o-turn" for="sl-turn">0.5 rad/s</output>
+            <input type="range" id="sl-turn" min="0.2" max="1" step="0.1" value="0.5"><span class="scale"><span>0.2 rad/s</span><span>1.0 rad/s</span></span></div>
+          <label class="checkline"><input type="checkbox" id="detach"> Run detached (keeps going if Wi-Fi drops; output goes to a log)</label>
+        </div>
+        <div class="out">
+          <div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span> <span class="chip untested">Not yet tested on this robot</span><span class="sp"></span><button type="button" class="btn copy" data-copy="b-drive">Copy</button></div><pre><code id="b-drive"></code></pre></div>
+          <p class="hint" id="b-drive-note"></p>
+          <div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span> <span class="chip ok">Action verified here with 180 deg at 0.5 rad/s</span><span class="sp"></span><button type="button" class="btn copy" data-copy="b-rot">Copy</button></div><pre><code id="b-rot"></code></pre></div>
+          <p class="hint" id="b-rot-note"></p>
+          <div class="note"><b>Stop:</b> Ctrl+C in this terminal, or lift the robot. More ways in step 9. Radians = degrees x 0.0174533. The robot is round, so a turn on the spot needs no extra floor, but keep 1 m clear.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="trouble">
+      <div class="section-head"><span class="section-tag">HELP</span><h2>Troubleshooting finder</h2></div>
+      <p>Pick what you see. Same answers as the table in <a href="../HOW-TO-CONNECT.md#troubleshooting">HOW-TO-CONNECT.md</a>.</p>
+      <div class="grp" style="margin:0 0 6px"><label class="lbl" for="sym-pick">Symptom</label>
+        <select id="sym-pick" aria-controls="sym-out"><option value="">Choose what you see...</option><option value="noanswer">No answer: connection timed out, no route to host, or it works then freezes</option><option value="local">turtlebot4.local is not found (Could not resolve hostname)</option><option value="denied">Permission denied</option><option value="hostkey">WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!</option><option value="ros2nf">ros2: command not found</option><option value="noscan">No /scan (lidar data)</option><option value="nomove">The robot does not move</option></select></div>
+      <p class="hint" id="sym-empty" hidden>Choose a symptom to see the cause and the fix.</p>
+      <div id="sym-out">
+<div class="symptom" data-sym="noanswer" id="sym-noanswer"><h3>No answer: connection timed out, no route to host, or it works then freezes</h3><p class="cause"><b>Likely cause.</b> Your computer and the robot are on different networks, the robot is still starting, or the robot dropped off the Wi-Fi (seen on 2026-10-04 and 2026-10-05; likely Wi-Fi power saving on the robot, not confirmed, fix not applied as of 2026-10-10).</p><p class="fixlbl">What to do</p>
+<p>Check both are on the same network (<code>Students</code> for a <code>10.87.x.x</code> display, <code>Turtlebot4</code> for <code>10.42.0.1</code>) and that your own Wi-Fi works. Put the robot back on the dock and wait 2 minutes. Connect by the <b>display address</b>, not the name, and retry with the loop. Keep sessions short and run long jobs detached.</p>
+<div class="cmd" data-os="mac linux"><div class="cmdhead"><span class="where pc">On your computer</span> <span class="shell">Terminal (macOS / Linux)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c45">Copy</button></div><pre><code id="c45">while true; do ssh -o ConnectTimeout=5 -o ServerAliveInterval=10 ubuntu@<span class="addr">10.87.10.205</span>; [ $? -ne 255 ] &amp;&amp; break; sleep 5; done</code></pre></div>
+<div class="cmd" data-os="win"><div class="cmdhead"><span class="where pc">On your computer</span> <span class="shell">PowerShell</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c46">Copy</button></div><pre><code id="c46">while ($true) { ssh -o ConnectTimeout=5 -o ServerAliveInterval=10 ubuntu@<span class="addr">10.87.10.205</span>; if ($LASTEXITCODE -ne 255) { break }; Start-Sleep 5 }</code></pre></div>
+<p>If nothing answers for several minutes, tell the lab maintainer. Do not change the robot's Wi-Fi. <a href="../HOW-TO-CONNECT.md#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found">Full details</a>.</p>
+</div>
+<div class="symptom" data-sym="local" id="sym-local"><h3><code>turtlebot4.local</code> is not found (Could not resolve hostname)</h3><p class="cause"><b>Likely cause.</b> mDNS is not working on your computer or network. On the campus Wi-Fi it has failed now and then since 2026-10-04. Or your computer is on a different network.</p><p class="fixlbl">What to do</p>
+<p>Connect by the address on the robot's display instead, and check your computer is on <code>Students</code>:</p>
+<div class="cmd"><div class="cmdhead"><span class="where pc">On your computer</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c47">Copy</button></div><pre><code id="c47">ssh ubuntu@<span class="addr">10.87.10.205</span></code></pre></div>
+</div>
+<div class="symptom" data-sym="denied" id="sym-denied"><h3>Permission denied</h3><p class="cause"><b>Likely cause.</b> Wrong password (nothing shows while you type), or your key is not installed on the robot.</p><p class="fixlbl">What to do</p>
+<p>Retype the password slowly. Repeat the <a href="#step-4">key setup</a> if you use a key. Ask the lab maintainer if the password was changed. Never write the password into the repository.</p>
+</div>
+<div class="symptom" data-sym="hostkey" id="sym-hostkey"><h3>WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!</h3><p class="cause"><b>Likely cause.</b> The robot was reinstalled, or that address now belongs to another device (campus addresses change).</p><p class="fixlbl">What to do</p>
+<p>Do not ignore it. Check with the lab maintainer first (the correct fingerprint is <code>SHA256:P2rMsKzoIV+vsYEUViVNEFf9H8ORHn+qYbEhaTciyi4</code>). Only after they confirm, remove the old entry and connect again:</p>
+<div class="cmd"><div class="cmdhead"><span class="where pc">On your computer</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c48">Copy</button></div><pre><code id="c48">ssh-keygen -R <span class="addr">10.87.10.205</span></code></pre></div>
+<p>Use the same command with <code>turtlebot4.local</code> if that is what you typed.</p>
+</div>
+<div class="symptom" data-sym="ros2nf" id="sym-ros2nf"><h3><code>ros2: command not found</code></h3><p class="cause"><b>Likely cause.</b> ROS 2 is loaded only in the robot's interactive shells. You are either on your own computer instead of the robot (the prompt must read <code>ubuntu@turtlebot4:~$</code>), or in a script or shell that did not load it.</p><p class="fixlbl">What to do</p>
+<p>Log in to the robot first (step 3). In a script, or if the command is still not found, load ROS first:</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c49">Copy</button></div><pre><code id="c49">source /etc/turtlebot4/setup.bash</code></pre></div>
+</div>
+<div class="symptom" data-sym="noscan" id="sym-noscan"><h3>No /scan (lidar data)</h3><p class="cause"><b>Likely cause.</b> The robot is on the dock: the lidar is switched off there to save power. Or the lidar was not detected on USB.</p><p class="fixlbl">What to do</p>
+<p>Undock (step 8), wait a few seconds, and try again. If it is still silent, check the lidar USB device (this lists <code>/dev/RPLIDAR</code> when it is detected):</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c50">Copy</button></div><pre><code id="c50">ls /dev/RPLIDAR</code></pre></div>
+<p>More: <a href="lidar-guide.html">lidar guide</a> and <a href="../HOW-TO-CONNECT.md#known-issues">Known issues</a>.</p>
+</div>
+<div class="symptom" data-sym="nomove" id="sym-nomove"><h3>The robot does not move</h3><p class="cause"><b>Likely cause.</b> Common reasons: it is still on the dock; your program publishes <code>Twist</code> instead of <code>TwistStamped</code> (on this robot <code>/cmd_vel</code> takes <code>TwistStamped</code> with <code>header.stamp</code> set to now); a stale <code>~/STOP</code> file makes the example programs refuse to start; or the Create 3 base is stuck.</p><p class="fixlbl">What to do</p>
+<p>Check the dock state (<code>is_docked: true</code> means undock first, step 8):</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c51">Copy</button></div><pre><code id="c51">timeout 60 ros2 topic echo --once /dock_status</code></pre></div>
+<p>Remove a leftover stop file:</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c52">Copy</button></div><pre><code id="c52">rm ~/STOP</code></pre></div>
+<p>If <code>/dock_status</code> prints nothing, restart the base application, wait for the chime (about a minute) and check again:</p>
+<div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c53">Copy</button></div><pre><code id="c53">curl -X POST http://192.168.186.2/api/restart-app</code></pre></div>
+<p>Also wait: ROS programs need 10 to 20 s to start. <a href="../HOW-TO-CONNECT.md#restart-the-create-3-base-application">Restart details</a>.</p>
+</div>
+      </div>
+    </section>
+
+    <footer>
+      <p>Back to the <a href="index.html">docs index</a>. Same steps as plain Markdown: <a href="DO-IT-YOURSELF.md">DO-IT-YOURSELF.md</a>. Lidar in depth: <a href="lidar-guide.html">lidar guide</a> (<a href="LIDAR-GUIDE.md">Markdown</a>). Connection details: <a href="../HOW-TO-CONNECT.md">HOW-TO-CONNECT.md</a>. Example programs: <a href="../examples/README.md">examples/README.md</a>. Optional connect tool: <a href="../tools/connect/README.md">tools/connect</a>.</p>
+    </footer>
+  </main>
+</div>
+<script>
+(function () {
+  'use strict';
+  var DEFAULT_ADDR = '10.87.10.205';
+  var EXPECTED_FP = 'SHA256:P2rMsKzoIV+vsYEUViVNEFf9H8ORHn+qYbEhaTciyi4';
+  var KEY_OS = 'tb4diy.os', KEY_DONE = 'tb4diy.done', KEY_ADDR = 'tb4diy.addr';
+
+  function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+
+  /* ---------- OS switcher ---------- */
+  var os = 'win';
+  function detectOs() {
+    var ua = (navigator.userAgent || '') + ' ' + (navigator.platform || '');
+    if (/Mac/i.test(ua) && !/iPhone|iPad/i.test(ua)) { return 'mac'; }
+    if (/Linux|X11/i.test(ua) && !/Android/i.test(ua)) { return 'linux'; }
+    return 'win';
+  }
+  function applyOs(v) {
+    os = v;
+    $$('[data-os-pick]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-os-pick') === v ? 'true' : 'false'); });
+    $$('[data-os]').forEach(function (el) {
+      var list = el.getAttribute('data-os').split(' ');
+      el.hidden = list.indexOf(v) < 0;
+    });
+  }
+  $$('[data-os-pick]').forEach(function (b) {
+    b.addEventListener('click', function () { var v = b.getAttribute('data-os-pick'); applyOs(v); lsSet(KEY_OS, v); });
+  });
+
+  /* ---------- robot address ---------- */
+  var addrIn = $('#addrin'), addrHint = $('#addrhint');
+  function applyAddr(v) {
+    $$('.addr').forEach(function (s) { s.textContent = v; });
+    buildCmds();
+  }
+  function onAddr() {
+    var v = addrIn.value.replace(/^\s+|\s+$/g, '');
+    if (/^[A-Za-z0-9][A-Za-z0-9.\-]{0,62}$/.test(v)) {
+      addrHint.textContent = "from the robot's display"; addrHint.className = 'hint';
+      applyAddr(v); lsSet(KEY_ADDR, v);
+    } else {
+      addrHint.textContent = 'letters, digits, dots and dashes only'; addrHint.className = 'hint bad';
+      applyAddr(DEFAULT_ADDR);
+    }
+  }
+  addrIn.addEventListener('input', onAddr);
+
+  /* ---------- copy / save ---------- */
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.top = '-1000px';
+    document.body.appendChild(ta); ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+  function flash(btn, ok) {
+    var old = btn.getAttribute('data-label') || btn.textContent;
+    btn.setAttribute('data-label', old);
+    btn.textContent = ok ? 'Copied' : 'Select + Ctrl+C';
+    if (ok) { btn.classList.add('ok'); }
+    window.setTimeout(function () { btn.textContent = old; btn.classList.remove('ok'); }, 1600);
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t || !t.closest) { return; }
+    var cp = t.closest('[data-copy]');
+    if (cp) {
+      var node = document.getElementById(cp.getAttribute('data-copy'));
+      var text = node ? node.textContent : '';
+      var done = false;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { flash(cp, true); }, function () { flash(cp, fallbackCopy(text)); });
+        done = true;
+      }
+      if (!done) { flash(cp, fallbackCopy(text)); }
+      return;
+    }
+    var sv = t.closest('[data-save]');
+    if (sv) {
+      try {
+        var node2 = document.getElementById(sv.getAttribute('data-save'));
+        var blob = new Blob([node2.textContent], { type: 'text/plain' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = sv.getAttribute('data-name') || 'file.txt';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      } catch (err) { /* ignore: copy button still works */ }
+    }
+  });
+
+  /* ---------- progress ---------- */
+  var steps = $$('details.step'), boxes = $$('.stepdone');
+  function loadDone() {
+    var raw = lsGet(KEY_DONE), arr = [];
+    try { arr = JSON.parse(raw || '[]'); } catch (e) { arr = []; }
+    if (!Array.isArray(arr)) { arr = []; }
+    return arr;
+  }
+  function paintProgress() {
+    var n = 0, list = [];
+    boxes.forEach(function (b) {
+      var s = b.getAttribute('data-step'), d = document.getElementById('step-' + s);
+      if (b.checked) { n++; list.push(Number(s)); }
+      if (d) { d.classList.toggle('done', b.checked); }
+    });
+    $('#progtxt').textContent = n + ' of ' + boxes.length + ' steps done';
+    $('#progfill').style.width = (100 * n / boxes.length) + '%';
+    $('#progbar').setAttribute('aria-valuenow', String(n));
+    return list;
+  }
+  boxes.forEach(function (b) {
+    b.addEventListener('change', function () { lsSet(KEY_DONE, JSON.stringify(paintProgress())); });
+  });
+  $('#resetprog').addEventListener('click', function () {
+    boxes.forEach(function (b) { b.checked = false; });
+    lsSet(KEY_DONE, '[]'); paintProgress();
+  });
+
+  /* ---------- open a step when linked ---------- */
+  function openFromHash() {
+    var id = (location.hash || '').replace('#', '');
+    if (!id) { return; }
+    var el = document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  window.addEventListener('hashchange', openFromHash);
+
+  /* ---------- fingerprint checker ---------- */
+  var fpin = $('#fpin'), fpres = $('#fpres');
+  if (fpin) {
+    fpin.addEventListener('input', function () {
+      var raw = fpin.value, m = raw.match(/SHA256:[A-Za-z0-9+\/=]+/);
+      var v = m ? m[0] : raw.replace(/^\s+|\s+$/g, '');
+      if (!v) { fpres.innerHTML = ''; return; }
+      if (v === EXPECTED_FP) {
+        fpres.innerHTML = '<span class="chip ok">Matches</span> This is the lab robot. Type <code>yes</code>.';
+      } else if (EXPECTED_FP.indexOf(v) === 0) {
+        fpres.innerHTML = '<span class="chip todo">So far so good</span> Keep going, the line is not complete.';
+      } else {
+        fpres.innerHTML = '<span class="chip bad">Does not match</span> Type <code>no</code> and ask the lab maintainer before typing any password.';
+      }
+    });
+  }
+
+  /* ---------- command builder ---------- */
+  function num(id) { return parseFloat(document.getElementById(id).value); }
+  function fix(x, d) { var s = x.toFixed(d); return s === '-0.0000' ? '0.0000' : s; }
+  function buildCmds() {
+    var dist = Math.min(Math.max(num('sl-dist'), 0.05), 0.5);
+    var spd = Math.min(Math.max(num('sl-speed'), 0.05), 0.15);
+    var deg = Math.min(Math.max(num('sl-angle'), -180), 180);
+    var tsp = Math.min(Math.max(num('sl-turn'), 0.2), 1.0);
+    var rad = deg * Math.PI / 180;
+    var det = $('#detach').checked;
+    $('#o-dist').textContent = dist.toFixed(2) + ' m';
+    $('#o-speed').textContent = spd.toFixed(2) + ' m/s';
+    $('#o-angle').textContent = (deg > 0 ? '+' : '') + deg + ' deg';
+    $('#o-turn').textContent = tsp.toFixed(1) + ' rad/s';
+    var c1 = 'ros2 action send_goal /drive_distance irobot_create_msgs/action/DriveDistance "{distance: ' + dist.toFixed(2) + ', max_translation_speed: ' + spd.toFixed(2) + '}"';
+    var c2 = 'ros2 action send_goal /rotate_angle irobot_create_msgs/action/RotateAngle "{angle: ' + fix(rad, 4) + ', max_rotation_speed: ' + tsp.toFixed(1) + '}"';
+    if (det) {
+      c1 = 'setsid nohup ' + c1 + ' > ~/robot_code/drive.log 2>&1 &';
+      c2 = 'setsid nohup ' + c2 + ' > ~/robot_code/rotate.log 2>&1 &';
+    }
+    $('#b-drive').textContent = c1;
+    $('#b-rot').textContent = c2;
+    $('#b-drive-note').textContent = 'About ' + (dist / spd).toFixed(1) + ' s at this speed, plus start and stop. Forward only.';
+    var dir = deg > 0 ? 'left (counter-clockwise)' : (deg < 0 ? 'right (clockwise)' : 'nowhere (0 deg)');
+    $('#b-rot-note').textContent = deg + ' deg = ' + fix(rad, 4) + ' rad, turning ' + dir + ', about ' + (Math.abs(rad) / tsp).toFixed(1) + ' s.' + (det ? ' Detached: read the result with cat ~/robot_code/rotate.log.' : '');
+  }
+  ['sl-dist', 'sl-speed', 'sl-angle', 'sl-turn', 'detach'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', buildCmds);
+    document.getElementById(id).addEventListener('change', buildCmds);
+  });
+
+  /* ---------- troubleshooting finder ---------- */
+  var pick = $('#sym-pick'), syms = $$('.symptom'), empty = $('#sym-empty');
+  function showSym() {
+    var v = pick.value;
+    syms.forEach(function (s) { s.hidden = s.getAttribute('data-sym') !== v; });
+    empty.hidden = v !== '';
+  }
+  pick.addEventListener('change', showSym);
+
+  /* ---------- print: open everything ---------- */
+  var wasOpen = [];
+  window.addEventListener('beforeprint', function () {
+    wasOpen = steps.map(function (d) { return d.open; });
+    steps.forEach(function (d) { d.open = true; });
+    syms.forEach(function (s) { s.hidden = false; });
+  });
+  window.addEventListener('afterprint', function () {
+    steps.forEach(function (d, i) { d.open = wasOpen[i]; });
+    showSym();
+  });
+
+  /* ---------- start ---------- */
+  var auto = (location.hash === '#autoplay');
+  var savedOs = lsGet(KEY_OS);
+  applyOs(auto ? 'win' : ((savedOs === 'win' || savedOs === 'mac' || savedOs === 'linux') ? savedOs : detectOs()));
+  var savedAddr = lsGet(KEY_ADDR);
+  if (!auto && savedAddr && /^[A-Za-z0-9][A-Za-z0-9.\-]{0,62}$/.test(savedAddr)) { addrIn.value = savedAddr; }
+  onAddr();
+  if (!auto) {
+    var d0 = loadDone();
+    boxes.forEach(function (b) { b.checked = d0.indexOf(Number(b.getAttribute('data-step'))) >= 0; });
+  }
+  paintProgress();
+  buildCmds();
+  showSym();
+  if (auto) {
+    steps.forEach(function (d) { d.open = Number(d.getAttribute('data-step')) <= 4; });
+  } else {
+    openFromHash();
+  }
+})();
+</script>
+</body>
+</html>

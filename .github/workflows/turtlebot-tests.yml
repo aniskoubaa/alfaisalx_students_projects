@@ -32,6 +32,8 @@ jobs:
           for f in TurtleBot/examples/*.sh TurtleBot/tools/connect/*.sh; do
             if [ -f "$f" ]; then bash -n "$f"; echo "ok $f"; fi
           done
+      - name: Documentation links
+        run: python TurtleBot/tests/check_links.py .
       - name: Logic tests
         run: python TurtleBot/tests/offline/test_pure.py
       - name: Simulated robot runs

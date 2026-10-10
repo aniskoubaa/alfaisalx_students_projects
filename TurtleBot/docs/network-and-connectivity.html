@@ -442,7 +442,7 @@ while ($true) { ssh -o ConnectTimeout=5 -o ServerAliveInterval=10 ubuntu@10.87.1
         <table>
           <tbody>
             <tr><th>Model</th><td>Linksys WRT54G: old 802.11g, 2.4 GHz only. Firmware very old (end of life); version not recorded</td></tr>
-            <tr><th>Admin page</th><td><code>http://192.168.1.1</code>. Admin login still the factory default when it was set up (to-do below)</td></tr>
+            <tr><th>Admin page</th><td><code>http://192.168.1.1</code>. Admin login still the factory default when it was set up; credentials changed on 2026-10-10 by the lab RA (not recorded here)</td></tr>
             <tr><th>LAN</th><td><code>192.168.1.x</code> with DHCP; a laptop on a cable got <code>192.168.1.103</code></td></tr>
             <tr><th>Uplink</th><td>The university wall Ethernet cable in the router's <b>Internet</b> port. The first cable gave no internet; a different cable worked</td></tr>
             <tr><th>Wi-Fi</th><td>SSID starting with <code>AlfaisalX</code> (exact final name not confirmed in the record; read it on the router's Wireless page). WPA2-Personal with AES</td></tr>
@@ -459,7 +459,7 @@ while ($true) { ssh -o ConnectTimeout=5 -o ServerAliveInterval=10 ubuntu@10.87.1
       <p>Not measured: throughput over the router's Wi-Fi, NTP through the router, ROS 2 discovery, and any robot traffic.</p>
       <h3>Security to-dos (<a href="../ROADMAP.md#tb-22-secure-the-lab-router">TB-22</a>)</h3>
       <ul>
-        <li><span class="chip todo">to-do</span> Change the factory admin login; keep the new one in the lab password manager, never in this repository.</li>
+        <li><span class="chip ok">done 2026-10-10</span> Change the factory admin login; keep the new one in the lab password manager, never in this repository. The lab RA changed the router's credentials on 2026-10-10.</li>
         <li><span class="chip todo">to-do</span> Keep the admin page reachable from the lab network only: the WRT54G firmware is end of life.</li>
         <li><span class="chip todo">to-do</span> Consider a newer router.</li>
       </ul>

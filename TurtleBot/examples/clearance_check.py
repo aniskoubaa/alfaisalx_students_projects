@@ -16,6 +16,7 @@ from sensor_msgs.msg import LaserScan
 
 LIMIT = float(sys.argv[1]) if len(sys.argv) > 1 else 0.6
 HALF_WIDTH = math.radians(30)
+LIDAR_YAW_FALLBACK = math.pi / 2   # lidar yaw in the robot frame on this TurtleBot 4 (TF, measured 2026-10-04)
 
 
 def yaw_of(q):
@@ -51,8 +52,8 @@ def main():
         print('NO SCAN: the lidar is not publishing')
         sys.exit(2)
     if offset is None:
-        offset = 0.0
-        print('warning: no transform from the lidar to the robot, assuming the lidar faces forward')
+        offset = LIDAR_YAW_FALLBACK
+        print('warning: no transform from the lidar to the robot, assuming the lidar is turned 90 deg as on this robot')
     s = node.scan
     front = []
     for i, r in enumerate(s.ranges):

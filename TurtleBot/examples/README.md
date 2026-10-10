@@ -2,6 +2,8 @@
 
 Small ROS 2 Jazzy programs for the lab's TurtleBot 4 Standard (Raspberry Pi 4 on an iRobot Create 3 base). They run **on the robot**, not on your computer. Every command below works from Windows, macOS or Linux.
 
+To understand the lidar programs, read the [lidar user guide](../docs/lidar-guide.html) ([Markdown](../docs/LIDAR-GUIDE.md)). To see how `motion_shapes.py` drives before you run it, try the [motion simulator](../docs/motion-simulator.html) in a browser.
+
 New to the robot? First follow [HOW-TO-CONNECT.md](../HOW-TO-CONNECT.md) to join the robot's network and log in with `ssh ubuntu@turtlebot4.local` (or `ssh ubuntu@` followed by the address on the robot's display).
 
 **Contents**
