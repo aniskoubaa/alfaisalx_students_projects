@@ -2,6 +2,8 @@
 
 Raw logs and diagnostic scripts from the lidar check and the first motion-program runs on 2026-10-04. Times in the logs are robot time (EDT). The write-up is in [../docs/test-results.html](../docs/test-results.html) and [../MAINTENANCE.md](../MAINTENANCE.md).
 
+Status on 2026-10-10: no robot runs since 2026-10-04 (the robot has been dropping off the Wi-Fi, see [../docs/network-and-connectivity.html](../docs/network-and-connectivity.html)), so there are no new logs. The offline tests below were rerun on 2026-10-10: 101 checks and 38 scenarios, 0 failures.
+
 ## Logs (`logs/`)
 
 | File | What it records | Outcome |
