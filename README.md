@@ -5,6 +5,7 @@ This repository is a shared home for student projects at AlfaisalX. Each project
 ## Projects
 
 - [`RAPTOR/`](./RAPTOR) — Search-and-rescue quadcopter: a Jetson Orin NX onboard pipeline (YOLO detection + pose, a vision-language model, ROS 2) that finds people from the air and reports their location, posture and visible signs of injury to a ground operator.
+- [`FPV_Drone/`](./FPV_Drone) — A small 250-class quadcopter (5-inch props) with a Pixhawk 6C Mini running PX4. Built and photographed; its mission is not decided yet.
 
 More projects will be added here over time, each in its own folder with its own README.
 
