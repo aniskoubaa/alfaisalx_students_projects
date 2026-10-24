@@ -1,0 +1,153 @@
+# TB-25 supervised motion test 2026-10-24, robot time EDT (laptop UTC+3 = +7 h). Docked start, undock, 10 program runs
+# (Studio templates with the 20 s + 5 s steady-/odom start-up check, all with --yes, Ibrahim next to the robot), dock.
+# Recording: 2026-10-24_timing_tb25_motion_starts.jsonl.gz (record_timing.py --light, monotonic clock as below).
+
+== marks.log
+recorder_launch mono=13447.149 time=10:54:27
+UNDOCK_START mono=13477.279 time=10:54:57
+UNDOCK_END rc=0 mono=13494.095 time=10:55:14
+RUN_START idx=1 cmd=spin_in_place.py --turns 0.5 mono=13504.227 time=10:55:24
+RUN_END idx=1 rc=0 mono=13534.916 time=10:55:55
+RUN_START idx=2 cmd=spin_in_place.py --turns -0.5 mono=13545.040 time=10:56:05
+RUN_END idx=2 rc=0 mono=13575.215 time=10:56:35
+RUN_START idx=3 cmd=drive_forward_and_back.py --distance 0.3 mono=13585.351 time=10:56:46
+RUN_END idx=3 rc=0 mono=13633.003 time=10:57:33
+RUN_START idx=4 cmd=spin_in_place.py --turns 0.5 mono=13643.135 time=10:57:43
+RUN_END idx=4 rc=0 mono=13673.517 time=10:58:14
+RUN_START idx=5 cmd=spin_in_place.py --turns -0.5 mono=13683.643 time=10:58:24
+RUN_END idx=5 rc=0 mono=13713.605 time=10:58:54
+RUN_START idx=6 cmd=drive_forward_and_back.py --distance 0.3 mono=13723.726 time=10:59:04
+RUN_END idx=6 rc=0 mono=13774.093 time=10:59:54
+RUN_START idx=7 cmd=spin_in_place.py --turns 0.5 mono=13784.216 time=11:00:04
+RUN_END idx=7 rc=0 mono=13815.513 time=11:00:36
+RUN_START idx=8 cmd=spin_in_place.py --turns -0.5 mono=13825.639 time=11:00:46
+RUN_END idx=8 rc=0 mono=13855.465 time=11:01:16
+RUN_START idx=9 cmd=drive_forward_and_back.py --distance 0.3 mono=13865.587 time=11:01:26
+RUN_END idx=9 rc=0 mono=13913.183 time=11:02:13
+RUN_START idx=10 cmd=drive_forward_and_back.py --distance 0.3 mono=13923.301 time=11:02:23
+RUN_END idx=10 rc=0 mono=13972.165 time=11:03:12
+DOCK_START mono=13982.288 time=11:03:22
+DOCK_END rc=0 mono=14017.071 time=11:03:57
+done mono=14017.184 time=11:03:57
+
+== undock.log
+Waiting for an action server to become available...
+Sending goal:
+     {}
+
+Goal accepted with ID: d23deea9c4c64b3b8f15a7d8ca0d1fe4
+
+Result:
+    is_docked: false
+
+Goal finished with status: SUCCEEDED
+
+== run_1.log
+10:55:26 plan: turn left 0.5 turn(s) at 0.5 rad/s, about 6 s
+10:55:27 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+10:55:28 odometry OK, docked: False
+10:55:28 waiting until 20 s after start and 5 s of steady /odom before moving: a program that subscribes to /odom makes the base pause for up to about 12 s in the first ~17 s after it starts ...
+10:55:47 odometry steady for 5.0 s, 20.0 s after start (waited 18.6 s, 0 gaps over 0.3 s)
+10:55:54 done: turned 179 degrees in total (odometry)
+
+== run_2.log
+10:56:07 plan: turn right 0.5 turn(s) at 0.5 rad/s, about 6 s
+10:56:08 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+10:56:08 odometry OK, docked: False
+10:56:08 waiting until 20 s after start and 5 s of steady /odom before moving: a program that subscribes to /odom makes the base pause for up to about 12 s in the first ~17 s after it starts ...
+10:56:28 odometry steady for 5.0 s, 20.0 s after start (waited 19.6 s, 0 gaps over 0.3 s)
+10:56:34 done: turned -179 degrees in total (odometry)
+
+== run_3.log
+10:56:48 plan: forward 0.3 m, turn round, forward 0.3 m, turn round; 0.1 m/s, about 22 s
+10:56:49 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+10:56:49 waiting up to 30 s for /scan (the lidar) (ROS starts slowly on the Pi)
+10:56:49 lidar OK: nearest thing straight ahead 1.70 m
+10:56:49 waiting until 20 s after start and 5 s of steady /odom before moving: a program that subscribes to /odom makes the base pause for up to about 12 s in the first ~17 s after it starts ...
+10:57:09 odometry steady for 5.0 s, 20.0 s after start (waited 19.6 s, 0 gaps over 0.3 s)
+10:57:09 leg 1/2: forward 0.3 m
+10:57:21 leg 2/2: forward 0.3 m
+10:57:32 done: ended 0.8 cm from the start (odometry)
+
+== run_4.log
+10:57:45 plan: turn left 0.5 turn(s) at 0.5 rad/s, about 6 s
+10:57:46 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+10:57:46 odometry OK, docked: False
+10:57:46 waiting until 20 s after start and 5 s of steady /odom before moving: a program that subscribes to /odom makes the base pause for up to about 12 s in the first ~17 s after it starts ...
+10:58:06 odometry steady for 5.0 s, 20.0 s after start (waited 19.8 s, 0 gaps over 0.3 s)
+10:58:13 done: turned 179 degrees in total (odometry)
+
+== run_5.log
+10:58:25 plan: turn right 0.5 turn(s) at 0.5 rad/s, about 6 s
+10:58:26 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+10:58:26 odometry OK, docked: False
+10:58:26 waiting until 20 s after start and 5 s of steady /odom before moving: a program that subscribes to /odom makes the base pause for up to about 12 s in the first ~17 s after it starts ...
+10:58:46 odometry steady for 5.0 s, 20.0 s after start (waited 20.0 s, 0 gaps over 0.3 s)
+10:58:53 done: turned -180 degrees in total (odometry)
+
+== run_6.log
+10:59:06 plan: forward 0.3 m, turn round, forward 0.3 m, turn round; 0.1 m/s, about 22 s
+10:59:07 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+10:59:07 waiting up to 30 s for /scan (the lidar) (ROS starts slowly on the Pi)
+10:59:07 lidar OK: nearest thing straight ahead 1.70 m
+10:59:07 waiting until 20 s after start and 5 s of steady /odom before moving: a program that subscribes to /odom makes the base pause for up to about 12 s in the first ~17 s after it starts ...
+10:59:23 /odom paused for 9.8 s, waiting again for 5 s of steady odometry
+10:59:24 /odom paused for 1.4 s, waiting again for 5 s of steady odometry
+10:59:29 odometry steady for 5.0 s, 22.5 s after start (waited 22.1 s, 2 gaps over 0.3 s)
+10:59:29 leg 1/2: forward 0.3 m
+10:59:41 leg 2/2: forward 0.3 m
+10:59:53 done: ended 1.1 cm from the start (odometry)
+
+== run_7.log
+11:00:06 plan: turn left 0.5 turn(s) at 0.5 rad/s, about 6 s
+11:00:07 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+11:00:09 odometry OK, docked: False
+11:00:09 waiting until 20 s after start and 5 s of steady /odom before moving: a program that subscribes to /odom makes the base pause for up to about 12 s in the first ~17 s after it starts ...
+11:00:18 /odom paused for 4.4 s, waiting again for 5 s of steady odometry
+11:00:21 /odom paused for 0.6 s, waiting again for 5 s of steady odometry
+11:00:27 odometry steady for 5.0 s, 20.0 s after start (waited 18.1 s, 2 gaps over 0.3 s)
+11:00:35 done: turned 179 degrees in total (odometry)
+
+== run_8.log
+11:00:47 plan: turn right 0.5 turn(s) at 0.5 rad/s, about 6 s
+11:00:48 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+11:00:50 odometry OK, docked: False
+11:00:50 waiting until 20 s after start and 5 s of steady /odom before moving: a program that subscribes to /odom makes the base pause for up to about 12 s in the first ~17 s after it starts ...
+11:01:08 odometry steady for 5.0 s, 20.1 s after start (waited 17.9 s, 0 gaps over 0.3 s)
+11:01:15 done: turned -179 degrees in total (odometry)
+
+== run_9.log
+11:01:28 plan: forward 0.3 m, turn round, forward 0.3 m, turn round; 0.1 m/s, about 22 s
+11:01:28 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+11:01:29 waiting up to 30 s for /scan (the lidar) (ROS starts slowly on the Pi)
+11:01:29 lidar OK: nearest thing straight ahead 1.69 m
+11:01:29 waiting until 20 s after start and 5 s of steady /odom before moving: a program that subscribes to /odom makes the base pause for up to about 12 s in the first ~17 s after it starts ...
+11:01:32 /odom paused for 0.5 s, waiting again for 5 s of steady odometry
+11:01:48 odometry steady for 5.0 s, 20.0 s after start (waited 19.2 s, 1 gaps over 0.3 s)
+11:01:48 leg 1/2: forward 0.3 m
+11:02:00 leg 2/2: forward 0.3 m
+11:02:12 done: ended 0.6 cm from the start (odometry)
+
+== run_10.log
+11:02:25 plan: forward 0.3 m, turn round, forward 0.3 m, turn round; 0.1 m/s, about 22 s
+11:02:27 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+11:02:28 waiting up to 30 s for /scan (the lidar) (ROS starts slowly on the Pi)
+11:02:28 lidar OK: nearest thing straight ahead 1.69 m
+11:02:28 waiting until 20 s after start and 5 s of steady /odom before moving: a program that subscribes to /odom makes the base pause for up to about 12 s in the first ~17 s after it starts ...
+11:02:34 /odom paused for 0.5 s, waiting again for 5 s of steady odometry
+11:02:46 odometry steady for 5.0 s, 20.0 s after start (waited 18.4 s, 1 gaps over 0.3 s)
+11:02:46 leg 1/2: forward 0.3 m
+11:02:59 leg 2/2: forward 0.3 m
+11:03:11 done: ended 1.1 cm from the start (odometry)
+
+== dock.log
+Waiting for an action server to become available...
+Sending goal:
+     {}
+
+Goal accepted with ID: 3b415703d71a40a1b1c6411bdcf6883e
+
+Result:
+    is_docked: true
+
+Goal finished with status: SUCCEEDED

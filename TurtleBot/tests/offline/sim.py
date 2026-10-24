@@ -4,7 +4,8 @@ Usage: python sim.py <scenario> [program args...]
 Scenarios: shapes (runs more_shapes.main), wall (wall_approach.main), keep (keep_distance.main),
            report (sensor_report.main), snapshot (lidar_snapshot.main), light (lightring_status.main),
            health (health_check.main, with faked system commands and files, see install_health_stubs)
-Env: SIM_ODOM_GAP="t0,len" injects an odom pause; SIM_DOCKED=1; SIM_WALL=x (wall distance ahead, m);
+Env: SIM_ODOM_GAP="t0,len" injects an odom pause ("t0,len;t0,len" several, times in s from the start);
+     SIM_ODOM_GAP_EVERY="first,period,len" repeats a pause of len s every period s from first on (stalls that never end); SIM_DOCKED=1; SIM_WALL=x (wall distance ahead, m);
      SIM_OBJECT="x0,vx" moving object ahead (keep); SIM_ROOM=r circular room of radius r around the start
      (health defaults to 2.5 m; SIM_ROOM=0 gives no room, so no valid lidar beams);
      SIM_HEALTH="fault,fault" picks a faulty robot for health (empty = healthy). Faults: ap, no_wifi, nmcli_hang,
@@ -64,10 +65,11 @@ def base_stamp():
 # ------------------------------------------------------------ world
 W = {'x': 0.0, 'y': 0.0, 'th': 0.3, 'v': 0.0, 'w': 0.0,
      'next_odom': 0.0, 'next_scan': 0.0, 'next_dock': 0.0, 'next_imu': 0.0, 'next_batt': 0.0,
-     'max_v': 0.0, 'max_w': 0.0, 'max_r': 0.0, 'cmds': 0, 'start': None, 'min_wall': 99.0}
+     'max_v': 0.0, 'max_w': 0.0, 'max_r': 0.0, 'cmds': 0, 'nonzero': 0, 'start': None, 'min_wall': 99.0}
 WALL = float(os.environ.get('SIM_WALL', '0'))       # wall at distance WALL ahead of the start, perpendicular
 OBJ = [float(v) for v in os.environ['SIM_OBJECT'].split(',')] if os.environ.get('SIM_OBJECT') else None
-GAP = [float(v) for v in os.environ['SIM_ODOM_GAP'].split(',')] if os.environ.get('SIM_ODOM_GAP') else None
+GAP = [[float(v) for v in g.split(',')] for g in os.environ.get('SIM_ODOM_GAP', '').split(';') if g]
+GAP_EVERY = [float(v) for v in os.environ['SIM_ODOM_GAP_EVERY'].split(',')] if os.environ.get('SIM_ODOM_GAP_EVERY') else None
 DOCKED = os.environ.get('SIM_DOCKED') == '1'
 ROOM = float(os.environ.get('SIM_ROOM', '0'))       # circular room of this radius around the start point
 BASE_SILENT = 'base_silent' in HEALTH                # no /odom, /dock_status, /battery_state, /imu
@@ -119,12 +121,19 @@ def integrate(dt):
         W['min_wall'] = min(W['min_wall'], WALL - (W['x'] * fx + W['y'] * fy))
 
 
+def in_odom_gap(rel):
+    """True while /odom is paused (rel = seconds since the start), see SIM_ODOM_GAP and SIM_ODOM_GAP_EVERY."""
+    if any(g0 <= rel < g0 + glen for g0, glen in GAP):
+        return True
+    return bool(GAP_EVERY) and rel >= GAP_EVERY[0] and (rel - GAP_EVERY[0]) % GAP_EVERY[1] < GAP_EVERY[2]
+
+
 def deliver(node):
     t = CLOCK[0]
     subs = node._subs
     if t >= W['next_odom']:
         W['next_odom'] = t + 0.05
-        in_gap = GAP and GAP[0] <= t - T0 < GAP[0] + GAP[1]
+        in_gap = in_odom_gap(t - T0)
         if '/odom' in subs and not in_gap and not BASE_SILENT:
             q = NS(x=0.0, y=0.0, z=math.sin(W['th'] / 2), w=math.cos(W['th'] / 2))
             msg = NS(header=NS(stamp=base_stamp(), frame_id='odom'),
@@ -201,6 +210,7 @@ class Pub:
             W['max_v'] = max(W['max_v'], abs(v))
             W['max_w'] = max(W['max_w'], abs(w))
             W['cmds'] += 1
+            W['nonzero'] += (v != 0.0 or w != 0.0)
         elif self.topic == '/cmd_lightring':
             W.setdefault('lightring', []).append((msg.override_system, [(l.red, l.green, l.blue) for l in msg.leds]))
 
@@ -407,7 +417,7 @@ if __name__ == '__main__':
     side = -W['x'] * fy + W['y'] * fx
     print(f'SIM exit={code} t={CLOCK[0] - T0:.1f}s true_end fwd={fwd:+.3f} side={side:+.3f} '
           f'dth={math.degrees(W["th"] - 0.3):+.1f}deg max_r={W["max_r"]:.3f} max_v={W["max_v"]:.3f} '
-          f'max_w={W["max_w"]:.3f} cmds={W["cmds"]} final_cmd=({W["v"]},{W["w"]})'
+          f'max_w={W["max_w"]:.3f} cmds={W["cmds"]} nonzero={W["nonzero"]} final_cmd=({W["v"]},{W["w"]})'
           + (f' min_wall_gap={W["min_wall"]:.3f}' if WALL else ''))
     if 'lightring' in W:
         print('SIM lightring first', W['lightring'][0], 'last', W['lightring'][-1], 'n', len(W['lightring']))

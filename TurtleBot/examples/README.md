@@ -6,6 +6,8 @@ To understand the lidar programs, read the [lidar user guide](../docs/lidar-guid
 
 New to the robot? First follow [HOW-TO-CONNECT.md](../HOW-TO-CONNECT.md) to join the robot's network and log in with `ssh ubuntu@turtlebot4.local` (or `ssh ubuntu@` followed by the address on the robot's display).
 
+Starting your own program: see the templates in [../tools/studio/templates/](../tools/studio/templates/) (also available from the Code tab of [TurtleBot Studio](../tools/studio/README.md)).
+
 **Contents**
 
 1. [The examples](#the-examples)
@@ -76,6 +78,28 @@ Go through this every time, before running any program marked "Moves the robot":
 - [ ] You know [how to stop it](#how-to-stop-the-robot), and a second terminal is open on the robot if you run it detached.
 - [ ] Speed stays at or below **0.15 m/s**. `motion_shapes.py` enforces this cap; your own programs should too.
 - [ ] Do a **dry run first** (`--dry-run`) to see the plan and check the sensors.
+- [ ] Expect a wait of about 20 to 25 s before it moves: every moving program first waits for [steady odometry](#why-a-program-waits-for-steady-odometry-before-it-moves).
+
+### Why a program waits for steady odometry before it moves
+
+The Create 3 base sometimes stops publishing `/odom` (and its other topics) for anything from 0.3 s up to about 12 s (ROADMAP.md TB-25). Measurements on 2026-10-24 show that a ROS program that subscribes to `/odom` causes this itself: in 8 test runs the stalls began 0.8 to 14.7 s after the program started, lasted up to 10.9 s (`/odom`) and 12.3 s (`/dock_status`), and were over by about 17 s. Inside such a burst there can be a clean stretch of 3 s or more, so a short check of steady data is not enough. A moving program starts its ROS node a few seconds before its first move, so the first move would land in that window.
+
+So every program that moves the robot (`motion_shapes.py`, `more_shapes.py`, `wall_approach.py`, `keep_distance.py` and the three Studio templates that drive) does one last check just before the first move, after you have typed `yes`. It waits until both are true: at least 20 s have passed since the program started, and `/odom` has arrived for 5 s in a row with no gap longer than 0.3 s. The 5 s may overlap the 20 s. A longer gap starts the 5 s again. In practice the robot moves about 20 to 25 s after you start the program, or later if the base pauses again. A dry run does the same wait, so it also shows whether the base is steady. No velocity command is sent while it waits.
+
+What you see:
+
+| Message | Meaning |
+|---|---|
+| `waiting until 20 s after start and 5 s of steady /odom before moving: ...` | The wait has started. Normally it ends about 20 s after the program started. |
+| `/odom paused for 7.0 s, waiting again for 5 s of steady odometry` | A gap was seen (here 7.0 s). The 5 s window starts again. Nothing is wrong yet. |
+| `odometry steady for 5.0 s, 20.3 s after start (waited 19.0 s, 1 gaps over 0.3 s)` | Done: 20.3 s since the program started, 19.0 s spent waiting, one gap seen. The robot moves now. |
+| `SETUP FAILED: odometry not steady within 35 s (longest gap 1.2 s) ...` | The conditions were not met in time. The program stopped with exit code 2 and the robot never moved. |
+
+The time limit is 30 s from the start of the wait, or the settle time still left plus 5 s plus 10 s, whichever is longer, so it never fires before the conditions could be met.
+
+If it times out: the base is still recovering, often because of a ROS program you started or stopped just before (a second terminal, `sensor_report.py`, `ros2 topic echo`, an earlier run that just ended). Wait a minute without starting other ROS programs, then run it again. If it keeps failing, run `python3 sensor_report.py --seconds 60` to see the `/odom` gaps, and restart the base application if `/odom` is gone ([HOW-TO-CONNECT.md](../HOW-TO-CONNECT.md)).
+
+The limits are `ODOM_SETTLE_AFTER_START` (20 s), `ODOM_STEADY` (5.0 s), `ODOM_MAX_GAP` (0.3 s) and `ODOM_STEADY_TIMEOUT` (30 s) at the top of `motion_shapes.py`; the Studio templates carry the same four constants.
 
 ## Undock and dock
 
@@ -220,6 +244,7 @@ The values are at the top of `motion_shapes.py`. Change them there if you need t
 | Segment timeout | 2 × expected + 5 s | Limit for each segment |
 | `ODOM_HOLD` | 0.3 s | Odometry older than this: send zero velocity and wait for fresh data (the segment carries on afterwards) |
 | `ODOM_STALE`, `SCAN_STALE` | 2.0 s, 1.0 s | Abort if odometry or lidar data is older than this |
+| `ODOM_SETTLE_AFTER_START`, `ODOM_STEADY`, `ODOM_MAX_GAP`, `ODOM_STEADY_TIMEOUT` | 20 s, 5.0 s, 0.3 s, 30 s | Before the first move, the program must be 20 s old and `/odom` must have arrived for 5.0 s with no gap over 0.3 s; give up (exit 2) after 30 s from the start of the wait or settle time left + 15 s, whichever is longer. See [Why a program waits](#why-a-program-waits-for-steady-odometry-before-it-moves) |
 | `STALL_TIME` | 3 s | Abort if commanding motion but odometry does not change |
 | `STARTUP_WAIT` | 30 s | How long to wait for `/odom`, `/dock_status` and `/scan` |
 | `PAUSE` | 0.5 s | Standing still between segments |
@@ -275,6 +300,7 @@ A safety stop looks like `ABORTED: obstacle 0.24 m ahead (limit 0.25 m)`, and a 
 | Nothing printed for 10 to 20 s | ROS starts slowly on the Pi | Wait. With `nohup`, output appears in the log as it happens. |
 | Your own program publishes on `/cmd_vel` but the robot does not move | On this robot (Jazzy) `/cmd_vel` takes `geometry_msgs/msg/TwistStamped`, not `Twist` | Publish `TwistStamped` with `header.stamp` set to now and `header.frame_id = 'base_link'`, as `drive_test.py` does. |
 | `ABORTED: odometry is stale` or `lidar is stale` | A sensor stopped publishing mid-run (Pi overloaded, lidar USB, base stuck) | Run `python3 sensor_report.py --seconds 60` to see the rates and gaps; restart the base application if `/odom` is gone. |
+| `SETUP FAILED: odometry not steady within 35 s` | The base kept pausing `/odom`, usually because a ROS program was just started or stopped (ROADMAP.md TB-25) | Wait a minute without starting other ROS programs and run again. See [Why a program waits](#why-a-program-waits-for-steady-odometry-before-it-moves). |
 | `held still for N control cycles waiting for odometry` | `/odom` paused for more than 0.3 s; the robot stood still and carried on | Normal now and then. If it happens a lot, run `sensor_report.py` and compare arrival and stamp gaps. |
 | `ABORTED: hazard reported by the base: BUMP ...` | The bumper touched something, or a cliff sensor saw an edge | Clear the area and start again. |
 | `ABORTED: stalled` | Wheels blocked, or robot lifted | Check the floor and the wheels. |

@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What you can build with the TurtleBot 4</title>
+<meta name="description" content="A ladder of projects for the lab TurtleBot 4, from a first program to mapping, with the state of each one on this robot.">
+<style>
+  /* Style block reused from TurtleBot/docs/index.html (tokens match turtlebot4-field-guide.html). */
+  :root{
+    --bg:#EEF2F4; --panel:#FFFFFF; --panel-alt:#E3EAED; --text:#16232F; --text-dim:#54636F;
+    --border:#C6D2D7; --accent:#0C8C82; --accent-strong:#075F58; --warn:#B85B26; --code-bg:#DDE6E9;
+    --ok:#2E7D32; --bad:#B3261E; --ok-bg:#E3F1E4; --bad-bg:#F8E4E2; --warn-bg:#F7E9DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+      --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+      --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+    --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+    --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif; line-height:1.6; -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.eyebrow,th,.chip,.tile .k,label,legend,button,.lbl{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;}
+  code,pre,.mono{font-family:"IBM Plex Mono", Consolas, "Courier New", monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:0.88em; overflow-wrap:anywhere;}
+  pre{background:var(--code-bg); padding:10px 12px; border-radius:4px; overflow-x:auto; font-size:0.82rem; line-height:1.5; margin:0 0 10px;}
+  pre code{background:none; padding:0; overflow-wrap:normal;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  a{color:var(--accent-strong);}
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+
+  .page{max-width:980px; margin:0 auto; padding:0 24px 80px;}
+  .backlink{padding-top:20px; margin:0; font-size:0.88rem; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;}
+  header.hero{margin:28px 0 30px;}
+  .eyebrow{font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 12px;}
+  h1.title{font-size:clamp(2rem,5vw,3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{font-size:1.08rem; color:var(--text-dim); max-width:68ch; margin:0 0 16px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.84rem; color:var(--text-dim);}
+  .meta b{color:var(--text); font-weight:600;}
+
+  section{padding:34px 0; border-top:1px solid var(--border);}
+  section.first{border-top:none; padding-top:0;}
+  h2{font-size:1.5rem; font-weight:600; margin-bottom:14px;}
+  h3{font-size:1.05rem; font-weight:600; margin:0 0 6px;}
+  p{margin:0 0 14px;}
+  ul{margin:0 0 14px; padding-left:22px;}
+  li{margin:3px 0;}
+  .lead{max-width:70ch;}
+
+  .chip{display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.72rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap;}
+  .chip.ok{color:var(--ok); background:var(--ok-bg);}
+  .chip.warn{color:var(--warn); background:var(--warn-bg);}
+  .chip.info{color:var(--accent-strong); background:var(--panel-alt);}
+  .chip.todo{color:var(--text-dim); background:transparent; border-style:dashed;}
+
+  .note{padding:12px 16px; background:var(--panel-alt); border-left:3px solid var(--warn); border-radius:0 4px 4px 0; font-size:0.92rem; margin:0 0 16px;}
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;}
+  .safety{border:2px solid var(--warn); background:var(--warn-bg); border-radius:8px; padding:14px 18px;}
+  .safety h2{color:var(--warn); font-size:1.2rem; margin-bottom:8px;}
+  .safety ul{margin-bottom:8px;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px 16px; margin:0 0 16px;}
+  fieldset{border:none; padding:0; margin:0 0 12px; min-width:0;}
+  legend{font-size:0.74rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); padding:0; margin-bottom:6px; font-weight:600;}
+  .opts{display:flex; flex-wrap:wrap; gap:6px;}
+  .opts label{display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border:1px solid var(--border); border-radius:16px; background:var(--panel-alt); font-size:0.86rem; cursor:pointer; min-height:34px;}
+  .opts input{accent-color:var(--accent); margin:0;}
+  .opts label:has(input:checked){border-color:var(--accent); background:var(--panel); color:var(--accent-strong); font-weight:600;}
+  .opts label:has(input:focus-visible){outline:2px solid var(--accent); outline-offset:2px;}
+  button.btn{font-size:0.86rem; font-weight:600; padding:6px 14px; min-height:34px; border:1px solid var(--accent); background:var(--panel); color:var(--accent-strong); border-radius:4px; cursor:pointer; margin:0 6px 6px 0;}
+  button.btn:hover{background:var(--panel-alt);}
+  .count{font-size:0.88rem; color:var(--text-dim); margin:0 0 12px;}
+  #suggest{font-size:0.92rem; margin:6px 0 0; color:var(--text);}
+
+  .ladder{display:flex; flex-direction:column; gap:14px; margin:0; padding:0; list-style:none;}
+  .rung{position:relative; background:var(--panel); border:1px solid var(--border); border-left:6px solid var(--accent); border-radius:6px; padding:16px 18px;}
+  .rung[hidden]{display:none;}
+  .rung.suggested{box-shadow:0 0 0 3px var(--accent);}
+  .rung .top{display:flex; flex-wrap:wrap; gap:8px 12px; align-items:baseline; margin-bottom:6px;}
+  .lvl{font-family:"IBM Plex Mono",Consolas,monospace; font-size:0.78rem; color:var(--accent-strong); font-weight:600; white-space:nowrap;}
+  .rung h3{font-size:1.2rem; margin:0;}
+  .badge-sug{display:none; margin-left:auto;}
+  .rung.suggested .badge-sug{display:inline-block;}
+  .goal{margin:0 0 10px;}
+  dl.facts{display:grid; grid-template-columns:max-content minmax(0,1fr); gap:5px 14px; margin:0 0 10px; font-size:0.9rem;}
+  dl.facts dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;}
+  dl.facts dd{margin:0; overflow-wrap:anywhere;}
+  .files{list-style:none; padding:0; margin:0 0 10px;}
+  .files li{display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; padding:6px 0; border-top:1px solid var(--border); font-size:0.9rem; margin:0;}
+  .files li:first-child{border-top:none;}
+  .files .why{flex:1 1 100%; color:var(--text-dim); font-size:0.86rem;}
+  .cmdlabel{font-size:0.74rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; margin:0 0 4px;}
+  .small{font-size:0.86rem; color:var(--text-dim);}
+  #none{display:none;}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 16px;}
+  .tile{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px 14px;}
+  .tile .k{font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .tile .v{font-size:1.4rem; font-weight:600; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; line-height:1.25;}
+  .tile .s{font-size:0.82rem; color:var(--text-dim);}
+
+  footer{margin-top:10px; padding-top:18px; border-top:1px solid var(--border); font-size:0.88rem; color:var(--text-dim);}
+  footer ul{list-style:none; padding:0; display:flex; flex-wrap:wrap; gap:6px 18px;}
+
+  @media (max-width:640px){
+    .page{padding:0 16px 60px;}
+    dl.facts{grid-template-columns:minmax(0,1fr); gap:0;}
+    dl.facts dt{margin-top:6px;}
+    .badge-sug{margin-left:0;}
+  }
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel-alt:#f2f2f2; --text:#000; --text-dim:#333; --border:#bbb; --code-bg:#f2f2f2;}
+    .controls{display:none;}
+    .rung{break-inside:avoid;}
+    a{color:#000;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <p class="backlink"><a href="index.html">&larr; Back to the docs index</a></p>
+
+  <header class="hero">
+    <p class="eyebrow">TurtleBot 4 &middot; projects</p>
+    <h1 class="title">What you can build</h1>
+    <p class="dek">A ladder of six project levels for the lab TurtleBot 4, from your first program to mapping and navigation. Each level says what you learn, which sensors it uses, which program to start from, and whether it has been tried on this robot.</p>
+    <div class="meta"><span><b>Robot</b> TurtleBot 4 Standard, ROS 2 Jazzy</span><span><b>Facts as of</b> 2026-10-24</span></div>
+  </header>
+
+  <section class="first" id="about">
+    <h2>What students can learn here</h2>
+    <p class="lead">The lab robot is a real ROS 2 machine: a Raspberry Pi 4 on an iRobot Create 3 base, with a lidar, wheel odometry, a dock and a light ring. You write short Python programs that read its topics and send it velocity commands. Along the way you learn how ROS 2 topics and actions work, how to drive in a closed loop on odometry, how to use a lidar to stop safely, and how to test and document robot code. The levels get harder one step at a time. Start at level 1 unless you already know ROS 2.</p>
+    <p class="lead small">Note: much of this robot's code was tested only off the robot (simulator and unit tests). Every card says which part has run on the real robot and which part has not. The base also pauses its <code>/odom</code> data now and then, so every moving program waits about 20 to 25 s before its first move (<a href="../examples/README.md#why-a-program-waits-for-steady-odometry-before-it-moves">why</a>).</p>
+  </section>
+
+  <section id="safety">
+    <div class="safety" role="note" aria-labelledby="safety-h">
+      <h2 id="safety-h">Safety first</h2>
+      <p>Before any program that moves the robot, go through the <a href="../examples/README.md#safety-checklist-before-anything-moves">safety checklist</a>. In short:</p>
+      <ul>
+        <li>About 1 m of clear floor all round. No cables, bags, feet, stairs or drop-offs.</li>
+        <li>The robot is off the dock, and a person stands next to it for the whole run.</li>
+        <li>You know <a href="../examples/README.md#how-to-stop-the-robot">how to stop it</a> (Ctrl+C, <code>touch ~/STOP</code>, or E-STOP in <a href="../tools/studio/README.md">TurtleBot Studio</a>).</li>
+        <li>Speed stays at or below 0.15 m/s. Do a <code>--dry-run</code> first.</li>
+      </ul>
+      <p class="small" style="margin:0">Programs that only read sensors are safe to run at any time.</p>
+    </div>
+  </section>
+
+  <section id="helper" class="controls">
+    <h2>Pick a project</h2>
+    <p class="lead">Answer three questions and the cards that fit are outlined. Nothing leaves your browser.</p>
+    <div class="panel">
+      <form id="pick" onsubmit="return false">
+        <fieldset><legend>1. Python experience</legend>
+          <div class="opts">
+            <label><input type="radio" name="py" value="0" checked> None yet</label>
+            <label><input type="radio" name="py" value="1"> A little</label>
+            <label><input type="radio" name="py" value="2"> Comfortable</label>
+          </div></fieldset>
+        <fieldset><legend>2. Which sensor interests you?</legend>
+          <div class="opts">
+            <label><input type="radio" name="sens" value="any" checked> No preference</label>
+            <label><input type="radio" name="sens" value="odometry"> Odometry (wheels)</label>
+            <label><input type="radio" name="sens" value="lidar"> Lidar</label>
+            <label><input type="radio" name="sens" value="dock"> Dock</label>
+            <label><input type="radio" name="sens" value="camera"> Camera</label>
+          </div></fieldset>
+        <fieldset><legend>3. Time you have</legend>
+          <div class="opts">
+            <label><input type="radio" name="time" value="1" checked> About an hour</label>
+            <label><input type="radio" name="time" value="3"> An afternoon</label>
+            <label><input type="radio" name="time" value="8"> Several sessions</label>
+          </div></fieldset>
+        <button type="button" class="btn" id="go">Suggest projects</button>
+        <button type="button" class="btn" id="clear">Clear</button>
+        <p id="suggest" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </section>
+
+  <section id="ladder">
+    <h2>The ladder</h2>
+    <div class="panel controls">
+      <fieldset><legend>Filter by sensor</legend>
+        <div class="opts" id="f-sens">
+          <label><input type="checkbox" value="odometry"> Odometry</label>
+          <label><input type="checkbox" value="lidar"> Lidar</label>
+          <label><input type="checkbox" value="camera"> Camera</label>
+          <label><input type="checkbox" value="dock"> Dock</label>
+        </div></fieldset>
+      <fieldset><legend>Filter by state on this robot</legend>
+        <div class="opts" id="f-state">
+          <label><input type="checkbox" value="tested"> Tested on the robot</label>
+          <label><input type="checkbox" value="offline"> Tested offline only</label>
+          <label><input type="checkbox" value="norecord"> No result recorded</label>
+          <label><input type="checkbox" value="idea"> Idea, not yet tried</label>
+        </div></fieldset>
+      <fieldset><legend>Filter by difficulty</legend>
+        <div class="opts" id="f-diff">
+          <label><input type="checkbox" value="1"> Easy</label>
+          <label><input type="checkbox" value="2"> Medium</label>
+          <label><input type="checkbox" value="3"> Hard</label>
+        </div></fieldset>
+      <button type="button" class="btn" id="reset">Show all levels</button>
+      <p class="small" style="margin:6px 0 0">A level matches when it uses any ticked sensor, has any ticked state and has a ticked difficulty. A level can hold files in several states.</p>
+    </div>
+    <p class="count" id="count" role="status" aria-live="polite"></p>
+    <p id="none" class="note"><b>No level matches.</b> Clear a filter.</p>
+
+    <ol class="ladder" id="rungs">
+
+      <li class="rung" data-level="1" data-sens="odometry dock" data-state="tested norecord offline" data-diff="1" data-py="0" data-hours="1">
+        <div class="top"><span class="lvl">LEVEL 1</span><h3>Hello robot and reading sensors</h3><span class="chip ok badge-sug">Suggested</span></div>
+        <p class="goal">Run your first program on the robot and see live data: battery, dock state, position, topic rates.</p>
+        <dl class="facts">
+          <dt>Skills</dt><dd>Logging in with SSH, running Python on the robot, what a ROS 2 topic is, reading <code>/odom</code>, <code>/battery_state</code> and <code>/dock_status</code>.</dd>
+          <dt>Sensors</dt><dd>Odometry, dock state, battery. Works on the dock.</dd>
+          <dt>Difficulty, time</dt><dd>Easy. About 1 hour (rough estimate, not measured).</dd>
+          <dt>Python needed</dt><dd>None to run it; a little to change it.</dd>
+        </dl>
+        <ul class="files">
+          <li><a href="../tools/studio/templates/my_first_program.py"><code>my_first_program.py</code></a><span class="chip ok">Tested on the robot</span><span class="why">Studio template. Prints battery, dock state and position for 10 s. Ran on the robot on 2026-10-24.</span></li>
+          <li><a href="../examples/hello_robot.py"><code>hello_robot.py</code></a><span class="chip todo">No result recorded</span><span class="why">Text on the display and a green light ring for 5 s. A copy is on the robot, but the docs record no run.</span></li>
+          <li><a href="../examples/sensor_report.py"><code>sensor_report.py</code></a><span class="chip warn">Offline only</span><span class="why">Topic rates, gaps and battery. Not yet run on the robot (<a href="../ROADMAP.md#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool">TB-23</a>).</span></li>
+          <li><a href="../examples/lightring_status.py"><code>lightring_status.py</code></a><span class="chip warn">Offline only</span><span class="why">Shows the battery level on the light ring.</span></li>
+        </ul>
+        <p class="cmdlabel">First command (on the robot, after <code>ssh ubuntu@turtlebot4.local</code>)</p>
+        <pre><code>python3 hello_robot.py</code></pre>
+        <p class="small">Connection steps: <a href="do-it-yourself.html">Do it yourself</a>.</p>
+      </li>
+
+      <li class="rung" data-level="2" data-sens="dock odometry" data-state="tested norecord" data-diff="2" data-py="0" data-hours="3">
+        <div class="top"><span class="lvl">LEVEL 2</span><h3>Moving safely: undock, drive, dock, stop</h3><span class="chip ok badge-sug">Suggested</span></div>
+        <p class="goal">Make the robot leave the dock, move a short distance, come back, and stop on command.</p>
+        <dl class="facts">
+          <dt>Skills</dt><dd>ROS 2 actions (<code>/undock</code>, <code>/dock</code>), publishing velocity, the safety checklist, stop methods, running programs detached so a Wi-Fi drop does not cancel them.</dd>
+          <dt>Sensors</dt><dd>Dock state, odometry. The lidar clearance check is used when the lidar is running.</dd>
+          <dt>Difficulty, time</dt><dd>Medium. An afternoon (rough estimate, not measured).</dd>
+          <dt>Python needed</dt><dd>None for the shell commands; a little to read the programs.</dd>
+        </dl>
+        <ul class="files">
+          <li><a href="../examples/motion_test.sh"><code>motion_test.sh</code></a><span class="chip ok">Tested on the robot</span><span class="why">Undock, clearance check, 20 cm forward, 360 degree spin, dock. Run on 2026-10-03; the forward drive was skipped because the lidar was not detected then (<a href="test-results.html">test results</a>).</span></li>
+          <li>Undock and dock commands<span class="chip ok">Tested on the robot</span><span class="why">Through TurtleBot Studio on 2026-10-24 (<a href="../tools/studio/README.md">Studio README</a>). The commands are in <a href="../examples/README.md#undock-and-dock">examples/README.md</a>.</span></li>
+          <li><a href="../examples/drive_test.py"><code>drive_test.py</code></a><span class="chip todo">No result recorded</span><span class="why">Forward 20 cm at 0.1 m/s. It has no obstacle check, so keep 1 m clear.</span></li>
+        </ul>
+        <p class="cmdlabel">First command (on the robot, detached so a Wi-Fi drop cannot cancel it)</p>
+        <pre><code>setsid nohup ros2 action send_goal /undock irobot_create_msgs/action/Undock "{}" &gt; ~/robot_code/undock.log 2&gt;&amp;1 &amp;</code></pre>
+        <p class="small">Check with <code>cat ~/robot_code/undock.log</code> and look for <code>SUCCEEDED</code>. It can take up to a minute.</p>
+      </li>
+
+      <li class="rung" data-level="3" data-sens="odometry" data-state="tested offline" data-diff="2" data-py="1" data-hours="3">
+        <div class="top"><span class="lvl">LEVEL 3</span><h3>Closed-loop shapes on odometry</h3><span class="chip ok badge-sug">Suggested</span></div>
+        <p class="goal">Drive a square, triangle, circle or spin by measuring how far the wheels say you moved, and compare the plan with the result.</p>
+        <dl class="facts">
+          <dt>Skills</dt><dd>Closed-loop control, <code>/odom</code> and <code>/cmd_vel</code>, planning a path as segments, why odometry drifts, dry runs, abort rules (stale data, bump, stall, timeout).</dd>
+          <dt>Sensors</dt><dd>Odometry. The lidar is used only as an obstacle stop.</dd>
+          <dt>Difficulty, time</dt><dd>Medium. An afternoon (rough estimate, not measured).</dd>
+          <dt>Python needed</dt><dd>A little. The Studio templates are short and good to edit.</dd>
+        </dl>
+        <ul class="files">
+          <li><a href="../examples/motion_shapes.py"><code>motion_shapes.py</code></a><span class="chip ok">Tested on the robot</span><span class="why">On 2026-10-04: square, rotate, back_and_forth and triangle completed, with odometry end errors of 1.0 cm or less (odometry only, not floor measurements). The figure eight aborted on a 2.0 s odometry gap and is still open (<a href="../ROADMAP.md#tb-16-motion-program-test-campaign-and-demo-shapes">TB-16</a>).</span></li>
+          <li><a href="../tools/studio/templates/spin_in_place.py"><code>spin_in_place.py</code></a><span class="chip ok">Tested on the robot</span><span class="why">Studio template. Turned 359 degrees on 2026-10-24. An earlier run was aborted by an odometry gap, as designed.</span></li>
+          <li><a href="../tools/studio/templates/drive_circle.py"><code>drive_circle.py</code></a><span class="chip ok">Tested on the robot</span><span class="why">Studio template. Drove the lap on 2026-10-24. Its closure figure is not valid because the robot crossed the dock edge and was moved by hand.</span></li>
+          <li><a href="../tools/studio/templates/drive_forward_and_back.py"><code>drive_forward_and_back.py</code></a><span class="chip warn">Offline only</span><span class="why">Studio template. Simulator result only.</span></li>
+          <li><a href="../examples/more_shapes.py"><code>more_shapes.py</code></a><span class="chip warn">Offline only</span><span class="why">Polygon, star, circle, spiral, zigzag and a repeatability test. Not yet run on the robot (<a href="../ROADMAP.md#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool">TB-23</a>).</span></li>
+        </ul>
+        <p class="cmdlabel">First command (on the robot)</p>
+        <pre><code>cd ~/robot_code
+python3 motion_shapes.py square --dry-run</code></pre>
+        <p class="small">A dry run never moves the robot. Preview the motion in your browser first with the <a href="motion-simulator.html">motion simulator</a>, and read the <a href="motion-program-design.html">program design</a>.</p>
+      </li>
+
+      <li class="rung" data-level="4" data-sens="lidar odometry" data-state="tested offline norecord" data-diff="2" data-py="1" data-hours="3">
+        <div class="top"><span class="lvl">LEVEL 4</span><h3>Using the lidar</h3><span class="chip ok badge-sug">Suggested</span></div>
+        <p class="goal">Read the lidar, check the way ahead, draw a scan, and make the robot keep a distance or approach a wall.</p>
+        <dl class="facts">
+          <dt>Skills</dt><dd>The <code>/scan</code> topic, angles in the robot frame, nearest-object checks, a simple proportional controller, comparing lidar distance with odometry.</dd>
+          <dt>Sensors</dt><dd>Lidar, plus odometry for the moving programs. The lidar is off while the robot is docked.</dd>
+          <dt>Difficulty, time</dt><dd>Medium to hard. An afternoon (rough estimate, not measured).</dd>
+          <dt>Python needed</dt><dd>A little.</dd>
+        </dl>
+        <ul class="files">
+          <li><a href="../examples/clearance_check.py"><code>clearance_check.py</code></a><span class="chip ok">Tested on the robot</span><span class="why">One scan, nearest object within 30 degrees of straight ahead. On 2026-10-04 it exited 0 (clear) with the nearest object at 1.73 m. The lidar ran at 7.75 Hz off the dock.</span></li>
+          <li><a href="../examples/scan_test.py"><code>scan_test.py</code></a><span class="chip todo">No result recorded</span><span class="why">Prints the nearest distance until Ctrl+C. The 2026-10-04 check used <code>ros2 topic</code> commands instead.</span></li>
+          <li><a href="../tools/studio/templates/read_lidar.py"><code>read_lidar.py</code></a><span class="chip warn">Offline only</span><span class="why">Studio template that prints what the lidar sees.</span></li>
+          <li><a href="../examples/lidar_snapshot.py"><code>lidar_snapshot.py</code></a> and <a href="../examples/scan_plot_html.py"><code>scan_plot_html.py</code></a><span class="chip warn">Offline only</span><span class="why">Save a scan, then draw a polar plot on your own computer.</span></li>
+          <li><a href="../examples/wall_approach.py"><code>wall_approach.py</code></a><span class="chip warn">Offline only</span><span class="why">Drives slowly towards a wall to a target distance and prints odometry against lidar.</span></li>
+          <li><a href="../examples/keep_distance.py"><code>keep_distance.py</code></a><span class="chip warn">Offline only</span><span class="why">Holds 0.6 m to an object ahead, for at most 60 s.</span></li>
+        </ul>
+        <p class="cmdlabel">First command (on the robot, robot off the dock)</p>
+        <pre><code>python3 clearance_check.py</code></pre>
+        <p class="small">Read the <a href="lidar-guide.html">lidar guide</a> first. Known issue: once the lidar motor did not restart after undocking and was started by hand (<a href="../ROADMAP.md#tb-24-lidar-motor-does-not-restart-after-undocking">TB-24</a>).</p>
+      </li>
+
+      <li class="rung" data-level="5" data-sens="odometry lidar dock" data-state="offline idea" data-diff="3" data-py="2" data-hours="8">
+        <div class="top"><span class="lvl">LEVEL 5</span><h3>Combining sensors and behaviours</h3><span class="chip ok badge-sug">Suggested</span></div>
+        <p class="goal">Write your own program that uses more than one sensor, then measure how well it works: repeat a shape and log the error, or run a batch of tests.</p>
+        <dl class="facts">
+          <dt>Skills</dt><dd>Combining odometry, lidar and dock state in one node, logging to a file, repeatability measurements, writing a test plan and a short report.</dd>
+          <dt>Sensors</dt><dd>Odometry, lidar, dock state.</dd>
+          <dt>Difficulty, time</dt><dd>Hard. Several sessions (rough estimate, not measured).</dd>
+          <dt>Python needed</dt><dd>Comfortable.</dd>
+        </dl>
+        <ul class="files">
+          <li><a href="../examples/more_shapes.py"><code>more_shapes.py repeatability</code></a><span class="chip warn">Offline only</span><span class="why">Runs a shape K times and prints the odometry error per loop.</span></li>
+          <li><a href="../examples/campaign.sh"><code>campaign.sh</code></a><span class="chip warn">Offline only</span><span class="why">Runs a list of shape commands with a sensor report before and after. The robot campaign (<a href="../ROADMAP.md#tb-16-motion-program-test-campaign-and-demo-shapes">TB-16</a>) is still open.</span></li>
+          <li><a href="../examples/health_check.py"><code>health_check.py</code></a><span class="chip warn">Offline only</span><span class="why">Read-only health checklist. Robot run pending (<a href="../ROADMAP.md#tb-19-read-only-health-check-script">TB-19</a>).</span></li>
+          <li>Your own program, for example drive out and back with a lidar stop<span class="chip todo">Idea, not yet tried</span><span class="why">Start from a <a href="../tools/studio/README.md">Studio</a> template in the Code tab.</span></li>
+        </ul>
+        <p class="cmdlabel">First command (dry run, moves nothing)</p>
+        <pre><code>python3 more_shapes.py repeatability --shape square --loops 3 --dry-run</code></pre>
+        <p class="small">Copy the files to the robot first (<a href="../examples/README.md#copy-the-files-to-the-robot">how</a>). As of 2026-10-10 only <code>hello_robot.py</code> to <code>motion_shapes.py</code> were on the robot.</p>
+      </li>
+
+      <li class="rung" data-level="6" data-sens="lidar odometry camera" data-state="idea" data-diff="3" data-py="2" data-hours="8">
+        <div class="top"><span class="lvl">LEVEL 6</span><h3>Mapping and navigation</h3><span class="chip ok badge-sug">Suggested</span></div>
+        <p class="goal">Build a map of a room and send the robot to a goal on it.</p>
+        <dl class="facts">
+          <dt>Skills</dt><dd>What SLAM and a navigation stack do, ROS 2 over a network from a laptop, visualising a map, tuning.</dd>
+          <dt>Sensors</dt><dd>Lidar and odometry. The platform also has a camera; no program in this repo uses it.</dd>
+          <dt>Difficulty, time</dt><dd>Hard. Several sessions (rough estimate, not measured).</dd>
+          <dt>Python needed</dt><dd>Comfortable, plus patience with setup.</dd>
+        </dl>
+        <ul class="files">
+          <li>Mapping and navigation<span class="chip todo">Idea, not yet tried</span><span class="why">The TurtleBot 4 platform supports SLAM and navigation (see the <a href="https://turtlebot.github.io/turtlebot4-user-manual/">official TurtleBot 4 user manual</a>). It has not been tried on this robot, and the lab roadmap has no task for it yet.</span></li>
+        </ul>
+        <p class="cmdlabel">What to settle first</p>
+        <ul>
+          <li>Steady <code>/odom</code>: the base still pauses its data (<a href="../ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving">TB-25</a>, open).</li>
+          <li>A dependable lidar after undocking (<a href="../ROADMAP.md#tb-24-lidar-motor-does-not-restart-after-undocking">TB-24</a>).</li>
+          <li>ROS 2 from a laptop over the campus network (<a href="../ROADMAP.md#tb-09-ros-2-from-a-laptop-over-campus-wi-fi">TB-09</a>, open).</li>
+        </ul>
+        <p class="small">There is no first command yet. Talk to the lab maintainer before starting this level, so the work can be added to the roadmap.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section id="proven">
+    <h2>For reviewers: proven so far</h2>
+    <p class="lead">What the repo records as run on the real robot, as of 2026-10-24. Numbers are odometry only unless stated.</p>
+    <div class="tiles">
+      <div class="tile"><div class="k">Shape runs completed</div><div class="v">4</div><div class="s">square, rotate, back_and_forth, triangle (2026-10-04)</div></div>
+      <div class="tile"><div class="k">Aborted by odometry gaps</div><div class="v">3</div><div class="s">0.5, 1.0 and 2.0 s gaps; the robot stopped each time</div></div>
+      <div class="tile"><div class="k">Lidar off the dock</div><div class="v">7.75 Hz</div><div class="s">519 of 720 beams valid (2026-10-04)</div></div>
+      <div class="tile"><div class="k">Studio on the robot</div><div class="v">Verified</div><div class="s">connect, undock, dock, spin and circle templates (2026-10-24)</div></div>
+    </div>
+    <p>Still open: a complete figure eight and the test campaign (<a href="../ROADMAP.md#tb-16-motion-program-test-campaign-and-demo-shapes">TB-16</a>), the first robot run of the newer programs (<a href="../ROADMAP.md#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool">TB-23</a>), and the cause of the base pauses (<a href="../ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving">TB-25</a>). Details: <a href="test-results.html">test results</a> and the <a href="../ROADMAP.md">roadmap</a>.</p>
+  </section>
+
+  <footer>
+    <ul>
+      <li><a href="index.html">Docs index</a></li>
+      <li><a href="meet-the-robot.html">Meet the robot</a></li>
+      <li><a href="how-a-command-travels.html">How a command travels</a></li>
+      <li><a href="do-it-yourself.html">Do it yourself</a></li>
+      <li><a href="../tools/studio/README.md">TurtleBot Studio</a></li>
+      <li><a href="https://turtlebot.github.io/turtlebot4-user-manual/">Official TurtleBot 4 manual</a></li>
+    </ul>
+    <p>TurtleBot 4 lab documentation. Last updated 2026-10-24. Public repository: never add passwords, Wi-Fi keys or private keys.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var rungs = Array.prototype.slice.call(document.querySelectorAll('#rungs .rung'));
+  function checked(id){
+    return Array.prototype.map.call(document.querySelectorAll('#'+id+' input:checked'), function(i){return i.value;});
+  }
+  function has(list, attr){ return (attr||'').split(' ').some(function(v){return list.indexOf(v) !== -1;}); }
+  function apply(){
+    var s = checked('f-sens'), st = checked('f-state'), d = checked('f-diff'), shown = 0;
+    rungs.forEach(function(r){
+      var ok = (!s.length || has(s, r.getAttribute('data-sens'))) &&
+               (!st.length || has(st, r.getAttribute('data-state'))) &&
+               (!d.length || d.indexOf(r.getAttribute('data-diff')) !== -1);
+      r.hidden = !ok; if (ok) shown++;
+    });
+    document.getElementById('count').textContent = 'Showing ' + shown + ' of ' + rungs.length + ' levels.';
+    document.getElementById('none').style.display = shown ? 'none' : 'block';
+  }
+  ['f-sens','f-state','f-diff'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', apply);
+  });
+  document.getElementById('reset').addEventListener('click', function(){
+    Array.prototype.forEach.call(document.querySelectorAll('#ladder input[type=checkbox]'), function(i){i.checked=false;});
+    apply();
+  });
+  function val(name){ return document.querySelector('input[name='+name+']:checked').value; }
+  function clearSug(){ rungs.forEach(function(r){r.classList.remove('suggested');}); }
+  document.getElementById('go').addEventListener('click', function(){
+    var py = +val('py'), sens = val('sens'), hrs = +val('time'), names = [];
+    clearSug();
+    Array.prototype.forEach.call(document.querySelectorAll('#ladder input[type=checkbox]'), function(i){i.checked=false;});
+    apply();
+    rungs.forEach(function(r){
+      var fit = (+r.getAttribute('data-py') <= py) && (+r.getAttribute('data-hours') <= hrs) &&
+                (sens === 'any' || has([sens], r.getAttribute('data-sens')));
+      if (fit){ r.classList.add('suggested'); names.push(r.getAttribute('data-level')); }
+    });
+    var out = document.getElementById('suggest');
+    out.textContent = names.length
+      ? 'Suggested: level ' + names.join(', level ') + '. Outlined in the ladder below. Anything marked idea has not been tried on this robot.'
+      : 'No level fits all three answers. Try more time or another sensor. Level 1 suits anyone.';
+  });
+  document.getElementById('clear').addEventListener('click', function(){
+    clearSug(); document.getElementById('suggest').textContent = '';
+  });
+  apply();
+})();
+</script>
+</body>
+</html>

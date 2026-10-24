@@ -342,5 +342,63 @@ check('health_check (sim) --json: valid file, every row has status/result/hint, 
       and sum(hj['counts'].values()) == len(hc.ROWS) and hj['measurements']['odom_rate_hz'] > 15,
       (r4.stdout + r4.stderr).strip()[-300:])
 
+# ---- SteadyOdom: wait for settle time + steady /odom before the first move (TB-25)
+def feed(times, **kw):
+    w = ms.SteadyOdom(**kw)
+    for t in times:
+        w.update(t)
+    return w
+
+
+def stream(start, stop, step=0.05):
+    n = round((stop - start) / step)
+    return [start + i * step for i in range(n + 1)]
+
+
+check('steady odom constants: settle 20 s, steady 5 s, max gap 0.3 s, timeout 30 s',
+      (ms.ODOM_SETTLE_AFTER_START, ms.ODOM_STEADY, ms.ODOM_MAX_GAP, ms.ODOM_STEADY_TIMEOUT) == (20.0, 5.0, 0.3, 30.0))
+w = feed(stream(10.0, 14.9))
+check('steady odom: 4.9 s of 20 Hz arrivals is not enough yet', not w.ready(14.9) and w.gaps == 0)
+w = feed(stream(10.0, 15.0))
+check('steady odom: ready after 5.0 s of 20 Hz arrivals, 0 gaps (no settle time given)',
+      w.ready(15.0) and w.gaps == 0 and abs(w.longest_gap - 0.05) < 1e-9)
+check('steady odom: nothing arrived yet is not ready', not ms.SteadyOdom().ready(100.0))
+check('steady odom: still ready 0.25 s after the last message, not when the last one is 0.35 s old',
+      w.ready(15.25) and not w.ready(15.35))
+w = feed(stream(10.0, 11.0) + stream(11.5, 16.4))      # 0.5 s gap after 1 s: window restarts at 11.5
+check('steady odom: a 0.5 s gap restarts the 5 s window (not ready 4.9 s later)',
+      w.gaps == 1 and abs(w.last_gap - 0.5) < 1e-9 and not w.ready(16.4))
+w = feed(stream(10.0, 11.0) + stream(11.5, 16.5))
+check('steady odom: ready 5.0 s after the restart, 1 gap, longest gap 0.5 s',
+      w.ready(16.5) and w.gaps == 1 and abs(w.longest_gap - 0.5) < 1e-9)
+w = feed([0.3 * i for i in range(20)])    # every gap is exactly 0.3 s: allowed
+check('steady odom: gaps of exactly 0.3 s do not count', w.gaps == 0 and w.ready(0.3 * 19))
+w = feed([0.0, 0.1, 0.35, 0.5, 0.85])
+check('steady odom: a gap of 0.25 s does not count, 0.35 s counts', w.gaps == 1 and abs(w.last_gap - 0.35) < 1e-9)
+w = feed(stream(0.0, 7.0))
+check('steady odom: a stall in progress (last message 0.4 s old) is not ready, and counts as the worst gap',
+      not w.ready(7.4) and abs(w.worst_gap(7.4) - 0.4) < 1e-9 and w.gaps == 0 and w.age(7.4) > 0.3)
+w = feed(stream(0.0, 5.0) + [8.0] + stream(8.05, 12.9))
+check('steady odom: after a 3 s stall ends the window starts again (not ready 4.9 s later)',
+      w.gaps == 1 and abs(w.longest_gap - 3.0) < 1e-9 and not w.ready(12.9))
+w = feed(stream(0.0, 5.0) + [8.0] + stream(8.05, 13.0))
+check('steady odom: ...and ready once 5 s have passed after the stall', w.ready(13.0))
+w = feed([0.0, 0.5, 1.0, 1.5, 2.0], steady=1.0, max_gap=0.6)
+check('steady odom: custom steady / max_gap are honoured', w.gaps == 0 and w.ready(2.0))
+# settle time: the program must also be ODOM_SETTLE_AFTER_START old (started = 0)
+w = feed(stream(5.0, 10.0), started=0.0)
+check('steady odom: 5 s steady but only 10 s since start is not ready', not w.ready(10.0) and w.gaps == 0)
+w = feed(stream(0.0, 20.0), started=0.0)
+check('steady odom: ready at exactly 20 s since start when the last 5 s were steady (and not at 19.95 s)',
+      w.ready(20.0) and not w.ready(19.95))
+w = feed(stream(0.0, 17.95) + stream(18.5, 22.95), started=0.0)    # 0.55 s gap at 18 s
+check('steady odom: a gap at 18 s pushes readiness to 23 s (not ready at 22.95 s)', w.gaps == 1 and not w.ready(22.95))
+w = feed(stream(0.0, 17.95) + stream(18.5, 23.5), started=0.0)
+check('steady odom: ...ready 5 s after the gap (23.5 s)', w.ready(23.5))
+w = feed(stream(10.0, 25.0), started=0.0)
+check('steady odom: node up 25 s and the last 5 s clean -> ready at once', w.ready(25.0) and w.ready(20.0 + 0.0 + 4.95 + 0.05))
+w = feed(stream(0.0, 40.0), started=0.0, settle_after=45.0)
+check('steady odom: custom settle_after is honoured (not ready at 40 s with 45 s settle)', not w.ready(40.0))
+
 print(f'\n{fails} failure(s); generated files are in {OUT}')
 sys.exit(1 if fails else 0)

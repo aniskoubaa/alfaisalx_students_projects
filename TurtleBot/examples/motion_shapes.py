@@ -70,6 +70,12 @@ SEGMENT_TIMEOUT_FACTOR = 2.0  # a segment may take 2x its expected time ...
 SEGMENT_TIMEOUT_EXTRA = 5.0   # ... plus 5 s
 ODOM_HOLD = 0.3               # s, odometry older than this: send zero velocity and wait for fresh data
 ODOM_STALE = 2.0              # s, abort if no odometry for this long (gaps of 0.4 to 1 s were seen on 2026-10-04)
+ODOM_SETTLE_AFTER_START = 20.0   # s, never move earlier than this after the program started: a program that subscribes
+                                # to /odom makes the base pause for up to ~12 s in its first ~17 s (TB-25, 2026-10-24)
+ODOM_STEADY = 5.0             # s, and /odom must have flowed this long without a gap (can overlap the settle time)
+ODOM_MAX_GAP = 0.3            # s, a longer gap between two /odom messages restarts the ODOM_STEADY window
+ODOM_STEADY_TIMEOUT = 30.0    # s, give up (setup failure) after this from the start of the wait, but never before
+                              # settle time left + ODOM_STEADY + 10 s margin (see wait_for_steady_odom)
 SCAN_STALE = 1.0              # s, abort if no lidar scan for this long
 STALL_TIME = 3.0              # s, abort if we command motion but odometry shows no progress for this long
 STALL_MIN_MOVE = 0.005        # m, movement that counts as progress
@@ -250,6 +256,55 @@ def arc_command(remaining, radius, w_nominal, direction):
 
 
 # ---------------------------------------------------------------- ROS node
+class SteadyOdom:
+    """Decides when it is safe to move: the program is at least settle_after seconds old AND /odom has been steady
+    (arriving with no gap over max_gap for at least steady seconds; this window may overlap the settle time).
+
+    started = time.monotonic() when the program started; None means no settle time is required.
+    No ROS needed. Call update(t) for every /odom arrival (t = time.monotonic()), ask ready(now) any time.
+    A gap over max_gap restarts the window; gaps and longest_gap count what was seen.
+    """
+
+    def __init__(self, steady=ODOM_STEADY, max_gap=ODOM_MAX_GAP, started=None, settle_after=ODOM_SETTLE_AFTER_START):
+        self.steady, self.max_gap = steady, max_gap
+        self.started, self.settle_after = started, settle_after
+        self.window_start = None   # arrival time that starts the current unbroken run
+        self.last = None           # arrival time of the latest message
+        self.gaps = 0              # how many gaps over max_gap were seen
+        self.last_gap = 0.0        # length of the latest such gap
+        self.longest_gap = 0.0     # longest gap between two arrivals (any size)
+
+    def update(self, t):
+        """Record an arrival. Returns the gap (s) if it was over max_gap and restarted the window, else None."""
+        gap = None
+        if self.last is not None:
+            self.longest_gap = max(self.longest_gap, t - self.last)
+            if t - self.last > self.max_gap + 1e-9:     # 1e-9: float rounding must not turn 0.3 into a gap
+                gap = t - self.last
+                self.gaps += 1
+                self.last_gap = gap
+                self.window_start = t
+        if self.window_start is None:
+            self.window_start = t
+        self.last = t
+        return gap
+
+    def age(self, now):
+        """Seconds since the last arrival (inf before the first)."""
+        return float('inf') if self.last is None else now - self.last
+
+    def worst_gap(self, now):
+        """Longest gap so far, counting a stall that is still going on."""
+        return max(self.longest_gap, 0.0 if self.last is None else now - self.last)
+
+    def ready(self, now):
+        """True when the program has settled, the unbroken run is long enough and no stall is going on right now."""
+        if self.started is not None and now - self.started < self.settle_after:
+            return False
+        return (self.last is not None and now - self.last <= self.max_gap + 1e-9
+                and self.last - self.window_start >= self.steady)
+
+
 class MotionShapes(Node):
     def __init__(self, use_lidar, dry_run):
         super().__init__('motion_shapes')
@@ -265,6 +320,8 @@ class MotionShapes(Node):
         self.nearest_front = float('inf')
         self.is_docked = None
         self.hazard = None
+        self.odom_watch = None    # a SteadyOdom while wait_for_steady_odom runs
+        self.started = time.monotonic()   # when this program started (settle time, see ODOM_SETTLE_AFTER_START)
         # Best effort subscriptions accept both best effort and reliable publishers.
         self.create_subscription(Odometry, '/odom', self.on_odom, qos_profile_sensor_data)
         if DockStatus is not None:
@@ -281,6 +338,8 @@ class MotionShapes(Node):
         self.x, self.y, self.yaw = p.position.x, p.position.y, yaw_of(p.orientation)
         self.heading.update(self.yaw)
         self.odom_time = time.monotonic()
+        if self.odom_watch is not None:
+            self.odom_watch.update(self.odom_time)
 
     def on_dock(self, msg):
         self.is_docked = msg.is_docked
@@ -351,6 +410,47 @@ def wait_for(node, what, ready, seconds):
             return True
         rclpy.spin_once(node, timeout_sec=0.2)
     return ready()
+
+
+def wait_for_steady_odom(node, steady=ODOM_STEADY, max_gap=ODOM_MAX_GAP, timeout=ODOM_STEADY_TIMEOUT,
+                         settle_after=ODOM_SETTLE_AFTER_START):
+    """Last step before the first motion: wait until the program is `settle_after` s old and /odom has arrived for
+    `steady` s with no gap over `max_gap`.
+
+    A program that subscribes to /odom makes the base pause for up to ~12 s in its first ~17 s (ROADMAP.md TB-25),
+    so the first moves would land in a stall. The time limit is max(timeout, settle time left + steady + 10 s margin)
+    counted from now, so it cannot fire before the conditions could be met. Raises Abort(2) when it runs out;
+    nothing is sent to /cmd_vel while waiting.
+    """
+    begin = time.monotonic()
+    started = getattr(node, 'started', begin)
+    watch = SteadyOdom(steady, max_gap, started, settle_after)
+    node.odom_watch = watch
+    limit = max(timeout, started + settle_after - begin + steady + 10.0)
+    log(f'waiting until {settle_after:.0f} s after start and {steady:.0f} s of steady /odom before moving: a program '
+        'that subscribes to /odom makes the base pause for up to about 12 s in the first ~17 s after it starts ...')
+    seen = 0
+    try:
+        while True:
+            now = time.monotonic()
+            if stop_request:
+                raise Abort(130, f'{stop_request} received')
+            if os.path.exists(STOP_FILE):
+                raise Abort(130, f'{STOP_FILE} exists')
+            if watch.ready(now):
+                log(f'odometry steady for {steady:.1f} s, {now - started:.1f} s after start '
+                    f'(waited {now - begin:.1f} s, {watch.gaps} gaps over {max_gap:.1f} s)')
+                return
+            if now - begin > limit:
+                raise Abort(2, f'odometry not steady within {limit:.0f} s (longest gap {watch.worst_gap(now):.1f} s). '
+                               'Starting or stopping a ROS program can pause the base; wait a minute and run again '
+                               '(see ROADMAP.md TB-25)')
+            rclpy.spin_once(node, timeout_sec=0.05)
+            if watch.gaps > seen:
+                seen = watch.gaps
+                log(f'/odom paused for {watch.last_gap:.1f} s, waiting again for {steady:.0f} s of steady odometry')
+    finally:
+        node.odom_watch = None
 
 
 def check_safety(node, forward, deadline):
@@ -533,17 +633,19 @@ def main():
         if node.hazard:
             raise Abort(2, f'the base reports a hazard before starting: {node.hazard}')
 
-        if args.dry_run:
-            log('dry run: all checks done, nothing was sent to /cmd_vel')
-            return 0
-
         # 4. Ask the person next to the robot.
-        if not args.yes:
+        if not args.dry_run and not args.yes:
             if not sys.stdin.isatty():
                 raise Abort(2, 'no terminal to ask "is the area clear?". Run with --yes when detached')
             answer = input('The robot is about to MOVE. Is 1 m around it clear and are you next to it? Type yes: ')
             if answer.strip().lower() != 'yes':
                 raise Abort(2, 'not confirmed, not moving')
+
+        # 4b. Last step before moving (also in a dry run): /odom must be steady, see wait_for_steady_odom.
+        wait_for_steady_odom(node)
+        if args.dry_run:
+            log('dry run: all checks done, nothing was sent to /cmd_vel')
+            return 0
 
         # 5. Drive.
         motion_active = True

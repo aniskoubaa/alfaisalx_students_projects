@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TurtleBot Studio (mock)</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  #mockbar{position:fixed;left:8px;bottom:8px;z-index:260;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:12px;max-width:70vw}
+  #mockbar summary{cursor:pointer;font-weight:600}
+  #mockbar .row{margin-top:6px}
+</style>
+</head>
+<body>
+<!-- Mock page: open by double-click, no server needed. The markup between the markers is a copy of index.html (keep in sync). -->
+<!-- BEGIN index.html body -->
+<header id="head">
+  <div class="topbar">
+    <div class="brand">TurtleBot <span>Studio</span></div>
+    <span id="connPill" class="pill" role="status" aria-live="polite">Disconnected</span>
+    <button id="btnDiscover" type="button" aria-label="Discover robots on the network">Discover</button>
+    <button id="btnConnect" type="button" class="primary" aria-label="Connect to the robot">Connect</button>
+    <button id="btnDisconnect" type="button" aria-label="Disconnect from the robot">Disconnect</button>
+    <span class="spacer"></span>
+    <button id="btnEstop" type="button" class="estop" aria-label="Emergency stop. Shortcut: Escape or Space, or Control Shift E anywhere." title="Emergency stop (Esc or Space; Ctrl+Shift+E works everywhere, also in the editor)">&#9632; E-STOP<small>Esc / Space</small></button>
+  </div>
+  <div id="bannerEstop" class="banner red hidden" role="alert">
+    <span>&#9888; E-stop ON &mdash; drive motors off</span>
+    <button id="btnRelease" type="button" aria-label="Release the e-stop">Release e-stop</button>
+  </div>
+  <div id="bannerLost" class="banner amber hidden" role="alert">
+    <span>&#9888; Lost connection to Studio &mdash; retrying<span id="retryIn"></span>. Values shown are old. E-STOP may not reach the robot.</span>
+  </div>
+  <div id="bannerReconn" class="banner amber hidden" role="alert">
+    <span id="reconnText">Connection lost. Reconnecting&hellip;</span>
+    <button id="btnReconnStop" type="button" aria-label="Stop reconnecting">Stop reconnecting</button>
+  </div>
+  <div id="bannerUpdate" class="banner info hidden" role="status">
+    <span>Version <strong id="updVer"></strong> is available. <a id="updLink" href="https://github.com/aniskoubaa/alfaisalx_students_projects/blob/main/TurtleBot/tools/studio/INSTALL.md" target="_blank" rel="noopener">How to update</a></span>
+    <button id="btnUpdDismiss" type="button" aria-label="Dismiss the update notice">Dismiss</button>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" id="tab-dash" data-tab="dash" aria-selected="true" aria-controls="p-dash">Dashboard</button>
+    <button class="tab" role="tab" id="tab-wifi" data-tab="wifi" aria-selected="false" aria-controls="p-wifi">Wi-Fi</button>
+    <button class="tab" role="tab" id="tab-prog" data-tab="prog" aria-selected="false" aria-controls="p-prog">Programs</button>
+    <button class="tab" role="tab" id="tab-code" data-tab="code" aria-selected="false" aria-controls="p-code">Code</button>
+    <button class="tab" role="tab" id="tab-files" data-tab="files" aria-selected="false" aria-controls="p-files">Files</button>
+    <button class="tab" role="tab" id="tab-topics" data-tab="topics" aria-selected="false" aria-controls="p-topics">Topics</button>
+    <button class="tab" role="tab" id="tab-tools" data-tab="tools" aria-selected="false" aria-controls="p-tools">Tools</button>
+  </nav>
+</header>
+
+<main>
+<!-- Dashboard -->
+<section id="p-dash" class="panel active" role="tabpanel" aria-labelledby="tab-dash">
+  <div id="dashGrid" class="grid">
+    <div class="card wide" id="cardConn">
+      <div class="cardhead"><h2>Connection</h2>
+        <span id="connDetail" class="dim small"></span>
+        <button id="btnDiagErr" type="button" class="small hidden" aria-label="Copy diagnostics to send with a problem report">Copy diagnostics</button></div>
+      <div id="keyHint" class="note warn hidden">
+        <strong id="keyHintTitle">&#9888; Key not set up.</strong> <span id="keyHintText">The robot did not accept this computer's key yet.
+        Use <em>Set up key login</em>: a terminal window opens and you type the robot password there (never in this app).</span>
+        <div class="row" style="margin-top:6px"><button id="btnKeyHint" type="button" class="primary">Set up key login</button><button id="btnKeyWizard" type="button">Open the setup wizard</button></div>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <label class="field" style="flex:1;min-width:min(220px,100%)"><span>Robot address (optional)</span>
+          <input id="hostInput" type="text" placeholder="IP address or name of the robot" aria-label="Robot address" autocomplete="off"></label>
+        <button id="btnWizard" type="button" style="align-self:flex-end" aria-label="Open the first-run setup wizard">Setup wizard</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button id="btnDeep" type="button" aria-label="Search the whole network for the robot">Search the whole network</button>
+        <span class="dim small" style="flex:1;min-width:min(260px,100%)">Checks every address on this computer's network for your robot (about 15 s). Or read the address on the robot's screen and type it.</span>
+      </div>
+      <div id="deepWrap" class="hidden" style="margin-top:6px" role="status" aria-live="polite">
+        <div class="bar"><i id="deepBar" style="width:0"></i></div><span id="deepText" class="dim small"></span>
+      </div>
+      <div class="scroll hidden" id="candWrap" style="margin-top:8px;max-height:200px">
+        <table aria-label="Discovered robots"><thead><tr><th>Address</th><th>Found via</th><th>Reachable</th><th class="num">ms</th><th></th></tr></thead><tbody id="candBody"></tbody></table>
+      </div>
+      <div id="candEmpty" class="dim small hidden" style="margin-top:6px">No candidates yet. Press Discover.</div>
+    </div>
+
+    <div class="card live" id="cardBatt"><h2>Battery</h2><div class="bar"><i id="battBar" style="width:0"></i></div><dl class="rows" id="rowsBatt"></dl><div class="stale-note">&#9203; Old values</div></div>
+    <div class="card live" id="cardDock"><h2>Dock</h2><dl class="rows" id="rowsDock"></dl>
+      <div class="row" style="margin-top:10px">
+        <button id="btnUndock" type="button" aria-label="Undock the robot">Undock</button>
+        <button id="btnDock" type="button" aria-label="Send the robot to the dock">Dock</button>
+        <span id="actionState" class="small dim" role="status"></span>
+      </div><div class="stale-note">&#9203; Old values</div></div>
+    <div class="card live" id="cardPose"><h2>Motion and odometry</h2><dl class="rows" id="rowsPose"></dl><div class="stale-note">&#9203; Old values</div></div>
+    <div class="card live" id="cardScan"><h2>Lidar and hazards</h2><dl class="rows" id="rowsScan"></dl>
+      <div id="lidarHint" class="note warn hidden"></div><div class="stale-note">&#9203; Old values</div></div>
+    <div class="card live" id="cardNet"><h2>Network</h2><dl class="rows" id="rowsNet"></dl><div class="stale-note">&#9203; Old values</div></div>
+    <div class="card live" id="cardSys"><h2>Robot system</h2><dl class="rows" id="rowsSys"></dl>
+      <div id="clockWarn" class="note warn hidden"></div><div class="stale-note">&#9203; Old values</div></div>
+    <div class="card wide" id="cardHealth">
+      <div class="cardhead"><h2>Health check</h2><button id="btnHealth" type="button" aria-label="Run the health check">Run health check</button></div>
+      <div id="healthOut" class="dim small">Read-only checks of ROS, topics, clock and sensors. Nothing moves.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Wi-Fi -->
+<section id="p-wifi" class="panel" role="tabpanel" aria-labelledby="tab-wifi">
+  <div class="stack">
+    <div class="card">
+      <h2>Connect over Wi-Fi</h2>
+      <p style="margin:6px 0 0">The robot and this computer must be on the same network to talk. There are three ways to do that. The boxes below show where you are now. Pick the way that fits, and follow its steps.</p>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="cardhead"><h2>This computer</h2><button id="btnLaptopNet" type="button" class="small" aria-label="Refresh this computer's network info">Refresh</button></div>
+        <dl class="rows" id="wLaptop"></dl>
+        <div id="wLaptopWired" class="small" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <div class="cardhead"><h2>The robot</h2><button id="btnWifiInfo" type="button" class="small" aria-label="Refresh the robot's Wi-Fi info">Refresh</button></div>
+        <dl class="rows" id="wRobot"></dl>
+        <div id="wRobotNote" class="dim small" style="margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="card option" id="wA">
+        <div class="cardhead"><h2>A. Robot&rsquo;s own Wi-Fi (hotspot)</h2><span class="here hidden" id="hereA">&#9733; You are here</span></div>
+        <p class="small dim" style="margin:0 0 6px">Use this when there is no other network, for example when you are away from your usual Wi-Fi. If the robot cannot find a saved network, it makes its own Wi-Fi called <strong class="nmHotspot">Turtlebot4</strong>.</p>
+        <ol class="steps2">
+          <li>Join the <strong class="nmHotspot">Turtlebot4</strong> network on this computer. The password is in the TurtleBot 4 manual, or ask whoever set up the robot.</li>
+          <li>Press <em>Discover</em>, then <em>Connect</em>. The robot is at <code class="nmHotspotAddr">10.42.0.1</code>.</li>
+        </ol>
+        <div class="row"><button id="btnJoinHotspot" type="button">Join the hotspot</button><button id="btnWifiSettings" type="button">Open Wi-Fi settings</button><button id="btnWifiDiscover" type="button">Discover</button></div>
+        <p class="small dim" style="margin:8px 0 0">Heads up: while this computer is on the robot&rsquo;s hotspot it has no internet, unless it has a second connection.</p>
+      </div>
+      <div class="card option" id="wB">
+        <div class="cardhead"><h2>B. Join a Wi-Fi network</h2><span class="here hidden" id="hereB">&#9733; You are here</span></div>
+        <p class="small dim" style="margin:0 0 6px">Best for daily work: robot and computer both join the same Wi-Fi (home, school or office). You teach the robot the network once. Works with a normal Wi-Fi password (WPA or WPA2 personal).</p>
+        <p style="margin:0 0 6px">This computer is on: <strong id="wbSsid">(unknown)</strong> <button id="btnUseLaptopSsid" type="button" class="small" aria-label="Use this computer's Wi-Fi name">Use</button></p>
+        <label class="field" style="margin-bottom:6px"><span>Network name (SSID)</span>
+          <input type="text" id="wbName" list="wbList" maxlength="32" spellcheck="false" autocomplete="off" aria-label="Wi-Fi network name (SSID) to join"><datalist id="wbList"></datalist>
+          <span class="hint">Pick one from the list, press Use in the table below, or type it (also for hidden networks).</span></label>
+        <p class="small dim hidden" id="wbNote" style="margin:4px 0 6px"></p>
+        <div id="wbSec" class="small" style="margin-bottom:6px" role="status"></div>
+        <label class="field" style="margin-bottom:6px"><span>Wi-Fi password</span>
+          <input type="password" id="wbPsk" maxlength="64" autocomplete="new-password" spellcheck="false" aria-label="Wi-Fi password of the network"><span class="hint">8 to 63 characters. Sent once to the robot&rsquo;s memory, never saved by Studio.</span></label>
+        <label class="row small"><input type="checkbox" id="chkNow"> <span>Switch the robot to it now and test it (if it fails, the robot goes back to its current network)</span></label>
+        <div class="row" style="margin-top:6px"><button id="btnWifiAdd" type="button" class="primary" aria-label="Add this Wi-Fi network to the robot">Add this Wi-Fi to the robot</button></div>
+        <p class="small dim" id="wbWhy" style="margin:6px 0 0"></p>
+        <p class="small dim" style="margin:8px 0 0">You need to be connected to the robot already (cable or hotspot). The robot keeps its own hotspot as a backup. Afterwards press Discover: Studio remembers the robot&rsquo;s address, or read it on the robot&rsquo;s little display.</p>
+        <p class="small dim" style="margin:6px 0 0">Not supported: networks with a login web page, with a username and password (802.1X / WPA2-Enterprise), open networks and WPA3-only networks.</p>
+      </div>
+      <div class="card option" id="wC">
+        <div class="cardhead"><h2>C. Ethernet cable</h2><span class="here hidden" id="hereC">&#9733; You are here</span></div>
+        <p class="small dim" style="margin:0 0 6px">Always works and needs no settings. Plug the cable between this computer and the robot, wait a few seconds, then press Discover and Connect. The robot&rsquo;s cable address is <code class="nmCable">192.168.185.3</code>.</p>
+        <p class="small dim" style="margin:0">A cable is also the way to set up option B the first time.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h2>Saved networks on the robot</h2></div>
+      <p class="small dim" style="margin:0 0 6px">The robot joins the saved network with the highest priority that it can see. The three robot-own entries cannot be removed here.</p>
+      <div class="scroll" style="max-height:260px"><table aria-label="Saved networks on the robot"><thead><tr><th>Name</th><th>Network (SSID)</th><th class="num">Priority</th><th>Auto-join</th><th>Power save</th><th>Active</th><th></th></tr></thead><tbody id="wSaved"></tbody></table></div>
+      <div id="wSavedEmpty" class="dim small" style="margin-top:6px">Connect to the robot to see its saved networks.</div>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h2>Networks the robot can see</h2></div>
+      <div id="wScanNote" class="dim small"></div>
+      <div class="scroll" style="max-height:240px"><table aria-label="Networks the robot can see"><thead><tr><th>Network (SSID)</th><th class="num">Signal</th><th>Security</th><th class="num">Channel</th><th></th></tr></thead><tbody id="wScan"></tbody></table></div>
+    </div>
+    <details class="card" open>
+      <summary><strong>Does not work? Try this</strong></summary>
+      <ul class="plain">
+        <li>Robot not found on Wi-Fi: read its address on the robot&rsquo;s display and type it into the address box on the Dashboard.</li>
+        <li><code class="nmMdns">turtlebot4.local</code> often fails on shared Wi-Fi, so Studio does not rely on it.</li>
+        <li>After switching on, the robot can need about 2 minutes before it is on Wi-Fi.</li>
+        <li>If the connection keeps dropping, check &ldquo;Power save&rdquo; in the table above.</li>
+        <li>No luck at all: use the Ethernet cable (option C).</li>
+      </ul>
+    </details>
+  </div>
+</section>
+
+<!-- Programs -->
+<section id="p-prog" class="panel" role="tabpanel" aria-labelledby="tab-prog">
+  <div class="cols">
+    <div class="stack">
+      <div class="card">
+        <div class="cardhead"><h2>Programs on the robot</h2><span id="progDir" class="dim small mono"></span>
+          <button id="btnProgRefresh" type="button" class="small" aria-label="Refresh program list">Refresh</button></div>
+        <div id="progBody" class="proglist"></div>
+        <div id="progEmpty" class="dim small" style="margin-top:6px">Connect to list programs.</div>
+        <p class="dim small" style="margin:8px 0 0">Programs that move the robot ask you to confirm first. Many also need <code>--yes</code> in the arguments box: open &ldquo;What does it do?&rdquo; to see why and what to type.</p>
+      </div>
+      <div class="card">
+        <div class="cardhead"><h2>Running</h2><button id="btnStopAll" type="button" class="danger" aria-label="Stop all running programs">Stop all</button></div>
+        <div class="scroll" style="max-height:200px"><table aria-label="Runs"><thead><tr><th>Program</th><th>State</th><th class="num">PID</th><th></th></tr></thead><tbody id="runBody"></tbody></table></div>
+        <div id="runEmpty" class="dim small" style="margin-top:6px">Nothing started yet.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h2>Log</h2><span id="logTitle" class="dim small mono"></span>
+        <label class="row small"><input id="autoScroll" type="checkbox" checked> Auto-scroll</label>
+        <button id="btnLogClear" type="button" class="small" aria-label="Clear the log view">Clear view</button></div>
+      <pre id="logView" class="log" tabindex="0" aria-label="Program log output" aria-live="off">Select a run to see its output.</pre>
+      <div class="dim small" style="margin-top:4px">Last 2000 lines are kept.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Code -->
+<section id="p-code" class="panel" role="tabpanel" aria-labelledby="tab-code">
+  <div class="stack">
+    <details class="card" id="codeHelp">
+      <summary><strong>How robot code works</strong> (short guide for beginners)</summary>
+      <ul class="plain">
+        <li>A robot program is a small Python file. It runs on the robot, in a folder called <code>~/robot_code</code>.</li>
+        <li>In ROS 2 a program is called a <em>node</em>. Nodes talk through <em>topics</em>.</li>
+        <li><strong>To read a sensor, subscribe to a topic:</strong> <code>/odom</code> is where the robot thinks it is, <code>/scan</code> is the lidar, <code>/battery_state</code> the battery, <code>/dock_status</code> whether it sits on the dock.</li>
+        <li><strong>To move, publish a speed on <code>/cmd_vel</code>.</strong> It is a TwistStamped message: <code>linear.x</code> is metres per second forward, <code>angular.z</code> is radians per second turning left. Send it 10 to 20 times per second.</li>
+        <li><strong>Always finish by publishing zeros.</strong> Otherwise the robot may keep rolling. The templates already do this for you.</li>
+        <li>The robot cannot drive while docked. Undock first (Dashboard).</li>
+        <li>Safety: the E-STOP button works at any time. In this editor, Esc and Space just type or do nothing, so use the button or <strong>Ctrl+Shift+E</strong>.</li>
+        <li>Run a file here with <em>Save &amp; Run</em>, or in a terminal: <code>python3 my_file.py</code>.</li>
+        <li>Start from <em>New program</em>: each template has the safety parts built in (speed limits, time limit, stop on obstacles).</li>
+      </ul>
+    </details>
+    <div class="codegrid">
+      <div class="card">
+        <div class="cardhead"><h2>Files</h2><button id="btnNewProg" type="button" class="small primary" aria-label="Create a new program from a template">New program&hellip;</button></div>
+        <div id="codeFiles" class="filelist" role="list"></div>
+        <div id="codeFilesEmpty" class="dim small">Connect to see the files on the robot.</div>
+      </div>
+      <div class="card codemain">
+        <div class="cardhead"><strong id="codeName" class="mono">No file open</strong>
+          <span id="codeDirty" class="dirty hidden" role="status">&#9679; unsaved changes</span>
+          <span id="codeStatus" class="dim small" role="status"></span></div>
+        <div class="editor"><pre id="gutter" aria-hidden="true">1</pre><textarea id="editor" spellcheck="false" wrap="off" aria-label="Code editor" disabled placeholder="Pick a file on the left, or press New program."></textarea></div>
+        <div class="row" style="margin-top:8px">
+          <button id="btnCodeSave" type="button" class="primary" disabled aria-label="Save to the robot (Ctrl+S)">Save to robot</button>
+          <button id="btnCodeRun" type="button" disabled aria-label="Save and run the program">Save &amp; Run</button>
+          <button id="btnCodeStop" type="button" class="danger" disabled aria-label="Stop this program">Stop</button>
+          <button id="btnCodeRevert" type="button" disabled aria-label="Throw away changes">Revert</button>
+          <button id="btnCodeVscode" type="button" aria-label="Open the robot folder in VS Code">Open in VS Code</button>
+        </div>
+        <label class="field" style="margin-top:8px"><span>Arguments for Save &amp; Run <span class="hint">(optional, for example <code>--turns 1</code>)</span></span><input id="codeArgs" type="text" autocomplete="off" aria-label="Arguments for the program"></label>
+      </div>
+      <div class="card codeout">
+        <div class="cardhead"><h2>Output</h2><span id="codeLogTitle" class="dim small mono"></span></div>
+        <pre id="codeLog" class="log tall" tabindex="0" aria-label="Output of the running program" aria-live="off">Output appears here when you run the program.</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Files -->
+<section id="p-files" class="panel" role="tabpanel" aria-labelledby="tab-files">
+  <div class="stack">
+    <div class="card">
+      <div class="cardhead"><h2>Folders</h2></div>
+      <div class="row">
+        <label class="field" style="flex:2;min-width:260px"><span>Folder on this computer</span>
+          <input id="localDir" type="text" aria-label="Local folder path" autocomplete="off" placeholder="C:\Users\you\robot_code"></label>
+        <label class="field" style="flex:1;min-width:180px"><span>Folder on the robot</span>
+          <input id="remoteDir" type="text" aria-label="Robot folder path" autocomplete="off"></label>
+        <button id="btnUseDir" type="button" style="align-self:flex-end">Use this</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="btnCompare" type="button" aria-label="Refresh the comparison">Refresh comparison</button>
+        <button id="btnPreview" type="button" aria-label="Preview upload without changing anything">Preview upload (dry run)</button>
+        <button id="btnUpload" type="button" class="primary" aria-label="Upload changed files to the robot">Upload changes</button>
+        <button id="btnDownload" type="button" aria-label="Download files from the robot">Download from robot</button>
+        <button id="btnSyncRun" type="button" aria-label="Upload then run the selected file">Sync &amp; run selected</button>
+        <span class="dim small">Nothing is ever deleted.</span>
+      </div>
+    </div>
+    <div id="syncCard" class="card hidden"><div class="cardhead"><h2>Sync</h2></div><div id="syncOut"></div></div>
+    <div class="card">
+      <div class="cardhead"><h2>Comparison</h2><span id="cmpSummary" class="dim small"></span></div>
+      <div class="scroll" style="max-height:480px"><table aria-label="Local and robot files">
+        <thead><tr><th>Run</th><th>File</th><th>Status</th><th class="num">Local size</th><th class="num">Robot size</th></tr></thead>
+        <tbody id="cmpBody"></tbody></table></div>
+      <div id="cmpEmpty" class="dim small" style="margin-top:6px">Set a local folder and press Refresh comparison.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Topics -->
+<section id="p-topics" class="panel" role="tabpanel" aria-labelledby="tab-topics">
+  <div class="cols">
+    <div class="card">
+      <div class="cardhead"><h2>Topics</h2>
+        <button id="btnTopics" type="button" class="small" aria-label="Refresh topics">Refresh</button></div>
+      <input id="topicFilter" type="search" placeholder="Filter topics" aria-label="Filter topics" style="margin-bottom:8px">
+      <div class="scroll" style="max-height:560px"><table aria-label="Topics"><thead><tr><th>Name</th><th>Type</th><th class="num">Pubs</th><th></th></tr></thead><tbody id="topicBody"></tbody></table></div>
+      <div id="topicEmpty" class="dim small" style="margin-top:6px">Connect and press Refresh.</div>
+    </div>
+    <div>
+      <div class="cardhead" style="margin-bottom:8px"><h2>Watching</h2><span id="watchCount" class="dim small"></span></div>
+      <div id="watchList"></div>
+      <div id="watchEmpty" class="card dim">Pick a topic to watch its messages live (up to 4).</div>
+    </div>
+  </div>
+</section>
+
+<!-- Tools -->
+<section id="p-tools" class="panel" role="tabpanel" aria-labelledby="tab-tools">
+  <div class="grid">
+    <div class="card">
+      <h2>Terminal</h2>
+      <p class="dim" style="margin:0 0 8px">Opens a normal terminal window logged in to the robot.</p>
+      <button id="btnTerm" type="button">Open terminal</button>
+    </div>
+    <div class="card">
+      <h2>Setup wizard</h2>
+      <p class="dim" style="margin:0 0 8px">Walks you through the first connection: ssh, robot address, robot identity, key and a test login.</p>
+      <button id="btnWizardTools" type="button">Open the setup wizard</button>
+    </div>
+    <div class="card">
+      <h2>Key login</h2>
+      <p class="dim" style="margin:0 0 8px">Lets this app sign in without a password. A terminal window opens and asks for the robot password. <strong>Type the password there. This app never sees it.</strong></p>
+      <button id="btnKey" type="button">Set up key login</button>
+    </div>
+    <div class="card">
+      <h2>Diagnostics</h2>
+      <p class="dim" style="margin:0 0 8px">Collects a short text about this app, this computer and the connection, to paste into a message when you ask for help. Passwords, keys and the session token are removed.</p>
+      <button id="btnDiag" type="button">Copy diagnostics</button>
+    </div>
+    <div class="card">
+      <h2>Updates</h2>
+      <p class="dim" style="margin:0 0 8px">Asks GitHub whether a newer version of Studio exists (one small file; nothing about you is sent).</p>
+      <div class="row"><button id="btnUpdCheck" type="button">Check for updates</button><span id="updResult" class="small" role="status"></span></div>
+    </div>
+    <div class="card">
+      <h2>Quit</h2>
+      <p class="dim" style="margin:0 0 8px">Closes Studio and its connection to the robot. Stop any robot program that is running first.</p>
+      <button id="btnQuit" type="button" class="danger">Quit Studio</button>
+    </div>
+    <div class="card">
+      <h2>VS Code</h2>
+      <p class="dim" style="margin:0 0 8px">Opens the robot's code folder in VS Code (Remote SSH). It may need one block added to your ssh config; you see it first.</p>
+      <button id="btnCode" type="button">Open in VS Code</button>
+    </div>
+    <div class="card wide">
+      <div class="cardhead"><h2>Settings</h2></div>
+      <form id="settingsForm" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+        <label class="field"><span>Last robot address</span><input id="sLastHost" type="text" autocomplete="off"></label>
+        <label class="field"><span>SSH key file</span><input id="sKey" type="text" autocomplete="off"><span class="hint">Empty = default key</span></label>
+        <label class="field"><span>Local folder</span><input id="sLocal" type="text" autocomplete="off"></label>
+        <label class="field"><span>Robot folder</span><input id="sRemote" type="text" autocomplete="off"></label>
+        <label class="field"><span>Extra programs that move the robot</span><textarea id="sMotion" rows="3" aria-label="Extra motion programs, one per line"></textarea><span class="hint">One file name per line</span></label>
+        <label class="field"><span>Robot host name</span><input id="sHostname" type="text" autocomplete="off" aria-label="Robot host name"><span class="hint">Studio also tries <span class="mono" id="sHostnameHint">turtlebot4.local</span></span></label>
+        <label class="field"><span>Robot user</span><input id="sUser" type="text" autocomplete="off" aria-label="Robot login user"></label>
+        <label class="field"><span>Robot hotspot name</span><input id="sHsName" type="text" autocomplete="off" aria-label="Robot hotspot name"></label>
+        <label class="field"><span>Robot hotspot address</span><input id="sHsAddr" type="text" autocomplete="off" aria-label="Robot hotspot address"></label>
+        <label class="field"><span>Robot cable address</span><input id="sCable" type="text" autocomplete="off" aria-label="Robot Ethernet cable address"></label>
+        <label class="field"><span>How Studio opens</span><select id="sWindowMode" aria-label="How Studio opens"><option value="app">Its own window (Edge or Chrome)</option><option value="browser">A tab in my web browser</option></select><span class="hint">Takes effect the next time Studio starts.</span></label>
+        <label class="row small"><input type="checkbox" id="sAutoReconnect"> <span>Reconnect by myself when the connection drops<span class="hint"> (never restarts programs or releases the e-stop)</span></span></label>
+        <label class="row small"><input type="checkbox" id="sUpdateCheck"> <span>Tell me when a new version of Studio is out<span class="hint"> (checked at most once a day)</span></span></label>
+        <div class="field" style="grid-column:1/-1"><span style="font-weight:600">Trusted robots</span>
+          <span class="hint">Studio only talks to robots whose identity (fingerprint) is in this list.</span>
+          <div class="scroll" style="max-height:200px"><table aria-label="Trusted robots"><thead><tr><th>Label</th><th>Fingerprint</th><th></th></tr></thead><tbody id="trustedBody"></tbody></table></div>
+          <div id="trustedEmpty" class="dim small hidden">No trusted robot yet. Use the setup wizard or paste a key below.</div>
+          <details style="margin-top:6px"><summary>Add a robot by pasting its key</summary>
+            <div class="stack" style="margin-top:6px">
+              <input id="sTrustLabel" type="text" autocomplete="off" placeholder="Label, for example Robot 2" aria-label="Label for the pasted robot key">
+              <textarea id="sTrust" rows="3" aria-label="Robot host key line" placeholder="ssh-ed25519 AAAA..."></textarea>
+              <span class="hint">&#9888; Only for a TurtleBot you own. A wrong key lets someone else pose as the robot. Compare the fingerprint first.</span>
+              <div><button id="btnTrustPaste" type="button">Trust this key&hellip;</button></div>
+            </div></details>
+        </div>
+        <div class="row" style="grid-column:1/-1"><button id="btnSaveSettings" type="submit" class="primary">Save settings</button></div>
+      </form>
+    </div>
+    <div class="card wide">
+      <div class="cardhead"><h2>App log</h2><button id="btnLogCopy" type="button" class="small">Clear</button></div>
+      <pre id="appLog" class="log tall" tabindex="0" aria-label="Application log"></pre>
+    </div>
+    <div class="card wide">
+      <h2>About</h2>
+      <dl class="rows" id="rowsAbout"></dl>
+      <p class="dim small" style="margin:8px 0 0">E-STOP: Esc or Space (when not typing in a field). Runs only on this computer; nothing is installed on the robot.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<div id="toasts" aria-live="polite"></div>
+<div id="modalRoot"></div>
+<div id="stopped" class="overlay hidden" style="z-index:400;align-items:center;padding-top:16px" role="alertdialog" aria-label="Studio has stopped"><div class="modal"><p style="margin:0;font-weight:600">Studio has stopped. You can close this window.</p></div></div>
+<!-- END index.html body -->
+<details id="mockbar"><summary>Mock controls (not part of the app)</summary>
+  <div class="row">
+    <button type="button" class="small" onclick="__mock.toggleNokey()">Toggle key not set up</button>
+    <button type="button" class="small" onclick="__mock.toggleEstop()">Toggle e-stop</button>
+    <button type="button" class="small" onclick="__mock.toggleLidar()">Toggle lidar off</button>
+    <button type="button" class="small" onclick="__mock.toggleClock()">Toggle bad clock</button>
+    <button type="button" class="small" onclick="__mock.toggleDock()">Toggle docked</button>
+    <button type="button" class="small" onclick="__mock.setStale(!__mock.stale)">Toggle stale status</button>
+    <button type="button" class="small" onclick="__mock.toggleAp()">Toggle robot hotspot</button>
+    <button type="button" class="small" onclick="__mock.hostKeyError()">Show host key error</button>
+    <button type="button" class="small" onclick="__mock.dropSse()">Drop Studio connection</button>
+    <button type="button" class="small" onclick="__mock.dropConn()">Drop robot connection (reconnect)</button>
+    <button type="button" class="small" onclick="__mock.toggleUpdate()">Toggle new version available</button>
+    <button type="button" class="small" onclick="__mock.syncDemo()">Run sync event</button>
+  </div>
+</details>
+<script src="mock.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

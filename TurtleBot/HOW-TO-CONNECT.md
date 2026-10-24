@@ -2,6 +2,8 @@
 
 This guide shows how to reach the lab's TurtleBot 4 from your own computer (Windows, macOS or Linux), log in, write and run code on it, and turn it off safely. It is written for any lab member, including people who have not used SSH or ROS 2 before. Every command works from a fresh computer; nothing depends on a particular laptop. Facts that can change are dated (most were checked on 2026-10-03). Since 2026-10-04 the robot has been dropping off the Wi-Fi: if it answers only sometimes, see [Troubleshooting](#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found) (updated 2026-10-10).
 
+**Update 2026-10-24:** the robot was reached with a direct Ethernet cable ([how](#connect-with-an-ethernet-cable-no-wi-fi-needed)). It was running its own `Turtlebot4` hotspot because `Students` was not in range.
+
 **Shortcut (added 2026-10-04):** the [connect tool](tools/connect/README.md) does steps 2 and 4 and the key setup for you: `TurtleBotConnect.exe` on Windows, `connect-turtlebot.sh` on macOS and Linux. You still need to join the right Wi-Fi (step 3) and know the passwords. This guide explains what the tool does, and works without it.
 
 What the tool offers (version 1.1.0, described 2026-10-10): a numbered menu with 1 Connect (opens a robot terminal), 2 Find the robot (the last address that worked, `turtlebot4.local`, `10.42.0.1`, or an address you type), 3 Set up key login (once per computer), 4 Robot status (read only), 5 Open in VS Code, 6 Add a `turtlebot4` shortcut to your SSH config (it backs the file up first), 7 EMERGENCY stop of the motion programs (creates `~/STOP` and stops the example programs), 8 Copy a file to the robot, and 9 Fix "host key changed". It only talks to a device that presents the lab robot's ED25519 host key (the fingerprint in [Step 4](#what-you-will-see)), so a stale campus address that now belongs to another device is refused before any password prompt. After a robot reinstall, `--trust-new-host-key` lets it accept the new key, and a maintainer must then update the pinned key. The Windows program needs no installation (Windows 10 or 11) but is not code-signed: on the first run SmartScreen warns, choose **More info**, then **Run anyway**, or build it from its source with `build.cmd`, which uses the C# compiler that comes with Windows. As of 2026-10-10 the tool has not yet been used with the real robot ([ROADMAP.md, TB-23](ROADMAP.md#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool)).
@@ -13,21 +15,29 @@ For a beginner's overview of the robot's hardware and ROS 2, read the [TurtleBot
 **Contents**
 
 1. [At a glance](#at-a-glance)
+   - [Easiest: TurtleBot Studio](#easiest-turtlebot-studio)
 2. [Before you start](#before-you-start)
 3. [Step 1: Turn the robot on](#step-1-turn-the-robot-on)
 4. [Step 2: Find out which network the robot is on, and its address](#step-2-find-out-which-network-the-robot-is-on-and-its-address)
 5. [Step 3: Connect your computer to the same network](#step-3-connect-your-computer-to-the-same-network)
-6. [Step 4: Open a terminal and connect](#step-4-open-a-terminal-and-connect)
-7. [Recommended: log in with a key instead of a password](#recommended-log-in-with-a-key-instead-of-a-password)
-8. [Write and run code](#write-and-run-code)
-9. [Turning the robot off](#turning-the-robot-off)
-10. [Troubleshooting](#troubleshooting)
-11. [Known issues](#known-issues)
-12. [Developer quick reference](#developer-quick-reference)
-13. [Optional: save a shortcut in your SSH config](#optional-save-a-shortcut-in-your-ssh-config)
-14. [Remote desktop](#remote-desktop)
-15. [Admin tasks](#admin-tasks)
-16. [Related documents](#related-documents)
+6. [Connect with an Ethernet cable (no Wi-Fi needed)](#connect-with-an-ethernet-cable-no-wi-fi-needed)
+7. [Step 4: Open a terminal and connect](#step-4-open-a-terminal-and-connect)
+8. [Recommended: log in with a key instead of a password](#recommended-log-in-with-a-key-instead-of-a-password)
+9. [Write and run code](#write-and-run-code)
+10. [Turning the robot off](#turning-the-robot-off)
+11. [Troubleshooting](#troubleshooting)
+12. [Known issues](#known-issues)
+13. [Developer quick reference](#developer-quick-reference)
+14. [Optional: save a shortcut in your SSH config](#optional-save-a-shortcut-in-your-ssh-config)
+15. [Remote desktop](#remote-desktop)
+16. [Admin tasks](#admin-tasks)
+17. [Related documents](#related-documents)
+
+## Easiest: TurtleBot Studio
+
+Added 2026-10-24. [TurtleBot Studio](tools/studio/README.md) is an app that runs on your own computer and opens in your browser. It finds the robot itself (over the university Wi-Fi, the robot's own hotspot or an Ethernet cable), shows its status, copies files, runs and stops programs, and has an emergency stop. Nothing is installed on the robot. It needs Python 3.10 or newer. Start it with `Start TurtleBot Studio.cmd` (Windows), `bash start-studio.sh` (macOS, Linux) or `python studio.py`, press **Discover**, then **Connect**. Quick start, safety rules and what has been tested: [tools/studio/README.md](tools/studio/README.md).
+
+Status on 2026-10-24: built and tested over the Ethernet cable with the robot docked and no motion. Not yet tested on macOS, Linux or over Wi-Fi. The manual steps below still work and explain what the app does.
 
 ## At a glance
 
@@ -51,11 +61,11 @@ You need:
 - The Wi-Fi password for the network the robot is on:
   - `Students`: the shared university Wi-Fi password.
   - `Turtlebot4` (the robot's own Wi-Fi): the factory default from the TurtleBot 4 user manual, unless the lab changed it. Ask the lab maintainer.
-- The password of the robot's `ubuntu` account: the factory default from the TurtleBot 4 user manual, unless the lab changed it. Ask the lab maintainer. After you set up [key login](#recommended-log-in-with-a-key-instead-of-a-password) you only need it for admin tasks.
+- The password of the robot's `ubuntu` account: `turtlebot4` (the factory default from the TurtleBot 4 user manual; it is also the `sudo` password). After you set up [key login](#recommended-log-in-with-a-key-instead-of-a-password) you only need it for admin tasks.
 - Optional: [VS Code](https://code.visualstudio.com/) with Microsoft's "Remote - SSH" extension, for editing code on the robot.
 - Before running anything that moves the robot: about 1 m of clear floor around the dock.
 
-Passwords are never written in this repository. Do not add any.
+The only password written in this repository is the robot's `ubuntu` password above, published on purpose by the lab maintainer on 2026-10-25 so that lab members can connect easily (it is the TurtleBot 4 factory default). Wi-Fi passwords, including the `Students` password, are never written here. Do not add any.
 
 ## Step 1: Turn the robot on
 
@@ -109,6 +119,150 @@ Join `Students` on your computer as you normally would. Nothing else is needed: 
 3. Your computer gets a `10.42.0.x` address. This network has no internet.
 4. With a single Wi-Fi card, your computer loses internet while it is on `Turtlebot4`. To keep internet, give your computer a second connection: a second (USB) Wi-Fi adapter, wired Ethernet, or USB tethering from a phone. Join `Turtlebot4` on one connection and keep the other for internet.
 5. When you finish, reconnect to your normal network.
+
+## Connect with an Ethernet cable (no Wi-Fi needed)
+
+Added 2026-10-24. You can plug a cable from your computer straight into the robot instead of using Wi-Fi. This is useful when `Students` is not in range, or when the robot keeps dropping off the Wi-Fi. Use the Ethernet port of the Raspberry Pi on the robot. Your computer needs a wired port (a USB or Thunderbolt Ethernet adapter works). The robot was reached this way on 2026-10-24 while it was running its own `Turtlebot4` hotspot, because `Students` was not in range.
+
+How the cable link behaves (checked on the robot on 2026-10-24):
+
+- The robot's wired address is fixed: `192.168.185.3` (subnet `192.168.185.0/24`).
+- There is no DHCP on the cable. Your computer gives itself only a `169.254.x.x` address, so `ssh ubuntu@192.168.185.3` **times out** until your computer has an address in `192.168.185.0/24`.
+- There are two ways round this. Option A needs no settings change. Option B is the cleaner choice for regular use.
+- Wired Ethernet gives the robot no internet. See [the clock](#over-the-cable-the-name-the-clock-and-what-works) below.
+
+### Option A: IPv6 link-local address (no settings change, verified 2026-10-24)
+
+Every device on a cable has an IPv6 link-local address that starts with `fe80::`. SSH can use it without any setup on your side. You need two things: the robot's `fe80::` address, and your computer's interface number or name (the "scope", written after a `%`).
+
+The robot's own `fe80::` address on 2026-10-24 was `fe80::da3a:ddff:fe41:d5df`. It is built from the robot's network card (MAC address `D8:3A:DD:41:D5:DF`), so it stays the same unless the Raspberry Pi is replaced. The part after `%` is different on every computer, so find it as below.
+
+**Windows (PowerShell)**
+
+1. Find the interface number (`ifIndex`) of your wired adapter, the one whose status is `Up`:
+
+   ```powershell
+   Get-NetAdapter
+   ```
+
+2. Ping all devices on that cable (replace `<ifIndex>` with the number), then list what answered:
+
+   ```powershell
+   ping ff02::1%<ifIndex>
+   Get-NetNeighbor -InterfaceIndex <ifIndex> -AddressFamily IPv6
+   ```
+
+3. Look for the entry whose `LinkLayerAddress` starts with `D8-3A-DD` (Raspberry Pi). Its `IPAddress` is the robot's `fe80::` address.
+
+**macOS**
+
+```bash
+ifconfig | grep -B1 "status: active"
+ping6 -c2 ff02::1%en<N>
+ndp -an
+```
+
+Replace `en<N>` with your wired interface (for example `en5`) from the first command. In the `ndp` list, look for a link-layer address starting with `d8:3a:dd`.
+
+**Linux**
+
+```bash
+ip -br link
+ping -6 -c2 ff02::1%eth0
+ip -6 neigh
+```
+
+Replace `eth0` with your wired interface name from the first command. In the neighbour list, look for `lladdr d8:3a:dd:...`.
+
+**Then connect**, using the robot's `fe80::` address, then `%`, then your interface number (Windows) or name (macOS and Linux). Keep the quotes:
+
+```bash
+ssh "ubuntu@fe80::da3a:ddff:fe41:d5df%<ifIndex or name>"
+```
+
+With a key (see [key login](#recommended-log-in-with-a-key-instead-of-a-password)), add `-i` as usual. `scp` needs square brackets around the address:
+
+```bash
+scp myfile.py "ubuntu@[fe80::da3a:ddff:fe41:d5df%<ifIndex or name>]:robot_code/"
+```
+
+SSH key login by this address worked on 2026-10-24 (from Windows, Git Bash). The macOS and Linux commands and the `scp` form are standard but were not run against this robot [to verify]. SSH asks you to trust the host the first time; check the fingerprint in [What you will see](#what-you-will-see).
+
+### Option B: give your computer a fixed address on the cable (recommended for regular use)
+
+Not yet tested on 2026-10-24 [to verify]. You set a static address on your wired adapter, in the robot's subnet, with **no gateway** and no DNS. `192.168.185.10` is used as the example; any free address from `.4` to `.254` works (`.3` is the robot). This needs administrator rights on your computer. After it, the normal command works:
+
+```bash
+ssh ubuntu@192.168.185.3
+```
+
+The change affects only that one adapter. Note what the setting was before, so you can undo it.
+
+**Windows, settings window (keeps DHCP working on other networks)**
+
+1. Open **Settings > Network & internet > Ethernet** (or **Control Panel > Network Connections**), open your wired adapter's properties, then **Internet Protocol Version 4 (TCP/IPv4) > Properties**.
+2. Keep **Obtain an IP address automatically** selected and open the **Alternate Configuration** tab.
+3. Choose **User configured**. Set IP address `192.168.185.10`, subnet mask `255.255.255.0`. Leave the gateway and DNS empty. Click **OK**.
+
+   When the adapter finds no DHCP server (as on the robot's cable), Windows uses this address; on a normal network it still uses DHCP. Undo: set **Alternate Configuration** back to **Automatic private IP address**.
+
+**Windows, PowerShell (as administrator)**
+
+```powershell
+New-NetIPAddress -InterfaceIndex <ifIndex> -IPAddress 192.168.185.10 -PrefixLength 24
+```
+
+Undo:
+
+```powershell
+Remove-NetIPAddress -InterfaceIndex <ifIndex> -IPAddress 192.168.185.10 -Confirm:$false
+```
+
+If the adapter used DHCP before, `New-NetIPAddress` may switch it to a static setup. To return it to DHCP, run `Set-NetIPInterface -InterfaceIndex <ifIndex> -Dhcp Enabled`.
+
+**macOS**
+
+Open **System Settings > Network**, choose the USB or Thunderbolt Ethernet entry, then **Details > TCP/IP**. Set **Configure IPv4** to **Manually**, IP address `192.168.185.10`, subnet mask `255.255.255.0`, router empty. Undo: set **Configure IPv4** back to **Using DHCP**. On the command line, `networksetup -setmanual "<service name>" 192.168.185.10 255.255.255.0` does the same (list the service names with `networksetup -listallnetworkservices`; undo with `networksetup -setdhcp "<service name>"`).
+
+**Linux**
+
+Temporary (gone after a reboot). Replace `<iface>` with your wired interface name:
+
+```bash
+sudo ip addr add 192.168.185.10/24 dev <iface>
+```
+
+Undo:
+
+```bash
+sudo ip addr del 192.168.185.10/24 dev <iface>
+```
+
+Permanent with NetworkManager (a separate profile that does not change your existing ones):
+
+```bash
+nmcli connection add type ethernet ifname <iface> con-name turtlebot4-cable ipv4.method manual ipv4.addresses 192.168.185.10/24
+nmcli connection up turtlebot4-cable
+```
+
+Undo: `nmcli connection delete turtlebot4-cable`.
+
+### Over the cable: the name, the clock, and what works
+
+- **Use the address, not the name.** `turtlebot4.local` did not resolve over the cable from Windows on 2026-10-24. Use `192.168.185.3` (Option B) or the `fe80::` address (Option A).
+- **The robot has no internet over the cable**, so the HTTPS clock fix cannot run. On 2026-10-24 the robot's clock read 28 October 2024, about two years behind. Until it is corrected, `git`, `pip` and `apt` on the robot can fail with certificate errors; copy code from your computer instead. Do not change the clock by hand while ROS is running. Background: [MAINTENANCE.md](MAINTENANCE.md#incident-create-3-base-stopped-responding-after-the-clock-fix) and [Known issues](#known-issues).
+- **What works over the cable:** SSH, file copy with `scp`, and VS Code Remote-SSH. For VS Code, add a host entry (Option B address shown; for Option A, put the `fe80::` address with `%` and your interface in `HostName`):
+
+  ```text
+  Host turtlebot4-cable
+      HostName 192.168.185.3
+      User ubuntu
+      IdentityFile ~/.ssh/turtlebot4_ed25519
+  ```
+
+  Keep `"remote.SSH.localServerDownload": "always"` from [Option A in Write and run code](#option-a-vs-code-remote-ssh-recommended-for-editing), because the robot has no internet over the cable. VS Code over the cable has not been tried on this robot [to verify].
+- **Not set up:** running ROS 2 on your own computer against the robot over the cable. It has not been tried; see [ROADMAP.md, TB-09](ROADMAP.md#tb-09-ros-2-from-a-laptop-over-campus-wi-fi). ROS commands run on the robot over SSH work as usual.
+- When you finish, unplug the cable and undo any Option B setting if you do not want to keep it.
 
 ## Step 4: Open a terminal and connect
 
@@ -364,6 +518,8 @@ Always shut down the Pi before cutting power, so its SD card is not damaged. The
 | `Could not resolve hostname turtlebot4.local`, or the name hangs | mDNS is not working on your computer or network (on the campus Wi-Fi it has failed now and then since 2026-10-04), or your computer is on a different network | Connect by the address on the display instead, for example `ssh ubuntu@10.87.10.205`. Check that your computer is on `Students`. See [below](#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found). |
 | `Connection timed out` or `No route to host` | Your computer and the robot are on different networks, the robot is still starting, or the robot has dropped off the Wi-Fi (seen on 2026-10-04 and 2026-10-05) | Check both are on the same network (other campus networks were not tested). Put the robot back on the dock and wait 2 minutes. If it still fails, see [below](#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found). |
 | SSH works for a few seconds or a minute, then freezes or times out; the robot answers only sometimes | The robot drops off the Wi-Fi. Likely cause: Wi-Fi power saving on the robot (not confirmed; fix proposed, not applied as of 2026-10-10) | Connect by the display address and retry; keep sessions short and run long jobs detached. Details [below](#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found). |
+| `ssh ubuntu@192.168.185.3` times out over a cable | There is no DHCP on the cable, so your computer has only a `169.254.x.x` address and is not in `192.168.185.0/24` | Use the IPv6 link-local method (Option A) or give your wired adapter a fixed `192.168.185.x` address (Option B): [Ethernet cable](#connect-with-an-ethernet-cable-no-wi-fi-needed). |
+| `turtlebot4.local` not found over a cable | The name did not resolve over the cable from Windows on 2026-10-24 | Use `192.168.185.3` or the robot's `fe80::` address: [Ethernet cable](#over-the-cable-the-name-the-clock-and-what-works). |
 | Windows asks for an 8-digit PIN when joining `Turtlebot4` | That is the WPS screen | Click **Connect using a security key instead** and type the Wi-Fi password. |
 | No internet while joined to `Turtlebot4` | The robot's Wi-Fi has no internet | Use a second connection for internet (USB Wi-Fi adapter, Ethernet or phone tethering). |
 | After leaving `Turtlebot4`, downloads fail with `ENOTFOUND` | Your computer still uses the robot (`10.42.0.1`) as its DNS server | Make sure the adapter shows Disconnected from `Turtlebot4`, then try again. |

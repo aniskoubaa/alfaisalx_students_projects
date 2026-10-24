@@ -8,7 +8,7 @@ Commands that differ by system are given twice: a PowerShell block for Windows a
 
 ## Before you start
 
-You need a computer with Wi-Fi and an SSH client (Windows 10 and 11, macOS and most Linux systems already have `ssh`), the Wi-Fi password for the network the robot is on, and the robot's `ubuntu` password. Ask the lab maintainer for both passwords; they are never written in this repository. Optional: [VS Code](https://code.visualstudio.com/) with the Remote - SSH extension.
+You need a computer with Wi-Fi and an SSH client (Windows 10 and 11, macOS and most Linux systems already have `ssh`), the Wi-Fi password for the network the robot is on, and the robot's `ubuntu` password, which is `turtlebot4` (the TurtleBot 4 factory default, also the `sudo` password). Ask the lab maintainer for the Wi-Fi password; Wi-Fi passwords are never written in this repository. Optional: [VS Code](https://code.visualstudio.com/) with the Remote - SSH extension.
 
 **Five safety rules for anything that moves**
 

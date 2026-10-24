@@ -3,6 +3,7 @@ keep_distance.py. This file is not a program; copy it to the robot next to them 
 motion_shapes.py, which it builds on).
 
 What it adds on top of motion_shapes.py:
+  - wait_steady_odom(): waits for 3 s of steady /odom as the last step before moving (start_motion does it too).
   - startup_checks(): the same start-up sequence as motion_shapes.py (wait for /odom and /dock_status,
     refuse if docked, wait for /scan, check the way ahead, check for hazards), plus confirm() for the
     "is the area clear?" question and start_motion().
@@ -209,8 +210,15 @@ def confirm(yes):
         raise Abort(2, 'not confirmed, not moving')
 
 
-def start_motion():
-    """From here on, Ctrl+C / SIGTERM no longer raise; the control loop sees them and stops the robot."""
+def wait_steady_odom(node):
+    """Wait for 3 s of steady /odom (motion_shapes.wait_for_steady_odom). Call it as the very last step before
+    moving, also in a dry run; it raises Abort(2) after 30 s."""
+    ms.wait_for_steady_odom(node)
+
+
+def start_motion(node):
+    """Waits for steady /odom (the last check), then: from here on, Ctrl+C / SIGTERM no longer raise; the control loop sees them and stops the robot."""
+    wait_steady_odom(node)
     ms.motion_active = True
     if ms.stop_request:
         raise Abort(130, f'{ms.stop_request} received')

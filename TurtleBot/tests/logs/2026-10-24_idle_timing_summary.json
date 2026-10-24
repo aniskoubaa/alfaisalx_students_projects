@@ -1,0 +1,243 @@
+CMD: ssh ... 'source setup.bash && timeout 280 python3 -' < scripts/idle_timing.py (180 s, read-only); laptop time: Sat Oct 24 00:12:43 AST 2026
+robot date Mon Oct 28 14:52:36 EDT 2024
+{
+ "duration_s": 180.92122954900015,
+ "robot_wall_start": 1730141558.1104357,
+ "topics": {
+  "/dock_status": {
+   "count": 179,
+   "mean_rate_hz": 1.000038176732688,
+   "recv_median_gap_s": 1.0000854835000155,
+   "recv_max_gap_s": 1.0085608360000151,
+   "stamp_median_gap_s": 0.9999974966049194,
+   "stamp_max_gap_s": 1.0050265789031982,
+   "pi_wall_minus_header_stamp_s": {
+    "min": 0.0008609294891357422,
+    "median": 0.0033338069915771484,
+    "max": 0.018529891967773438
+   },
+   "recv_gaps_gt_3x_median": [],
+   "stamp_gaps_gt_3x_median": []
+  },
+  "/imu": {
+   "count": 5941,
+   "mean_rate_hz": 33.217524547602636,
+   "recv_median_gap_s": 0.030083410000088406,
+   "recv_max_gap_s": 0.08634845599999608,
+   "stamp_median_gap_s": 0.02995443344116211,
+   "stamp_max_gap_s": 0.08011364936828613,
+   "pi_wall_minus_header_stamp_s": {
+    "min": 0.0011432170867919922,
+    "median": 0.003179788589477539,
+    "max": 0.061893463134765625
+   },
+   "recv_gaps_gt_3x_median": [],
+   "stamp_gaps_gt_3x_median": []
+  },
+  "/odom": {
+   "count": 3552,
+   "mean_rate_hz": 19.86234224904068,
+   "recv_median_gap_s": 0.04961763300002531,
+   "recv_max_gap_s": 1.3106754499999624,
+   "stamp_median_gap_s": 0.048064231872558594,
+   "stamp_max_gap_s": 1.3468999862670898,
+   "pi_wall_minus_header_stamp_s": {
+    "min": 0.015297412872314453,
+    "median": 0.031359076499938965,
+    "max": 0.10382246971130371
+   },
+   "recv_gaps_gt_3x_median": [
+    {
+     "start_s": 3.405502264000006,
+     "len_s": 1.3106754499999624,
+     "max_cpu_pct": 56.122448979591844,
+     "max_load1": 2.72,
+     "ping_sent": 5,
+     "ping_lost": 0,
+     "ping_max_rtt_ms": 0.484,
+     "net_delta": {
+      "eth0": [
+       0,
+       3972,
+       0,
+       0,
+       0,
+       0
+      ],
+      "usb0": [
+       948880,
+       720632,
+       0,
+       0,
+       0,
+       0
+      ],
+      "wlan0": [
+       0,
+       17910,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    }
+   ],
+   "stamp_gaps_gt_3x_median": [
+    {
+     "start_stamp": 1730141561.452385,
+     "len_s": 1.3468999862670898
+    }
+   ]
+  },
+  "/tf": {
+   "count": 3551,
+   "mean_rate_hz": 19.855516022202966,
+   "recv_median_gap_s": 0.04965729000002739,
+   "recv_max_gap_s": 1.3085223949999545,
+   "stamp_median_gap_s": 0.048064231872558594,
+   "stamp_max_gap_s": 1.3468999862670898,
+   "pi_wall_minus_header_stamp_s": {
+    "min": 0.013031244277954102,
+    "median": 0.028991222381591797,
+    "max": 0.09363865852355957
+   },
+   "recv_gaps_gt_3x_median": [
+    {
+     "start_s": 3.4029445860001033,
+     "len_s": 1.3085223949999545,
+     "max_cpu_pct": 56.122448979591844,
+     "max_load1": 2.72,
+     "ping_sent": 5,
+     "ping_lost": 0,
+     "ping_max_rtt_ms": 0.484,
+     "net_delta": {
+      "eth0": [
+       0,
+       3972,
+       0,
+       0,
+       0,
+       0
+      ],
+      "usb0": [
+       948880,
+       720632,
+       0,
+       0,
+       0,
+       0
+      ],
+      "wlan0": [
+       0,
+       17910,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    }
+   ],
+   "stamp_gaps_gt_3x_median": [
+    {
+     "start_stamp": 1730141561.452385,
+     "len_s": 1.3468999862670898
+    }
+   ]
+  },
+  "/tf:base_link": {
+   "count": 3551,
+   "mean_rate_hz": 19.855516022202966,
+   "recv_median_gap_s": 0.04965729000002739,
+   "recv_max_gap_s": 1.3085223949999545,
+   "stamp_median_gap_s": 0.048064231872558594,
+   "stamp_max_gap_s": 1.3468999862670898,
+   "pi_wall_minus_header_stamp_s": {
+    "min": 0.013035297393798828,
+    "median": 0.02899646759033203,
+    "max": 0.0936431884765625
+   },
+   "recv_gaps_gt_3x_median": [
+    {
+     "start_s": 3.4029445860001033,
+     "len_s": 1.3085223949999545,
+     "max_cpu_pct": 56.122448979591844,
+     "max_load1": 2.72,
+     "ping_sent": 5,
+     "ping_lost": 0,
+     "ping_max_rtt_ms": 0.484,
+     "net_delta": {
+      "eth0": [
+       0,
+       3972,
+       0,
+       0,
+       0,
+       0
+      ],
+      "usb0": [
+       948880,
+       720632,
+       0,
+       0,
+       0,
+       0
+      ],
+      "wlan0": [
+       0,
+       17910,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    }
+   ],
+   "stamp_gaps_gt_3x_median": [
+    {
+     "start_stamp": 1730141561.452385,
+     "len_s": 1.3468999862670898
+    }
+   ]
+  }
+ },
+ "overall": {
+  "max_cpu_pct": 56.122448979591844,
+  "mean_cpu_pct": 22.7604230127347,
+  "max_load1": 2.72,
+  "pings": 179,
+  "ping_lost": 0,
+  "ping_rtt_ms_median": 0.494,
+  "ping_rtt_ms_max": 6.04,
+  "net_total_delta": {
+   "eth0": [
+    2052,
+    80102,
+    0,
+    0,
+    0,
+    0
+   ],
+   "usb0": [
+    10144456,
+    1982660,
+    0,
+    0,
+    0,
+    0
+   ],
+   "wlan0": [
+    0,
+    515886,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  "net_fields": "rx_bytes,tx_bytes,rx_err,tx_err,rx_drop,tx_drop"
+ }
+}
+laptop end: Sat Oct 24 00:15:48 AST 2026

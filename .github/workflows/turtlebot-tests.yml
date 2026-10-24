@@ -26,10 +26,10 @@ jobs:
         with:
           python-version: '3.12'   # same as the robot (Ubuntu 24.04)
       - name: Compile every Python file
-        run: python -m py_compile TurtleBot/examples/*.py TurtleBot/tests/*.py TurtleBot/tests/offline/*.py
+        run: python -m py_compile TurtleBot/examples/*.py TurtleBot/tests/*.py TurtleBot/tests/offline/*.py TurtleBot/tools/timing/*.py TurtleBot/tools/studio/*.py TurtleBot/tools/studio/templates/*.py
       - name: Check shell scripts
         run: |
-          for f in TurtleBot/examples/*.sh TurtleBot/tools/connect/*.sh; do
+          for f in TurtleBot/examples/*.sh TurtleBot/tools/connect/*.sh TurtleBot/tools/studio/*.sh; do
             if [ -f "$f" ]; then bash -n "$f"; echo "ok $f"; fi
           done
       - name: Documentation links
@@ -38,3 +38,15 @@ jobs:
         run: python TurtleBot/tests/offline/test_pure.py
       - name: Simulated robot runs
         run: python TurtleBot/tests/offline/test_sim_runs.py
+      - name: Timing tools
+        run: python TurtleBot/tests/offline/test_timing.py
+      - name: TurtleBot Studio robot bridge (fake mode)
+        run: python TurtleBot/tests/offline/test_studio_bridge.py
+      - name: TurtleBot Studio desktop app (fake robot)
+        run: python TurtleBot/tests/offline/test_studio_desktop.py
+      - name: TurtleBot Studio templates and program catalog (simulated robot)
+        run: python TurtleBot/tests/offline/test_studio_templates.py
+      - name: TurtleBot Studio web files
+        run: |
+          node --check TurtleBot/tools/studio/web/app.js
+          node --check TurtleBot/tools/studio/web/mock.js

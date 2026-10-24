@@ -182,11 +182,12 @@ def main():
             log('already at (or inside) the target distance: not moving')
             return 0
         if args.dry_run:
+            mc.wait_steady_odom(node)
             log('dry run: all checks done, nothing was sent to /cmd_vel')
             return 0
 
         mc.confirm(args.yes)
-        mc.start_motion()
+        mc.start_motion(node)
         guard = mc.Guard(node, TOTAL_TIMEOUT).install()
         log('starting. To stop: Ctrl+C, or "touch ~/STOP", or "pkill -INT -f wall_approach.py"')
         # Measure again now that the person has confirmed (someone may have moved since the first look).

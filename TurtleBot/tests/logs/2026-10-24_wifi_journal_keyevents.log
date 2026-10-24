@@ -1,0 +1,500 @@
+CMD: journalctl -b -1..-7 key Wi-Fi events only (wpa_supplicant lines, wlan0 NM state/dhcp, kernel brcmf non-escan); laptop time: Sat Oct 24 00:11:23 AST 2026
+################ BOOT -1
+[    0.000000] turtlebot4 kernel: Booting Linux on physical CPU 0x0000000000 [0x
+[ 5005.348499] turtlebot4 systemd[1]: Finished sysstat-collect.service - system 
+2024-10-28T14:34:15-04:00 turtlebot4 kernel: Booting Linux o
+2026-10-05T09:40:00-04:00 turtlebot4 systemd[1]: Finished sy
+CTRL-EVENT-DISCONNECTED: 0
+CTRL-EVENT-CONNECTED: 1
+CTRL-EVENT-ASSOC-REJECT: 0
+CTRL-EVENT-AUTH-REJECT: 0
+SSID-TEMP-DISABLED: 0
+Disassociation Imminent: 5
+beacon: 0
+deauth: 0
+Trying to associate: 1
+Associated with: 1
+dhcp4 (wlan0): 3
+wlan0): state change: 15
+Reconnecting: 0
+signal: 1
+CTRL-EVENT-SIGNAL: 0
+BSS-REMOVED: 0
+ROAM: 0
+brcmf_.*(err|fail|timeout): 0
+power save: 1
+-- timeline
+[   22.292885] turtlebot4 NetworkManager[809]: <info>  [1730140467.9685] device (wlan0): state change: unmanaged -> unavailable (reason 'managed', sys-iface-state: 'external')
+[   22.321736] turtlebot4 kernel: brcmfmac: brcmf_cfg80211_set_power_mgmt: power save enabled
+[   22.583543] turtlebot4 NetworkManager[809]: <info>  [1730140468.2573] device (wlan0): state change: unavailable -> disconnected (reason 'supplicant-available', sys-iface-state: 'managed')
+[   28.874447] turtlebot4 NetworkManager[809]: <info>  [1730140474.5487] device (wlan0): state change: disconnected -> prepare (reason 'none', sys-iface-state: 'managed')
+[   28.874902] turtlebot4 NetworkManager[809]: <info>  [1730140474.5499] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   28.876965] turtlebot4 NetworkManager[809]: <info>  [1730140474.5510] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[   28.878321] turtlebot4 NetworkManager[809]: <info>  [1730140474.5537] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[   28.879127] turtlebot4 NetworkManager[809]: <info>  [1730140474.5544] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   28.902177] turtlebot4 wpa_supplicant[810]: wlan0: Trying to associate with SSID 'Students'
+[   29.124786] turtlebot4 kernel: ieee80211 phy0: brcmf_cfg80211_reg_notifier: Firmware rejected country setting
+[   29.132672] turtlebot4 wpa_supplicant[810]: wlan0: Associated with 64:bf:6b:d1:e5:d5
+[   29.132945] turtlebot4 wpa_supplicant[810]: wlan0: CTRL-EVENT-CONNECTED - Connection to 64:bf:6b:d1:e5:d5 completed [id=0 id_str=]
+[   29.139165] turtlebot4 NetworkManager[809]: <info>  [1730140474.8148] device (wlan0): state change: config -> ip-config (reason 'none', sys-iface-state: 'managed')
+[   29.140538] turtlebot4 NetworkManager[809]: <info>  [1730140474.8162] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[   29.183347] turtlebot4 NetworkManager[809]: <info>  [1730140474.8587] dhcp4 (wlan0): state changed new lease, address=10.87.10.205, acd pending
+[   29.319625] turtlebot4 NetworkManager[809]: <info>  [1730140474.9951] dhcp4 (wlan0): state changed new lease, address=10.87.10.205
+[   29.351723] turtlebot4 NetworkManager[809]: <info>  [1730140475.0273] device (wlan0): state change: ip-config -> ip-check (reason 'none', sys-iface-state: 'managed')
+[   29.359840] turtlebot4 NetworkManager[809]: <info>  [1730140475.0354] device (wlan0): state change: ip-check -> secondaries (reason 'none', sys-iface-state: 'managed')
+[   29.360558] turtlebot4 NetworkManager[809]: <info>  [1730140475.0361] device (wlan0): state change: secondaries -> activated (reason 'none', sys-iface-state: 'managed')
+[ 2540.206579] turtlebot4 wpa_supplicant[810]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 2540.207618] turtlebot4 wpa_supplicant[810]: wlan0: WNM: Preferred List Available
+[ 2774.790244] turtlebot4 wpa_supplicant[810]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 2774.791369] turtlebot4 wpa_supplicant[810]: wlan0: WNM: Preferred List Available
+[ 3969.766687] turtlebot4 wpa_supplicant[810]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 3969.767714] turtlebot4 wpa_supplicant[810]: wlan0: WNM: Preferred List Available
+[ 3984.176772] turtlebot4 wpa_supplicant[810]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 3984.178181] turtlebot4 wpa_supplicant[810]: wlan0: WNM: Preferred List Available
+[ 4006.177233] turtlebot4 wpa_supplicant[810]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 4006.178603] turtlebot4 wpa_supplicant[810]: wlan0: WNM: Preferred List Available
+################ BOOT -2
+[    0.000000] turtlebot4 kernel: Booting Linux on physical CPU 0x0000000000 [0x
+[ 3899.177416] turtlebot4 wpa_supplicant[823]: RRM: Ignoring radio measurement r
+2024-10-28T14:34:10-04:00 turtlebot4 kernel: Booting Linux o
+2026-10-04T16:42:26-04:00 turtlebot4 wpa_supplicant[823]: RR
+CTRL-EVENT-DISCONNECTED: 0
+CTRL-EVENT-CONNECTED: 1
+CTRL-EVENT-ASSOC-REJECT: 6
+CTRL-EVENT-AUTH-REJECT: 0
+SSID-TEMP-DISABLED: 3
+Disassociation Imminent: 0
+beacon: 0
+deauth: 0
+Trying to associate: 7
+Associated with: 1
+dhcp4 (wlan0): 3
+wlan0): state change: 21
+Reconnecting: 0
+signal: 1
+CTRL-EVENT-SIGNAL: 0
+BSS-REMOVED: 0
+ROAM: 0
+brcmf_.*(err|fail|timeout): 0
+power save: 1
+-- timeline
+[   20.336476] turtlebot4 NetworkManager[819]: <info>  [1730140463.0203] device (wlan0): state change: unmanaged -> unavailable (reason 'managed', sys-iface-state: 'external')
+[   20.366677] turtlebot4 kernel: brcmfmac: brcmf_cfg80211_set_power_mgmt: power save enabled
+[   20.608583] turtlebot4 NetworkManager[819]: <info>  [1730140463.2917] device (wlan0): state change: unavailable -> disconnected (reason 'supplicant-available', sys-iface-state: 'managed')
+[   26.928476] turtlebot4 NetworkManager[819]: <info>  [1730140469.6122] device (wlan0): state change: disconnected -> prepare (reason 'none', sys-iface-state: 'managed')
+[   26.929694] turtlebot4 NetworkManager[819]: <info>  [1730140469.6135] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   26.931063] turtlebot4 NetworkManager[819]: <info>  [1730140469.6146] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[   26.933156] turtlebot4 NetworkManager[819]: <info>  [1730140469.6170] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[   26.934599] turtlebot4 NetworkManager[819]: <info>  [1730140469.6185] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   26.956759] turtlebot4 wpa_supplicant[823]: wlan0: Trying to associate with SSID 'Students'
+[   27.357689] turtlebot4 wpa_supplicant[823]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   33.607556] turtlebot4 wpa_supplicant[823]: wlan0: Trying to associate with SSID 'Students'
+[   33.964374] turtlebot4 wpa_supplicant[823]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   40.664734] turtlebot4 wpa_supplicant[823]: wlan0: Trying to associate with SSID 'Students'
+[   41.176633] turtlebot4 wpa_supplicant[823]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   48.358129] turtlebot4 wpa_supplicant[823]: wlan0: Trying to associate with SSID 'Students'
+[   48.735787] turtlebot4 wpa_supplicant[823]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   48.737456] turtlebot4 wpa_supplicant[823]: wlan0: CTRL-EVENT-SSID-TEMP-DISABLED id=0 ssid="Students" auth_failures=1 duration=10 reason=CONN_FAILED
+[   52.006107] turtlebot4 NetworkManager[819]: <info>  [1730140494.6867] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[   52.009382] turtlebot4 NetworkManager[819]: <info>  [1730140494.6930] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[   52.012577] turtlebot4 NetworkManager[819]: <info>  [1730140494.6944] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   52.034965] turtlebot4 wpa_supplicant[823]: wlan0: Trying to associate with SSID 'Students'
+[   52.532306] turtlebot4 wpa_supplicant[823]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   52.532946] turtlebot4 wpa_supplicant[823]: wlan0: CTRL-EVENT-SSID-TEMP-DISABLED id=0 ssid="Students" auth_failures=1 duration=10 reason=CONN_FAILED
+[   68.704442] turtlebot4 wpa_supplicant[823]: wlan0: CTRL-EVENT-SSID-REENABLED id=0 ssid="Students"
+[   68.731051] turtlebot4 wpa_supplicant[823]: wlan0: Trying to associate with SSID 'Students'
+[   68.824365] turtlebot4 wpa_supplicant[823]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   68.824986] turtlebot4 wpa_supplicant[823]: wlan0: CTRL-EVENT-SSID-TEMP-DISABLED id=0 ssid="Students" auth_failures=2 duration=20 reason=CONN_FAILED
+[   77.011187] turtlebot4 NetworkManager[819]: <info>  [1730140519.6872] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[   77.012274] turtlebot4 NetworkManager[819]: <info>  [1730140519.6935] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[   77.012604] turtlebot4 NetworkManager[819]: <info>  [1730140519.6945] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   83.188965] turtlebot4 wpa_supplicant[823]: wlan0: Trying to associate with SSID 'Students'
+[   83.318362] turtlebot4 kernel: ieee80211 phy0: brcmf_cfg80211_reg_notifier: Firmware rejected country setting
+[   83.325405] turtlebot4 wpa_supplicant[823]: wlan0: Associated with 64:bf:6b:d1:e5:d5
+[   83.325673] turtlebot4 wpa_supplicant[823]: wlan0: CTRL-EVENT-CONNECTED - Connection to 64:bf:6b:d1:e5:d5 completed [id=0 id_str=]
+[   83.332471] turtlebot4 NetworkManager[819]: <info>  [1730140526.0164] device (wlan0): state change: config -> ip-config (reason 'none', sys-iface-state: 'managed')
+[   83.333741] turtlebot4 NetworkManager[819]: <info>  [1730140526.0176] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[   85.393125] turtlebot4 NetworkManager[819]: <info>  [1730140528.0767] dhcp4 (wlan0): state changed new lease, address=10.87.10.205, acd pending
+[   85.551703] turtlebot4 NetworkManager[819]: <info>  [1730140528.2353] dhcp4 (wlan0): state changed new lease, address=10.87.10.205
+[   85.587076] turtlebot4 NetworkManager[819]: <info>  [1730140528.2709] device (wlan0): state change: ip-config -> ip-check (reason 'none', sys-iface-state: 'managed')
+[   85.638296] turtlebot4 NetworkManager[819]: <info>  [1730140528.3221] device (wlan0): state change: ip-check -> secondaries (reason 'none', sys-iface-state: 'managed')
+[   85.639878] turtlebot4 NetworkManager[819]: <info>  [1730140528.3229] device (wlan0): state change: secondaries -> activated (reason 'none', sys-iface-state: 'managed')
+################ BOOT -3
+[    0.000000] turtlebot4 kernel: Booting Linux on physical CPU 0x0000000000 [0x
+[ 8424.255806] turtlebot4 systemd[1]: Finished tb4-https-time.service - Set the 
+2024-10-28T14:34:07-04:00 turtlebot4 kernel: Booting Linux o
+2026-10-04T14:04:36-04:00 turtlebot4 systemd[1]: Finished tb
+CTRL-EVENT-DISCONNECTED: 0
+CTRL-EVENT-CONNECTED: 1
+CTRL-EVENT-ASSOC-REJECT: 0
+CTRL-EVENT-AUTH-REJECT: 0
+SSID-TEMP-DISABLED: 0
+Disassociation Imminent: 0
+beacon: 0
+deauth: 0
+Trying to associate: 1
+Associated with: 1
+dhcp4 (wlan0): 3
+wlan0): state change: 15
+Reconnecting: 0
+signal: 1
+CTRL-EVENT-SIGNAL: 0
+BSS-REMOVED: 0
+ROAM: 0
+brcmf_.*(err|fail|timeout): 0
+power save: 1
+-- timeline
+[   20.301954] turtlebot4 NetworkManager[782]: <info>  [1730140459.9698] device (wlan0): state change: unmanaged -> unavailable (reason 'managed', sys-iface-state: 'external')
+[   20.332617] turtlebot4 kernel: brcmfmac: brcmf_cfg80211_set_power_mgmt: power save enabled
+[   20.598822] turtlebot4 NetworkManager[782]: <info>  [1730140460.2643] device (wlan0): state change: unavailable -> disconnected (reason 'supplicant-available', sys-iface-state: 'managed')
+[   26.965984] turtlebot4 NetworkManager[782]: <info>  [1730140466.6324] device (wlan0): state change: disconnected -> prepare (reason 'none', sys-iface-state: 'managed')
+[   26.966531] turtlebot4 NetworkManager[782]: <info>  [1730140466.6336] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   26.966923] turtlebot4 NetworkManager[782]: <info>  [1730140466.6347] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[   26.969224] turtlebot4 NetworkManager[782]: <info>  [1730140466.6371] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[   26.969982] turtlebot4 NetworkManager[782]: <info>  [1730140466.6379] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   26.991925] turtlebot4 wpa_supplicant[785]: wlan0: Trying to associate with SSID 'Students'
+[   27.198961] turtlebot4 kernel: ieee80211 phy0: brcmf_cfg80211_reg_notifier: Firmware rejected country setting
+[   27.206888] turtlebot4 wpa_supplicant[785]: wlan0: Associated with 64:bf:6b:d1:e5:d5
+[   27.207107] turtlebot4 wpa_supplicant[785]: wlan0: CTRL-EVENT-CONNECTED - Connection to 64:bf:6b:d1:e5:d5 completed [id=0 id_str=]
+[   27.213523] turtlebot4 NetworkManager[782]: <info>  [1730140466.8814] device (wlan0): state change: config -> ip-config (reason 'none', sys-iface-state: 'managed')
+[   27.214936] turtlebot4 NetworkManager[782]: <info>  [1730140466.8828] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[   27.246728] turtlebot4 NetworkManager[782]: <info>  [1730140466.9145] dhcp4 (wlan0): state changed new lease, address=10.87.10.205, acd pending
+[   27.354625] turtlebot4 NetworkManager[782]: <info>  [1730140467.0223] dhcp4 (wlan0): state changed new lease, address=10.87.10.205
+[   27.387418] turtlebot4 NetworkManager[782]: <info>  [1730140467.0553] device (wlan0): state change: ip-config -> ip-check (reason 'none', sys-iface-state: 'managed')
+[   27.395719] turtlebot4 NetworkManager[782]: <info>  [1730140467.0636] device (wlan0): state change: ip-check -> secondaries (reason 'none', sys-iface-state: 'managed')
+[   27.396479] turtlebot4 NetworkManager[782]: <info>  [1730140467.0643] device (wlan0): state change: secondaries -> activated (reason 'none', sys-iface-state: 'managed')
+################ BOOT -4
+[    0.000000] turtlebot4 kernel: Booting Linux on physical CPU 0x0000000000 [0x
+[  246.660414] turtlebot4 turtlebot4-start[1279]: [turtlebot4_node-1] [INFO] [17
+2024-10-28T14:34:04-04:00 turtlebot4 kernel: Booting Linux o
+2026-10-04T11:39:59-04:00 turtlebot4 turtlebot4-start[1279]:
+CTRL-EVENT-DISCONNECTED: 0
+CTRL-EVENT-CONNECTED: 1
+CTRL-EVENT-ASSOC-REJECT: 0
+CTRL-EVENT-AUTH-REJECT: 0
+SSID-TEMP-DISABLED: 0
+Disassociation Imminent: 0
+beacon: 0
+deauth: 0
+Trying to associate: 1
+Associated with: 1
+dhcp4 (wlan0): 3
+wlan0): state change: 15
+Reconnecting: 0
+signal: 1
+CTRL-EVENT-SIGNAL: 0
+BSS-REMOVED: 0
+ROAM: 0
+brcmf_.*(err|fail|timeout): 0
+power save: 1
+-- timeline
+[   21.576133] turtlebot4 NetworkManager[795]: <info>  [1730140457.2390] device (wlan0): state change: unmanaged -> unavailable (reason 'managed', sys-iface-state: 'external')
+[   21.604213] turtlebot4 kernel: brcmfmac: brcmf_cfg80211_set_power_mgmt: power save enabled
+[   21.852055] turtlebot4 NetworkManager[795]: <info>  [1730140457.5151] device (wlan0): state change: unavailable -> disconnected (reason 'supplicant-available', sys-iface-state: 'managed')
+[   28.132979] turtlebot4 NetworkManager[795]: <info>  [1730140463.7970] device (wlan0): state change: disconnected -> prepare (reason 'none', sys-iface-state: 'managed')
+[   28.135530] turtlebot4 NetworkManager[795]: <info>  [1730140463.7982] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   28.137886] turtlebot4 NetworkManager[795]: <info>  [1730140463.7993] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[   28.138387] turtlebot4 NetworkManager[795]: <info>  [1730140463.8018] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[   28.139824] turtlebot4 NetworkManager[795]: <info>  [1730140463.8042] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   28.162473] turtlebot4 wpa_supplicant[797]: wlan0: Trying to associate with SSID 'Students'
+[   28.302578] turtlebot4 kernel: ieee80211 phy0: brcmf_cfg80211_reg_notifier: Firmware rejected country setting
+[   28.309933] turtlebot4 wpa_supplicant[797]: wlan0: Associated with 64:bf:6b:d1:e5:d5
+[   28.310238] turtlebot4 wpa_supplicant[797]: wlan0: CTRL-EVENT-CONNECTED - Connection to 64:bf:6b:d1:e5:d5 completed [id=0 id_str=]
+[   28.316506] turtlebot4 NetworkManager[795]: <info>  [1730140463.9809] device (wlan0): state change: config -> ip-config (reason 'none', sys-iface-state: 'managed')
+[   28.318070] turtlebot4 NetworkManager[795]: <info>  [1730140463.9823] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[   28.358685] turtlebot4 NetworkManager[795]: <info>  [1730140464.0228] dhcp4 (wlan0): state changed new lease, address=10.87.10.205, acd pending
+[   28.519915] turtlebot4 NetworkManager[795]: <info>  [1730140464.1838] dhcp4 (wlan0): state changed new lease, address=10.87.10.205
+[   28.554131] turtlebot4 NetworkManager[795]: <info>  [1730140464.2185] device (wlan0): state change: ip-config -> ip-check (reason 'none', sys-iface-state: 'managed')
+[   28.563202] turtlebot4 NetworkManager[795]: <info>  [1730140464.2275] device (wlan0): state change: ip-check -> secondaries (reason 'none', sys-iface-state: 'managed')
+[   28.564342] turtlebot4 NetworkManager[795]: <info>  [1730140464.2283] device (wlan0): state change: secondaries -> activated (reason 'none', sys-iface-state: 'managed')
+################ BOOT -5
+[    0.000000] turtlebot4 kernel: Booting Linux on physical CPU 0x0000000000 [0x
+[24491.075137] turtlebot4 turtlebot4-start[1283]: [create3_republisher-3] Forwar
+2024-10-28T14:34:00-04:00 turtlebot4 kernel: Booting Linux o
+2026-10-04T10:14:28-04:00 turtlebot4 turtlebot4-start[1283]:
+CTRL-EVENT-DISCONNECTED: 3
+CTRL-EVENT-CONNECTED: 5
+CTRL-EVENT-ASSOC-REJECT: 7
+CTRL-EVENT-AUTH-REJECT: 0
+SSID-TEMP-DISABLED: 3
+Disassociation Imminent: 18
+beacon: 0
+deauth: 0
+Trying to associate: 14
+Associated with: 5
+dhcp4 (wlan0): 27
+wlan0): state change: 41
+Reconnecting: 0
+signal: 1
+CTRL-EVENT-SIGNAL: 0
+BSS-REMOVED: 0
+ROAM: 0
+brcmf_.*(err|fail|timeout): 0
+power save: 1
+-- timeline
+[   20.383325] turtlebot4 NetworkManager[797]: <info>  [1730140453.0719] device (wlan0): state change: unmanaged -> unavailable (reason 'managed', sys-iface-state: 'external')
+[   20.413433] turtlebot4 kernel: brcmfmac: brcmf_cfg80211_set_power_mgmt: power save enabled
+[   20.690692] turtlebot4 NetworkManager[797]: <info>  [1730140453.3794] device (wlan0): state change: unavailable -> disconnected (reason 'supplicant-available', sys-iface-state: 'managed')
+[   26.822401] turtlebot4 NetworkManager[797]: <info>  [1730140459.5097] device (wlan0): state change: disconnected -> prepare (reason 'none', sys-iface-state: 'managed')
+[   26.823894] turtlebot4 NetworkManager[797]: <info>  [1730140459.5110] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   26.825433] turtlebot4 NetworkManager[797]: <info>  [1730140459.5122] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[   26.826296] turtlebot4 NetworkManager[797]: <info>  [1730140459.5151] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[   26.827156] turtlebot4 NetworkManager[797]: <info>  [1730140459.5158] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   26.851032] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[   27.211603] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   33.482133] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[   33.780508] turtlebot4 kernel: ieee80211 phy0: brcmf_cfg80211_reg_notifier: Firmware rejected country setting
+[   33.789055] turtlebot4 wpa_supplicant[798]: wlan0: Associated with c0:8b:05:27:76:95
+[   33.789311] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-CONNECTED - Connection to c0:8b:05:27:76:95 completed [id=0 id_str=]
+[   33.796759] turtlebot4 NetworkManager[797]: <info>  [1730140466.4852] device (wlan0): state change: config -> ip-config (reason 'none', sys-iface-state: 'managed')
+[   33.798293] turtlebot4 NetworkManager[797]: <info>  [1730140466.4869] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[   33.863599] turtlebot4 NetworkManager[797]: <info>  [1730140466.5521] dhcp4 (wlan0): state changed new lease, address=10.87.10.205, acd pending
+[   34.032630] turtlebot4 NetworkManager[797]: <info>  [1730140466.7212] dhcp4 (wlan0): state changed new lease, address=10.87.10.205
+[   34.065996] turtlebot4 NetworkManager[797]: <info>  [1730140466.7548] device (wlan0): state change: ip-config -> ip-check (reason 'none', sys-iface-state: 'managed')
+[   34.074622] turtlebot4 NetworkManager[797]: <info>  [1730140466.7633] device (wlan0): state change: ip-check -> secondaries (reason 'none', sys-iface-state: 'managed')
+[   34.075551] turtlebot4 NetworkManager[797]: <info>  [1730140466.7643] device (wlan0): state change: secondaries -> activated (reason 'none', sys-iface-state: 'managed')
+[   46.544649] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[   46.545993] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[  874.019538] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[  874.021200] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[  991.021350] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[  991.023132] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[ 1058.020072] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 1058.025909] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[ 1068.731990] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 1068.733197] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[ 1191.128218] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 1191.128636] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[ 1453.028451] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 1453.030679] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[ 1920.529657] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-DISCONNECTED bssid=c0:8b:05:27:76:95 reason=8
+[ 1926.905693] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[ 1927.539697] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[ 1934.277559] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[ 1934.623398] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[ 1936.002139] turtlebot4 NetworkManager[797]: <info>  [1791100713.1677] device (wlan0): state change: activated -> failed (reason 'supplicant-timeout', sys-iface-state: 'managed')
+[ 1936.010807] turtlebot4 NetworkManager[797]: <info>  [1791100713.1748] device (wlan0): state change: failed -> disconnected (reason 'none', sys-iface-state: 'managed')
+[ 1936.014968] turtlebot4 NetworkManager[797]: <info>  [1791100713.1778] dhcp4 (wlan0): canceled DHCP transaction
+[ 1936.016423] turtlebot4 NetworkManager[797]: <info>  [1791100713.1781] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[ 1936.016740] turtlebot4 NetworkManager[797]: <info>  [1791100713.1783] dhcp4 (wlan0): state changed no lease
+[ 1941.967948] turtlebot4 NetworkManager[797]: <info>  [1791100719.1341] device (wlan0): state change: disconnected -> prepare (reason 'none', sys-iface-state: 'managed')
+[ 1941.970215] turtlebot4 NetworkManager[797]: <info>  [1791100719.1355] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[ 1941.971624] turtlebot4 NetworkManager[797]: <info>  [1791100719.1367] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[ 1941.973813] turtlebot4 NetworkManager[797]: <info>  [1791100719.1396] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[ 1941.974938] turtlebot4 NetworkManager[797]: <info>  [1791100719.1405] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[ 1941.998050] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[ 1942.424047] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[ 1942.424495] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-SSID-TEMP-DISABLED id=0 ssid="Students" auth_failures=1 duration=10 reason=CONN_FAILED
+[ 1953.604758] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-SSID-REENABLED id=0 ssid="Students"
+[ 1953.643311] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[ 1954.199982] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[ 1954.200945] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-SSID-TEMP-DISABLED id=0 ssid="Students" auth_failures=2 duration=20 reason=CONN_FAILED
+[ 1967.003138] turtlebot4 NetworkManager[797]: <info>  [1791100744.1680] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[ 1967.005308] turtlebot4 NetworkManager[797]: <info>  [1791100744.1715] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[ 1967.006196] turtlebot4 NetworkManager[797]: <info>  [1791100744.1723] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[ 1970.377950] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[ 1970.787874] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[ 1970.788364] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-SSID-TEMP-DISABLED id=0 ssid="Students" auth_failures=1 duration=10 reason=CONN_FAILED
+[ 1987.008293] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-SSID-REENABLED id=0 ssid="Students"
+[ 1987.043518] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[ 1987.294484] turtlebot4 kernel: ieee80211 phy0: brcmf_cfg80211_reg_notifier: Firmware rejected country setting
+[ 1987.268576] turtlebot4 wpa_supplicant[798]: wlan0: Associated with c0:8b:05:27:76:95
+[ 1987.268933] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-CONNECTED - Connection to c0:8b:05:27:76:95 completed [id=0 id_str=]
+[ 1987.276140] turtlebot4 NetworkManager[797]: <info>  [1791100764.4422] device (wlan0): state change: config -> ip-config (reason 'none', sys-iface-state: 'managed')
+[ 1987.277520] turtlebot4 NetworkManager[797]: <info>  [1791100764.4437] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[ 1987.405063] turtlebot4 NetworkManager[797]: <info>  [1791100764.5711] dhcp4 (wlan0): state changed new lease, address=10.87.10.205, acd pending
+[ 1987.557885] turtlebot4 NetworkManager[797]: <info>  [1791100764.7237] dhcp4 (wlan0): state changed new lease, address=10.87.10.205
+[ 1987.591612] turtlebot4 NetworkManager[797]: <info>  [1791100764.7570] device (wlan0): state change: ip-config -> ip-check (reason 'none', sys-iface-state: 'managed')
+[ 1987.649416] turtlebot4 NetworkManager[797]: <info>  [1791100764.8156] device (wlan0): state change: ip-check -> secondaries (reason 'none', sys-iface-state: 'managed')
+[ 1987.651069] turtlebot4 NetworkManager[797]: <info>  [1791100764.8164] device (wlan0): state change: secondaries -> activated (reason 'none', sys-iface-state: 'managed')
+[ 1993.047270] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 1993.048973] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[ 5977.570425] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 5977.570926] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[ 5978.145804] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[ 5988.161811] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-DISCONNECTED bssid=c0:8b:05:27:76:95 reason=3 locally_generated=1
+[ 5988.166828] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-DSCP-POLICY clear_all
+[ 5992.193841] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[ 5992.417077] turtlebot4 kernel: ieee80211 phy0: brcmf_cfg80211_reg_notifier: Firmware rejected country setting
+[ 5992.321399] turtlebot4 wpa_supplicant[798]: wlan0: Associated with 64:bf:6b:d1:e5:d5
+[ 5992.321706] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-CONNECTED - Connection to 64:bf:6b:d1:e5:d5 completed [id=0 id_str=]
+[ 5992.326831] turtlebot4 NetworkManager[797]: <info>  [1791104769.4928] device (wlan0): ip:dhcp4: restarting
+[ 5992.327093] turtlebot4 NetworkManager[797]: <info>  [1791104769.4930] dhcp4 (wlan0): canceled DHCP transaction
+[ 5992.327317] turtlebot4 NetworkManager[797]: <info>  [1791104769.4931] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[ 5992.327523] turtlebot4 NetworkManager[797]: <info>  [1791104769.4932] dhcp4 (wlan0): state changed no lease
+[ 5992.327728] turtlebot4 NetworkManager[797]: <info>  [1791104769.4935] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[ 5992.384605] turtlebot4 NetworkManager[797]: <info>  [1791104769.5506] dhcp4 (wlan0): state changed new lease, address=10.87.10.205, acd pending
+[ 5992.385843] turtlebot4 NetworkManager[797]: <info>  [1791104769.5518] dhcp4 (wlan0): state changed new lease, address=10.87.10.205
+[ 9808.772890] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 9808.783134] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[ 9808.846130] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[ 9818.860271] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-DISCONNECTED bssid=64:bf:6b:d1:e5:d5 reason=3 locally_generated=1
+[ 9818.866045] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-DSCP-POLICY clear_all
+[ 9822.825070] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[ 9823.393444] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=64:bf:6b:d1:e5:d5 status_code=16
+[ 9830.005836] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[ 9830.365202] turtlebot4 kernel: ieee80211 phy0: brcmf_cfg80211_reg_notifier: Firmware rejected country setting
+[ 9830.202242] turtlebot4 wpa_supplicant[798]: wlan0: Associated with 64:bf:6b:d2:03:45
+[ 9830.202749] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-CONNECTED - Connection to 64:bf:6b:d2:03:45 completed [id=0 id_str=]
+[ 9830.209251] turtlebot4 NetworkManager[797]: <info>  [1791108607.3748] device (wlan0): ip:dhcp4: restarting
+[ 9830.209584] turtlebot4 NetworkManager[797]: <info>  [1791108607.3750] dhcp4 (wlan0): canceled DHCP transaction
+[ 9830.209862] turtlebot4 NetworkManager[797]: <info>  [1791108607.3752] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[ 9830.210185] turtlebot4 NetworkManager[797]: <info>  [1791108607.3754] dhcp4 (wlan0): state changed no lease
+[ 9830.210486] turtlebot4 NetworkManager[797]: <info>  [1791108607.3757] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[ 9830.245141] turtlebot4 NetworkManager[797]: <info>  [1791108607.4112] dhcp4 (wlan0): state changed new lease, address=10.87.10.205, acd pending
+[ 9830.246147] turtlebot4 NetworkManager[797]: <info>  [1791108607.4122] dhcp4 (wlan0): state changed new lease, address=10.87.10.205
+[10746.199171] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[10746.201313] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[11128.886890] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[11128.893128] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[11128.955508] turtlebot4 wpa_supplicant[798]: wlan0: Trying to associate with SSID 'Students'
+[11129.077099] turtlebot4 wpa_supplicant[798]: wlan0: Associated with 64:bf:6b:d1:e5:d5
+[11129.077847] turtlebot4 wpa_supplicant[798]: wlan0: CTRL-EVENT-CONNECTED - Connection to 64:bf:6b:d1:e5:d5 completed [id=0 id_str=]
+[11129.092065] turtlebot4 NetworkManager[797]: <info>  [1791109906.2581] device (wlan0): ip:dhcp4: restarting
+[11129.092333] turtlebot4 NetworkManager[797]: <info>  [1791109906.2583] dhcp4 (wlan0): canceled DHCP transaction
+[11129.092562] turtlebot4 NetworkManager[797]: <info>  [1791109906.2584] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[11129.092776] turtlebot4 NetworkManager[797]: <info>  [1791109906.2586] dhcp4 (wlan0): state changed no lease
+[11129.093051] turtlebot4 NetworkManager[797]: <info>  [1791109906.2588] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[11129.119877] turtlebot4 NetworkManager[797]: <info>  [1791109906.2858] dhcp4 (wlan0): state changed new lease, address=10.87.10.205, acd pending
+[11129.121159] turtlebot4 NetworkManager[797]: <info>  [1791109906.2872] dhcp4 (wlan0): state changed new lease, address=10.87.10.205
+[15708.569458] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[15708.571563] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[15995.016882] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[15995.018595] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[16224.970510] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[16224.972438] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[16237.980324] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[16237.982496] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[19682.854967] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[19682.856188] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+[20787.820570] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[20787.823243] turtlebot4 wpa_supplicant[798]: wlan0: WNM: Preferred List Available
+################ BOOT -6
+[    0.000000] turtlebot4 kernel: Booting Linux on physical CPU 0x0000000000 [0x
+[ 1141.518138] turtlebot4 wpa_supplicant[820]: RRM: Ignoring radio measurement r
+2024-10-28T14:33:57-04:00 turtlebot4 kernel: Booting Linux o
+2026-10-04T03:23:41-04:00 turtlebot4 wpa_supplicant[820]: RR
+CTRL-EVENT-DISCONNECTED: 0
+CTRL-EVENT-CONNECTED: 1
+CTRL-EVENT-ASSOC-REJECT: 7
+CTRL-EVENT-AUTH-REJECT: 0
+SSID-TEMP-DISABLED: 4
+Disassociation Imminent: 0
+beacon: 0
+deauth: 0
+Trying to associate: 8
+Associated with: 1
+dhcp4 (wlan0): 3
+wlan0): state change: 21
+Reconnecting: 0
+signal: 2
+CTRL-EVENT-SIGNAL: 0
+BSS-REMOVED: 0
+ROAM: 0
+brcmf_.*(err|fail|timeout): 0
+power save: 1
+-- timeline
+[   19.828745] turtlebot4 NetworkManager[818]: <info>  [1730140450.4263] device (wlan0): state change: unmanaged -> unavailable (reason 'managed', sys-iface-state: 'external')
+[   19.861823] turtlebot4 kernel: brcmfmac: brcmf_cfg80211_set_power_mgmt: power save enabled
+[   20.188224] turtlebot4 NetworkManager[818]: <info>  [1730140450.7861] device (wlan0): state change: unavailable -> disconnected (reason 'supplicant-available', sys-iface-state: 'managed')
+[   26.417309] turtlebot4 NetworkManager[818]: <info>  [1730140457.0147] device (wlan0): state change: disconnected -> prepare (reason 'none', sys-iface-state: 'managed')
+[   26.418239] turtlebot4 NetworkManager[818]: <info>  [1730140457.0160] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   26.419791] turtlebot4 NetworkManager[818]: <info>  [1730140457.0171] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[   26.422633] turtlebot4 NetworkManager[818]: <info>  [1730140457.0201] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[   26.422984] turtlebot4 NetworkManager[818]: <info>  [1730140457.0209] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   26.446799] turtlebot4 wpa_supplicant[820]: wlan0: Trying to associate with SSID 'Students'
+[   26.515286] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   32.711058] turtlebot4 wpa_supplicant[820]: wlan0: Trying to associate with SSID 'Students'
+[   33.127371] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   39.729337] turtlebot4 wpa_supplicant[820]: wlan0: Trying to associate with SSID 'Students'
+[   40.162826] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   47.227683] turtlebot4 wpa_supplicant[820]: wlan0: Trying to associate with SSID 'Students'
+[   47.581553] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   47.582789] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-SSID-TEMP-DISABLED id=0 ssid="Students" auth_failures=1 duration=10 reason=CONN_FAILED
+[   52.004917] turtlebot4 NetworkManager[818]: <info>  [1730140482.6007] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[   52.008559] turtlebot4 NetworkManager[818]: <info>  [1730140482.6063] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[   52.010726] turtlebot4 NetworkManager[818]: <info>  [1730140482.6085] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   52.035664] turtlebot4 wpa_supplicant[820]: wlan0: Trying to associate with SSID 'Students'
+[   52.397511] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   52.398219] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-SSID-TEMP-DISABLED id=0 ssid="Students" auth_failures=1 duration=10 reason=CONN_FAILED
+[   68.495132] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-SSID-REENABLED id=0 ssid="Students"
+[   68.519788] turtlebot4 wpa_supplicant[820]: wlan0: Trying to associate with SSID 'Students'
+[   68.872309] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   68.872936] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-SSID-TEMP-DISABLED id=0 ssid="Students" auth_failures=2 duration=20 reason=CONN_FAILED
+[   77.009790] turtlebot4 NetworkManager[818]: <info>  [1730140507.6012] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[   77.010797] turtlebot4 NetworkManager[818]: <info>  [1730140507.6069] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[   77.011279] turtlebot4 NetworkManager[818]: <info>  [1730140507.6082] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   83.133324] turtlebot4 wpa_supplicant[820]: wlan0: Trying to associate with SSID 'Students'
+[   83.601103] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16
+[   83.601806] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-SSID-TEMP-DISABLED id=0 ssid="Students" auth_failures=1 duration=10 reason=CONN_FAILED
+[   99.652305] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-SSID-REENABLED id=0 ssid="Students"
+[   99.680571] turtlebot4 wpa_supplicant[820]: wlan0: Trying to associate with SSID 'Students'
+[   99.831865] turtlebot4 kernel: ieee80211 phy0: brcmf_cfg80211_reg_notifier: Firmware rejected country setting
+[   99.837887] turtlebot4 wpa_supplicant[820]: wlan0: Associated with 64:bf:6b:d2:03:45
+[   99.838206] turtlebot4 wpa_supplicant[820]: wlan0: CTRL-EVENT-CONNECTED - Connection to 64:bf:6b:d2:03:45 completed [id=0 id_str=]
+[   99.845217] turtlebot4 NetworkManager[818]: <info>  [1730140530.4431] device (wlan0): state change: config -> ip-config (reason 'none', sys-iface-state: 'managed')
+[   99.846893] turtlebot4 NetworkManager[818]: <info>  [1730140530.4448] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[   99.893128] turtlebot4 NetworkManager[818]: <info>  [1730140530.4908] dhcp4 (wlan0): state changed new lease, address=10.87.10.205, acd pending
+[  100.053724] turtlebot4 NetworkManager[818]: <info>  [1730140530.6514] dhcp4 (wlan0): state changed new lease, address=10.87.10.205
+[  100.086307] turtlebot4 NetworkManager[818]: <info>  [1730140530.6842] device (wlan0): state change: ip-config -> ip-check (reason 'none', sys-iface-state: 'managed')
+[  100.122055] turtlebot4 NetworkManager[818]: <info>  [1730140530.7194] device (wlan0): state change: ip-check -> secondaries (reason 'none', sys-iface-state: 'managed')
+[  100.122508] turtlebot4 NetworkManager[818]: <info>  [1730140530.7201] device (wlan0): state change: secondaries -> activated (reason 'none', sys-iface-state: 'managed')
+################ BOOT -7
+[    0.000000] turtlebot4 kernel: Booting Linux on physical CPU 0x0000000000 [0x
+[ 1311.872959] turtlebot4 wpa_supplicant[813]: RRM: Ignoring radio measurement r
+2024-10-28T14:33:55-04:00 turtlebot4 kernel: Booting Linux o
+2026-10-03T14:10:38-04:00 turtlebot4 wpa_supplicant[813]: RR
+CTRL-EVENT-DISCONNECTED: 0
+CTRL-EVENT-CONNECTED: 2
+CTRL-EVENT-ASSOC-REJECT: 0
+CTRL-EVENT-AUTH-REJECT: 0
+SSID-TEMP-DISABLED: 0
+Disassociation Imminent: 3
+beacon: 0
+deauth: 0
+Trying to associate: 1
+Associated with: 2
+dhcp4 (wlan0): 9
+wlan0): state change: 18
+Reconnecting: 0
+signal: 1
+CTRL-EVENT-SIGNAL: 0
+BSS-REMOVED: 0
+ROAM: 0
+brcmf_.*(err|fail|timeout): 0
+power save: 1
+-- timeline
+[   19.583358] turtlebot4 NetworkManager[812]: <info>  [1730140448.1287] device (wlan0): state change: unmanaged -> unavailable (reason 'managed', sys-iface-state: 'external')
+[   19.613419] turtlebot4 kernel: brcmfmac: brcmf_cfg80211_set_power_mgmt: power save enabled
+[   19.922246] turtlebot4 NetworkManager[812]: <info>  [1730140448.4597] device (wlan0): state change: unavailable -> disconnected (reason 'supplicant-available', sys-iface-state: 'managed')
+[   26.169086] turtlebot4 NetworkManager[812]: <info>  [1730140454.7138] device (wlan0): state change: disconnected -> prepare (reason 'none', sys-iface-state: 'managed')
+[   26.169551] turtlebot4 NetworkManager[812]: <info>  [1730140454.7151] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   26.172238] turtlebot4 NetworkManager[812]: <info>  [1730140454.7162] device (wlan0): state change: config -> need-auth (reason 'none', sys-iface-state: 'managed')
+[   26.173126] turtlebot4 NetworkManager[812]: <info>  [1730140454.7187] device (wlan0): state change: need-auth -> prepare (reason 'none', sys-iface-state: 'managed')
+[   26.174694] turtlebot4 NetworkManager[812]: <info>  [1730140454.7195] device (wlan0): state change: prepare -> config (reason 'none', sys-iface-state: 'managed')
+[   26.197611] turtlebot4 wpa_supplicant[813]: wlan0: Trying to associate with SSID 'Students'
+[   26.645562] turtlebot4 kernel: ieee80211 phy0: brcmf_cfg80211_reg_notifier: Firmware rejected country setting
+[   26.653384] turtlebot4 wpa_supplicant[813]: wlan0: Associated with c0:8b:05:40:11:f5
+[   26.653599] turtlebot4 wpa_supplicant[813]: wlan0: CTRL-EVENT-CONNECTED - Connection to c0:8b:05:40:11:f5 completed [id=0 id_str=]
+[   26.660448] turtlebot4 NetworkManager[812]: <info>  [1730140455.2060] device (wlan0): state change: config -> ip-config (reason 'none', sys-iface-state: 'managed')
+[   26.662296] turtlebot4 NetworkManager[812]: <info>  [1730140455.2078] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[   26.715588] turtlebot4 NetworkManager[812]: <info>  [1730140455.2608] dhcp4 (wlan0): state changed new lease, address=10.87.10.205, acd pending
+[   26.884779] turtlebot4 NetworkManager[812]: <info>  [1730140455.4300] dhcp4 (wlan0): state changed new lease, address=10.87.10.205
+[   26.919144] turtlebot4 NetworkManager[812]: <info>  [1730140455.4646] device (wlan0): state change: ip-config -> ip-check (reason 'none', sys-iface-state: 'managed')
+[   26.929477] turtlebot4 NetworkManager[812]: <info>  [1730140455.4749] device (wlan0): state change: ip-check -> secondaries (reason 'none', sys-iface-state: 'managed')
+[   26.930581] turtlebot4 NetworkManager[812]: <info>  [1730140455.4759] device (wlan0): state change: secondaries -> activated (reason 'none', sys-iface-state: 'managed')
+[  198.289649] turtlebot4 wpa_supplicant[813]: wlan0: Associated with c0:8b:05:40:12:05
+[  198.293973] turtlebot4 wpa_supplicant[813]: wlan0: CTRL-EVENT-CONNECTED - Connection to c0:8b:05:40:12:05 completed [id=0 id_str=]
+[  198.300683] turtlebot4 NetworkManager[812]: <info>  [1730140626.8462] device (wlan0): ip:dhcp4: restarting
+[  198.301893] turtlebot4 NetworkManager[812]: <info>  [1730140626.8465] dhcp4 (wlan0): canceled DHCP transaction
+[  198.302264] turtlebot4 NetworkManager[812]: <info>  [1730140626.8466] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[  198.302766] turtlebot4 NetworkManager[812]: <info>  [1730140626.8468] dhcp4 (wlan0): state changed no lease
+[  198.303701] turtlebot4 NetworkManager[812]: <info>  [1730140626.8470] dhcp4 (wlan0): activation: beginning transaction (timeout in 45 seconds)
+[  200.381239] turtlebot4 NetworkManager[812]: <info>  [1730140628.9266] dhcp4 (wlan0): state changed new lease, address=10.87.10.205, acd pending
+[  200.383277] turtlebot4 NetworkManager[812]: <info>  [1730140628.9277] dhcp4 (wlan0): state changed new lease, address=10.87.10.205
+[  216.918483] turtlebot4 wpa_supplicant[813]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[  216.924240] turtlebot4 wpa_supplicant[813]: wlan0: WNM: Preferred List Available
+[  226.914957] turtlebot4 wpa_supplicant[813]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[  226.917235] turtlebot4 wpa_supplicant[813]: wlan0: WNM: Preferred List Available
+[ 1274.453327] turtlebot4 wpa_supplicant[813]: wlan0: WNM: Disassociation Imminent - Disassociation Timer 0
+[ 1274.455334] turtlebot4 wpa_supplicant[813]: wlan0: WNM: Preferred List Available

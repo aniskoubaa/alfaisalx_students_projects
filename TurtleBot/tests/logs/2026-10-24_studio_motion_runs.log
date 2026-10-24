@@ -1,0 +1,19 @@
+== 20261024T020338Z_my_spin_in_place.py.log
+22:03:39 plan: turn left 1 turn(s) at 0.5 rad/s, about 13 s
+22:03:41 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+22:03:41 odometry OK, docked: False
+22:03:50 ABORTED: odometry is stale (none for 2.0 s)
+
+== 20261024T021234Z_my_spin_in_place.py.log
+22:12:35 plan: turn left 1 turn(s) at 0.5 rad/s, about 13 s
+22:12:37 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+22:12:37 odometry OK, docked: False
+22:12:51 done: turned 359 degrees in total (odometry)
+
+== 20261024T021744Z_my_drive_circle.py.log
+22:17:47 plan: 1 lap(s) left, radius 0.3 m, 0.100 m/s and 0.33 rad/s, about 19 s
+22:17:48 waiting up to 30 s for /odom and /dock_status (ROS starts slowly on the Pi)
+22:17:48 waiting up to 30 s for /scan (the lidar) (ROS starts slowly on the Pi)
+22:17:48 lidar OK: nearest thing straight ahead 0.97 m
+22:18:10 done: ended 17.3 cm from the start (odometry)
+

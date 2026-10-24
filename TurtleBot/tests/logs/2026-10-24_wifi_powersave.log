@@ -1,0 +1,246 @@
+CMD: powersave/driver script via ssh; laptop time: Sat Oct 24 00:10:40 AST 2026
+robot date: Mon Oct 28 14:50:34 EDT 2024
+ 14:50:34 up 16 min,  1 user,  load average: 0.55, 0.82, 0.64
+=== /etc/NetworkManager/conf.d/default-wifi-powersave-on.conf
+[connection]
+wifi.powersave = 3
+=== /usr/lib/NetworkManager/conf.d/10-dns-resolved.conf
+[main]
+# We need to specify "dns=systemd-resolved" as for the time being our
+# /etc/resolv.conf points to resolvconf's generated file instead of
+# systemd-resolved's, so the auto-detection does not work.
+dns=systemd-resolved
+=== /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
+[keyfile]
+unmanaged-devices=*,except:type:wifi,except:type:gsm,except:type:cdma
+=== /usr/lib/NetworkManager/conf.d/no-mac-addr-change.conf
+# Certain drivers are known not to support changing the MAC address.
+# Disable touching the MAC address on such devices.
+#
+# See man NetworkManager.conf
+#
+# https://bugzilla.gnome.org/show_bug.cgi?id=777523
+[device-31-mac-addr-change]
+match-device=driver:eagle_sdio,driver:wl
+wifi.scan-rand-mac-address=no
+=== NetworkManager.conf
+[main]
+plugins=ifupdown,keyfile
+
+[ifupdown]
+managed=false
+
+[device]
+wifi.scan-rand-mac-address=no
+=== grep
+/etc/NetworkManager/NetworkManager.conf
+/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf
+=== print-config
+# NetworkManager configuration: /etc/NetworkManager/NetworkManager.conf (lib: 10-dns-resolved.conf, no-mac-addr-change.conf) (run: 10-globally-managed-devices.conf) (etc: default-wifi-powersave-on.conf)
+
+[main]
+# rc-manager=
+# migrate-ifcfg-rh=false
+# auth-polkit=true
+# dhcp=internal
+# iwd-config-path=
+dns=systemd-resolved
+plugins=ifupdown,keyfile
+configure-and-quit=no
+
+[ifupdown]
+managed=false
+
+[logging]
+# backend=journal
+# audit=true
+
+[device]
+# wifi.backend=wpa_supplicant
+wifi.scan-rand-mac-address=no
+
+[device-31-mac-addr-change]
+match-device=driver:eagle_sdio,driver:wl
+wifi.scan-rand-mac-address=no
+
+[connection]
+wifi.powersave=3
+
+# no-auto-default file "/var/lib/NetworkManager/no-auto-default.state"
+=== driver
+../../../../../../../../bus/sdio/drivers/brcmfmac
+bash: line 8: iwconfig: command not found
+/sys/module/brcmfmac/parameters/alternative_fw_path: cat: /sys/module/brcmfmac/parameters/alternative_fw_path: Permission denied
+/sys/module/brcmfmac/parameters/debug: cat: /sys/module/brcmfmac/parameters/debug: Permission denied
+/sys/module/brcmfmac/parameters/roamoff: cat: /sys/module/brcmfmac/parameters/roamoff: Permission denied
+=== dmesg
+Oct 28 14:34:25 turtlebot4 kernel: brcm-pcie fd500000.pcie: host bridge /scb/pcie@7d500000 ranges:
+Oct 28 14:34:25 turtlebot4 kernel: brcm-pcie fd500000.pcie:   No bus range found for /scb/pcie@7d500000, using [bus 00-ff]
+Oct 28 14:34:25 turtlebot4 kernel: brcm-pcie fd500000.pcie:      MEM 0x0600000000..0x063fffffff -> 0x00c0000000
+Oct 28 14:34:25 turtlebot4 kernel: brcm-pcie fd500000.pcie:   IB MEM 0x0000000000..0x00ffffffff -> 0x0400000000
+Oct 28 14:34:25 turtlebot4 kernel: brcm-pcie fd500000.pcie: PCI host bridge to bus 0000:00
+Oct 28 14:34:25 turtlebot4 kernel: brcm-pcie fd500000.pcie: clkreq-mode set to default
+Oct 28 14:34:25 turtlebot4 kernel: brcm-pcie fd500000.pcie: link up, 5.0 GT/s PCIe x1 (SSC)
+Oct 28 14:34:27 turtlebot4 kernel: brcmfmac: F1 signature read @0x18000000=0x15264345
+Oct 28 14:34:27 turtlebot4 kernel: brcmfmac: brcmf_fw_alloc_request: using brcm/brcmfmac43455-sdio for chip BCM4345/6
+Oct 28 14:34:27 turtlebot4 kernel: usbcore: registered new interface driver brcmfmac
+Oct 28 14:34:28 turtlebot4 kernel: brcmfmac: brcmf_c_process_txcap_blob: no txcap_blob available (err=-2)
+Oct 28 14:34:28 turtlebot4 kernel: brcmfmac: brcmf_c_preinit_dcmds: Firmware: BCM4345/6 wl0: Apr 15 2021 03:03:20 version 7.45.234 (4ca95bb CY) FWID 01-996384e2
+Oct 28 14:34:28 turtlebot4 kernel: Bluetooth: hci0: BCM4345C0 'brcm/BCM4345C0.raspberrypi,4-model-b.hcd' Patch
+Oct 28 14:34:38 turtlebot4 kernel: brcmfmac: brcmf_cfg80211_set_power_mgmt: power save enabled
+=== nmcli
+-- Students
+802-11-wireless.ssid:                   Students
+802-11-wireless.mode:                   infrastructure
+802-11-wireless.band:                   --
+802-11-wireless.channel:                0
+802-11-wireless.bssid:                  --
+802-11-wireless.mac-address:            --
+802-11-wireless.cloned-mac-address:     --
+802-11-wireless.generate-mac-address-mask:--
+802-11-wireless.mac-address-blacklist:  --
+802-11-wireless.mac-address-randomization:default
+802-11-wireless.mtu:                    auto
+802-11-wireless.seen-bssids:            64:BF:6B:D1:E5:D5,64:BF:6B:D2:03:45,C0:8B:05:27:76:95,C0:8B:05:40:12:05,C0:8B:05:40:11:F5,64:BF:6B:D1:E5:C5,C0:8B:05:27:8C:95,64:BF:6B:D2:03:35,E8:F9:D4:17:B7:05
+802-11-wireless.hidden:                 no
+802-11-wireless.powersave:              0 (default)
+802-11-wireless.wake-on-wlan:           0x1 (default)
+802-11-wireless.ap-isolation:           -1 (default)
+-- netplan-wlan0-Turtlebot4
+802-11-wireless.ssid:                   Turtlebot4
+802-11-wireless.mode:                   ap
+802-11-wireless.band:                   a
+802-11-wireless.channel:                0
+802-11-wireless.bssid:                  --
+802-11-wireless.mac-address:            --
+802-11-wireless.cloned-mac-address:     --
+802-11-wireless.generate-mac-address-mask:--
+802-11-wireless.mac-address-blacklist:  --
+802-11-wireless.mac-address-randomization:default
+802-11-wireless.mtu:                    auto
+802-11-wireless.seen-bssids:            D8:3A:DD:41:D5:E1,DC:A6:32:4B:10:9D,E4:5F:01:7D:31:9B
+802-11-wireless.hidden:                 no
+802-11-wireless.powersave:              0 (default)
+802-11-wireless.wake-on-wlan:           0x1 (default)
+802-11-wireless.ap-isolation:           -1 (default)
+=== dev show
+GENERAL.DEVICE:                         wlan0
+GENERAL.TYPE:                           wifi
+GENERAL.NM-TYPE:                        NMDeviceWifi
+GENERAL.DBUS-PATH:                      /org/freedesktop/NetworkManager/Devices/4
+GENERAL.VENDOR:                         Broadcom Corp.
+GENERAL.PRODUCT:                        BCM43438 combo WLAN and Bluetooth Low Energy (BLE)
+GENERAL.DRIVER:                         brcmfmac
+GENERAL.DRIVER-VERSION:                 7.45.234
+GENERAL.FIRMWARE-VERSION:               01-996384e2
+GENERAL.HWADDR:                         D8:3A:DD:41:D5:E1
+GENERAL.MTU:                            1500
+GENERAL.STATE:                          100 (connected)
+GENERAL.REASON:                         0 (No reason given)
+GENERAL.IP4-CONNECTIVITY:               3 (limited)
+GENERAL.IP6-CONNECTIVITY:               3 (limited)
+GENERAL.UDI:                            /sys/devices/platform/soc/fe300000.mmcnr/mmc_host/mmc1/mmc1:0001/mmc1:0001:1/net/wlan0
+GENERAL.PATH:                           platform-fe300000.mmcnr
+GENERAL.IP-IFACE:                       wlan0
+GENERAL.IS-SOFTWARE:                    no
+GENERAL.NM-MANAGED:                     yes
+GENERAL.AUTOCONNECT:                    yes
+GENERAL.FIRMWARE-MISSING:               no
+GENERAL.NM-PLUGIN-MISSING:              no
+GENERAL.PHYS-PORT-ID:                   --
+GENERAL.CONNECTION:                     netplan-wlan0-Turtlebot4
+GENERAL.CON-UUID:                       97815db5-78ad-3bcc-a8e9-6fb9a8bce1ca
+GENERAL.CON-PATH:                       /org/freedesktop/NetworkManager/ActiveConnection/3
+GENERAL.METERED:                        no (guessed)
+CAPABILITIES.CARRIER-DETECT:            no
+CAPABILITIES.SPEED:                     unknown
+CAPABILITIES.IS-SOFTWARE:               no
+CAPABILITIES.SRIOV:                     no
+INTERFACE-FLAGS.UP:                     yes
+INTERFACE-FLAGS.LOWER-UP:               yes
+INTERFACE-FLAGS.CARRIER:                yes
+INTERFACE-FLAGS.PROMISC:                no
+WIFI-PROPERTIES.WEP:                    yes
+WIFI-PROPERTIES.WPA:                    yes
+WIFI-PROPERTIES.WPA2:                   yes
+WIFI-PROPERTIES.TKIP:                   yes
+WIFI-PROPERTIES.CCMP:                   yes
+WIFI-PROPERTIES.AP:                     yes
+WIFI-PROPERTIES.ADHOC:                  yes
+WIFI-PROPERTIES.2GHZ:                   yes
+WIFI-PROPERTIES.5GHZ:                   yes
+WIFI-PROPERTIES.6GHZ:                   no
+WIFI-PROPERTIES.MESH:                   no
+WIFI-PROPERTIES.IBSS-RSN:               no
+AP[1].IN-USE:                           *
+AP[1].BSSID:                            D8:3A:DD:41:D5:E1
+AP[1].SSID:                             Turtlebot4
+AP[1].MODE:                             Infra
+AP[1].CHAN:                             44
+AP[1].RATE:                             0 Mbit/s
+AP[1].SIGNAL:                           0
+AP[1].BARS:                             ____
+AP[1].SECURITY:                         WPA1 WPA2
+IP4.ADDRESS[1]:                         10.42.0.1/24
+IP4.GATEWAY:                            --
+IP4.ROUTE[1]:                           dst = 10.42.0.0/24, nh = 0.0.0.0, mt = 600
+IP6.ADDRESS[1]:                         fe80::da3a:ddff:fe41:d5e1/64
+IP6.GATEWAY:                            --
+IP6.ROUTE[1]:                           dst = fe80::/64, nh = ::, mt = 256
+CONNECTIONS.AVAILABLE-CONNECTION-PATHS: /org/freedesktop/NetworkManager/Settings/3
+CONNECTIONS.AVAILABLE-CONNECTIONS[1]:   97815db5-78ad-3bcc-a8e9-6fb9a8bce1ca | netplan-wlan0-Turtlebot4
+=== wifi list
+IN-USE  SSID        BSSID              CHAN  FREQ      SIGNAL  SECURITY  
+*       Turtlebot4  D8:3A:DD:41:D5:E1  44    5220 MHz  0       WPA1 WPA2 
+Inter-| sta-|   Quality        |   Discarded packets               | Missed | WE
+ face | tus | link level noise |  nwid  crypt   frag  retry   misc | beacon | 22
+addr_assign_type
+addr_len
+address
+broadcast
+carrier
+carrier_changes
+carrier_down_count
+carrier_up_count
+dev_id
+dev_port
+device
+dormant
+duplex
+flags
+gro_flush_timeout
+ifalias
+ifindex
+iflink
+link_mode
+mtu
+name_assign_type
+napi_defer_hard_irqs
+netdev_group
+operstate
+phy80211
+phys_port_id
+phys_port_name
+phys_switch_id
+power
+proto_down
+queues
+speed
+statistics
+subsystem
+testing
+threaded
+tx_queue_len
+type
+uevent
+wireless
+address_mask
+addresses
+device
+index
+macaddress
+name
+power
+rfkill1
+subsystem
+uevent

@@ -4,10 +4,10 @@
 |---|---|
 | Robot | Lab TurtleBot 4 Standard, hostname `turtlebot4` |
 | Owner | AlfaisalX lab, College of Engineering and Advanced Computing. Ask the lab maintainer or the lab supervisor for access, passwords and approval of changes |
-| Last updated | 2026-10-10. State as of 2026-10-10: no change to the robot since 2026-10-04; the robot was last reached over SSH on 2026-10-05 (briefly). Earlier: 2026-10-04 (robot state as of 2026-10-04, about 12:30 robot time) |
+| Last updated | 2026-10-24 (Wi-Fi power-save setting changed, R14; supervised motion test with a timing recorder; read-only checks of the Wi-Fi logs). Evening of 2026-10-24: home Wi-Fi network added (R16), supervised motion through TurtleBot Studio over Wi-Fi, base clock re-synchronised and the Create 3 application restarted twice (runtime actions, no configuration change), Ubuntu auto-updates found running. Earlier: 2026-10-10. State as of 2026-10-10: no change to the robot since 2026-10-04; the robot was last reached over SSH on 2026-10-05 (briefly). Earlier: 2026-10-04 (robot state as of 2026-10-04, about 12:30 robot time) |
 | Audience | Lab maintainers and whoever administers the robot next |
 | Covers | Current configuration, every change made, admin scripts, incidents, open issues, health checks |
-| Times | 2026-10-03 entries use the original author's laptop time (UTC+3). 2026-10-04 entries use the robot's own clock as shown in its journal (EDT, UTC-4), so 11:44 robot time is 18:44 in UTC+3. 2026-10-05 entries use laptop time (UTC+3) |
+| Times | 2026-10-03 entries use the original author's laptop time (UTC+3). 2026-10-04 entries use the robot's own clock as shown in its journal (EDT, UTC-4), so 11:44 robot time is 18:44 in UTC+3. 2026-10-05 entries use laptop time (UTC+3). 2026-10-24 entries use laptop time (UTC+3) or seconds since the start of the recording; the robot's own clock was about two years wrong that day (it read 28 October 2024) |
 
 ## Purpose
 
@@ -15,7 +15,21 @@ This is the administrative record for the lab's TurtleBot 4. Everyday use (conne
 
 Rule followed: change only what is necessary on shared hardware, and record every change with how to verify it and how to undo it. When you change the robot, add a row to the [change register](#change-register) in the same commit.
 
-No passwords, Wi-Fi keys or other credentials are recorded here or anywhere in this repository (it is public).
+No Wi-Fi passwords, keys or other credentials are recorded here or anywhere in this repository (it is public). One exception, decided by the lab maintainer on 2026-10-25: the robot's `ubuntu` login password (the TurtleBot 4 factory default) is written in [README.md](README.md) and [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md) so lab members can connect easily.
+
+### State on 2026-10-24
+
+The robot was reached over a direct Ethernet cable ([HOW-TO-CONNECT.md](HOW-TO-CONNECT.md#connect-with-an-ethernet-cable-no-wi-fi-needed)) and was running its own `Turtlebot4` hotspot, because `Students` was not in range. Times are laptop time (UTC+3) unless marked; the robot clock was wrong (see below), so recording times are given as seconds since the start of the recording.
+
+| Area | State on 2026-10-24 | Details |
+|---|---|---|
+| Robot configuration | **One change: R14.** The `Students` profile now has Wi-Fi power saving switched off. Applied by the user typing the `sudo` password (about 00:22 laptop time, as recorded). `nmcli connection up Students` was **not** run, so the setting takes effect the next time the robot joins `Students`. **Later the same day, R16:** a saved home Wi-Fi network (`TP-LINK_Extender_5GHz`) added through TurtleBot Studio, about 04:49; the robot left its hotspot and joined it | [R14, R16](#change-register) |
+| Wi-Fi drops | **Fix applied, effect not verified.** The robot cannot be tested on `Students` until it is on campus. New evidence: power saving was on (global NetworkManager file); the logs show no disconnects on the symptom days | [Wi-Fi incident, update 2026-10-24](#update-2026-10-24-new-evidence-and-fix-applied-r14), [ROADMAP.md, TB-20](ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving) |
+| `/odom` pauses | **Cause located in the Create 3 base**, triggered when the base starts to move. A 3.16 s stall on 2026-10-24 aborted `motion_shapes.py`. **Update, evening, over Wi-Fi:** stalls of 7.5 s and 11 s while docked and idle, and 7.8 s in a spin that aborted; not a Wi-Fi effect, and a base restart did not remove them. Possible link to new ROS 2 participants joining the graph (hypothesis, not proven) | [Finding, update 2026-10-24](#update-2026-10-24-measurements-with-the-timing-recorder), [TB-15](ROADMAP.md#tb-15-characterise-the-odom-pauses-at-motion-start), [TB-25](ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving) |
+| Lidar | Detected and working after a manual `/start_motor`. **New issue:** the lidar motor did not restart by itself after undocking | [Known issues](#known-issues), [TB-24](ROADMAP.md#tb-24-lidar-motor-does-not-restart-after-undocking) |
+| Clock | **Wrong:** 28 October 2024, about two years behind. `tb4-https-time.service` failed (no internet over the cable or the hotspot). Not touched, as required while ROS runs. **Update, evening (laptop time, UTC+3):** correct on the Pi since R16 (internet reached at 04:49; `chronyd` stepped it by +62,648,406.93 s, about 1.99 years, while ROS ran). The Create 3 base kept its 2024 clock until the base clock re-sync at 05:20 and 05:21 (22:20 and 22:21 robot time); the Pi and base clocks then agreed within 1 s | [Known issues](#known-issues), [TB-17](ROADMAP.md#tb-17-decide-whether-to-keep-or-remove-the-clock-fix), [clock incident update](#update-2026-10-24-clock-stepped-by-the-internet-and-base-re-sync) |
+| Runtime actions | Undock, `/start_motor` by hand, one `motion_shapes.py` attempt, dock. No configuration change. **Evening:** undock, two spins and a circle through Studio, dock, base clock re-sync and two Create 3 application restarts ([runtime table](#restarts-and-service-interruptions)) | [Restarts and service interruptions](#restarts-and-service-interruptions) |
+| Base | Create 3 firmware `I.0.0.FastDDS` (ROS Iron), read from the base's web page meta (`http://192.168.186.2`). Pi and base clocks agreed (median offset 31 ms) | [Current configuration](#robot) |
 
 ### State on 2026-10-10
 
@@ -61,6 +75,9 @@ No passwords, Wi-Fi keys or other credentials are recorded here or anywhere in t
 | Clock | Factory chrony setup, which cannot reach NTP on campus. No battery-backed clock: after a power cycle the Pi came back in October 2024. HTTPS clock fix installed on 2026-10-03; removal prepared but not run. On 2026-10-04 the fix was still installed, the clock was correct (2026) and the base talked to ROS. Keep or remove: open decision (ROADMAP TB-17) |
 | Setup tool | `turtlebot4-setup` is not on `PATH` in this image; Wi-Fi was configured with `nmcli` and a keyfile |
 | Load note | The OAK-D camera container uses about one CPU core |
+| Create 3 base firmware (added 2026-10-24) | `I.0.0.FastDDS` (ROS Iron), read from the robot-info meta on the base's web page `http://192.168.186.2` |
+| Wi-Fi hardware and driver (added 2026-10-24) | Driver `brcmfmac`, chip BCM43455, firmware 7.45.234. `iw` and `iwconfig` are not installed. The kernel log says `brcmf_cfg80211_set_power_mgmt: power save enabled` at every boot |
+| Global Wi-Fi power saving (added 2026-10-24) | `/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf` sets `wifi.powersave = 3` (enable; the Ubuntu default). A profile with value `0` (default) inherits this. File not changed. Since R14 the `Students` profile overrides it with `2` (disable) |
 
 ### Network
 
@@ -76,6 +93,15 @@ No passwords, Wi-Fi keys or other credentials are recorded here or anywhere in t
 NetworkManager uses Students when it is in range and falls back to the access point otherwise. After the reboot on 2026-10-03 the robot came back on Students by itself. The robot joined Students on 5 GHz during the test phase and on 2.4 GHz in the permanent phase.
 
 avahi is limited to `wlan0`, so `turtlebot4.local` resolves only to the Wi-Fi address. Before this change it sometimes resolved to `192.168.186.3`, the internal link to the base, which a laptop cannot reach. Since 2026-10-04 the name has also failed to resolve intermittently on the campus Wi-Fi (mDNS is unreliable there); use the address on the robot's display. See [Known issues](#known-issues).
+
+### Wired and internal links (added 2026-10-24)
+
+| Link | Value |
+|---|---|
+| `eth0` (Raspberry Pi Ethernet port) | `192.168.185.3/24`, static, from the TurtleBot 4 netplan file `40-ethernets.yaml`. No DHCP server on the cable, so a computer plugged in directly must use a `192.168.185.x` address or the robot's IPv6 link-local address (MAC `D8:3A:DD:41:D5:DF`, link-local `fe80::da3a:ddff:fe41:d5df` on 2026-10-24). How: [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md#connect-with-an-ethernet-cable-no-wi-fi-needed) |
+| `usb0` | `192.168.186.3/24`, link to the Create 3 base at `192.168.186.2` |
+| `wlan0` | `Students` (priority 10) or the own hotspot `Turtlebot4` (`10.42.0.1/24`, priority 0). On 2026-10-24 it was the hotspot |
+| NetworkManager connections (2026-10-24) | `netplan-wlan0-Turtlebot4` (active), `netplan-eth0`, `netplan-usb0`, `Students` (autoconnect yes, priority 10, not active) |
 
 ### Lab router (not used by the robot yet)
 
@@ -137,10 +163,20 @@ Status check 2026-10-10: no change was made to the robot from 2026-10-05 to 2026
 | R11 | Motion program `motion_shapes.py` (2026-10-04) | `~/robot_code/motion_shapes.py` (copy of [examples/motion_shapes.py](examples/motion_shapes.py)) | Drive test shapes closed-loop on `/odom`, with safety stops | `ls -l ~/robot_code/motion_shapes.py` | `rm ~/robot_code/motion_shapes.py` | Present. User file, no system change. The version on the robot may lag the repo copy during testing; compare before relying on it. **2026-10-10:** unchanged; last seen 2026-10-04 |
 | R12 | Further example programs (2026-10-04) | Not deployed yet: the programs are in [examples/](examples/) only. The robot went offline before they could be copied. When copied, list them here (`health_check.py`, `sensor_report.py`, `lidar_snapshot.py`, `lightring_status.py`, `more_shapes.py`, `wall_approach.py`, `keep_distance.py`, `motion_common.py`, `campaign.sh`) | More example programs | `ls -l ~/robot_code` | Delete the listed files | Not applied. **2026-10-10:** still not applied (planned in ROADMAP TB-23) Note 2026-10-10: `clearance_check.py` was fixed in the repository (its fallback when TF is missing is now +90 deg instead of 0 deg); the copy on the robot from 2026-10-03 has the old fallback, so copy the fixed file along with the others. |
 | R13 | Test results folder (2026-10-04) | Not created. The 2026-10-04 run logs were copied from `/tmp` on the robot into [tests/logs/](tests/logs/) | Keep the raw run logs | n/a | n/a | Not applied. **2026-10-10:** unchanged |
+| R14 | Wi-Fi power saving off in the `Students` profile (2026-10-24, about 00:22 laptop time, UTC+3). Applies TB-20 steps 3 and 4 only | `/etc/NetworkManager/system-connections/Students.nmconnection` (root only). The global file `/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf` and the `Turtlebot4` profile were not touched | Stop the Pi's Wi-Fi from sleeping; leading cause of the SSH drops of 2026-10-04 and 2026-10-05 (diagnosis, not confirmed) | `nmcli -g 802-11-wireless.powersave connection show Students` prints `disable` | `sudo nmcli connection modify Students 802-11-wireless.powersave 0`, which restores the value before (`default`) | Applied by the user typing the `sudo` password. Command run: `sudo nmcli connection modify Students 802-11-wireless.powersave 2`. Before: `default`; after: `disable`. `nmcli connection up Students` was **not** run (`Students` was out of range and bringing it up would have disturbed the hotspot), so the setting takes effect the next time the robot joins `Students`. **Effect not verified until the robot is on campus** (TB-20 steps 5 and 6, and TB-26) |
+| R15 | Run-log folder created by TurtleBot Studio (2026-10-24, laptop time about 00:45 to 01:15) | `~/robot_code/logs/` (empty at the end of the test; Studio keeps run logs and `.pid` files of the programs it starts there) | Used by [TurtleBot Studio](tools/studio/README.md), the tool for running and stopping programs | `ls -ld ~/robot_code/logs` | `rm -r ~/robot_code/logs` (user files only; Studio creates it again when needed) | Present. User files only: no `sudo`, no system change. The Studio test folder `~/robot_code/studio_test` and its logs were removed after the test |
+| R16 | Saved Wi-Fi network for a home test network, `TP-LINK_Extender_5GHz` (2026-10-24, about 04:49 laptop time, UTC+3). Added with TurtleBot Studio, Wi-Fi tab, **Add to the robot** with "Switch the robot to it right now" ticked | New file `/etc/NetworkManager/system-connections/studio-TP-LINK_Extender_5GHz.nmconnection` (root only, mode 600; its date shows 2024 because the robot clock was still wrong when it was written). Autoconnect on, priority 10, Wi-Fi power save off (`2`). The `Students` profile, the `Turtlebot4` hotspot profile and netplan were not touched | Put the robot on the home Wi-Fi while it was away from campus, and the first real test of Studio's Add flow (TB-27) | `nmcli -g connection.autoconnect,connection.autoconnect-priority,802-11-wireless.powersave connection show TP-LINK_Extender_5GHz` prints `yes`, `10`, `disable`; while in range `nmcli -t -f NAME,DEVICE connection show --active` lists it on `wlan0` | `sudo nmcli connection delete id TP-LINK_Extender_5GHz` (or Studio, Wi-Fi tab, **Remove**). Out of range the robot falls back to `Students` or its own hotspot by itself, so the entry is harmless on campus | Applied by the user typing the Wi-Fi password and the `sudo` password in the terminal Studio opened. The robot joined at once: `wlan0` 192.168.100.31/24, channel 36 (5 GHz), signal 61 % (-60 dBm), default route via the home router, and the clock synchronised for the first time since 2026-10-04. Studio then connected over Wi-Fi only (cable unplugged) through `turtlebot4.local`. **Side effect:** with internet, Ubuntu's `apt-daily` timer started `unattended-upgrade --download-only` (one core at 100 %, nice 19); see [Known issues](#known-issues). **Added later the same evening:** the Pi clock was stepped by chrony while ROS ran, and the Create 3 base clock had to be re-synchronised by hand (base runtime actions, below). The Remove flow was not run, so the undo above is still only the `nmcli` command. The robot goes back to the lab on 2026-10-25; the entry does no harm out of range. **Removed on 2026-10-25 by R21** |
+| R17 | Wi-Fi power saving off for **all** networks by a global NetworkManager drop-in (2026-10-24, laptop time UTC+3: file created 14:54, renamed and effective 15:18; robot 07:54 and 08:18 EDT) | New file `/etc/NetworkManager/conf.d/zz-wifi-powersave-off.conf` (root, 644), content `[connection]` / `wifi.powersave = 2`. The existing `default-wifi-powersave-on.conf` (`wifi.powersave = 3`) was not edited; the `zz-` name makes NetworkManager read it after `default-...` (files are read in alphabetical order, digits before letters, so the first name `99-...` was overridden and had no effect) | Turn Wi-Fi power saving off for every profile that does not set its own value (the `Turtlebot4` hotspot profile, still `default`, and any future network), instead of profile by profile (R14, R16). Supports TB-20 | `NetworkManager --print-config | grep powersave` prints `wifi.powersave=2` (no root needed); the header line lists `etc: default-wifi-powersave-on.conf, zz-wifi-powersave-off.conf` | `sudo rm /etc/NetworkManager/conf.d/zz-wifi-powersave-off.conf && sudo nmcli general reload conf` | Applied by the user typing the `sudo` password, in two steps: `printf ... | sudo tee /etc/NetworkManager/conf.d/99-wifi-powersave-off.conf` plus `sudo nmcli general reload conf` (still `3`), then `sudo mv ... zz-wifi-powersave-off.conf` plus reload. After: `wifi.powersave=2`. Journal: `op="reload" result="success"` both times; no Wi-Fi drop, the robot stayed on `TP-LINK_Extender_5GHz`. A profile with its own value keeps it (`Students` and `TP-LINK_Extender_5GHz` are `disable`). The value is applied to a connection when it is next activated. **Not yet checked after a reboot**, and the effect on the campus drops is still TB-20 |
+| R18 | User lingering on for `ubuntu` (2026-10-24, laptop time UTC+3 about 17:07; robot about 10:07 EDT) | systemd-logind state (`/var/lib/systemd/linger/ubuntu`); no config file edited. Side effect: a systemd user manager for `ubuntu` now runs permanently (about 10 MB) and starts Ubuntu's default user units (obex, gpg-agent sockets and similar; no custom user units exist) | Stop systemd-logind from deleting the shared memory of `ubuntu` (and with it Pi-local ROS delivery) when the last login session closes; see [Known issues](#known-issues) and the TB-25 evening update | `loginctl show-user ubuntu -p Linger` prints `Linger=yes`; while the bringup runs, `ls /dev/shm \| grep -c fastrtps` is above 0; after logging out and in again, `ros2 topic hz /odom` shows about 20 Hz | `sudo loginctl disable-linger ubuntu` (the Pi-local silence then returns after the last SSH logout) | Applied by the user typing the `sudo` password: `sudo loginctl enable-linger ubuntu`, then `sudo systemctl restart turtlebot4` (active 10:08:21 robot time). Verified: after the user's logout and three more logouts, 93 `fastrtps` files remained, `/odom` 19.997 Hz, `/dock_status` 1 Hz. Alternative not applied: a logind drop-in with `RemoveIPC=no`. **Not yet checked after a reboot** |
+| R19 | Saved Wi-Fi network removed from the Create 3 base (2026-10-24, laptop time UTC+3 23:03:13; robot 16:03:13 EDT, base 20:03:13 UTC). TB-25 change A, approved by the user | Create 3 network settings (its saved SSID and password keys). Its ROS settings (domain, namespace, RMW, discovery server, RMW profile), NTP setting and firmware were not touched | The base had no IP address but kept searching for a saved network it could not find: a Wi-Fi scan and a failed DHCP request about every 7.5 s on a base that idles at about 55 % CPU. The TurtleBot 4 Jazzy manual keeps the base off the Wi-Fi. See [ROADMAP.md, TB-25](ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving) | From a robot terminal: `curl -s -m 10 http://192.168.186.2/logs-raw \| grep -E 'SCAN-STARTED\|sending discover' \| tail -n 3` shows no lines after 20:03:17 base time; the base's Wi-Fi page shows no IP address | Connect the base to a network again on its web page (Connect); needs that network's name and password, which were not visible. Normally not wanted | Applied from the Pi with `curl -X POST http://192.168.186.2/api/forget-wifi` (the call behind the base's "Forget Wi-Fi Network" button; reply `{"status":"Forgetting Wi-Fi network."}`). The base logged "Forget WiFi network command received. Clearing WiFi credentials now", deleted `network.ssid` and `network.password`, stopped its DHCP client and took `wlan0` down; ping to the base stayed at 0.4 to 0.9 ms; its CPU peaked at 96 % in that minute. No base restart. Effect on the stalls: see the TB-25 update |
+| R20 | Robot time zone set to `Asia/Riyadh` (UTC+3), was `America/Toronto` (EDT, UTC-4) (2026-10-24, 23:51:58 laptop and robot time) | systemd time zone setting (`/etc/localtime` link), changed with `timedatectl` | The robot clock was correct (synced, 0.4 ms off) but showed Toronto time, 7 hours behind the lab, which made every log and journal time confusing. From this change on, robot time and laptop time are the same; entries before it give robot time in EDT | `timedatectl` shows `Time zone: Asia/Riyadh (+03, +0300)` and `System clock synchronized: yes` | `sudo timedatectl set-timezone America/Toronto` | Applied by the user typing the `sudo` password: `sudo timedatectl set-timezone Asia/Riyadh`. Verified with `timedatectl` right after. ROS 2 time stamps are in UTC and did not change; systemd timers that use local time (for example the Ubuntu update timers, TB-28) now follow Saudi time |
+| R21 | Home Wi-Fi profile `TP-LINK_Extender_5GHz` (R16) deleted from the robot, then the robot shut down for the move to the lab (2026-10-25, about 00:20 laptop and robot time, UTC+3) | `/etc/NetworkManager/system-connections/` (the R16 profile file, which held the home Wi-Fi password) | The robot's `ubuntu` password is now published in this repository, so anyone who can log in could read a stored home Wi-Fi password with `sudo`; on campus the robot joins `Students` (R1) by itself and does not need the home profile | On the next boot: `nmcli -t -f NAME connection show` no longer lists `TP-LINK_Extender_5GHz`; still listed: `Students`, `netplan-wlan0-Turtlebot4`, `netplan-eth0`, `netplan-usb0` | Add the home network again with TurtleBot Studio, Wi-Fi tab (needs its password), as in R16 | Applied by the user typing the `sudo` password in one command: `sudo systemd-run --on-active=8 systemctl poweroff && sudo nmcli connection delete TP-LINK_Extender_5GHz`. Output: `Connection 'TP-LINK_Extender_5GHz' (0f24cae0-...) successfully deleted.`; the SSH session then closed and the robot stopped answering on the home network. The power-off itself was not seen remotely: check that the display and lights are off before unplugging. The next power-on at the lab is the first boot on the new kernel installed by the automatic update (TB-28) |
 
-Not changed: the factory access point profile and `/etc/netplan/50-wifis.yaml`, the ROS and TurtleBot configuration, the robot password, and the Create 3 settings (the base was only restarted).
+Not changed: the factory access point profile and `/etc/netplan/50-wifis.yaml`, the ROS and TurtleBot configuration, the robot password, and the Create 3 settings (the base was only restarted). Since 2026-10-24 (R19) the base's saved Wi-Fi network is removed; its ROS settings are still unchanged.
 
 On 2026-10-04 no `sudo` was used, no configuration was changed and the clock was not touched. The only physical change was reseating the lidar USB cable (same cable, same port) before the 11:44 boot. Temporary diagnosis files were written to `/tmp` (`undock.log`, `shapes_*.log`, `gapprobe*.py`, `odomprobe.py`, `odomprobe.log`, `scan_*.txt`); `/tmp` is cleared at reboot, so they need no undo.
+
+2026-10-24: two changes, R14 and R16 (above; R15 is a user folder). Runtime actions that day (undock, `/start_motor`, dock) changed no configuration and are listed under [Restarts and service interruptions](#restarts-and-service-interruptions). The robot clock, the global NetworkManager file, the `Turtlebot4` profile and the Create 3 settings were not touched. Temporary files were written to `/tmp` only (the timing recording `/tmp/timing_motion_2026-10-24.jsonl`, copied to the laptop); `/tmp` is cleared at reboot.
 
 On 2026-10-04 at about 15:42 (robot time) and on 2026-10-05 (laptop time) the robot was reached only briefly over SSH, for read-only checks; nothing was changed. No `sudo` was used by the assistant at any point since 2026-10-04.
 
@@ -173,6 +209,57 @@ On 2026-10-04 at about 15:42 (robot time) and on 2026-10-05 (laptop time) the ro
 | When | Action | Run by | Result |
 |---|---|---|---|
 | Afternoon | SSH to the robot by address and by key | From a laptop | Worked for about a minute, then the robot disappeared again; afterwards it answered only in short windows (about 10 to 40 s). The laptop's Wi-Fi stayed fine. No restart of the robot is recorded |
+
+2026-10-24 (seconds since the start of the timing recording; the robot clock read 15:05:35 at 0 s and was about two years wrong, so only the offsets are reliable). No configuration change in any of these actions:
+
+| When | Action | Run by | Result |
+|---|---|---|---|
+| About 00:22 laptop time | R14: `sudo nmcli connection modify Students 802-11-wireless.powersave 2` | User (typed the `sudo` password) | Profile value `default` to `disable`. Not brought up |
+| 32.5 s | Undock (`/undock` action goal) | Main session, user next to the robot | SUCCEEDED at about 41 s. All base topics stalled for 1.39 s at 33.76 s and 0.57 s at 35.19 s (see the [finding](#update-2026-10-24-measurements-with-the-timing-recorder)) |
+| About 93 s | First `motion_shapes.py` attempt | Main session | Setup failed: no `/scan`. The lidar motor had not restarted after undocking (the `rplidar` log has "Stop" at 14:37:45 robot time when docked and no "Start" after the undock) |
+| After 93 s | `ros2 service call /start_motor std_srvs/srv/Empty` by hand | Main session | `/scan` at 7.6 Hz. Runtime action only |
+| 173.4 s to about 180.5 s | `motion_shapes.py back_and_forth --side 0.3`: forward at 0.1 m/s from 176.50 s | Main session, user next to the robot | At 178.51 s all base topics stalled; the program held still and aborted ("odometry is stale (none for 2.0 s)") at about 180.5 s. The robot moved a few centimetres |
+| About 00:33 laptop time | Dock (`/dock` action) | Main session | SUCCEEDED |
+
+TurtleBot Studio test, 2026-10-24 (laptop time about 00:45 to 01:15, UTC+3; robot docked, over the Ethernet cable). No configuration change in any of these actions:
+
+| When | Action | Run by | Result |
+|---|---|---|---|
+| During the test | E-stop on and off three times while docked: once with the command line, once through the Studio API, once with the Studio button | Main session, user present | Wheels disabled then enabled each time (read from `/wheel_status` `wheels_enabled`); `~/STOP` created and removed. No motion |
+| During the test | Test folder `~/robot_code/studio_test` created by a sync, a test script run and stopped, then folder and test logs removed | Studio | The empty `~/robot_code/logs/` remains (R15) |
+| During the Studio 1.1 test (about 01:30 to 03:00 laptop time) | Test folder `~/robot_code/studio_test` written (two templates), `my_first_program.py` run, `spin_in_place.py` run with `--dry-run` only, then folder and files removed | Studio, user present | No motion (nothing sent to `/cmd_vel`). No configuration change |
+| During the test | Studio's robot-side helper `robot_bridge.py` streamed over ssh and run for the session | Studio | Nothing installed on the robot; it exits when Studio disconnects. It used about 23 % of one core (97 % before the executor was changed) |
+
+Home Wi-Fi and supervised motion through Studio, 2026-10-24 (laptop time from about 04:26, UTC+3; the robot clock was correct from about 04:50, after it reached the internet):
+
+| When | Action | Run by | Result |
+|---|---|---|---|
+| About 04:34 | First **Add to the robot** attempt | Studio, user | The terminal window closed at once (Studio bug), nothing ran on the robot |
+| About 04:40 | Second attempt | Studio, user | The script printed "bad arguments" before asking for anything (Studio bug: wrong argument order). Nothing changed |
+| About 04:49 | R16: network saved and brought up (`nmcli connection up`) | User (typed the Wi-Fi and `sudo` passwords) | Robot left its `Turtlebot4` hotspot and joined `TP-LINK_Extender_5GHz` (192.168.100.31). No reboot, no ROS restart |
+| About 04:52 | Ethernet cable unplugged; Studio connected over Wi-Fi | User, main session | Connected through `turtlebot4.local` (233 ms to answer). Status, battery and odometry live |
+| From about 04:50 | `unattended-upgrade --download-only` started by Ubuntu's `apt-daily` timer | Automatic (Ubuntu) | One core at 100 % (nice 19), Pi temperature 67 °C. Not stopped or changed |
+
+Update 2026-10-24, evening: supervised motion through Studio over Wi-Fi, with the user next to the robot and the motion confirmations ticked. Times are laptop time (UTC+3); robot time (EDT) is 7 hours earlier and is shown in brackets. The timing recorder ([tools/timing/record_timing.py](tools/timing/record_timing.py) with `--light`) was copied to `/tmp` on the robot and run detached. Recording 1 started 05:00:27 (robot 22:00:27) and ran 607 s; recording 2 started 05:11:11 (robot 22:11:11) and ran 1500 s, using 7.4 % of one core. Files: [tests/logs/2026-10-24_timing_wifi_before_base_restart.jsonl.gz](tests/logs/2026-10-24_timing_wifi_before_base_restart.jsonl.gz), [tests/logs/2026-10-24_timing_wifi_after_base_restart.jsonl.gz](tests/logs/2026-10-24_timing_wifi_after_base_restart.jsonl.gz), [tests/logs/2026-10-24_studio_motion_runs.log](tests/logs/2026-10-24_studio_motion_runs.log).
+
+| When | Action | Run by | Result |
+|---|---|---|---|
+| 05:00 (robot 22:00:33) | Recording 1 running, robot docked and idle | Main session | 6 s after the recorder started: `/odom` stall of 7.51 s, `/dock_status` 4.7 s, ping to the base up to 41 ms. The longest idle stall seen so far (earlier maximum 1.75 s) |
+| 05:03 (robot 22:03) | Undock through the Studio Dashboard | Studio, user | "undock: succeeded (status 4)". The lidar was running after the undock (8 Hz; nearest value ahead changed from 0.77 m to 1.93 m), so the lidar-motor issue (TB-24) did not reproduce this time. The lidar motor may not have stopped while docked (Studio showed 8 Hz on the dock) |
+| 05:03:39 (robot 22:03:39) | `my_spin_in_place.py --turns 1 --yes`, from the Code tab (**Save and Run**) | Studio, user | `/cmd_vel` started 194.6 s into the recording. `/odom` gaps of 0.79 s, 1.07 s, then 7.81 s: the program aborted at 22:03:50 robot time on "odometry is stale (none for 2.0 s)". The robot stopped, as designed |
+| 05:06:42 (robot 22:06:42) | Create 3 application restart (`POST /api/restart-app` on the base) | Main session, user approved | The HTTP reply timed out but the base restarted. `/odom` was silent for 163 s and came back at about 22:09:30 robot time. The base clock was still 2024 afterwards: an application restart does not re-synchronise the base clock |
+| 05:12:35 (robot 22:12:35) | Spin again (`my_spin_in_place.py --turns 1 --yes`) | Studio, user | Done: "turned 359 degrees in total (odometry)", 14 s. Gaps: 0.33 s at program start (delivery delayed) and 0.68 s at motion start. No abort |
+| About 05:16:50 | Robot moved by hand to open floor (lidar saw the user's bed 0.34 m ahead) | User | An idle `/odom` gap of 0.67 s, probably the lift |
+| 05:17:47 (robot 22:17:47) | `my_drive_circle.py --radius 0.3 --yes` | Studio, user | Done in about 22 s. The program printed "ended 17.3 cm from the start (odometry)". **This closure figure is not valid:** the robot drove over the dock edge and the user moved it during the lap. Timing only: a 0.30 s delivery delay at the start and no stall during the lap |
+| 05:19 to 05:20 (robot 22:19:51 to 22:20:02) | Robot carried to 30 to 50 cm in front of the dock, then **Dock** through Studio | User, Studio | A 1.07 s idle gap while handling. "dock: succeeded (status 4)" |
+| 05:20:50 (robot 22:20:50) | Base clock re-sync: `POST /api/restart-ntpd` on the base | Main session, user approved | The base clock stepped to 2026 within 15 s. `/odom` stamps matched the Pi (difference 0 s) and data kept flowing |
+| 05:21:17 (robot 22:21:17) | Create 3 application restart again | Main session, user approved | `/odom` and `/dock_status` silent for 373 s (back at about 22:27:30 robot time); the base web page timed out for part of that. Then normal: clocks within 1 s, charging at 0.41 A |
+| 05:35:06 (robot 22:35:06) | Docked and idle, base and Pi clocks in agreement | Main session | `/odom` stall of 10.97 s (plus 0.76 s just before), `/dock_status` 9.9 s, Pi load average 9.06, CPU 100 %, temperature 72.5 °C, ping to the base up to 36 ms. At that time the assistant was running several `ros2 topic echo` and `ros2 topic hz` commands on the robot (each is a new ROS 2 participant) and the Ubuntu update job was still running |
+| Afterwards | Cleanup | Main session | The test programs, their `.bak` copies, the run logs and the recorder files in `/tmp` were removed from the robot. `~/robot_code/logs` stays (R15). An older 2024 `drive_test` log was left in place |
+
+Other runtime facts of the evening: at 05:35 laptop time the Ubuntu update job `unattended-upgrade --download-only` was still running after 45 minutes (started 21:50 robot time, one core at 100 %, nice 19); Pi CPU 45 to 50 % and temperature 65 to 72 °C docked. It was not stopped (decision: ROADMAP TB-28). At 100 % charge Studio showed "On battery (-0.69 A)": the base stops charging when full and the Pi then draws from the battery; later the battery was at 91 % and charging at 0.41 A. This is normal, not a fault. Motion starts that evening: undock, spin, spin, circle and dock, 5 in all (TB-25 asks for at least 10).
+
+**Base runtime actions (how the Create 3 clock was re-synchronised on 2026-10-24).** The base clock does not follow the Pi. After the Pi clock changed: (1) `POST /api/restart-ntpd` on the base, which stepped the base clock to the right time within about 15 s with `/odom` still flowing; (2) then `POST /api/restart-app` on the base, after which `/odom` and `/dock_status` were silent for 163 s and 373 s in the two restarts (expect up to about 6 minutes). Both calls interrupt the base and were run with the user present and approving, and the second one with the robot docked. Whether step 2 is needed once step 1 has made the clocks agree was not tested. The HTTP reply of `restart-app` can time out even though the restart happens. Both calls were sent from the Pi in an SSH session (no `sudo`): `curl -X POST http://192.168.186.2/api/restart-ntpd` and `curl -X POST http://192.168.186.2/api/restart-app`; the base web page has the same two buttons. Not yet tested on another day or from a script; treat as [to verify] before relying on it.
 
 ### Removing the clock fix by hand
 
@@ -300,6 +387,18 @@ Accepted cost: the Pi date stays wrong, so `git clone`, `pip` and `apt` over HTT
 - When the base goes silent, restart the Create 3 application first. Restarting `turtlebot4.service` alone did not help.
 - Nice-to-have changes on shared hardware should be proposed, not applied.
 
+### Update 2026-10-24: clock stepped by the internet, and base re-sync
+
+Times are laptop time (UTC+3) unless marked robot time (EDT, 7 hours earlier).
+
+Measured:
+
+- Before the evening the Pi clock read 28 October 2024. When R16 gave the robot internet, `chronyd` stepped the Pi clock by +62,648,406.93 s (about 1.99 years) at 21:49:23 robot time, while ROS was running. The Pi clock was correct from 04:49 laptop time (21:49 robot time). `tb4-https-time` at 21:59 robot time said "Clock already correct".
+- The Create 3 base kept its 2024 clock: the `/odom` header stamps were 62,648,407 s behind the Pi.
+- Base re-sync: `restart-ntpd` on the base at 22:20:50 robot time stepped its clock to 2026 within 15 s with `/odom` flowing; a base application restart at 22:21:17 robot time followed (373 s of silence). Afterwards the clocks agreed within 1 s. The procedure is in the [runtime table](#restarts-and-service-interruptions) under "Base runtime actions".
+
+Why the clock is not fixed for good (answer given on 2026-10-24): the Pi 4 has no battery-backed real-time clock; the campus network blocks NTP; the 2026-10-03 HTTPS clock fix stepped the clock while ROS ran and silenced the base (this incident); and the keep-or-remove decision ([TB-17](ROADMAP.md#tb-17-decide-whether-to-keep-or-remove-the-clock-fix)) is still open. No permanent fix has been approved. Proposals for TB-17 are in the roadmap and have not been applied.
+
 ## Incident: lidar not detected (2026-10-03), resolved 2026-10-04
 
 | | |
@@ -353,7 +452,7 @@ A loose USB connection between the lidar and the Pi. The lidar's motor is powere
 | | |
 |---|---|
 | Date | 2026-10-04 (robot time) |
-| Status | Worked around in `motion_shapes.py`; root cause under characterisation ([ROADMAP.md, TB-15](ROADMAP.md#tb-15-characterise-the-odom-pauses-at-motion-start)) |
+| Status | Worked around in `motion_shapes.py`. **Updated 2026-10-24:** cause located in the Create 3 base, triggered when it starts to move; why it stalls is still open ([ROADMAP.md, TB-15](ROADMAP.md#tb-15-characterise-the-odom-pauses-at-motion-start), [TB-25](ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving)) |
 | Affects | Any program that stops when `/odom` is late, in particular `motion_shapes.py` |
 | Illustrated version | [docs/motion-program-design.html](docs/motion-program-design.html#odom-pause) |
 
@@ -372,6 +471,170 @@ The first real run of `motion_shapes.py square` aborted about 1 s after starting
 | Triangle run after fix 1 | Aborted at a segment change with a 1.0 s gap; Pi load average 3.4 at the time |
 | Root-cause characterisation | _Placeholder: numbers from the test campaign (gap length and frequency, when gaps occur, load dependence)_ |
 
+### Update 2026-10-24: measurements with the timing recorder
+
+Recorder: [tools/timing/record_timing.py](tools/timing/record_timing.py), run on the robot and piped over SSH for 300 s; 33,324 records, saved as `/tmp/timing_motion_2026-10-24.jsonl` on the robot and copied to the laptop. The recorder itself used 44 % of one core (high; being reduced). The robot was on Ethernet plus its own hotspot, with a person next to it. Times are seconds since the start of the recording.
+
+| Event | Time | What was recorded |
+|---|---|---|
+| Undock goal sent | 32.5 s | Undock SUCCEEDED at about 41 s |
+| First stall (undock motion start) | 33.76 s | `/odom`, `/tf`, `/imu` and `/wheel_status` all stopped for **1.39 s**; their header stamps also stopped. A second stall of 0.57 s at 35.19 s |
+| `motion_shapes.py` start-up | 173.4 s | Pi CPU 100 % (load1 4.43) for the program start; only a 0.29 s `/imu` gap |
+| Forward drive starts | 176.50 s | `/cmd_vel` 0.1 m/s |
+| Second stall (drive) | 178.51 s, 2.0 s after the start | All base topics stalled; **`/odom` receive gap 3.16 s**. Then gaps of 0.57 s, 1.50 s, 0.49 s and 0.91 s until about 185 s |
+| Program | from 178.85 s | Held still (zero `/cmd_vel`); aborted at about 180.5 s on "odometry is stale (none for 2.0 s)". The robot moved a few centimetres |
+| Idle baseline (docked, 180 s) | n/a | `/odom` 19.9 Hz, one 1.31 s gap at its own start-up, otherwise clean. Pi to base clock offset: median 31 ms |
+
+During the stalls: `ping` to the base over `usb0` lost 0 % but the round-trip time rose to 21 to 27 ms (median 0.5 ms); `eth0`, `usb0` and `wlan0` showed 0 errors and 0 drops; no link changed; Pi CPU was 40 to 61 % in total (busiest core up to 71 %), temperature up to 59 C, `vcgencmd get_throttled` 0x0.
+
+**Conclusion, evidence (measured on 2026-10-24):**
+
+- The pauses start in the Create 3 base: header stamps stop too, all base topics stall together, and the base answers `ping` more slowly during the stall.
+- They are triggered by the base starting to move: both stalls came at a motion start (undock, forward drive).
+- They are not the Wi-Fi (the robot was on Ethernet and its own hotspot) and not an overloaded Pi (CPU at most 61 % in total at the stall; throttling none).
+
+**Inferred, not proven:** the base is overloaded inside, or blocked, when the motors start (firmware `I.0.0.FastDDS`, ROS Iron). Not yet tested: whether fewer subscribers or republished topics (the recorder subscribed to many) change the stalls; the Create 3 known issues and release notes; the `create3_republisher` settings. These are TB-25. The repeat count is small (2 stalls in one run), so no frequency is claimed.
+
+### Update 2026-10-24 (evening, over Wi-Fi)
+
+The robot was on the home Wi-Fi (R16), docked or driven under supervision through Studio. Details and times are in the [runtime table](#restarts-and-service-interruptions); recordings are in `tests/logs/` (`2026-10-24_timing_wifi_before_base_restart.jsonl.gz`, `2026-10-24_timing_wifi_after_base_restart.jsonl.gz`, `2026-10-24_studio_motion_runs.log`).
+
+Measured:
+
+- Idle, docked: `/odom` stall of 7.51 s at 22:00:33 robot time (6 s after the recorder started) and 10.97 s at 22:35:06 (clocks in agreement), `/dock_status` stalls of 4.7 s and 9.9 s. Earlier idle maximum: 1.75 s.
+- In motion: a 7.81 s gap aborted the first spin; after the base application restart the second spin (gaps 0.33 s and 0.68 s) and the circle (0.30 s) ran without a stall over 0.68 s.
+- The ping round-trip time to the base rose in every long stall (up to 41 ms and 36 ms), so the stall is on the base side.
+- The Wi-Fi was not involved: no errors or drops, signal steady at about -60 dBm.
+- The restart of the base application is **not a fix**: an 11 s idle stall came after it, with the clocks already in agreement.
+- Undock and dock through Studio worked; the lidar was running after the undock (TB-24 did not reproduce).
+
+**Hypothesis, not proven:** long stalls follow new ROS 2 participants joining the graph (DDS discovery load on the Create 3, Fast DDS, firmware `I.0.0.FastDDS`). Three observations fit it: the 7.5 s stall came 6 s after the recorder started; the abort came seconds after the spin program started; the 11 s stall came while several `ros2 topic echo` and `ros2 topic hz` commands were starting (run by the assistant, alongside the update job). If so, the earlier idea that stalls are triggered by the motion start may really be triggered by the program start just before the motion. Pi CPU load (update job, command-line tools) may contribute. Next test, cheap, docked, no motion: record with `--light` for 10 minutes; every 60 s start and stop a minimal `rclpy` node (or run `ros2 topic list`), log the times and see whether stalls follow the joins; then read the Create 3 discovery-server and ROS domain settings and the republisher settings (read-only). See [TB-25](ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving).
+
+The 5 motion starts of the evening (undock, spin, spin, circle, dock) are too few to give a frequency.
+
+### Update 2026-10-24 (afternoon; TB-25 DDS-join test, docked, no motion)
+
+Test of the hypothesis above. Run 14:23 to 14:35 laptop time (UTC+3; robot clock 07:23 EDT, correct). The Pi had rebooted about 14:10 (uptime 12 min at the start); not caused by this test. The robot was docked on the home Wi-Fi (`192.168.100.31`), Ibrahim present, no motion. `record_timing.py --light --duration 720` ran detached from `/tmp` (CPU cost 8.8 % of one core). After a 120 s quiet baseline, a minimal `rclpy` node (create node, spin 5 s, exit) was started every 60 s, 8 times; start times were logged with the monotonic clock. No `ros2` CLI command ran on the robot during the recording. Robot configuration was not changed. Files: `tests/logs/2026-10-24_timing_tb25_dds_joins.jsonl.gz` and `tests/logs/2026-10-24_timing_tb25_dds_joins_joins.log`. The recording started at monotonic 752.11 s; join starts were at 119.7, 179.8, 239.8, 299.8, 359.8, 419.8, 479.8, 539.8 s (recording time).
+
+Result (17,155 records, `/odom` 14,141 messages at 19.8 Hz):
+
+| Period | `/odom` and `/dock_status` gaps |
+|---|---|
+| Quiet baseline, 0 to 119.7 s (no joins; includes the recorder's own start) | **none** |
+| Join 1 (119.7 s), 3 (239.8 s), 6 (419.8 s), 7 (479.8 s), 8 (539.8 s) | **none** |
+| Join 2 (179.8 s; node exited at 186.9 s) | cluster of four starting 186.9 s, the moment the node left: `/odom` 0.38 s, `/dock_status` **6.50 s**, `/odom` **2.46 s**, `/odom` 1.95 s |
+| Join 4 (299.8 s) | `/odom` 0.50 s at 303.5 s (3.7 s after start) |
+| Join 5 (359.8 s) | `/odom` 0.41 s at 360.4 s (0.6 s after start; core 1 at 100 %, `create3_republisher` 52 %) and `/odom` 0.31 s at 361.6 s |
+| Outside every join (456.5 s) | `/odom` 0.27 s (core 1 at 100 %) |
+
+Reading:
+
+- 7 of the 8 gaps (all of the long ones) started within 12 s of a join; 3 of the 8 joins were followed by a stall; 5 of 8 joins and the whole 120 s baseline were clean. The one unrelated gap was 0.27 s.
+- **The hypothesis is supported in part, not proven.** A new participant can trigger base stalls, but not every time (3 of 8), and the worst one (6.5 s `/dock_status`, 2.5 s `/odom`) came when the node *left*, not when it joined. The cause is DDS participant churn (discovery or removal), not the wheels: no motion was involved.
+- Ping to the base stayed at its 0.5 ms median except for single spikes (27 ms and 15 ms) inside the long cluster. Wi-Fi had no errors or drops, signal -67 to -72 dBm. The stalls are `publisher stopped` (the base produced nothing).
+- The earlier 7.5 s to 11 s stalls were **not reproduced** by this light-weight probe. They happened with heavier events (several `ros2` CLI commands, a spin program). Likely the stall length grows with how many participants or endpoints change at once. Not tested.
+- Limits: one 12 minute run, 8 joins, one robot, home Wi-Fi. A repeat on campus and a run with `ros2` CLI commands as the joiners would show whether CLI joins are worse.
+
+Next test (read-only first): repeat with 8 `ros2 topic list` joins (CLI) and with 8 joins of a node that also subscribes to `/odom`; compare with this table. Possible mitigations to propose, not applied: start programs with a short wait before the first `/odom` check; keep one long-running node instead of starting and stopping many.
+
+### Update 2026-10-24 (evening; TB-25 follow-up joins, docked, no motion)
+
+Follow-up to the DDS-join test above. All times are laptop time (UTC+3) with robot time (EDT, 7 h earlier) in brackets. The robot was docked on the home Wi-Fi (`192.168.100.31`), Ibrahim present, no motion. The only robot configuration change was R18 (change register above).
+
+Two things happened first.
+
+- Automatic update. At 15:18 (08:18) a preflight found `unattended-upgrade` installing packages; it finished at 16:11:40 (09:11:40). `dpkg.log` shows 240 package upgrades on 2026-10-24, and `/var/run/reboot-required` lists `linux-image-6.8.0-1065-raspi` and `linux-base` (not rebooted). systemd stopped and started `turtlebot4.service` at least 8 times in that period (stops at 08:07:08 together with fwupd and packagekit, 08:10:55, 08:49:16, 08:52:42, 08:57:34, 09:00:17, 09:03:02 and one more before 08:47:17; starts at 08:08:16, 08:11:34, 08:47:17, 08:50:10, 08:53:21, 08:58:11, 09:00:55, 09:03:39, robot time). The update was waited out before testing. See the Known issues row and TB-28.
+- Invalid runs. Two recordings started at 16:13 (09:13) and 16:26 (09:26) received 0 messages on `/odom` and `/dock_status` for 720 s each, and joiner B printed "odom messages in 5 s: 0" every time. Both are invalid and were not stored in `tests/logs/`. The cause is described in the Known issues row "Pi-local ROS topics silent after the last SSH logout" and was fixed by R18 (about 17:07 laptop time).
+
+Method, valid runs after R18: as the first run. `record_timing.py --light --duration 720` copied to `/tmp` and run detached, 120 s quiet baseline, then 8 joins 60 s apart; start and end times logged with `time.monotonic()`; then `analyze_timing.py` and a correlation of gaps with join start and end.
+
+Run A: joiner `ros2 topic list --no-daemon` (a fresh CLI participant each time; `--no-daemon` so that no ros2 daemon stays running and every join is a real join and leave). Started 17:11 (10:11), 3 min after the R18 bringup restart. 17,339 records, `/odom` 14,319 messages at 19.9 Hz, recorder CPU 9.7 % of one core. Each join lasted 3.0 to 3.8 s. Gaps: `/odom` 0.32 s at 34.9 s (baseline, before any join; ping max 14.9 ms) and `/odom` 0.26 s at 362.1 s (join 5, 2.6 s after its start). No other gaps, no `/dock_status` gap.
+
+Run B: joiner = an `rclpy` node that subscribes to `/odom` (sensor-data QoS) for 5 s and exits. Started 17:23 (10:23). 16,729 records, `/odom` 13,736 messages at 19.1 Hz, recorder CPU 9.9 %. Each join lasted 7.4 to 8.2 s (start-up about 2.5 s plus 5 s). Messages the joiner itself received in its 5 s (about 100 expected): 99, 101, 99, 101, 89, 58, 40, 100.
+
+Gaps in run B (start in recording time, length, offset from that join's start):
+
+| Join (start) | Gaps |
+|---|---|
+| Baseline, 0 to 119.5 s | none |
+| 1 (119.5 s) | none |
+| 2 (179.5 s) | `/odom` 0.40 s at 180.4 s (+0.9 s) |
+| 3, 4 | none |
+| 5 (359.5 s) | `/dock_status` 7.26 s at 367.1 s (+7.5 s); `/odom` 7.05 s at 367.2 s (+7.6 s); `/odom` 2.68 s at 374.2 s (+14.7 s) |
+| 6 (419.5 s) | `/odom` 0.35 s (+0.8 s), 0.50 s (+1.6 s), 0.67 s (+4.8 s), 1.75 s (+5.9 s), 2.52 s (+10.9 s); `/dock_status` 12.28 s at 424.1 s (+4.6 s) |
+| 7 (479.5 s) | `/odom` 10.87 s at 484.6 s (+5.1 s); `/dock_status` 9.73 s at 485.1 s (+5.6 s) |
+| 8 | none |
+
+Analyzer classes: "publisher stopped" (header stamps stop too) except one "delivery delayed" (the 7.05 s gap) and one "unclear". Ping to the base rose to 19.5, 22, 65.8 and 73.5 ms in the long stalls (median 0.5 ms). Network: no errors, no drops, no link changes, Wi-Fi -69 to -72 dBm, no ping lost.
+
+Comparison with the first run:
+
+| Joiner | Joins followed by a stall | Longest `/odom` gap | Longest `/dock_status` gap |
+|---|---|---|---|
+| Bare node, 5 s (first run, afternoon) | 3 of 8 | 2.46 s | 6.50 s |
+| A: `ros2 topic list --no-daemon` | 1 of 8 | 0.26 s | none |
+| B: node subscribing to `/odom`, 5 s | 5 of 8 | 10.87 s | 12.28 s |
+
+Reading:
+
+- A participant that subscribes to `/odom` triggers base stalls more often and much longer than a bare node, and a short `ros2 topic list` almost never does. Run B reproduces the 7.5 to 11 s stalls of the evening of 2026-10-23/24.
+- Stalls started 0.8 to 14.7 s after the subscriber started, and every cluster had ended by about 17 s after it.
+- The base itself stops producing (stamps stop, ping to the base rises); the network does not.
+- Why a new subscriber on the Pi makes the Create 3 stall is still open. Inferred, not confirmed: discovery and endpoint matching load on the Create 3 (firmware `I.0.0.FastDDS`, simple discovery: `ROS_DISCOVERY_SERVER` empty, RMW `rmw_fastrtps_cpp`, profile `/etc/turtlebot4/fastdds_rpi.xml` is an empty default profile).
+- Limits: one run of each joiner, one robot, home Wi-Fi.
+
+Consequence for programs: every motion program subscribes to `/odom`, so its own start can stall the base for up to about 12 s. Mitigation R-c (code, in `examples/` and the Studio templates, see [examples/README.md](examples/README.md)): before the first motion a program waits until at least 20 s after it started and 5 s of steady `/odom` (no gap over 0.3 s), with a 30 s timeout that never fires before that can be met. The first version used 3 s of steady `/odom`; it was changed after run B because 3 s could pass before the program's own stall, or in a 3.2 s quiet stretch inside a cluster (join 6). Not yet tested in motion: the 10 supervised motion starts are next.
+
+Files: `tests/logs/2026-10-24_timing_tb25_joins_ros2cli.jsonl.gz` with `tests/logs/2026-10-24_timing_tb25_joins_ros2cli_joins.log`, and `tests/logs/2026-10-24_timing_tb25_joins_odom_sub.jsonl.gz` with `tests/logs/2026-10-24_timing_tb25_joins_odom_sub_joins.log`. Task: [TB-25](ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving).
+
+### Update 2026-10-24 (evening; supervised motion starts with the start-up check)
+
+Run 17:54 to 18:04 laptop time (UTC+3; robot 10:54 to 11:03:57 EDT). Ibrahim next to the robot, about 1 m clear, home Wi-Fi. The Studio templates `spin_in_place.py` and `drive_forward_and_back.py` with the new start-up check (R-c: at least 20 s after start plus 5 s of steady `/odom`, no gap over 0.3 s) were copied to `/tmp/tb25_motion` on the robot (cleared at reboot; nothing added to `~/robot_code`, no robot configuration change) and run with `--yes` from a script that stops at the first failure. `record_timing.py --light` ran for the whole test (587.5 s, 10,808 `/odom` messages, 13.1 % of one core). Sequence: undock (`ros2 action send_goal /undock`, SUCCEEDED, 17 s), 10 program runs 10 s apart, dock (`ros2 action send_goal /dock`, SUCCEEDED, 35 s).
+
+"Wait" is the start-up check; "gaps seen" are gaps over 0.3 s that the check saw while waiting; "max interval" is the largest `/odom` interval during the motion itself.
+
+| Run | Program | Wait after start | Gaps seen while waiting | Result | Max interval in motion |
+|---|---|---|---|---|---|
+| 1 | spin +0.5 turn | 20.0 s | 0 | turned 179 deg | 0.07 s |
+| 2 | spin -0.5 | 20.0 s | 0 | -179 deg | 0.08 s |
+| 3 | forward and back 0.3 m | 20.0 s | 0 | ended 0.8 cm from start (odometry) | 0.27 s |
+| 4 | spin +0.5 | 20.0 s | 0 | 179 deg | 0.07 s |
+| 5 | spin -0.5 | 20.0 s | 0 | -180 deg | 0.06 s |
+| 6 | forward and back | 22.5 s | 2 (9.8 s and 1.4 s; `/dock_status` 9.1 s; ping to base up to 34.6 ms), starting about 9 s after the program started | ended 1.1 cm from start | 0.16 s |
+| 7 | spin +0.5 | 20.0 s | 2 (4.4 s and 0.6 s; `/dock_status` 9.55 s) | 179 deg | 0.52 s gap right at motion start |
+| 8 | spin -0.5 | 20.1 s | 0 | -179 deg | 0.11 s |
+| 9 | forward and back | 20.0 s | 1 (0.5 s) | ended 0.6 cm | 0.14 s |
+| 10 | forward and back | 20.0 s | 1 (0.5 s) | ended 1.1 cm | 0.79 s gap about 0.8 s after motion start, and 0.30 s later |
+
+Undock: `/odom` gaps of 1.80 s and 0.46 s. Dock: `/odom` gaps of 1.50, 5.39 and 1.51 s and a `/dock_status` gap of 5.46 s (ping to the base up to 44 ms). Both are started by a fresh `ros2 action send_goal` participant; the base docks and undocks by itself, so no program depended on `/odom` there.
+
+Reading:
+
+- 10 of 10 motion starts completed, no abort, no hold over the 2.0 s stale limit. The success measure "10 supervised motion starts with no abort" is met.
+- The check worked as intended: the two long stalls of the test (9.8 s in run 6 and 4.4 s in run 7) came about 9 s after those programs started, while they were still waiting, so the robot stood still through them. With the first version of the check (3 s steady, passing a few seconds after start) both would most likely have hit during the motion and aborted the run (2.0 s stale limit). This is an inference from the timing, not a separate test.
+- The TB-25 acceptance item "a mitigation keeps `/odom` gaps under 0.3 s over 10 motion starts" is not met: 2 of 10 runs had a short gap right at or just after motion start (0.52 s, 0.79 s), the original TB-15 motion-start pause; the programs' 0.3 s hold covered them. The long join-triggered stalls are avoided by waiting; short motion-start pauses remain.
+- Cost: every program now waits about 20 s before moving (20.0 to 22.5 s here).
+- Limits: 10 starts, one robot, home Wi-Fi.
+
+Files: `tests/logs/2026-10-24_timing_tb25_motion_starts.jsonl.gz` and `tests/logs/2026-10-24_tb25_motion_starts_runs.log` (marks with monotonic times, and the undock, run and dock outputs). Task: [TB-25](ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving).
+
+### Update 2026-10-24 (late evening; TB-25 change A (R19) and join test, docked, no motion)
+
+Read-only steps 3 and 4 of TB-25 (republisher, TurtleBot 4 and Create 3 settings, firmware notes, known issues) are written up in [ROADMAP.md, TB-25](ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving). One finding: the Create 3 had no IP address but still held a saved Wi-Fi network and searched for it about every 7.5 s (scan, `NETWORK-NOT-FOUND`, failed DHCP request), on a base that idles at a CPU mean of 52 to 56 %. With Ibrahim's approval the saved network was removed at 16:03:13 robot time (R19 in the change register above). Nothing else on the base or the Pi was changed.
+
+Then the follow-up join test was repeated with the same joiner B (an `rclpy` node that subscribes to `/odom` for 5 s) and the same method: `record_timing.py --light --duration 720`, 120 s baseline, 8 joins about 60 s apart, join and leave times from `time.monotonic()`. Start 16:04:52 robot time, robot docked, home Wi-Fi.
+
+| Run | Joins followed by a stall | Longest `/odom` gap | Longest `/dock_status` gap |
+|---|---|---|---|
+| B, before R19 | 5 of 8 | 10.87 s | 12.28 s |
+| B, after R19 | 0 of 8 | 1.27 s, 113 s after the last join | none (largest interval 1.29 s) |
+
+Gaps after R19, both "publisher stopped": `/odom` 0.35 s at 608.2 s (Pi CPU 95 % at that moment) and 1.27 s at 651.2 s (ping to the base 12.9 ms, no correlate). No gap in the baseline or within 17 s of a join. Ping to the base median 0.46 ms, none lost; `/odom` 19.9 Hz overall.
+
+Reading: a strong hint that the base's Wi-Fi search loop was a large contributor to the join stalls; one run only, so not proof. The idle 1.27 s gap shows the base can still pause without a join. Next steps are in TB-25 (repeat the test, the 10 motion starts, check after the next reboot that the base stays off the Wi-Fi).
+
+Files: `tests/logs/2026-10-24_timing_tb25_joins_after_r19.jsonl.gz` and `tests/logs/2026-10-24_timing_tb25_joins_after_r19_joins.log`. Temporary files on the robot (`/tmp/tb25A_*`, `/tmp/tb25_joiner.py`) were removed.
+
 ### Changes made to the program
 
 1. Fix 1: `ODOM_STALE` raised from 0.5 s to 1.0 s. Square, rotate and back-and-forth then completed. The triangle still aborted once on a 1.0 s gap.
@@ -381,6 +644,8 @@ The first real run of `motion_shapes.py square` aborted about 1 s after starting
 
 - Whether the pause comes from the Create 3 firmware, the USB network link or Pi load. See TB-15.
 - Whether other programs on this robot (Nav2, teleop) are affected.
+- Added 2026-10-24: why the base stalls when it starts to move, and whether fewer subscribers or a different `create3_republisher` setup shorten the stalls (TB-25). The 2026-10-04 placeholder row "Root-cause characterisation" is partly filled by the table above; the 20-start campaign numbers are still missing.
+- Added 2026-10-24 (evening): why a new subscriber to `/odom` on the Pi makes the Create 3 stall for up to about 12 s, while a bare node and a short `ros2 topic list` rarely do (see the evening follow-up update above). Inferred, not confirmed: discovery and endpoint matching load on the Create 3. Also open: whether the stall frequency changes with the `create3_republisher` setup.
 
 ## Incident: robot drops off the Wi-Fi (2026-10-04 and 2026-10-05)
 
@@ -388,6 +653,7 @@ The first real run of `motion_shapes.py square` aborted about 1 s after starting
 |---|---|
 | Dates | 2026-10-04 (robot time, EDT) and 2026-10-05 (laptop time, UTC+3) |
 | Status on 2026-10-10 | **Open. Fix proposed, not applied.** The cause is a diagnosis, not confirmed |
+| Status on 2026-10-24 | **Fix applied as R14 (power saving off in the `Students` profile); effect not verified.** It needs the robot on campus: TB-20 steps 5 and 6 |
 | Changes involved | None so far. Proposed: turn Wi-Fi power saving off in the `Students` profile ([ROADMAP.md, TB-20](ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving)) |
 | Illustrated version | [docs/network-and-connectivity.html](docs/network-and-connectivity.html); Markdown version [docs/NETWORK-FINDINGS.md](docs/NETWORK-FINDINGS.md) |
 
@@ -432,6 +698,18 @@ sudo nmcli connection up Students
 - **Risk:** the Wi-Fi reconnects, so SSH may drop for a few seconds. No reboot. If the session drops after the first command, log in again and run the second.
 - **Record:** when applied, add it to the [change register](#change-register) as R14 with the date and the verify and undo steps, and update this record and the Known issues.
 
+### Update 2026-10-24: new evidence and fix applied (R14)
+
+Read-only checks on the robot (journal and NetworkManager files), then one change. The robot was not on `Students` that day (out of range, so its signal strength there could not be measured).
+
+Evidence:
+
+- **Power saving was on.** `/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf` sets `wifi.powersave = 3` (enable; the Ubuntu default). The `Students` and `Turtlebot4` profiles had the value `0` (default), so they inherited 3. The kernel log says `brcmfmac: brcmf_cfg80211_set_power_mgmt: power save enabled` at every boot. Driver `brcmfmac`, chip BCM43455, firmware 7.45.234. `iw` and `iwconfig` are not installed, so the live state of `wlan0` could not be read.
+- **No disconnects on the symptom days.** Journal boots per day: boot -2 (2026-10-04 afternoon) has 0 disconnects; before connecting at 83 s it had 6 association rejects (status 16). Boot -1 (2026-10-05) has 0 disconnects and 5 WNM "Disassociation Imminent" notices (the access point asking the robot to move to another one). Boot -5 (2026-10-04, 6.8 h) has 3 disconnects (reason 8 at 1920 s; reason 3, locally generated, at 5978 s and 9818 s), roaming across 3 campus access points and one outage of about 67 s after the first. No beacon loss and no deauthentication anywhere.
+- **Inference (not proven):** on the days with the "answers only in 10 to 40 s windows" symptom the robot stayed associated. That is consistent with Wi-Fi power saving (or filtering on the campus side) and not with Wi-Fi disconnects.
+
+Change: R14, `sudo nmcli connection modify Students 802-11-wireless.powersave 2` (before `default`, after `disable`). `nmcli connection up Students` was not run, so it applies at the next join. Verify with `nmcli -g 802-11-wireless.powersave connection show Students`; undo with the same command and `0`. **Verification pending:** 30 connection attempts over 30 minutes on two days and a reboot test (TB-20), and a signal-strength measurement on campus (TB-26).
+
 ### Workarounds that worked
 
 - Connect by IP address (the one on the robot's display) instead of `turtlebot4.local`.
@@ -440,7 +718,8 @@ sudo nmcli connection up Students
 
 ### Open questions
 
-- Is power saving actually on for `wlan0` on this robot? Not read yet (TB-20 step 1).
+- Is power saving actually on for `wlan0` on this robot? Answered 2026-10-24: the global setting and the kernel log say yes (see the update above). The live state of `wlan0` was not read (`iw` is not installed).
+- Does R14 stop the drops? Not known until the robot is tested on `Students` (TB-20 steps 5 and 6).
 - Why the robot did not come back at all for about 25 minutes on 2026-10-04.
 - Whether the drops also happen on the lab router network (TB-21).
 
@@ -454,12 +733,18 @@ sudo nmcli connection up Students
 
 | Issue | Symptoms | Evidence | Status | Next action |
 |---|---|---|---|---|
+| Pi-local ROS topics silent after the last SSH logout (found 2026-10-24) | Programs on the robot get no `/odom` (motion programs stop with "no /odom from the Create 3 base"); `ros2 topic hz /odom` shows nothing, but `ros2 topic hz /_do_not_use/odom` shows 20 Hz; the bringup processes keep running | Two DDS-join recordings (16:13 and 16:26 laptop time) received 0 messages on `/odom` and `/dock_status` for 720 s each (both invalid, not stored). The base's raw `/_do_not_use/odom` arrived at 20 Hz, but `create3_republisher` (running, no errors) delivered nothing, and restarting the bringup did not help once the user had logged out. Cause: the bringup runs as `ubuntu`; Fast DDS passes messages between processes on the same Pi through `/dev/shm/fastrtps_*` files owned by `ubuntu`; `loginctl show-user ubuntu -p Linger` was `no` and `/etc/systemd/logind.conf` has `#RemoveIPC=yes` (the default), so when the last login session of `ubuntu` closes (every SSH logout when nobody else is logged in) systemd-logind deletes all shared memory of `ubuntu`, including the running bringup's. Earlier runs probably worked because a session stayed open (for example TurtleBot Studio's SSH connection); that is inferred. Whether this also caused earlier `/odom` stalls is not known and is not claimed | **Fixed by R18** (lingering on, see the change register), applied and verified 2026-10-24; not yet checked after a reboot | Without R18, restarting the bringup (`sudo systemctl restart turtlebot4`) helps only until the last SSH session closes. If the symptom returns, check `loginctl show-user ubuntu -p Linger` and `ls /dev/shm \| grep -c fastrtps` |
 | Lidar not detected on USB (since the reboot at about 19:56 on 2026-10-03) | No `/scan` data; `scan_test.py` and `clearance_check.py` get nothing; `motion_test.sh` skips its forward drive | No `/dev/RPLIDAR`; no Silicon Labs CP210x device in `lsusb`, docked or undocked; `rplidar_ros` log: "cannot bind to the specified serial port '/dev/RPLIDAR'". The lidar spins. It worked before the reboot. A full power cycle did not help | **Resolved 2026-10-04**: loose USB cable, reseated by the user. See the [lidar record](#incident-lidar-not-detected-2026-10-03-resolved-2026-10-04) | Confirm detection after the next reboot (2026-10-04, about 15:42 robot time: on USB after a later power-on; `/scan` not recorded). Strain relief and label: ROADMAP TB-18 |
-| `/odom` pauses when the wheels start | Programs that require fresh odometry stop; `motion_shapes.py` printed "odometry is stale" | 0.41 s gap in arrival and header stamps 0.12 s after motion start; 1.0 s gap at a segment change with Pi load 3.4. No gap while still. See the [finding](#finding-odom-pauses-at-motion-start) | Worked around in `motion_shapes.py` (hold at 0.3 s, abort at 2.0 s) | Characterise the cause (ROADMAP TB-15). Treat short `/odom` gaps as normal in your own programs |
-| Robot clock wrong | Certificate or date errors from HTTPS, `git`, `pip` and `apt` | Campus blocks NTP (chrony sources unreachable); the Pi has no battery-backed clock and booted in October 2024 | Accepted once the clock fix is removed | Copy code from a laptop. Propose any clock solution in [ROADMAP.md](ROADMAP.md) before applying it |
+| `/odom` pauses when the wheels start | Programs that require fresh odometry stop; `motion_shapes.py` printed "odometry is stale" | 0.41 s gap in arrival and header stamps 0.12 s after motion start; 1.0 s gap at a segment change with Pi load 3.4. No gap while still. See the [finding](#finding-odom-pauses-at-motion-start) | Worked around in `motion_shapes.py` (hold at 0.3 s, abort at 2.0 s). **2026-10-24:** a 3.16 s stall at 2.0 s into a drive still aborted the program. Cause located in the Create 3 base, triggered by motion start (not Wi-Fi, not Pi CPU) | Characterise the cause (ROADMAP TB-15). Treat short `/odom` gaps as normal in your own programs. **Update 2026-10-24, evening:** idle stalls of 7.5 s and 11 s and a 7.8 s stall in a spin were seen over Wi-Fi; a base application restart did not remove them; hypothesis (not proven): they follow new ROS 2 participants joining ([TB-25](ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving)) |
+| Automatic Ubuntu updates run as soon as the robot has internet (2026-10-24) | Pi CPU 45 to 50 % and temperature about 67 °C while docked and idle, starting a minute after the robot reached the internet | `/etc/apt/apt.conf.d/20auto-upgrades` has `Update-Package-Lists "1"` and `Unattended-Upgrade "1"` (the Ubuntu default, not changed). `apt-daily.timer` and `apt-daily-upgrade.timer` both fired at 21:49 robot time, right after the clock synchronised (R16). `unattended-upgrade --download-only` then used one core at 100 % (nice 19). Allowed origins are the Ubuntu ones only (`noble`, `noble-security`, ESM), not the ROS repository | Open. Not changed. Automatic reboot is off by default, but the upgrade step can install Ubuntu packages while ROS runs | Decide whether the lab robot should install updates by itself (a new ROADMAP task). Until then, expect extra CPU load for some minutes after the robot first gets internet, and do timing measurements only when `pgrep -a unattended-upgrade` shows just the `-shutdown` helper. **Update, evening:** the download job was still running 45 minutes later (21:50 to 22:35 robot time, one core at 100 %); Pi CPU 45 to 50 %, temperature 65 to 72 °C docked. Not stopped. Decision: [ROADMAP.md, TB-28](ROADMAP.md#tb-28-decide-whether-the-robot-installs-ubuntu-updates-by-itself) |
+| Ubuntu installed 240 package upgrades by itself during a session (2026-10-24) | The ROS bringup (`turtlebot4.service`) was stopped and started at least 8 times by systemd between 08:07 and 09:04 robot time; a kernel update waits for a reboot | `unattended-upgrade` was found running at 15:18 laptop time (08:18 robot; about 50 min in, load average 2.8) and finished at 16:11:40 laptop (09:11:40 robot). `dpkg.log` shows 240 upgrades that day, among them `linux-firmware`, `util-linux`, the GCC 13 cross compilers, `linux-libc-dev` and a new kernel package; `/var/run/reboot-required` lists `linux-image-6.8.0-1065-raspi` and `linux-base`. Automatic reboot is off, so the robot was not rebooted. Inferred, not confirmed: the upgrade restarted services after replacing libraries. Nothing was stopped or changed by us; the update was waited out before testing | Open (TB-28). The next reboot will be the first run on the new kernel | Check `pgrep -a unattended-upgrade` before any timing test; plan the reboot and re-check R14, R17, R18 afterwards. [ROADMAP.md, TB-28](ROADMAP.md#tb-28-decide-whether-the-robot-installs-ubuntu-updates-by-itself) |
+| Lidar motor not restarted after undock (2026-10-24) | After undocking, `motion_shapes.py` fails at setup with "no /scan" | The `rplidar` log has "Stop" at 14:37:45 robot time while docked and no "Start" after the undock, which succeeded. `/scan` came back at 7.6 Hz after the service call below | Open. Workaround in place (runtime action, no configuration change) | Workaround: `ros2 service call /start_motor std_srvs/srv/Empty`. Find out why it did not restart: [ROADMAP.md, TB-24](ROADMAP.md#tb-24-lidar-motor-does-not-restart-after-undocking). On 2026-10-04 "RPLIDAR started" was logged at undock, so this may be new or intermittent |
+| `/e_stop` service reports failure although it works (found 2026-10-24) | A call to the Create 3 `/e_stop` service returns `success=False` with an empty message, yet the wheels are disabled | Seen with Create 3 firmware `I.0.0.FastDDS`: after the call, `wheels_enabled` in `/wheel_status` was false and the wheels did stop; the same on release | Open. Workaround in place | Do not trust the service result: check `wheels_enabled` in `/wheel_status`. [TurtleBot Studio](tools/studio/README.md) does this and reports "confirmed by wheels" |
+| Create 3 `/battery_state` `power_supply_status` is always 0 (found 2026-10-24) | A tool shows "not charging" or "unknown" while the robot is docked and charging | Docked, `power_supply_status` stayed 0 (unknown) while the current was +0.57 A and the battery rose | Open. Workaround in place | Judge charging from the current (positive = charging). [TurtleBot Studio](tools/studio/README.md) does this |
+| Robot clock wrong | Certificate or date errors from HTTPS, `git`, `pip` and `apt` | Campus blocks NTP (chrony sources unreachable); the Pi has no battery-backed clock and booted in October 2024. 2026-10-24: the clock read 28 October 2024 (about two years behind); `tb4-https-time.service` failed because there is no internet over Ethernet or the hotspot | Accepted once the clock fix is removed | Copy code from a laptop. Propose any clock solution in [ROADMAP.md](ROADMAP.md) before applying it. **Update 2026-10-24, evening:** the Pi clock has been correct since R16 (internet via the home Wi-Fi) and the base clock was re-synchronised by hand; without internet the Pi has no way to keep the date across a power-off (no battery-backed clock). Proposals in TB-17 |
 | Create 3 base silent at handover | No `/battery_state` or `/dock_status`; undock and dock time out | Pi in 2024, base in 2026 after the power cycle | Fix prepared, not run. Not occurring on 2026-10-04 (base talking, clocks agree, clock fix still installed) | If it happens again, run the [resolution plan](#resolution-plan). Keep-or-remove decision: ROADMAP TB-17 |
 | SSH sessions drop while the robot moves | A running `ros2 action send_goal` is cancelled, so the move is not finished | Happened on 2026-10-03 as docking started; the robot briefly left the Wi-Fi, likely roaming between campus access points | Workaround in place | Run motion scripts detached on the robot (`setsid nohup` or `tmux`), as described in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md) |
-| Robot drops off the Wi-Fi; answers SSH only in short windows (since 2026-10-04) | SSH works for a short time (about 10 to 40 s windows; once about a minute), then connections time out; the robot can stay away for 25 minutes or more | 2026-10-04 about 15:42 (robot time) and 2026-10-05 afternoon (UTC+3). Laptop Wi-Fi fine; robot logs showed no Wi-Fi disconnects. See the [Wi-Fi incident](#incident-robot-drops-off-the-wi-fi-2026-10-04-and-2026-10-05) | **Open. Fix proposed, not applied** (2026-10-10). Likely cause Wi-Fi power saving (not confirmed) | Admin: apply and verify the power-saving fix ([ROADMAP.md, TB-20](ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving)). Users: connect by the display address and retry ([HOW-TO-CONNECT.md](HOW-TO-CONNECT.md#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found)) |
+| Robot drops off the Wi-Fi; answers SSH only in short windows (since 2026-10-04) | SSH works for a short time (about 10 to 40 s windows; once about a minute), then connections time out; the robot can stay away for 25 minutes or more | 2026-10-04 about 15:42 (robot time) and 2026-10-05 afternoon (UTC+3). Laptop Wi-Fi fine; robot logs showed no Wi-Fi disconnects. See the [Wi-Fi incident](#incident-robot-drops-off-the-wi-fi-2026-10-04-and-2026-10-05) | **Open. Fix proposed, not applied** (2026-10-10). Likely cause Wi-Fi power saving (not confirmed). **2026-10-24: fix applied as R14; effect not verified until the robot is on campus.** New evidence: power saving was on, and the logs show no disconnects on the symptom days | Admin: apply and verify the power-saving fix ([ROADMAP.md, TB-20](ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving)). Users: connect by the display address and retry ([HOW-TO-CONNECT.md](HOW-TO-CONNECT.md#the-robot-answers-only-sometimes-drops-off-the-wi-fi-or-turtlebot4local-is-not-found)) |
 | `turtlebot4.local` not found on the campus Wi-Fi (intermittent, since 2026-10-04) | `Could not resolve hostname turtlebot4.local`, or the name hangs, while the robot is on `Students` | Failed intermittently on 2026-10-04 (about 15:42 robot time). mDNS is unreliable on campus Wi-Fi | Open. Workaround in place | Use the address on the robot's display. A fixed address would remove the dependency: [TB-08](ROADMAP.md#tb-08-stable-addressing) or the lab router proposal ([TB-21](ROADMAP.md#tb-21-decide-the-robots-network-students-or-the-lab-router)) |
 | Clock timer can step the clock while ROS runs | Base goes silent some time after boot | If the boot-time fetch fails, the timer retries 15 minutes later and can then jump the clock with ROS running | Still possible: R7 is still installed on 2026-10-04. Moot once R7 is removed | Decide in ROADMAP TB-17. Until then, if the base goes silent, restart the base application |
 | `create3_republisher` crashed | Process restarts | Exited with code -11 twice and restarted by itself; seen before any system change | Watch | Note any recurrence here |
@@ -550,6 +835,7 @@ Lessons:
 - [ROADMAP.md](ROADMAP.md): plan for the next iterations, including remote desktop.
 - [General Tasks/TurtleBot4 - connect to university Wi-Fi.txt](../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt): raw chronological log, including failures.
 - [General Tasks/TurtleBot4 - lidar check and motion programs.txt](../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt): log of the 2026-10-04 lidar check and motion program work, including failures.
+- [General Tasks/TurtleBot4 - Ethernet, Wi-Fi power save and odometry timing.txt](../General%20Tasks/TurtleBot4%20-%20Ethernet%2C%20Wi-Fi%20power%20save%20and%20odometry%20timing.txt): log of 2026-10-24 (Ethernet access, the Wi-Fi power-save change R14, the supervised motion test with the timing recorder), including what failed.
 - [General Tasks/TurtleBot4 - network and connectivity.txt](../General%20Tasks/TurtleBot4%20-%20network%20and%20connectivity.txt): log of the Wi-Fi drops, the lab router and the repository incident (2026-10-04 evening to 2026-10-10), including failures.
 - [docs/](docs/index.html): illustrated pages on the lidar diagnosis, the motion program design, the test results and the network and connectivity findings ([docs/network-and-connectivity.html](docs/network-and-connectivity.html)).
 - [examples/README.md](examples/README.md) and [tests/](tests/): how to run the example programs, and the test campaign.

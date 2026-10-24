@@ -104,11 +104,12 @@ def main():
         log(f'object straight ahead: {node.front:.2f} m (target {target:.2f} m) -> would start with '
             f'{v0:+.3f} m/s; runs {duration:.0f} s, range -{MAX_BEHIND:.2f}..+{MAX_AHEAD:.2f} m')
         if args.dry_run:
+            mc.wait_steady_odom(node)
             log('dry run: all checks done, nothing was sent to /cmd_vel')
             return 0
 
         mc.confirm(args.yes)
-        mc.start_motion()
+        mc.start_motion(node)
         guard = mc.Guard(node, duration + 10.0).install()
         log('starting. To stop: Ctrl+C, or "touch ~/STOP", or "pkill -INT -f keep_distance.py"')
         x0, y0, yaw0, h0 = node.x, node.y, node.yaw, node.heading.total

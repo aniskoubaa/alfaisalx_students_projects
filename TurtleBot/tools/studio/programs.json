@@ -1,0 +1,328 @@
+{
+  "version": 1,
+  "programs": {
+    "hello_robot.py": {
+      "title": "Hello robot (message and green light)",
+      "summary": "Shows a short message on the robot's screen and turns the light ring green for 5 seconds. The easiest way to check that your program can talk to the robot.",
+      "moves": false, "needs_undock": false, "safe_on_dock": true,
+      "category": "diagnostics",
+      "args": [],
+      "examples": [{"args": "", "what": "shows the message and a green ring for 5 seconds"}],
+      "stop": "Ends by itself after 5 seconds. The ring goes back to the robot's own pattern at the end.",
+      "notes": ["The message text and the time are constants (MESSAGE, SECONDS) at the top of the file; edit them in the Code tab.", "Ctrl+C during the 5 seconds may leave the ring green until another program changes it [to verify]."],
+      "doc": "../../examples/README.md#the-examples"
+    },
+    "scan_test.py": {
+      "title": "Nearest object (lidar)",
+      "summary": "Prints the distance to the nearest thing the lidar sees, again and again. Walk up to the robot and watch the number change.",
+      "moves": false, "needs_undock": true, "safe_on_dock": false,
+      "category": "sensors",
+      "args": [],
+      "examples": [{"args": "", "what": "prints 'Nearest object: 1.23 m' for every scan"}],
+      "stop": "Runs until you stop it: Ctrl+C, or the Stop button in Studio.",
+      "notes": ["The lidar is switched off while the robot is on the dock, so nothing is printed there."],
+      "doc": "../../examples/README.md#the-examples"
+    },
+    "clearance_check.py": {
+      "title": "Is the way ahead clear? (one lidar scan)",
+      "summary": "Takes one lidar scan and reports the nearest object within 30 degrees of straight ahead. The exit code tells scripts the answer: 0 clear, 1 blocked, 2 no scan.",
+      "moves": false, "needs_undock": true, "safe_on_dock": false,
+      "category": "sensors",
+      "args": [{"name": "min_metres", "help": "optional: the distance that counts as clear, in metres (default 0.6)"}],
+      "examples": [{"args": "", "what": "checks for 0.6 m of free space ahead"}, {"args": "0.8", "what": "checks for 0.8 m of free space ahead"}],
+      "stop": "Finishes by itself after one scan (waits up to 40 s for a scan).",
+      "notes": ["Reads the lidar mounting angle (+90 degrees) from the robot's TF table; the lidar is off while docked."],
+      "doc": "../../examples/README.md#the-examples"
+    },
+    "drive_test.py": {
+      "title": "Drive forward 20 cm (simplest motion)",
+      "summary": "Drives straight ahead at 0.1 m/s for 2 seconds (about 20 cm) and stops. The smallest possible motion program; it has no obstacle check.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [],
+      "examples": [{"args": "", "what": "drives about 20 cm forward and stops"}],
+      "stop": "Ends by itself after 2 seconds. Ctrl+C or the Stop button sends zero velocity; the E-STOP always works.",
+      "notes": ["Does not check for obstacles, the dock, ~/STOP or stale odometry. Keep 1 m clear ahead and stay next to the robot.", "Speed and time are constants (SPEED, DRIVE_TIME) at the top of the file."],
+      "doc": "../../examples/README.md#the-examples"
+    },
+    "motion_test.sh": {
+      "title": "Full movement test (undock, drive, spin, dock)",
+      "summary": "Undocks the robot, checks that the way ahead is clear, drives 20 cm if it is, spins once on the spot and docks again. A whole demo in one command.",
+      "moves": true, "needs_undock": false, "safe_on_dock": false,
+      "category": "motion",
+      "args": [],
+      "examples": [{"args": "", "what": "runs the whole test (start it on the dock)"}],
+      "stop": "Ctrl+C in its terminal, or the E-STOP button. It uses the robot's built-in undock, rotate and dock actions, which do not look at the ~/STOP file [to verify].",
+      "notes": ["Run it as 'bash motion_test.sh'. It starts on the dock and takes a few minutes.", "Docking only works if the robot can see the dock."],
+      "doc": "../../examples/README.md#the-examples"
+    },
+    "motion_shapes.py": {
+      "title": "Drive shapes (square, triangle, rotate, back and forth, figure eight)",
+      "summary": "Drives a shape on the floor using the wheel odometry, with obstacle, bump, stall and timeout stops. Always do a dry run first.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "shape", "help": "square, triangle, rotate, back_and_forth or figure_eight"},
+        {"name": "--side", "help": "side or leg length in metres (default 0.40, max 1.0)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop (only if the lidar is broken)"},
+        {"name": "--dry-run", "help": "run the checks and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (needed when run from Studio)"}
+      ],
+      "examples": [
+        {"args": "square --dry-run", "what": "checks everything and prints the plan, never moves"},
+        {"args": "square --side 0.3 --yes", "what": "drives a 30 cm square"},
+        {"args": "rotate --yes", "what": "one full turn on the spot"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP, 'touch ~/STOP', or kill -INT. It also stops itself on a bump, an obstacle closer than 0.25 m ahead, stale odometry or lidar, a stall or a timeout.",
+      "notes": ["Needs about 1 m of clear floor all round.", "It refuses to start while the robot is docked.", "Exit codes: 0 done, 1 safety stop, 2 setup failure, 130 stopped by you."],
+      "doc": "../../examples/README.md#motion_shapespy-drive-a-square-triangle-circle-and-more"
+    },
+    "more_shapes.py": {
+      "title": "More shapes (polygon, star, circle, spiral, zigzag, repeatability)",
+      "summary": "Builds on motion_shapes.py: drives a polygon, a star, a circle, a square spiral or a zigzag, or repeats a shape several times and reports the odometry error of each loop.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "shape", "help": "polygon, star, circle, square_spiral, zigzag or repeatability"},
+        {"name": "--sides", "help": "polygon: number of sides (3 to 12, default 5)"},
+        {"name": "--side", "help": "side or leg length in metres (default 0.30, zigzag 0.25, max 0.60)"},
+        {"name": "--radius", "help": "circle radius in metres (0.15 to 0.45, default 0.25)"},
+        {"name": "--step", "help": "square_spiral: how much each leg grows, in metres (default 0.10)"},
+        {"name": "--max-leg", "help": "square_spiral: longest leg in metres (default 0.50, at most 0.5)"},
+        {"name": "--legs", "help": "zigzag: number of legs (1 to 8, default 4)"},
+        {"name": "--shape", "help": "repeatability: which closed shape to repeat (default square)"},
+        {"name": "--loops", "help": "repeatability: how many times (1 to 5, default 3)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop"},
+        {"name": "--dry-run", "help": "run the checks and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (needed when run from Studio)"}
+      ],
+      "examples": [
+        {"args": "star --dry-run", "what": "checks everything and prints the star plan"},
+        {"args": "polygon --sides 6 --side 0.25 --yes", "what": "drives a hexagon with 25 cm sides"},
+        {"args": "circle --radius 0.25 --yes", "what": "drives one full circle"}
+      ],
+      "stop": "Same as motion_shapes.py: Ctrl+C, the Stop button, the E-STOP, 'touch ~/STOP'. It also aborts if odometry puts the robot more than 1.2 m from its start, or after its total timeout.",
+      "notes": ["Needs motion_shapes.py and motion_common.py in the same folder on the robot.", "The README says 'not yet tested on the robot' for this program.", "The default --side here is 0.30 m (in the code); motion_shapes.py uses 0.40 m."],
+      "doc": "../../examples/README.md#more_shapespy"
+    },
+    "wall_approach.py": {
+      "title": "Approach a wall to a set distance",
+      "summary": "Drives slowly towards a wall or a big flat box until the lidar reads the target distance, then compares what the wheels measured with what the lidar measured.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "--target", "help": "stop distance to the wall in metres (default 0.50, min 0.30, max 2.0)"},
+        {"name": "--max-travel", "help": "most it may drive in metres (at most 1.0)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.08, capped at 0.15)"},
+        {"name": "--csv", "help": "write the measured samples to this CSV file"},
+        {"name": "--dry-run", "help": "run the checks and show the start range, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (needed when run from Studio)"}
+      ],
+      "examples": [
+        {"args": "--dry-run", "what": "shows the distance to the wall and the planned travel"},
+        {"args": "--target 0.5 --yes", "what": "stops 50 cm from the wall"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP, 'touch ~/STOP'. Also stops on a bump, stale odometry or lidar, or a timeout.",
+      "notes": ["Point the robot at a wall 0.5 to 1.5 m away.", "Needs motion_shapes.py and motion_common.py in the same folder.", "The README says 'not yet tested on the robot' for this program."],
+      "doc": "../../examples/README.md#wall_approachpy"
+    },
+    "keep_distance.py": {
+      "title": "Keep a distance to what is in front",
+      "summary": "Holds about 0.6 m to the object straight ahead: walk away and the robot follows, walk closer and it backs off slowly. Runs for at most 60 seconds.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "--target", "help": "distance to hold in metres (default 0.60, 0.40 to 1.0)"},
+        {"name": "--duration", "help": "run time in seconds (default and maximum 60)"},
+        {"name": "--speed", "help": "maximum forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--dry-run", "help": "run the checks only, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (needed when run from Studio)"}
+      ],
+      "examples": [
+        {"args": "--dry-run", "what": "checks the sensors, never moves"},
+        {"args": "--target 0.6 --duration 30 --yes", "what": "follows you for 30 seconds"}
+      ],
+      "stop": "Ends after --duration. Ctrl+C, the Stop button, the E-STOP or 'touch ~/STOP' stop it at once.",
+      "notes": ["Backs up at most 0.2 m and only at 0.05 m/s, because nothing watches behind the robot.", "Needs motion_shapes.py and motion_common.py in the same folder.", "The README says 'not yet tested on the robot' for this program."],
+      "doc": "../../examples/README.md#keep_distancepy"
+    },
+    "campaign.sh": {
+      "title": "Run several shape programs in a row",
+      "summary": "Runs a list of motion_shapes.py / more_shapes.py commands one after another, with a sensor report before and after, and writes everything to a log file. Stops at the first failure.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "list_file", "help": "optional: a text file with one command per line, e.g. 'more_shapes.py star --side 0.3' (default: a built-in list of six shapes)"},
+        {"name": "--dry-run", "help": "run every command as a dry run, nothing moves"}
+      ],
+      "examples": [{"args": "--dry-run", "what": "runs the built-in list as dry runs"}],
+      "stop": "'touch ~/STOP' (the running program stops the robot and the campaign ends), or kill -TERM on campaign.sh. Run from Studio, the Stop button does this for you.",
+      "notes": ["Run it as 'bash campaign.sh'. Every command gets --yes added, so starting it confirms the safety checklist.", "Logs go to ~/robot_code/logs/.", "The README says 'not yet tested on the robot' for this program."],
+      "doc": "../../examples/README.md#campaignsh"
+    },
+    "sensor_report.py": {
+      "title": "Sensor report (rates, gaps, battery)",
+      "summary": "Listens for 20 seconds and prints, for each sensor topic, how many messages arrived, how often, and the longest gap. The tool to use when the odometry pauses.",
+      "moves": false, "needs_undock": false, "safe_on_dock": true,
+      "category": "diagnostics",
+      "args": [
+        {"name": "--seconds", "help": "measuring time in seconds (default 20)"},
+        {"name": "--json", "help": "also write the report to this JSON file"}
+      ],
+      "examples": [{"args": "", "what": "20-second report"}, {"args": "--seconds 60 --json ~/robot_code/sensors.json", "what": "60-second report saved as JSON"}],
+      "stop": "Ends after --seconds. Ctrl+C ends it early and still prints the report for the time measured.",
+      "notes": ["On the dock /scan shows 0 messages: the lidar is off there, which is normal.", "Exit code 2 means no messages at all.", "The README says 'not yet tested on the robot' for this program."],
+      "doc": "../../examples/README.md#sensor_reportpy-rates-gaps-and-battery"
+    },
+    "lidar_snapshot.py": {
+      "title": "Save a lidar scan to a file",
+      "summary": "Saves one or more lidar scans to a JSON or CSV file (angles in the robot's own frame) and prints the nearest return in each of 36 sectors around the robot.",
+      "moves": false, "needs_undock": true, "safe_on_dock": false,
+      "category": "sensors",
+      "args": [
+        {"name": "--count", "help": "number of scans to save (default 1)"},
+        {"name": "--out", "help": "output file, .json or .csv (default ~/robot_code/scan_<date>_<time>.json)"}
+      ],
+      "examples": [{"args": "", "what": "saves one scan"}, {"args": "--count 5 --out ~/robot_code/room.json", "what": "saves five scans to room.json"}],
+      "stop": "Finishes by itself after the scans are saved (waits up to 30 s). Ctrl+C stops it early.",
+      "notes": ["Exit code 2 means no scan (docked? lidar off?).", "Turn the JSON into a picture with scan_plot_html.py.", "The README says 'not yet tested on the robot' for this program."],
+      "doc": "../../examples/README.md#lidar_snapshotpy-and-scan_plot_htmlpy-save-and-draw-a-scan"
+    },
+    "scan_plot_html.py": {
+      "title": "Draw a saved lidar scan as a picture",
+      "summary": "Turns a lidar_snapshot.py JSON file into an HTML page with a polar plot: the robot is in the middle, forward is up. Needs no ROS, so it also runs on your own computer.",
+      "moves": false, "needs_undock": false, "safe_on_dock": true,
+      "category": "sensors",
+      "args": [
+        {"name": "json_file", "help": "the JSON file written by lidar_snapshot.py"},
+        {"name": "--out", "help": "output HTML file (default: the JSON name with .html)"},
+        {"name": "--max-range", "help": "plot range in metres (default: automatic)"}
+      ],
+      "examples": [{"args": "room.json", "what": "writes room.html next to the JSON file"}, {"args": "room.json --max-range 3", "what": "zooms to 3 m"}],
+      "stop": "Finishes in a moment.",
+      "notes": ["Exit code 2 means a bad input file.", "Open the HTML file in any browser."],
+      "doc": "../../examples/README.md#lidar_snapshotpy-and-scan_plot_htmlpy-save-and-draw-a-scan"
+    },
+    "lightring_status.py": {
+      "title": "Show the battery and lidar state on the light ring",
+      "summary": "Uses the six LEDs of the light ring as a status display: the number of lit LEDs is the battery level, the colour says how healthy it is, and blinking red means the lidar went silent.",
+      "moves": false, "needs_undock": false, "safe_on_dock": true,
+      "category": "diagnostics",
+      "args": [{"name": "--seconds", "help": "run time in seconds (default 30, maximum 600)"}],
+      "examples": [{"args": "", "what": "shows the state for 30 seconds"}, {"args": "--seconds 120", "what": "shows it for two minutes"}],
+      "stop": "Ends after --seconds, or on Ctrl+C / SIGTERM. It always hands the ring back to the robot at the end.",
+      "notes": ["Green is 50 % battery or more, yellow 20 to 50 %, red below 20 %."],
+      "doc": "../../examples/README.md#lightring_statuspy-robot-state-on-the-light-ring"
+    },
+    "health_check.py": {
+      "title": "Robot health checklist",
+      "summary": "Checks Wi-Fi, the ROS service, the base data and battery, the clocks, the lidar, odometry gaps, temperature, memory and more, and prints one PASS / WARN / FAIL row each with a hint how to fix it. Read only.",
+      "moves": false, "needs_undock": false, "safe_on_dock": true,
+      "category": "diagnostics",
+      "args": [
+        {"name": "--seconds", "help": "ROS measuring window in seconds (default 10, maximum 120)"},
+        {"name": "--json", "help": "also write the report to this JSON file"}
+      ],
+      "examples": [{"args": "", "what": "the normal check (15 to 25 seconds)"}, {"args": "--seconds 20 --json ~/robot_code/health.json", "what": "a longer check, saved as JSON"}],
+      "stop": "Ends by itself (about 15 to 25 s, 45 s when the base is silent). Ctrl+C stops it.",
+      "notes": ["Never moves the robot, changes nothing and needs no sudo.", "Exit code 0 all PASS or INFO, 1 at least one WARN, 2 at least one FAIL.", "The README says 'not yet tested on the robot' for this program."],
+      "doc": "../../examples/README.md#health_checkpy-read-only-health-checklist"
+    },
+    "motion_common.py": {
+      "title": "Shared safety code (not a program)",
+      "summary": "A helper module used by more_shapes.py, wall_approach.py and keep_distance.py: start-up checks, total timeout and a 1.2 m fence. It is not run directly; keep it next to those programs.",
+      "moves": false, "needs_undock": false, "safe_on_dock": true,
+      "category": "helper",
+      "args": [],
+      "examples": [],
+      "stop": "Not run directly.",
+      "notes": ["Copy it to the robot together with motion_shapes.py and the programs that use it."],
+      "doc": "../../examples/README.md#more-motion-programs"
+    },
+    "my_first_program.py": {
+      "title": "Template: my first program (read the robot)",
+      "summary": "The hello world of robot code. Prints the battery, whether the robot is on the dock and where it is, once a second for 10 seconds. Heavily commented: start here to learn how ROS 2 programs work.",
+      "moves": false, "needs_undock": false, "safe_on_dock": true,
+      "category": "template",
+      "args": [],
+      "examples": [{"args": "", "what": "prints a status line every second for 10 seconds"}],
+      "stop": "Ends by itself after 10 seconds, or on Ctrl+C.",
+      "notes": ["Copy it with 'New program' in the Code tab and change it. Change SECONDS first."],
+      "doc": "../../HOW-TO-CONNECT.md#write-and-run-code"
+    },
+    "read_lidar.py": {
+      "title": "Template: read the lidar",
+      "summary": "Prints the nearest thing ahead, left, right and behind the robot once a second for 20 seconds, and explains why the lidar's angles are turned by 90 degrees on this robot.",
+      "moves": false, "needs_undock": true, "safe_on_dock": false,
+      "category": "template",
+      "args": [],
+      "examples": [{"args": "", "what": "prints the four distances every second for 20 seconds"}],
+      "stop": "Ends by itself after 20 seconds, or on Ctrl+C.",
+      "notes": ["The lidar is off while the robot is docked: you will see 'no scan yet'. Undock first.", "Change SECONDS or HALF_ANGLE first."],
+      "doc": "../../HOW-TO-CONNECT.md#write-and-run-code"
+    },
+    "spin_in_place.py": {
+      "title": "Template: spin on the spot",
+      "summary": "Turns the robot in place for the number of turns you ask for and stops exactly, counting the angle from the odometry. The answer to 'make it spin around'.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "template",
+      "args": [
+        {"name": "--turns", "help": "full turns, negative = turn right (default 1, max 5)"},
+        {"name": "--speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--dry-run", "help": "check the robot and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (needed when run from Studio)"}
+      ],
+      "examples": [
+        {"args": "--turns 1 --dry-run", "what": "checks the robot, never moves"},
+        {"args": "--turns 1 --yes", "what": "one full turn to the left"},
+        {"args": "--turns -2 --speed 0.8 --yes", "what": "two turns to the right, faster"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP, 'touch ~/STOP', stale odometry, a bump, or the 90 s time limit. Zero velocity is sent on every way out.",
+      "notes": ["Refuses to start while the robot is docked: undock first.", "Change TURNS and SPEED first."],
+      "doc": "../../examples/README.md#safety-checklist-before-anything-moves"
+    },
+    "drive_circle.py": {
+      "title": "Template: drive in a circle",
+      "summary": "Drives a circle of the radius you choose and stops where it started. It sends a forward speed and a turn rate together (turn rate = speed / radius) and counts the laps from the odometry heading.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "template",
+      "args": [
+        {"name": "--radius", "help": "circle radius in metres (default 0.30, 0.15 to 0.5)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--laps", "help": "number of laps, negative = circle to the right (default 1, max 3)"},
+        {"name": "--dry-run", "help": "check the robot and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (needed when run from Studio)"}
+      ],
+      "examples": [
+        {"args": "--radius 0.3 --dry-run", "what": "checks the robot, never moves"},
+        {"args": "--radius 0.3 --laps 1 --yes", "what": "one lap of a 30 cm radius circle"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP, 'touch ~/STOP', an obstacle closer than 0.35 m ahead, stale odometry or lidar, a bump, or the 90 s time limit. Zero velocity is sent on every way out.",
+      "notes": ["Needs about 1 m of clear floor all round.", "Change RADIUS and SPEED first."],
+      "doc": "../../examples/README.md#safety-checklist-before-anything-moves"
+    },
+    "drive_forward_and_back.py": {
+      "title": "Template: drive forward and come back",
+      "summary": "Drives forward a set distance, turns round, drives back to the start and turns to face forward again, measuring the distance with the odometry and watching the lidar for obstacles.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "template",
+      "args": [
+        {"name": "--distance", "help": "metres to drive out (default 0.30, max 1.0)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--dry-run", "help": "check the robot and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (needed when run from Studio)"}
+      ],
+      "examples": [
+        {"args": "--distance 0.3 --dry-run", "what": "checks the robot, never moves"},
+        {"args": "--distance 0.3 --yes", "what": "30 cm out and 30 cm back"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP, 'touch ~/STOP', an obstacle closer than 0.35 m ahead, stale odometry or lidar, a bump, or the 90 s time limit. Zero velocity is sent on every way out.",
+      "notes": ["It never reverses (the Create 3 limits backing up): it turns round instead.", "Change DISTANCE and SPEED first."],
+      "doc": "../../examples/README.md#safety-checklist-before-anything-moves"
+    }
+  }
+}

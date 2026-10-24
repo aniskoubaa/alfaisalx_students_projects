@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meet the robot</title>
+<meta name="description" content="The lab's TurtleBot 4 in one page: what it is, what each part does and which ROS 2 topics it shows up as, how the parts talk, and what works today.">
+<style>
+  /* Shared style for TurtleBot/docs pages. Tokens match turtlebot4-field-guide.html. */
+  :root{
+    --bg:#EEF2F4; --panel:#FFFFFF; --panel-alt:#E3EAED; --text:#16232F; --text-dim:#54636F;
+    --border:#C6D2D7; --accent:#0C8C82; --accent-strong:#075F58; --warn:#B85B26; --code-bg:#DDE6E9;
+    --ok:#2E7D32; --bad:#B3261E; --ok-bg:#E3F1E4; --bad-bg:#F8E4E2; --warn-bg:#F7E9DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+      --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+      --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+    --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+    --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.label-font,.eyebrow,th,.chip,.tile .k,figcaption,nav.toc a{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;}
+  code,pre,.mono{font-family:"IBM Plex Mono", Consolas, "Courier New", monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:0.88em; overflow-wrap:anywhere;}
+  pre{background:var(--code-bg); padding:12px 14px; border-radius:4px; overflow-x:auto; font-size:0.84rem; line-height:1.5; margin:0 0 16px;}
+  pre code{background:none; padding:0;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  a{color:var(--accent-strong);}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+
+  .page{display:grid; grid-template-columns:220px minmax(0,1fr); gap:0 44px; max-width:1220px; margin:0 auto; padding:0 28px 80px;}
+  nav.toc{position:sticky; top:0; align-self:start; padding-top:48px; max-height:100vh; overflow-y:auto;}
+  nav.toc .eyebrow{color:var(--text-dim); font-size:0.7rem;}
+  nav.toc ul{list-style:none; margin:0 0 24px; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.toc a{display:block; padding:6px 10px; border-radius:3px; color:var(--text-dim); text-decoration:none; font-size:0.86rem; font-weight:500;}
+  nav.toc a:hover{color:var(--text); background:var(--panel-alt);}
+  main{min-width:0; padding-top:48px;}
+  header.hero{margin-bottom:36px;}
+  .eyebrow{font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 12px;}
+  h1.title{font-size:clamp(2rem,5vw,3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{font-size:1.08rem; color:var(--text-dim); max-width:66ch; margin:0 0 20px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.84rem; color:var(--text-dim);}
+  .meta b{color:var(--text); font-weight:600;}
+
+  section{max-width:860px; padding:40px 0; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none; padding-top:0;}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .section-tag{font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.72rem; color:var(--text-dim); white-space:nowrap;}
+  h2{font-size:1.5rem; font-weight:600;}
+  h3{font-size:1.05rem; font-weight:600; margin:24px 0 8px;}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin:3px 0;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .table-wrap{overflow-x:auto; margin:0 0 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
+  th,td{text-align:left; padding:9px 12px; border-top:1px solid var(--border); vertical-align:top;}
+  thead th{border-top:none; font-size:0.76rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim); background:var(--panel-alt); white-space:nowrap;}
+  tbody th{font-weight:600; color:var(--text-dim); white-space:nowrap;}
+  td.notes{min-width:230px;}
+  td.nowrap{white-space:nowrap;}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  .chip{display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.74rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap;}
+  .chip.ok{color:var(--ok); background:var(--ok-bg);}
+  .chip.bad{color:var(--bad); background:var(--bad-bg);}
+  .chip.warn{color:var(--warn); background:var(--warn-bg);}
+  .chip.info{color:var(--accent-strong); background:var(--panel-alt);}
+  .chip.todo{color:var(--text-dim); background:transparent; border-style:dashed;}
+
+  .note{padding:12px 16px; background:var(--panel-alt); border-left:3px solid var(--warn); border-radius:0 4px 4px 0; font-size:0.92rem; margin:18px 0;}
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .placeholder{border:2px dashed var(--warn); border-radius:6px; padding:14px 16px; margin:16px 0; background:var(--warn-bg);}
+  .placeholder > b:first-child{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; color:var(--warn); text-transform:uppercase; letter-spacing:0.06em; font-size:0.78rem; display:block; margin-bottom:4px;}
+  tr.ph td{color:var(--text-dim); font-style:italic; background:repeating-linear-gradient(135deg, transparent 0 8px, var(--warn-bg) 8px 10px);}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:0 0 16px;}
+  .card{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px; break-inside:avoid;}
+  .card h3{margin:0 0 8px; font-size:0.98rem; display:flex; justify-content:space-between; gap:8px; align-items:baseline;}
+  .card p{margin:0 0 6px; font-size:0.9rem; color:var(--text-dim);}
+  .card dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.86rem;}
+  .card dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .card dd{margin:0; font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.82rem; overflow-wrap:anywhere;}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 0 18px;}
+  .tile{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px 14px;}
+  .tile .k{font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .tile .v{font-size:1.6rem; font-weight:600; font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; line-height:1.2;}
+  .tile .s{font-size:0.8rem; color:var(--text-dim);}
+
+  /* step flow */
+  ol.flow{list-style:none; padding:0; margin:0 0 16px; counter-reset:f;}
+  ol.flow > li{counter-increment:f; position:relative; padding:0 0 22px 52px; margin:0;}
+  ol.flow > li::before{content:counter(f); position:absolute; left:0; top:0; width:34px; height:34px; border-radius:50%; background:var(--panel); border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono", Consolas, monospace; font-weight:600;}
+  ol.flow > li::after{content:""; position:absolute; left:16px; top:36px; bottom:2px; width:2px; background:var(--border);}
+  ol.flow > li:last-child::after{display:none;}
+  ol.flow h3{margin:4px 0 6px;}
+
+  .verdict{border:2px solid var(--ok); background:var(--ok-bg); border-radius:8px; padding:16px 20px; margin:0 0 24px;}
+  .verdict h2{color:var(--ok); font-size:1.25rem; margin-bottom:6px;}
+  .verdict p:last-child{margin-bottom:0;}
+
+  .layers{display:flex; flex-direction:column; gap:6px; margin:0 0 16px;}
+  .layer{display:grid; grid-template-columns:34px minmax(0,1.3fr) minmax(0,1fr) 110px; gap:12px; align-items:center; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-left:5px solid var(--accent); border-radius:4px; font-size:0.88rem;}
+  .layer .n{font-family:"IBM Plex Mono", Consolas, monospace; color:var(--text-dim);}
+  .layer b{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .layer .when{color:var(--text-dim); font-size:0.84rem;}
+  .layer.pre{border-left-color:var(--text-dim);}
+  .layer.run{border-left-color:var(--warn);}
+  .layer.last{border-left-color:var(--bad);}
+
+  figure{margin:0 0 18px;}
+  figure.diagram{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:0.82rem; color:var(--text-dim); margin-top:10px; max-width:70ch;}
+  figure.narrow svg{max-width:560px; margin:0 auto;}
+  td:first-child code{white-space:nowrap;}
+  .shapes{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .shapes figure{margin:0;}
+
+  /* SVG classes (themeable) */
+  .sv-line{stroke:var(--text-dim); fill:none; stroke-width:1.5;}
+  .sv-thin{stroke:var(--border); fill:none; stroke-width:1;}
+  .sv-path{stroke:var(--accent); fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .sv-accent{stroke:var(--accent-strong); fill:none; stroke-width:2;}
+  .sv-warn{stroke:var(--warn); fill:none; stroke-width:2;}
+  .sv-bad{stroke:var(--bad); fill:none; stroke-width:2;}
+  .sv-dash{stroke-dasharray:5 4;}
+  .sv-fill-panel{fill:var(--panel); stroke:var(--text-dim); stroke-width:1.5;}
+  .sv-fill-alt{fill:var(--panel-alt); stroke:var(--border); stroke-width:1;}
+  .sv-fill-accent{fill:var(--accent); opacity:0.18; stroke:var(--accent); stroke-width:1.5;}
+  .sv-fill-warn{fill:var(--warn); opacity:0.16;}
+  .sv-fill-bad{fill:var(--bad); opacity:0.14;}
+  .sv-dot{fill:var(--accent-strong);}
+  .sv-dot-warn{fill:var(--warn);}
+  .sv-text{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:13px;}
+  .sv-small{fill:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:11px;}
+  .sv-mono{fill:var(--text-dim); font-family:"IBM Plex Mono", Consolas, monospace; font-size:10.5px;}
+  .sv-title{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:14px; font-weight:600;}
+  .sv-acc-text{fill:var(--accent-strong); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-warn-text{fill:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-bad-text{fill:var(--bad); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .arrowhead{fill:var(--text-dim);}
+  .arrowhead-acc{fill:var(--accent-strong);}
+
+  footer{max-width:860px; margin-top:30px; padding-top:18px; border-top:1px solid var(--border); font-size:0.84rem; color:var(--text-dim);}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:minmax(0,1fr); padding:0 16px 60px;}
+    nav.toc{min-width:0;}
+    nav.toc{position:sticky; top:0; z-index:5; padding-top:0; background:var(--bg); max-height:none; border-bottom:1px solid var(--border);}
+    nav.toc .eyebrow{display:none;}
+    nav.toc ul{flex-direction:row; overflow-x:auto; gap:4px; padding:12px 0; margin:0;}
+    nav.toc a{white-space:nowrap;}
+    main{padding-top:20px;}
+    .layer{grid-template-columns:28px 1fr; }
+    .layer .when,.layer .act{grid-column:2;}
+  }
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel-alt:#f2f2f2; --text:#000; --text-dim:#333; --border:#bbb; --code-bg:#f2f2f2;}
+    body{background:#fff; font-size:10.5pt;}
+    nav.toc{display:none;}
+    .page{display:block; padding:0; max-width:none;}
+    main{padding-top:0;}
+    section{padding:18px 0; max-width:none; break-inside:auto;}
+    .card,.tile,figure,.layer,tr,.verdict,.placeholder{break-inside:avoid;}
+    h2,h3{break-after:avoid;}
+    a{color:#000;}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-size:0.8em;}
+    pre{white-space:pre-wrap;}
+  }
+
+  /* page: meet-the-robot */
+  .lede{font-size:1.12rem; max-width:66ch; padding:14px 18px; background:var(--panel); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:0 6px 6px 0; margin:0 0 20px;}
+  .uses{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:0 0 8px; padding:0; list-style:none;}
+  .uses li{margin:0; padding:10px 14px; background:var(--panel); border:1px solid var(--border); border-radius:6px; font-size:0.92rem;}
+  .uses b{display:block; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:1rem;}
+  .explorer{display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:18px; align-items:start;}
+  .explorer figure.diagram{margin:0;}
+  .picker{display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; padding:0; list-style:none;}
+  .picker a{display:inline-block; padding:5px 11px; border:1px solid var(--border); border-radius:14px; background:var(--panel); color:var(--text); text-decoration:none; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.86rem; font-weight:500;}
+  .picker a:hover{background:var(--panel-alt);}
+  .picker a[aria-current="true"]{background:var(--accent-strong); border-color:var(--accent-strong); color:var(--bg);}
+  .part{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px; margin:0 0 14px; scroll-margin-top:70px;}
+  .part h3{margin:0 0 8px; font-size:1.15rem;}
+  .part .visitor{font-size:1rem; margin:0 0 12px;}
+  .part dl{margin:0 0 10px; display:grid; grid-template-columns:auto 1fr; gap:6px 14px; font-size:0.9rem;}
+  .part dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;}
+  .part dd{margin:0; min-width:0;}
+  .part pre{margin:6px 0 8px;}
+  .part details{margin:8px 0 0; border-top:1px solid var(--border); padding-top:8px; font-size:0.9rem;}
+  .part summary{cursor:pointer; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-weight:600; color:var(--accent-strong);}
+  .part summary:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+  .js .part{display:none;}
+  .js .part.on{display:block;}
+  .hint{font-size:0.84rem; color:var(--text-dim); margin:0 0 10px;}
+  .hs{cursor:pointer;}
+  .hs:focus{outline:none;}
+  .hs .hit{fill:transparent; stroke:none;}
+  .hs:hover .hit,.hs:focus-visible .hit{stroke:var(--accent); stroke-width:2; stroke-dasharray:4 3; fill:var(--accent); fill-opacity:0.10;}
+  .hs.on .hit{stroke:var(--accent-strong); stroke-width:2.5; stroke-dasharray:none; fill:var(--accent); fill-opacity:0.16;}
+  .badge{fill:var(--accent-strong);}
+  .badge-t{fill:var(--bg); font-family:"IBM Plex Mono",Consolas,monospace; font-size:11px; font-weight:600; text-anchor:middle;}
+  .body-fill{fill:var(--panel-alt); stroke:var(--text-dim); stroke-width:1.5;}
+  .dark-fill{fill:var(--text-dim); opacity:0.55;}
+  .cmp{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .evid{background:var(--panel); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:0 6px 6px 0; padding:14px 18px;}
+  .evid ul{margin:0;}
+  .cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px;}
+  .cols .panel{padding:14px 18px;}
+  .cols h3{margin-top:0;}
+  .cols li{margin:6px 0;}
+  .flowfig text{font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;}
+  @media (max-width:900px){ .explorer{grid-template-columns:minmax(0,1fr);} .part dl{grid-template-columns:minmax(0,1fr); gap:2px;} .part dd{margin-bottom:6px;} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important;} }
+  @keyframes flowdash{to{stroke-dashoffset:-18;}}
+  .flowing{stroke-dasharray:6 6; animation:flowdash 1.2s linear infinite;}
+  @media print{ .js .part{display:block;} .picker{display:none;} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="toc" aria-label="Contents">
+    <p class="eyebrow">Contents</p>
+    <ul>
+      <li><a href="#what">What it is</a></li>
+      <li><a href="#parts">The parts</a></li>
+      <li><a href="#talk">How the parts talk</a></li>
+      <li><a href="#status">What works today</a></li>
+      <li><a href="#evidence">Evidence and status</a></li>
+    </ul>
+    <p class="eyebrow">Other pages</p>
+    <ul>
+      <li><a href="index.html">Docs index</a></li>
+      <li><a href="do-it-yourself.html">Do it yourself</a></li>
+      <li><a href="../HOW-TO-CONNECT.md">How to connect</a></li>
+      <li><a href="what-you-can-build.html">What you can build</a></li>
+      <li><a href="how-a-command-travels.html">How a command travels</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow"><a href="index.html">&larr; Docs index</a> &middot; TurtleBot 4 Standard</p>
+      <h1 class="title">Meet the robot</h1>
+      <p class="dek">Click a part of the robot below to see what it does, what it is called inside ROS 2, and a command or program to try.</p>
+      <div class="meta">
+        <span><b>Page written</b> 2026-10-24</span>
+        <span><b>For</b> visitors, new lab students, reviewers</span>
+      </div>
+    </header>
+
+    <section id="what">
+      <div class="section-head"><span class="section-tag">01</span><h2>What it is and why the lab has it</h2></div>
+      <p class="lede">This is a small wheeled robot, about the size of a large pizza box lying flat. It has a laser scanner that measures distances, a camera, a small computer, a display and a battery, and it can drive itself back to its charging dock. The lab uses it to teach students how robots sense the world and move, using ROS 2, the software that most research robots run.</p>
+      <ul class="uses">
+        <li><b>Learn ROS 2</b>Topics, services, actions and nodes on a real machine.</li>
+        <li><b>Read sensors</b>Lidar, wheel odometry, IMU, battery, bump and cliff sensors.</li>
+        <li><b>Move on its own</b>Undock, drive a shape, avoid a wall, dock again.</li>
+        <li><b>Map and navigate</b>The next step after the basics. Not yet tested on this robot.</li>
+      </ul>
+      <details>
+        <summary>For lab students: the hardware in one paragraph</summary>
+        <p style="margin-top:8px">The lab has a TurtleBot 4 Standard: a Raspberry Pi 4 on an iRobot Create 3 base, running Ubuntu 24.04 Server and ROS 2 Jazzy. The Pi runs the lidar (an RPLIDAR), the OAK-D camera and the display. The Create 3 base runs its own firmware (<code>I.0.0.FastDDS</code>) and handles the wheels, bump, cliff and dock sensors, the light ring and the battery. The robot has no desktop: you work on it from your own computer over SSH. Start with <a href="do-it-yourself.html">Do it yourself</a> or <a href="../HOW-TO-CONNECT.md">HOW-TO-CONNECT.md</a>. The longer hardware overview is the <a href="../turtlebot4-field-guide.html">field guide</a>.</p>
+      </details>
+    </section>
+
+    <section id="parts">
+      <div class="section-head"><span class="section-tag">02</span><h2>Click a part</h2></div>
+      <p class="hint">The drawing is a simplified side view, not to scale. The front of the robot is on the right. Where a part sits inside the robot (battery, Pi) is shown only roughly. Use Tab and Enter to move between parts with the keyboard.</p>
+
+      <ul class="picker" id="picker" aria-label="Choose a part">
+        <li><a href="#p-base">Base</a></li>
+        <li><a href="#p-pi">Raspberry Pi 4</a></li>
+        <li><a href="#p-lidar">Lidar</a></li>
+        <li><a href="#p-camera">Camera</a></li>
+        <li><a href="#p-display">Display and buttons</a></li>
+        <li><a href="#p-ring">Light ring</a></li>
+        <li><a href="#p-battery">Battery</a></li>
+        <li><a href="#p-dock">Dock</a></li>
+      </ul>
+
+      <div class="explorer">
+        <figure class="diagram">
+          <svg id="robot" viewBox="0 0 640 380" role="group" aria-label="Side view of the TurtleBot 4 with its charging dock on the right. Each numbered part is a link to its description below.">
+            <!-- floor -->
+            <line class="sv-thin" x1="10" y1="352" x2="630" y2="352"/>
+
+            <!-- dock -->
+            <a class="hs" href="#p-dock" data-p="dock" aria-label="Dock">
+              <path class="sv-fill-panel" d="M532 352 L532 322 Q532 312 542 312 L612 312 L612 352 Z"/>
+              <rect x="532" y="326" width="8" height="12" class="dark-fill"/>
+              <rect x="530" y="300" width="84" height="56" class="hit"/>
+              <circle class="badge" cx="590" cy="296" r="10"/><text class="badge-t" x="590" y="300">8</text>
+            </a>
+
+            <!-- base body and wheel -->
+            <a class="hs" href="#p-base" data-p="base" aria-label="Base">
+              <rect class="body-fill" x="110" y="276" width="400" height="52" rx="26"/>
+              <circle cx="262" cy="332" r="26" class="body-fill"/>
+              <circle cx="262" cy="332" r="9" class="sv-thin"/>
+              <circle cx="470" cy="340" r="9" class="body-fill"/>
+              <path d="M508 292 Q514 302 508 314" class="sv-accent" style="stroke-width:5"/>
+              <circle cx="498" cy="288" r="4" class="sv-dot"/>
+              <circle cx="466" cy="327" r="3" class="sv-dot-warn"/><circle cx="154" cy="327" r="3" class="sv-dot-warn"/>
+              <rect x="104" y="262" width="418" height="94" class="hit" rx="26"/>
+              <circle class="badge" cx="130" cy="352" r="10"/><text class="badge-t" x="130" y="356">1</text>
+            </a>
+
+            <!-- battery (inside base) -->
+            <a class="hs" href="#p-battery" data-p="battery" aria-label="Battery">
+              <rect x="300" y="290" width="120" height="26" rx="4" class="sv-fill-warn"/>
+              <rect x="300" y="290" width="120" height="26" rx="4" class="sv-warn sv-dash"/>
+              <text class="sv-small" x="360" y="307" text-anchor="middle">battery</text>
+              <rect x="296" y="286" width="128" height="34" class="hit" rx="4"/>
+              <circle class="badge" cx="428" cy="286" r="10"/><text class="badge-t" x="428" y="290">7</text>
+            </a>
+
+            <!-- light ring -->
+            <a class="hs" href="#p-ring" data-p="ring" aria-label="Light ring">
+              <rect x="190" y="268" width="230" height="9" rx="4.5" class="sv-fill-accent"/>
+              <rect x="184" y="262" width="242" height="20" class="hit" rx="6"/>
+              <circle class="badge" cx="196" cy="256" r="10"/><text class="badge-t" x="196" y="260">6</text>
+            </a>
+
+            <!-- enclosure plates and posts -->
+            <rect x="150" y="262" width="320" height="6" class="body-fill"/>
+            <rect x="150" y="164" width="320" height="6" class="body-fill"/>
+            <line class="sv-line" x1="158" y1="170" x2="158" y2="262"/>
+            <line class="sv-line" x1="462" y1="170" x2="462" y2="262"/>
+
+            <!-- Raspberry Pi -->
+            <a class="hs" href="#p-pi" data-p="pi" aria-label="Raspberry Pi 4">
+              <rect x="196" y="196" width="130" height="52" rx="4" class="sv-fill-panel"/>
+              <rect x="206" y="204" width="34" height="22" class="sv-fill-alt"/>
+              <text class="sv-small" x="261" y="240" text-anchor="middle">Raspberry Pi 4</text>
+              <rect x="190" y="190" width="142" height="64" class="hit" rx="4"/>
+              <circle class="badge" cx="196" cy="186" r="10"/><text class="badge-t" x="196" y="190">2</text>
+            </a>
+
+            <!-- display and buttons -->
+            <a class="hs" href="#p-display" data-p="display" aria-label="Display and buttons">
+              <rect x="388" y="190" width="58" height="34" rx="3" class="sv-fill-panel"/>
+              <rect x="394" y="196" width="46" height="22" class="sv-fill-accent"/>
+              <circle cx="400" cy="238" r="4" class="sv-fill-panel"/><circle cx="417" cy="238" r="4" class="sv-fill-panel"/><circle cx="434" cy="238" r="4" class="sv-fill-panel"/>
+              <rect x="382" y="184" width="70" height="64" class="hit" rx="4"/>
+              <circle class="badge" cx="456" cy="184" r="10"/><text class="badge-t" x="456" y="188">5</text>
+            </a>
+
+            <!-- lidar -->
+            <a class="hs" href="#p-lidar" data-p="lidar" aria-label="Lidar">
+              <rect x="222" y="134" width="64" height="30" rx="6" class="sv-fill-panel"/>
+              <rect x="230" y="126" width="48" height="8" rx="3" class="sv-fill-alt"/>
+              <line x1="280" y1="148" x2="150" y2="148" class="sv-accent sv-dash"/>
+              <line x1="228" y1="148" x2="120" y2="148" class="sv-accent sv-dash"/>
+              <text class="sv-small" x="254" y="153" text-anchor="middle">lidar</text>
+              <rect x="216" y="120" width="76" height="48" class="hit" rx="6"/>
+              <circle class="badge" cx="296" cy="122" r="10"/><text class="badge-t" x="296" y="126">3</text>
+            </a>
+
+            <!-- camera on mast -->
+            <a class="hs" href="#p-camera" data-p="camera" aria-label="Camera">
+              <rect x="420" y="86" width="8" height="78" class="body-fill"/>
+              <rect x="396" y="64" width="84" height="26" rx="5" class="sv-fill-panel"/>
+              <circle cx="414" cy="77" r="5" class="sv-dot"/><circle cx="438" cy="77" r="5" class="sv-dot"/><circle cx="462" cy="77" r="5" class="sv-dot"/>
+              <rect x="390" y="58" width="96" height="38" class="hit" rx="5"/>
+              <circle class="badge" cx="490" cy="62" r="10"/><text class="badge-t" x="490" y="66">4</text>
+            </a>
+
+            <!-- labels not tied to a click: base sensors -->
+            <text class="sv-small" x="520" y="276">front</text>
+            <text class="sv-small" x="500" y="372" text-anchor="end">wheel, bumper, cliff and IR sensors are part of the base (1)</text>
+          </svg>
+          <figcaption>Simplified side view. The lidar scans all around the robot, not only to the left. Positions are for orientation only.</figcaption>
+        </figure>
+
+        <div id="partsBox" aria-live="polite">
+          <p class="hint" id="noJs">Without JavaScript, all parts are listed here one after another and the numbers in the drawing jump to them.</p>
+
+          <article class="part" id="p-base">
+            <h3>1. The base (iRobot Create 3)</h3>
+            <p class="visitor">The round platform that drives. It is the same kind of base as a robot vacuum, with wheels, a bumper and sensors that stop it from falling off a table edge.</p>
+            <dl>
+              <dt>Parts</dt><dd>Two drive wheels, a bumper, cliff sensors under the front, infrared sensors that find the dock, an IMU, the light ring and the battery. Per the <a href="../turtlebot4-field-guide.html">field guide</a>: differential drive, wheel encoders, bump, cliff and IR sensors, speaker.</dd>
+              <dt>ROS 2</dt><dd><code>/cmd_vel</code> (drive; type <code>TwistStamped</code>), <code>/odom</code> (wheel odometry), <code>/imu</code>, <code>/wheel_status</code>, <code>/hazard_detection</code> (bump and cliff), <code>/ir_opcode</code> (what the IR sensors see). Action <code>/rotate_angle</code>.</dd>
+              <dt>Try it</dt><dd>Read only, safe on the dock: <code>python3 sensor_report.py --seconds 20</code> (rates of <code>/odom</code>, <code>/imu</code> and more). Moving programs: <a href="../examples/README.md">examples/README.md</a>, safety checklist first.</dd>
+            </dl>
+            <details>
+              <summary>More for students</summary>
+              <p>The base is a separate computer with its own firmware (<code>I.0.0.FastDDS</code>). The Pi re-publishes its topics with <code>create3_republisher</code>. The base web page is at <code>http://192.168.186.2</code> from the Pi. Known issue: <code>/odom</code> can pause for about a second or more when the wheels start; <code>motion_shapes.py</code> holds still and waits. See <a href="#status">status below</a> and <a href="motion-program-design.html">motion program design</a>.</p>
+            </details>
+          </article>
+
+          <article class="part" id="p-pi">
+            <h3>2. Raspberry Pi 4</h3>
+            <p class="visitor">The robot's small computer. It reads the lidar and camera, runs the display and talks to your laptop over Wi-Fi.</p>
+            <dl>
+              <dt>Does</dt><dd>Runs Ubuntu 24.04 Server and ROS 2 Jazzy (no desktop). Starts the lidar, camera and display software, and re-publishes the base's topics. You log in to it with SSH and run your programs on it.</dd>
+              <dt>ROS 2</dt><dd>Nodes seen on 2026-10-04: <code>/rplidar_composition</code>, <code>/turtlebot4_base_node</code>, <code>/oakd</code>, <code>/turtlebot4_diagnostics</code>. Topic <code>/ip</code> holds its current address.</dd>
+              <dt>Try it</dt><dd><pre><code>ssh ubuntu@turtlebot4.local</code></pre>If the name is not found, use the address on the robot's display. Open a terminal first: PowerShell on Windows, Terminal on macOS or Linux. Password: ask the lab maintainer. Full steps: <a href="do-it-yourself.html">Do it yourself</a>.</dd>
+            </dl>
+            <details>
+              <summary>More for students</summary>
+              <p>The Pi talks to the base over a USB network link: the Pi is <code>192.168.186.3</code>, the base is <code>192.168.186.2</code>. Do not unplug that cable. Programs live in <code>~/robot_code</code>. The robot's clock can be wrong because the campus network blocks internet time; see <a href="../HOW-TO-CONNECT.md">HOW-TO-CONNECT.md</a>.</p>
+            </details>
+          </article>
+
+          <article class="part" id="p-lidar">
+            <h3>3. Lidar (RPLIDAR)</h3>
+            <p class="visitor">A spinning laser that measures how far away the nearest object is in every direction. It is how the robot "sees" walls and chairs.</p>
+            <dl>
+              <dt>Does</dt><dd>Measured on 2026-10-04: about 7.75 scans per second, 720 beams per scan, range 0.15 m to 12 m. The lidar is mounted turned by 90 degrees: straight ahead of the robot is laser angle -90 degrees. It stops while the robot is docked and starts after undock (power saving, expected).</dd>
+              <dt>ROS 2</dt><dd><code>/scan</code>, type <code>sensor_msgs/msg/LaserScan</code>. Subscribe with <code>qos_profile_sensor_data</code> or no messages arrive.</dd>
+              <dt>Try it</dt><dd>Off the dock: <pre><code>python3 scan_test.py</code></pre>Prints the nearest object in metres. Guide with an interactive scan explorer: <a href="lidar-guide.html">lidar-guide.html</a>. How a lidar fault was fixed: <a href="lidar-diagnosis.html">lidar-diagnosis.html</a>.</dd>
+            </dl>
+            <details>
+              <summary>More for students</summary>
+              <p>After an undock the lidar may stay stopped; see Known issues in <a href="../MAINTENANCE.md">MAINTENANCE.md</a>. <code>python3 clearance_check.py 0.6</code> reads one scan and exits 0 if the way ahead is clear. <code>python3 lidar_snapshot.py</code> saves scans to a file you can draw on any computer.</p>
+            </details>
+          </article>
+
+          <article class="part" id="p-camera">
+            <h3>4. Camera (OAK-D)</h3>
+            <p class="visitor">A depth camera with two lenses, like two eyes, plus a normal colour lens. It can measure distance and recognise objects.</p>
+            <dl>
+              <dt>Does</dt><dd>The field guide describes the OAK-D as stereo depth plus RGB, with an onboard processor for AI. The repo does not say whether this robot has the Pro or the Lite version. The camera software runs on the Pi and uses about one CPU core.</dd>
+              <dt>ROS 2</dt><dd>The node <code>/oakd</code> exists. The field guide lists its topics as <code>/oakd/*</code>. The exact image topics were not recorded for this robot [to verify].</dd>
+              <dt>Try it</dt><dd>List what the camera publishes: <pre><code>ros2 topic list | grep oakd</code></pre>[to verify]. No example program in this repo uses the camera yet. Streaming raw images over Wi-Fi is slow; the roadmap advises compressed topics.</dd>
+            </dl>
+          </article>
+
+          <article class="part" id="p-display">
+            <h3>5. Display and buttons</h3>
+            <p class="visitor">A small screen on the robot. It shows the robot's network address and can show a message from a program.</p>
+            <dl>
+              <dt>Does</dt><dd>After switching on, the robot plays a chime and its address appears on the display. You need that address to connect.</dd>
+              <dt>ROS 2</dt><dd>Text goes to <code>/hmi/display/message</code> (type <code>std_msgs/msg/String</code>).</dd>
+              <dt>Try it</dt><dd>Safe anywhere, also on the dock: <pre><code>python3 hello_robot.py</code></pre>Shows a message on the display and turns the light ring green for 5 s. See <a href="../examples/README.md">examples/README.md</a>.</dd>
+            </dl>
+            <details>
+              <summary>More for students</summary>
+              <p>The buttons are not used by any program in this repo, and their topic is not recorded in the repo docs [to verify]. The base has its own power button in the centre of the light ring; press and hold it for about 7 to 10 s to turn the robot off (see <a href="../HOW-TO-CONNECT.md">HOW-TO-CONNECT.md</a>).</p>
+            </details>
+          </article>
+
+          <article class="part" id="p-ring">
+            <h3>6. Light ring</h3>
+            <p class="visitor">A ring of coloured lights on top of the base. It shows the robot's state, like a status lamp.</p>
+            <dl>
+              <dt>Does</dt><dd>Six LEDs. A program can take control of them by setting <code>override_system</code>.</dd>
+              <dt>ROS 2</dt><dd><code>/cmd_lightring</code>, type <code>irobot_create_msgs/msg/LightringLeds</code>.</dd>
+              <dt>Try it</dt><dd><pre><code>python3 lightring_status.py</code></pre>Shows the battery level and a blinking red ring if the lidar data is stale, for a set time, then hands the ring back. Details: <a href="../examples/README.md#sensor-programs-that-do-not-move-the-robot">examples/README.md</a>.</dd>
+            </dl>
+          </article>
+
+          <article class="part" id="p-battery">
+            <h3>7. Battery</h3>
+            <p class="visitor">The robot runs on a rechargeable battery. When it gets low, it can drive back to its dock to charge.</p>
+            <dl>
+              <dt>Does</dt><dd>Powers the base and the Pi. The base reports its charge.</dd>
+              <dt>ROS 2</dt><dd><code>/battery_state</code>, type <code>sensor_msgs/msg/BatteryState</code>.</dd>
+              <dt>Try it</dt><dd><pre><code>timeout 60 ros2 topic echo --once /battery_state</code></pre>Run on the robot. Every <code>ros2</code> call takes 30 to 60 s on the Pi, so wait.</dd>
+            </dl>
+            <details>
+              <summary>More for students</summary>
+              <p>The repo does not record the battery capacity or the run time, so none is given here. <code>python3 sensor_report.py --seconds 20</code> prints the battery along with the other topic rates.</p>
+            </details>
+          </article>
+
+          <article class="part" id="p-dock">
+            <h3>8. Charging dock</h3>
+            <p class="visitor">The robot's charging station. It sends out infrared signals, and the robot follows them to park itself and charge.</p>
+            <dl>
+              <dt>Does</dt><dd>The robot finds the dock with two infrared sensors, lines up on the centre line in front of it and drives in slowly until the charging contacts touch. Undock and dock were verified on this robot (undock 2026-10-04, dock 2026-10-03).</dd>
+              <dt>ROS 2</dt><dd>Topic <code>/dock_status</code> (field <code>is_docked</code>), topic <code>/ir_opcode</code>, actions <code>/dock</code> and <code>/undock</code>.</dd>
+              <dt>Try it</dt><dd>Clear about 1 m around the robot first. This moves it:<pre><code>ros2 action send_goal /undock irobot_create_msgs/action/Undock "{}"</code></pre>Explained step by step, with an animation: <a href="docking-explained.html">docking-explained.html</a>.</dd>
+            </dl>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="talk">
+      <div class="section-head"><span class="section-tag">03</span><h2>How the parts talk</h2></div>
+      <p>Your laptop talks to the Pi over Wi-Fi (or an Ethernet cable). The Pi talks to the base over a USB cable that works like a tiny network. Every sensor and command is a ROS 2 topic that flows across these links. The longer story is in <a href="how-a-command-travels.html">How a command travels</a>.</p>
+      <figure class="diagram flowfig">
+        <div class="scroll-x">
+        <svg viewBox="0 0 720 250" role="img" aria-label="Diagram. Your laptop connects over Wi-Fi to the Raspberry Pi 4. The Pi connects over a USB network link, Pi 192.168.186.3 and base 192.168.186.2, to the Create 3 base. The lidar and camera plug into the Pi. The base sends odom, imu, battery_state and dock_status topics to the Pi, which re-publishes them. Commands such as cmd_vel travel the other way.">
+          <defs>
+            <marker id="mh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="arrowhead-acc"/></marker>
+          </defs>
+          <rect x="10" y="80" width="140" height="80" rx="8" class="sv-fill-panel"/>
+          <text class="sv-title" x="80" y="115" text-anchor="middle">Your laptop</text>
+          <text class="sv-small" x="80" y="135" text-anchor="middle">ssh, your programs</text>
+
+          <rect x="290" y="80" width="140" height="80" rx="8" class="sv-fill-panel"/>
+          <text class="sv-title" x="360" y="115" text-anchor="middle">Raspberry Pi 4</text>
+          <text class="sv-small" x="360" y="135" text-anchor="middle">192.168.186.3</text>
+
+          <rect x="570" y="80" width="140" height="80" rx="8" class="sv-fill-panel"/>
+          <text class="sv-title" x="640" y="115" text-anchor="middle">Create 3 base</text>
+          <text class="sv-small" x="640" y="135" text-anchor="middle">192.168.186.2</text>
+
+          <rect x="290" y="12" width="64" height="32" rx="6" class="sv-fill-alt"/><text class="sv-small" x="322" y="32" text-anchor="middle">lidar</text>
+          <rect x="366" y="12" width="64" height="32" rx="6" class="sv-fill-alt"/><text class="sv-small" x="398" y="32" text-anchor="middle">camera</text>
+          <line class="sv-line" x1="322" y1="44" x2="322" y2="80"/><line class="sv-line" x1="398" y1="44" x2="398" y2="80"/>
+
+          <line x1="150" y1="120" x2="290" y2="120" class="sv-accent flowing" marker-end="url(#mh)"/>
+          <line x1="290" y1="132" x2="150" y2="132" class="sv-accent flowing" marker-end="url(#mh)"/>
+          <text class="sv-acc-text" x="220" y="72" text-anchor="middle">Wi-Fi or cable</text>
+          <text class="sv-small" x="220" y="152" text-anchor="middle">ROS 2 topics</text>
+
+          <line x1="430" y1="120" x2="570" y2="120" class="sv-accent flowing" marker-end="url(#mh)"/>
+          <line x1="570" y1="132" x2="430" y2="132" class="sv-accent flowing" marker-end="url(#mh)"/>
+          <text class="sv-acc-text" x="500" y="72" text-anchor="middle">USB network link</text>
+          <text class="sv-small" x="500" y="152" text-anchor="middle">create3_republisher</text>
+
+          <text class="sv-mono" x="500" y="186" text-anchor="middle">base to Pi: /odom /imu /battery_state /dock_status</text>
+          <text class="sv-mono" x="500" y="204" text-anchor="middle">Pi to base: /cmd_vel, dock and undock actions</text>
+          <text class="sv-mono" x="220" y="186" text-anchor="middle">/scan</text>
+        </svg>
+        </div>
+        <figcaption>The arrows move to show the two-way traffic. The animation stops if your system asks for reduced motion.</figcaption>
+      </figure>
+    </section>
+
+    <section id="status">
+      <div class="section-head"><span class="section-tag">04</span><h2>What it can and cannot do yet</h2></div>
+      <p>State on 2026-10-24, from <a href="../README.md">README.md</a>, <a href="../MAINTENANCE.md">MAINTENANCE.md</a> and <a href="../ROADMAP.md">ROADMAP.md</a>.</p>
+      <div class="cols">
+        <div class="panel">
+          <h3><span class="chip ok">Works</span></h3>
+          <ul>
+            <li>Connect from Windows, macOS or Linux, over Wi-Fi or a direct Ethernet cable.</li>
+            <li>Undock and dock (verified 2026-10-04 and 2026-10-03).</li>
+            <li>Lidar publishes <code>/scan</code> off the dock (7.75 Hz on 2026-10-04).</li>
+            <li>Text on the display and the light ring from a program (verified 2026-10-03).</li>
+            <li>Supervised motion programs (spin, circle and other shapes) completed in the latest test: 10 of 10 motion starts, with short pauses at the start (ROADMAP TB-25).</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3><span class="chip warn">Being fixed</span></h3>
+          <ul>
+            <li>Short <code>/odom</code> pauses when the wheels start. The cause is in the base, not the Wi-Fi or the Pi. Programs wait through them (TB-15, TB-25).</li>
+            <li>Wi-Fi drops since 2026-10-04. Power saving was switched off on 2026-10-24; whether that ends the drops can only be checked on campus (MAINTENANCE.md R14).</li>
+            <li>After an undock the lidar may stay stopped (Known issues in MAINTENANCE.md).</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3><span class="chip todo">Not yet tested</span></h3>
+          <ul>
+            <li>Mapping and navigation (SLAM, Nav2) on this robot.</li>
+            <li>The camera in a program. Streaming images over Wi-Fi.</li>
+            <li>The display buttons.</li>
+            <li>TurtleBot Studio on macOS, Linux and over Wi-Fi.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="evidence">
+      <div class="section-head"><span class="section-tag">05</span><h2>Evidence and status</h2></div>
+      <div class="evid">
+        <p><b>Purpose:</b> a hands-on platform for teaching ROS 2, sensors and autonomous motion in the AlfaisalX lab.</p>
+        <p><b>Status date:</b> 2026-10-24. Every claim above links to a record:</p>
+        <ul>
+          <li><a href="test-results.html">test-results.html</a>: results of the motion program runs.</li>
+          <li><a href="../ROADMAP.md">ROADMAP.md</a>: open work, including TB-15 and TB-25 for the <code>/odom</code> pauses.</li>
+          <li><a href="../MAINTENANCE.md">MAINTENANCE.md</a>: every change made to the robot, with how to verify and undo it, and the known issues.</li>
+          <li><a href="../tests/README.md">tests/README.md</a>: robot run logs and the offline tests of the example programs.</li>
+        </ul>
+        <p style="margin-bottom:0">Things marked [to verify] were not run on the real robot.</p>
+      </div>
+    </section>
+
+    <footer>
+      <a href="index.html">Docs index</a> &middot; <a href="do-it-yourself.html">Do it yourself</a> &middot; <a href="../HOW-TO-CONNECT.md">How to connect</a> &middot; <a href="what-you-can-build.html">What you can build</a> &middot; <a href="how-a-command-travels.html">How a command travels</a><br>
+      TurtleBot 4 lab documentation. Last updated 2026-10-24. Public repository: never add passwords, Wi-Fi keys or private keys; ask the lab maintainer.
+    </footer>
+  </main>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+  var parts = Array.prototype.slice.call(document.querySelectorAll('.part'));
+  var links = Array.prototype.slice.call(document.querySelectorAll('#picker a'));
+  var spots = Array.prototype.slice.call(document.querySelectorAll('.hs'));
+  var note = document.getElementById('noJs');
+  if(note) note.style.display = 'none';
+  function select(id, focusPanel){
+    var found = false;
+    parts.forEach(function(p){ var on = p.id === 'p-' + id; p.classList.toggle('on', on); if(on) found = true; });
+    if(!found) return;
+    links.forEach(function(a){ if(a.getAttribute('href') === '#p-' + id) a.setAttribute('aria-current','true'); else a.removeAttribute('aria-current'); });
+    spots.forEach(function(s){ s.classList.toggle('on', s.getAttribute('data-p') === id); });
+    try { history.replaceState(null, '', '#p-' + id); } catch(e){}
+    if(focusPanel){
+      var el = document.getElementById('p-' + id);
+      if(window.matchMedia('(max-width:900px)').matches){ el.scrollIntoView({block:'start'}); }
+    }
+  }
+  function wire(el, getId){
+    el.addEventListener('click', function(e){ e.preventDefault(); select(getId(el), true); });
+  }
+  links.forEach(function(a){ wire(a, function(x){ return x.getAttribute('href').slice(3); }); });
+  spots.forEach(function(s){ wire(s, function(x){ return x.getAttribute('data-p'); }); });
+  var h = (location.hash || '').replace('#p-','');
+  select(/^(base|pi|lidar|camera|display|ring|battery|dock)$/.test(h) ? h : 'base', false);
+})();
+</script>
+</body>
+</html>

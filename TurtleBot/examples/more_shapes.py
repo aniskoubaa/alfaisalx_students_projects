@@ -287,10 +287,11 @@ def main():
     def body():
         mc.startup_checks(node, args.dry_run, use_lidar, front_needed(segs))
         if args.dry_run:
+            mc.wait_steady_odom(node)
             log('dry run: all checks done, nothing was sent to /cmd_vel')
             return 0
         mc.confirm(args.yes)
-        mc.start_motion()
+        mc.start_motion(node)
         mc.Guard(node, total_timeout).install()
         x0, y0, yaw0, h0 = node.x, node.y, node.yaw, node.heading.total
         log('starting. To stop: Ctrl+C, or "touch ~/STOP", or "pkill -INT -f more_shapes.py"')

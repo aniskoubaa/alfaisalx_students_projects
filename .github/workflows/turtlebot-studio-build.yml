@@ -1,0 +1,83 @@
+# Builds TurtleBot Studio (no Python needed by the user) on Windows, macOS and Linux.
+#   Windows: TurtleBotStudio.exe (windowed, no console) and TurtleBotStudio-Setup-<version>.exe (NSIS 3 installer)
+#   macOS:   TurtleBotStudio-macOS.zip (windowed .app, not code-signed)
+#   Linux:   TurtleBotStudio binary and install-linux.sh
+# Runs on a tag like studio-v1.3 or by hand (Actions tab, Run workflow). The files are workflow artifacts only.
+name: TurtleBot Studio build
+
+on:
+  push:
+    tags:
+      - 'studio-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-22.04]   # 22.04: older glibc, runs on more Linux systems
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PyInstaller
+        run: python -m pip install pyinstaller==6.20.0
+      - name: Studio offline tests
+        shell: bash
+        run: |
+          python TurtleBot/tests/offline/test_studio_desktop.py
+          python TurtleBot/tests/offline/test_studio_bridge.py
+          python TurtleBot/tests/offline/test_studio_templates.py
+          python TurtleBot/tests/offline/test_studio_setup.py
+          python TurtleBot/tests/offline/test_studio_upgrades.py
+          python TurtleBot/tests/offline/test_studio_window.py
+      - name: Install NSIS (Windows installer)
+        if: runner.os == 'Windows'
+        run: choco install nsis -y
+      - name: Build, smoke-test and make the Windows installer
+        if: runner.os == 'Windows'
+        run: python TurtleBot/tools/studio/packaging/build.py --smoke --installer
+      - name: Build and smoke-test the program
+        if: runner.os != 'Windows'
+        run: python TurtleBot/tools/studio/packaging/build.py --smoke
+      - name: Zip the macOS app
+        if: runner.os == 'macOS'
+        working-directory: TurtleBot/tools/studio/packaging/dist
+        run: ditto -c -k --sequesterRsrc --keepParent TurtleBotStudio.app TurtleBotStudio-macOS.zip
+      - name: Add the Linux install script
+        if: runner.os == 'Linux'
+        run: cp TurtleBot/tools/studio/packaging/install-linux.sh TurtleBot/tools/studio/packaging/dist/install-linux.sh
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows'
+        with:
+          name: TurtleBotStudio-Windows
+          path: |
+            TurtleBot/tools/studio/packaging/dist/TurtleBotStudio.exe
+            TurtleBot/tools/studio/packaging/dist/TurtleBotStudio-Setup-*.exe
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'macOS'
+        with:
+          name: TurtleBotStudio-macOS
+          path: TurtleBot/tools/studio/packaging/dist/TurtleBotStudio-macOS.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
+        with:
+          name: TurtleBotStudio-Linux
+          path: |
+            TurtleBot/tools/studio/packaging/dist/TurtleBotStudio
+            TurtleBot/tools/studio/packaging/dist/install-linux.sh
+          if-no-files-found: error
+
+# Releasing later (not enabled): add a second job with `needs: build` and `permissions: contents: write`,
+# download the three artifacts with actions/download-artifact@v4, and attach them to the tag with
+# softprops/action-gh-release (pinned to a commit) or `gh release create`. The macOS app is not code-signed
+# and the Windows installer is not signed either (SmartScreen may warn).

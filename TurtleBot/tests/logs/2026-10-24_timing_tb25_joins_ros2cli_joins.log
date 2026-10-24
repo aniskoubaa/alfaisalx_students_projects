@@ -1,0 +1,19 @@
+recorder_launch mono=10858.593 joiner=A cmd=ros2 topic list --no-daemon
+JOIN_START mono=10978.594 idx=1
+JOIN_END mono=10982.173 rc=0 out_lines=37 last=/wheel_status
+JOIN_START mono=11038.594 idx=2
+JOIN_END mono=11042.361 rc=0 out_lines=31 last=/wheel_status
+JOIN_START mono=11098.594 idx=3
+JOIN_END mono=11101.751 rc=0 out_lines=37 last=/wheel_status
+JOIN_START mono=11158.594 idx=4
+JOIN_END mono=11161.674 rc=0 out_lines=31 last=/wheel_status
+JOIN_START mono=11218.594 idx=5
+JOIN_END mono=11222.269 rc=0 out_lines=32 last=/wheel_status
+JOIN_START mono=11278.594 idx=6
+JOIN_END mono=11281.755 rc=0 out_lines=37 last=/wheel_status
+JOIN_START mono=11338.594 idx=7
+JOIN_END mono=11341.777 rc=0 out_lines=37 last=/wheel_status
+JOIN_START mono=11398.594 idx=8
+JOIN_END mono=11401.804 rc=0 out_lines=37 last=/wheel_status
+driver_done
+recorder_exit rc=0 mono=11579.427

@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a command travels</title>
+<meta name="description" content="The path of one drive command on the TurtleBot 4, from a Python program on the Pi to the Create 3 wheels and back as odometry, and what we know about the pauses the base sometimes makes on that path (TB-25).">
+<style>
+  /* Shared style for TurtleBot/docs pages. Tokens match turtlebot4-field-guide.html. */
+  :root{
+    --bg:#EEF2F4; --panel:#FFFFFF; --panel-alt:#E3EAED; --text:#16232F; --text-dim:#54636F;
+    --border:#C6D2D7; --accent:#0C8C82; --accent-strong:#075F58; --warn:#B85B26; --code-bg:#DDE6E9;
+    --ok:#2E7D32; --bad:#B3261E; --ok-bg:#E3F1E4; --bad-bg:#F8E4E2; --warn-bg:#F7E9DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+      --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+      --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+    --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+    --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.label-font,.eyebrow,th,.chip,.tile .k,figcaption,nav.toc a{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;}
+  code,pre,.mono{font-family:"IBM Plex Mono", Consolas, "Courier New", monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:0.88em; overflow-wrap:anywhere;}
+  pre{background:var(--code-bg); padding:12px 14px; border-radius:4px; overflow-x:auto; font-size:0.84rem; line-height:1.5; margin:0 0 16px;}
+  pre code{background:none; padding:0;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  a{color:var(--accent-strong);}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+
+  .page{display:grid; grid-template-columns:220px minmax(0,1fr); gap:0 44px; max-width:1220px; margin:0 auto; padding:0 28px 80px;}
+  nav.toc{position:sticky; top:0; align-self:start; padding-top:48px; max-height:100vh; overflow-y:auto;}
+  nav.toc .eyebrow{color:var(--text-dim); font-size:0.7rem;}
+  nav.toc ul{list-style:none; margin:0 0 24px; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.toc a{display:block; padding:6px 10px; border-radius:3px; color:var(--text-dim); text-decoration:none; font-size:0.86rem; font-weight:500;}
+  nav.toc a:hover{color:var(--text); background:var(--panel-alt);}
+  main{min-width:0; padding-top:48px;}
+  header.hero{margin-bottom:36px;}
+  .eyebrow{font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 12px;}
+  h1.title{font-size:clamp(2rem,5vw,3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{font-size:1.08rem; color:var(--text-dim); max-width:66ch; margin:0 0 20px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.84rem; color:var(--text-dim);}
+  .meta b{color:var(--text); font-weight:600;}
+
+  section{max-width:860px; padding:40px 0; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none; padding-top:0;}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .section-tag{font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.72rem; color:var(--text-dim); white-space:nowrap;}
+  h2{font-size:1.5rem; font-weight:600;}
+  h3{font-size:1.05rem; font-weight:600; margin:24px 0 8px;}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin:3px 0;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .table-wrap{overflow-x:auto; margin:0 0 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
+  th,td{text-align:left; padding:9px 12px; border-top:1px solid var(--border); vertical-align:top;}
+  thead th{border-top:none; font-size:0.76rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim); background:var(--panel-alt); white-space:nowrap;}
+  tbody th{font-weight:600; color:var(--text-dim); white-space:nowrap;}
+  td.notes{min-width:230px;}
+  td.nowrap{white-space:nowrap;}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  .chip{display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.74rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap;}
+  .chip.ok{color:var(--ok); background:var(--ok-bg);}
+  .chip.bad{color:var(--bad); background:var(--bad-bg);}
+  .chip.warn{color:var(--warn); background:var(--warn-bg);}
+  .chip.info{color:var(--accent-strong); background:var(--panel-alt);}
+  .chip.todo{color:var(--text-dim); background:transparent; border-style:dashed;}
+
+  .note{padding:12px 16px; background:var(--panel-alt); border-left:3px solid var(--warn); border-radius:0 4px 4px 0; font-size:0.92rem; margin:18px 0;}
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .placeholder{border:2px dashed var(--warn); border-radius:6px; padding:14px 16px; margin:16px 0; background:var(--warn-bg);}
+  .placeholder > b:first-child{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; color:var(--warn); text-transform:uppercase; letter-spacing:0.06em; font-size:0.78rem; display:block; margin-bottom:4px;}
+  tr.ph td{color:var(--text-dim); font-style:italic; background:repeating-linear-gradient(135deg, transparent 0 8px, var(--warn-bg) 8px 10px);}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:0 0 16px;}
+  .card{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px; break-inside:avoid;}
+  .card h3{margin:0 0 8px; font-size:0.98rem; display:flex; justify-content:space-between; gap:8px; align-items:baseline;}
+  .card p{margin:0 0 6px; font-size:0.9rem; color:var(--text-dim);}
+  .card dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.86rem;}
+  .card dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .card dd{margin:0; font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.82rem; overflow-wrap:anywhere;}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 0 18px;}
+  .tile{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px 14px;}
+  .tile .k{font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .tile .v{font-size:1.6rem; font-weight:600; font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; line-height:1.2;}
+  .tile .s{font-size:0.8rem; color:var(--text-dim);}
+
+  /* step flow */
+  ol.flow{list-style:none; padding:0; margin:0 0 16px; counter-reset:f;}
+  ol.flow > li{counter-increment:f; position:relative; padding:0 0 22px 52px; margin:0;}
+  ol.flow > li::before{content:counter(f); position:absolute; left:0; top:0; width:34px; height:34px; border-radius:50%; background:var(--panel); border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono", Consolas, monospace; font-weight:600;}
+  ol.flow > li::after{content:""; position:absolute; left:16px; top:36px; bottom:2px; width:2px; background:var(--border);}
+  ol.flow > li:last-child::after{display:none;}
+  ol.flow h3{margin:4px 0 6px;}
+
+  .verdict{border:2px solid var(--ok); background:var(--ok-bg); border-radius:8px; padding:16px 20px; margin:0 0 24px;}
+  .verdict h2{color:var(--ok); font-size:1.25rem; margin-bottom:6px;}
+  .verdict p:last-child{margin-bottom:0;}
+
+  .layers{display:flex; flex-direction:column; gap:6px; margin:0 0 16px;}
+  .layer{display:grid; grid-template-columns:34px minmax(0,1.3fr) minmax(0,1fr) 110px; gap:12px; align-items:center; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-left:5px solid var(--accent); border-radius:4px; font-size:0.88rem;}
+  .layer .n{font-family:"IBM Plex Mono", Consolas, monospace; color:var(--text-dim);}
+  .layer b{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .layer .when{color:var(--text-dim); font-size:0.84rem;}
+  .layer.pre{border-left-color:var(--text-dim);}
+  .layer.run{border-left-color:var(--warn);}
+  .layer.last{border-left-color:var(--bad);}
+
+  figure{margin:0 0 18px;}
+  figure.diagram{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:0.82rem; color:var(--text-dim); margin-top:10px; max-width:70ch;}
+  figure.narrow svg{max-width:560px; margin:0 auto;}
+  td:first-child code{white-space:nowrap;}
+  .shapes{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .shapes figure{margin:0;}
+
+  /* SVG classes (themeable) */
+  .sv-line{stroke:var(--text-dim); fill:none; stroke-width:1.5;}
+  .sv-thin{stroke:var(--border); fill:none; stroke-width:1;}
+  .sv-path{stroke:var(--accent); fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .sv-accent{stroke:var(--accent-strong); fill:none; stroke-width:2;}
+  .sv-warn{stroke:var(--warn); fill:none; stroke-width:2;}
+  .sv-bad{stroke:var(--bad); fill:none; stroke-width:2;}
+  .sv-dash{stroke-dasharray:5 4;}
+  .sv-fill-panel{fill:var(--panel); stroke:var(--text-dim); stroke-width:1.5;}
+  .sv-fill-alt{fill:var(--panel-alt); stroke:var(--border); stroke-width:1;}
+  .sv-fill-accent{fill:var(--accent); opacity:0.18; stroke:var(--accent); stroke-width:1.5;}
+  .sv-fill-warn{fill:var(--warn); opacity:0.16;}
+  .sv-fill-bad{fill:var(--bad); opacity:0.14;}
+  .sv-dot{fill:var(--accent-strong);}
+  .sv-dot-warn{fill:var(--warn);}
+  .sv-text{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:13px;}
+  .sv-small{fill:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:11px;}
+  .sv-mono{fill:var(--text-dim); font-family:"IBM Plex Mono", Consolas, monospace; font-size:10.5px;}
+  .sv-title{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:14px; font-weight:600;}
+  .sv-acc-text{fill:var(--accent-strong); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-warn-text{fill:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-bad-text{fill:var(--bad); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .arrowhead{fill:var(--text-dim);}
+  .arrowhead-acc{fill:var(--accent-strong);}
+
+  footer{max-width:860px; margin-top:30px; padding-top:18px; border-top:1px solid var(--border); font-size:0.84rem; color:var(--text-dim);}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:minmax(0,1fr); padding:0 16px 60px;}
+    nav.toc{min-width:0;}
+    nav.toc{position:sticky; top:0; z-index:5; padding-top:0; background:var(--bg); max-height:none; border-bottom:1px solid var(--border);}
+    nav.toc .eyebrow{display:none;}
+    nav.toc ul{flex-direction:row; overflow-x:auto; gap:4px; padding:12px 0; margin:0;}
+    nav.toc a{white-space:nowrap;}
+    main{padding-top:20px;}
+    .layer{grid-template-columns:28px 1fr; }
+    .layer .when,.layer .act{grid-column:2;}
+  }
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel-alt:#f2f2f2; --text:#000; --text-dim:#333; --border:#bbb; --code-bg:#f2f2f2;}
+    body{background:#fff; font-size:10.5pt;}
+    nav.toc{display:none;}
+    .page{display:block; padding:0; max-width:none;}
+    main{padding-top:0;}
+    section{padding:18px 0; max-width:none; break-inside:auto;}
+    .card,.tile,figure,.layer,tr,.verdict,.placeholder{break-inside:avoid;}
+    h2,h3{break-after:avoid;}
+    a{color:#000;}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-size:0.8em;}
+    pre{white-space:pre-wrap;}
+  }
+  /* page: how-a-command-travels */
+  .scroll-x{overflow-x:auto;}
+  .scroll-x svg{min-width:660px;}
+  @media print{ .scroll-x{overflow:visible;} .scroll-x svg{min-width:0;} }
+  button.btn{font:inherit; font-family:"IBM Plex Sans Condensed","Arial Narrow","Segoe UI",sans-serif; font-weight:600; font-size:0.9rem; padding:7px 14px; border-radius:5px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer;}
+  button.btn:hover{background:var(--panel-alt);}
+  button.btn.primary{background:var(--accent-strong); color:var(--panel); border-color:var(--accent-strong);}
+  button.btn.primary:hover{background:var(--accent);}
+  button.btn:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .ctl{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 0; align-items:center;}
+  .backlink{display:inline-block; margin:0 0 16px; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.9rem;}
+
+  .nd{fill:var(--panel); stroke:var(--border); stroke-width:1.5;}
+  .nd.done{stroke:var(--accent); fill:var(--panel-alt);}
+  .nd.on{stroke:var(--warn); stroke-width:3; fill:var(--warn-bg);}
+  .ed line{stroke:var(--border); stroke-width:2.5;}
+  .ed polygon{fill:var(--border);}
+  .ed.done line{stroke:var(--accent);} .ed.done polygon{fill:var(--accent);}
+  .ed.on line{stroke:var(--warn); stroke-width:3.5;} .ed.on polygon{fill:var(--warn);}
+  .ed.loop line{stroke-dasharray:5 4;}
+  .region{fill:none; stroke:var(--border); stroke-width:1.5; stroke-dasharray:6 4;}
+  #pkt{fill:var(--warn); stroke:var(--panel); stroke-width:2;}
+
+  #cap{min-height:5.2em; padding:12px 14px; border-radius:4px; background:var(--panel-alt); border-left:3px solid var(--text-dim); margin:12px 0 0;}
+  #cap.run{border-left-color:var(--warn); background:var(--warn-bg);}
+  #cap b{font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;}
+  #cap p{margin:4px 0 0;}
+
+  ol.path{list-style:none; padding:0; margin:18px 0 0; counter-reset:p; display:flex; flex-direction:column; gap:8px;}
+  ol.path > li{counter-increment:p; padding:10px 14px 10px 50px; position:relative; background:var(--panel); border:1px solid var(--border); border-left:5px solid var(--border); border-radius:4px;}
+  ol.path > li::before{content:counter(p); position:absolute; left:12px; top:10px; width:26px; height:26px; border-radius:50%; border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono",Consolas,monospace; font-size:0.8rem; font-weight:600;}
+  ol.path > li.done{border-left-color:var(--accent);}
+  ol.path > li.on{border-left-color:var(--warn); background:var(--warn-bg);}
+  ol.path h3{margin:0 0 3px; font-size:1rem;}
+  ol.path p{margin:0 0 6px; font-size:0.94rem;}
+  details{margin:4px 0 0;}
+  summary{cursor:pointer; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.86rem; font-weight:600; color:var(--accent-strong);}
+  details ul{margin:6px 0 4px; font-size:0.9rem;}
+
+  .legend{display:flex; flex-wrap:wrap; gap:8px 16px; font-size:0.86rem; color:var(--text-dim); margin:0 0 14px; align-items:center;}
+
+  fieldset.seg{border:0; margin:0 0 12px; padding:0; display:flex; flex-wrap:wrap; gap:8px;}
+  fieldset.seg legend{font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); padding:0; margin-bottom:6px;}
+  .seg label{display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--border); border-radius:5px; background:var(--panel); font-size:0.88rem; cursor:pointer; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-weight:600;}
+  .seg label:has(input:checked){border-color:var(--accent-strong); background:var(--panel-alt);}
+  .seg label:has(input:focus-visible){outline:2px solid var(--accent); outline-offset:2px;}
+  .seg label.after:has(input:checked){border-color:var(--ok); background:var(--ok-bg);}
+  .chartbox{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px 16px; margin:0 0 16px;}
+  .tilesrow{display:flex; gap:6px; margin:6px 0 4px; flex-wrap:wrap;}
+  .jt{width:38px; height:38px; border-radius:4px; border:2px solid var(--border); background:var(--panel-alt); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono",Consolas,monospace; font-size:0.78rem; color:var(--text-dim);}
+  .jt.hit{border-color:var(--bad); background:var(--bad-bg); color:var(--bad); font-weight:600;}
+  .jt.clear{border-color:var(--ok); background:var(--ok-bg); color:var(--ok);}
+  .scale{position:relative; height:26px; background:var(--panel-alt); border-radius:4px; margin:8px 0 2px; overflow:hidden;}
+  .scale .fill{position:absolute; left:0; top:0; bottom:0; background:var(--bad); opacity:0.75; transition:width .5s;}
+  .scale .fill.small{background:var(--warn);}
+  .scale .fill.odd{background:repeating-linear-gradient(135deg, var(--warn) 0 6px, var(--warn-bg) 6px 10px);}
+  .ticks{display:flex; justify-content:space-between; font-family:"IBM Plex Mono",Consolas,monospace; font-size:0.72rem; color:var(--text-dim);}
+  .chartbox h3{margin:0 0 4px; font-size:0.98rem;}
+  .chartbox .k{font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin:12px 0 0;}
+  @media (prefers-reduced-motion: reduce){ .scale .fill{transition:none;} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="toc" aria-label="Contents">
+    <p class="eyebrow">Contents</p>
+    <ul>
+      <li><a href="#path">The path</a></li>
+      <li><a href="#pauses">When the base pauses</a></li>
+      <li><a href="#program">Your program</a></li>
+    </ul>
+    <p class="eyebrow">Other pages</p>
+    <ul>
+      <li><a href="index.html">Docs index</a></li>
+      <li><a href="meet-the-robot.html">Meet the robot</a></li>
+      <li><a href="what-you-can-build.html">What you can build</a></li>
+      <li><a href="test-results.html">Test results</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <a class="backlink" href="index.html">&larr; Back to the docs index</a>
+      <p class="eyebrow">TurtleBot 4 &middot; Create 3 base &middot; commands and odometry</p>
+      <h1 class="title">How a command travels</h1>
+      <p class="dek">When a program says "drive", the command crosses ROS 2 on the Pi, a program that forwards it, a USB cable and the small computer inside the base before the wheels turn. The answer comes back the same way, as odometry. This page follows that path, then explains the pauses we found on it and what the lab did about them.</p>
+      <div class="meta">
+        <span><b>Measured</b> the pauses, the join test, 10 supervised motion starts (2026-10-24)</span>
+        <span><b>Inferred</b> the cause (discovery load on the base)</span>
+        <span><b>Not proven</b> that change R19 fixed it (one run)</span>
+      </div>
+    </header>
+
+    <section id="path">
+      <div class="section-head"><span class="section-tag">01</span><h2>The path of one drive command</h2></div>
+      <p>Press Play to watch one command go out and the answer come back. Step moves one stage at a time. Every stage has a short caption, and a Details toggle with topic names and rates for students. The picture is a map, not a clock: it does not show how long each stage takes.</p>
+
+      <figure class="diagram">
+        <div class="scroll-x">
+        <svg id="map" viewBox="0 0 780 330" role="img" aria-labelledby="mapT mapD">
+          <title id="mapT">Path of a drive command</title>
+          <desc id="mapD">Top row, left to right: program, ROS 2 on the Pi, republisher, USB link, base firmware, motors. Bottom row, right to left: wheel encoders and IMU, base odometry, USB link, republisher, ROS 2, program. A dashed arrow closes the loop from the program's bottom box back to its top box.</desc>
+          <rect class="region" x="6" y="28" width="448" height="290" rx="8"/>
+          <rect class="region" x="466" y="28" width="304" height="290" rx="8"/>
+          <text class="sv-title" x="18" y="20">Raspberry Pi (the robot's computer)</text>
+          <text class="sv-title" x="478" y="20">Create 3 base</text>
+
+          <rect class="nd" id="t0" x="18" y="62" width="120" height="60" rx="5"/>
+          <text class="sv-text" x="78" y="87" text-anchor="middle">Your program</text>
+          <text class="sv-mono" x="78" y="105" text-anchor="middle">publishes /cmd_vel</text>
+
+          <rect class="nd" id="t1" x="170" y="62" width="120" height="60" rx="5"/>
+          <text class="sv-text" x="230" y="87" text-anchor="middle">ROS 2 (DDS)</text>
+          <text class="sv-mono" x="230" y="105" text-anchor="middle">Fast DDS</text>
+
+          <rect class="nd" id="t2" x="322" y="62" width="120" height="60" rx="5"/>
+          <text class="sv-text" x="382" y="87" text-anchor="middle">Republisher</text>
+          <text class="sv-mono" x="382" y="105" text-anchor="middle">create3_republisher</text>
+
+          <rect class="nd" id="t3" x="478" y="62" width="120" height="60" rx="5"/>
+          <text class="sv-text" x="538" y="87" text-anchor="middle">Base firmware</text>
+          <text class="sv-mono" x="538" y="105" text-anchor="middle">/_do_not_use</text>
+
+          <rect class="nd" id="t4" x="630" y="62" width="120" height="60" rx="5"/>
+          <text class="sv-text" x="690" y="87" text-anchor="middle">Motors</text>
+          <text class="sv-mono" x="690" y="105" text-anchor="middle">wheels turn</text>
+
+          <rect class="nd" id="b4" x="630" y="214" width="120" height="60" rx="5"/>
+          <text class="sv-text" x="690" y="239" text-anchor="middle">Wheel encoders</text>
+          <text class="sv-mono" x="690" y="257" text-anchor="middle">and IMU</text>
+
+          <rect class="nd" id="b3" x="478" y="214" width="120" height="60" rx="5"/>
+          <text class="sv-text" x="538" y="239" text-anchor="middle">Base publishes</text>
+          <text class="sv-mono" x="538" y="257" text-anchor="middle">odometry</text>
+
+          <rect class="nd" id="b2" x="322" y="214" width="120" height="60" rx="5"/>
+          <text class="sv-text" x="382" y="239" text-anchor="middle">Republisher</text>
+          <text class="sv-mono" x="382" y="257" text-anchor="middle">create3_republisher</text>
+
+          <rect class="nd" id="b1" x="170" y="214" width="120" height="60" rx="5"/>
+          <text class="sv-text" x="230" y="239" text-anchor="middle">ROS 2 (DDS)</text>
+          <text class="sv-mono" x="230" y="257" text-anchor="middle">/odom on the Pi</text>
+
+          <rect class="nd" id="b0" x="18" y="214" width="120" height="60" rx="5"/>
+          <text class="sv-text" x="78" y="239" text-anchor="middle">Your program</text>
+          <text class="sv-mono" x="78" y="257" text-anchor="middle">reads /odom</text>
+
+          <g class="ed" id="e01"><line x1="138" y1="92" x2="162" y2="92"/><polygon points="170,92 160,87 160,97"/></g>
+          <g class="ed" id="e12"><line x1="290" y1="92" x2="314" y2="92"/><polygon points="322,92 312,87 312,97"/></g>
+          <g class="ed" id="e23"><line x1="442" y1="92" x2="470" y2="92"/><polygon points="478,92 468,87 468,97"/></g>
+          <g class="ed" id="e34"><line x1="598" y1="92" x2="622" y2="92"/><polygon points="630,92 620,87 620,97"/></g>
+          <g class="ed" id="e4d"><line x1="690" y1="122" x2="690" y2="206"/><polygon points="690,214 685,204 695,204"/></g>
+          <g class="ed" id="e43"><line x1="630" y1="244" x2="606" y2="244"/><polygon points="598,244 608,239 608,249"/></g>
+          <g class="ed" id="e32"><line x1="478" y1="244" x2="450" y2="244"/><polygon points="442,244 452,239 452,249"/></g>
+          <g class="ed" id="e21"><line x1="322" y1="244" x2="298" y2="244"/><polygon points="290,244 300,239 300,249"/></g>
+          <g class="ed" id="e10"><line x1="170" y1="244" x2="146" y2="244"/><polygon points="138,244 148,239 148,249"/></g>
+          <g class="ed loop" id="eloop"><line x1="78" y1="214" x2="78" y2="130"/><polygon points="78,122 73,132 83,132"/></g>
+
+          <text class="sv-small" x="460" y="150" text-anchor="middle">USB link</text>
+          <text class="sv-mono" x="460" y="164" text-anchor="middle">192.168.186.3 to .2</text>
+          <text class="sv-small" x="460" y="202" text-anchor="middle">same link back</text>
+          <text class="sv-acc-text" x="88" y="176">corrects, about 20 times a second</text>
+          <text class="sv-small" x="528" y="148">out: commands</text>
+          <text class="sv-small" x="528" y="298">back: measurements</text>
+          <circle id="pkt" r="7" cx="0" cy="0" visibility="hidden"/>
+        </svg>
+        </div>
+        <figcaption>Out along the top, back along the bottom. The dashed arrow is the control loop: the program compares where the robot is (odometry) with where it should be and sends the next command. Not to scale in time.</figcaption>
+      </figure>
+
+      <div class="ctl" role="group" aria-label="Animation controls">
+        <button type="button" class="btn primary" id="bPlay">Play</button>
+        <button type="button" class="btn" id="bStep">Step</button>
+        <button type="button" class="btn" id="bReset">Reset</button>
+        <span id="stepNo" class="mono" style="font-size:0.84rem;color:var(--text-dim);">step 0 of 10</span>
+      </div>
+      <div id="cap" role="status" aria-live="polite"><b>Ready.</b><p>Press Play, or Step to go one stage at a time.</p></div>
+
+      <ol class="path" id="steps">
+        <li data-n="t0" data-e="">
+          <h3>Your program publishes a velocity command</h3>
+          <p>A Python program on the Pi decides how fast to drive and turn, and sends that as a message.</p>
+          <details><summary>Details</summary><ul>
+            <li>Topic <code>/cmd_vel</code>. Message type <code>geometry_msgs/msg/TwistStamped</code> with <code>frame_id = base_link</code>. This robot does not accept a plain <code>Twist</code> there (<a href="motion-program-design.html">motion program design</a>).</li>
+            <li>The example program <code>motion_shapes.py</code> is one ROS 2 node written with <code>rclpy</code>. Its control loop publishes once per cycle, <code>CONTROL_RATE</code> 20 Hz (<a href="../examples/README.md">examples README</a>).</li>
+          </ul></details>
+        </li>
+        <li data-n="t1" data-e="e01">
+          <h3>ROS 2 delivers it on the Pi</h3>
+          <p>ROS 2 hands the message to whoever listens to that topic. The delivery layer is called DDS.</p>
+          <details><summary>Details</summary><ul>
+            <li>Fast DDS (<code>rmw_fastrtps_cpp</code>), ROS domain 0, simple discovery: every new ROS 2 program announces itself by multicast on every network interface, including the one to the base (ROADMAP, TB-25 step 3, read on 2026-10-24).</li>
+          </ul></details>
+        </li>
+        <li data-n="t2" data-e="e12">
+          <h3>The republisher picks it up</h3>
+          <p>A helper program on the Pi, <code>create3_republisher</code>, is the go-between for the Pi and the base.</p>
+          <details><summary>Details</summary><ul>
+            <li>Started by <code>turtlebot4_bringup/launch/robot.launch.py</code> with <code>robot_namespace: _do_not_use</code>. It republishes <code>battery_state</code>, <code>dock_status</code>, <code>imu</code>, <code>odom</code>, <code>tf</code>, <code>tf_static</code>, <code>wheel_status</code> and others, and subscribes to <code>cmd_vel</code> among four topics. This is the Jazzy default configuration. Seen at 18.8 % of one core on one reading.</li>
+          </ul></details>
+        </li>
+        <li data-n="" data-e="e23">
+          <h3>It crosses the USB cable</h3>
+          <p>The Pi and the base are joined by a USB cable that works as a small network of two computers.</p>
+          <details><summary>Details</summary><ul>
+            <li>Pi <code>192.168.186.3</code> to base <code>192.168.186.2</code>. Ping across it has a median of 0.5 ms (<a href="../ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving">TB-25</a>).</li>
+          </ul></details>
+        </li>
+        <li data-n="t3" data-e="">
+          <h3>The base firmware receives it</h3>
+          <p>The base is a separate small computer from iRobot with its own program. It reads the command.</p>
+          <details><summary>Details</summary><ul>
+            <li>Firmware <code>I.0.0.FastDDS</code> (ROS 2 Iron), the newest Create 3 release. Its ROS namespace is <code>/_do_not_use</code>; you never use that name yourself, the republisher does.</li>
+            <li>Idle and docked, the base's CPU is about half used (mean 52 to 56 %, from its own log). Remember this for section 02.</li>
+          </ul></details>
+        </li>
+        <li data-n="t4" data-e="e34">
+          <h3>The motors turn the wheels</h3>
+          <p>The base turns the command into wheel speeds and the robot moves.</p>
+          <details><summary>Details</summary><ul>
+            <li>How the firmware does this is iRobot's code and is not described in this repo. The lab's programs cap speed (see the <a href="../examples/README.md#safety-checklist-before-anything-moves">safety checklist</a>) and stop on the bumpers and the lidar.</li>
+          </ul></details>
+        </li>
+        <li data-n="b4" data-e="e4d">
+          <h3>Sensors measure what actually happened</h3>
+          <p>Wheel encoders count how far each wheel turned. The IMU senses turning and shaking.</p>
+          <details><summary>Details</summary><ul>
+            <li>Published as <code>/wheel_status</code> and <code>/imu</code> (the timing recorder watches both).</li>
+          </ul></details>
+        </li>
+        <li data-n="b3" data-e="e43">
+          <h3>The base publishes odometry</h3>
+          <p>From the sensors the base works out its position and heading and sends that as odometry, about 20 times a second.</p>
+          <details><summary>Details</summary><ul>
+            <li><code>/odom</code>, <code>nav_msgs/msg/Odometry</code>, normally 20 Hz. The <a href="../examples/README.md">health check</a> warns below 15 Hz.</li>
+            <li>This is the stage that pauses in TB-25: all base topics stop together and their header stamps stop too.</li>
+          </ul></details>
+        </li>
+        <li data-n="b2" data-e="e32">
+          <h3>Back over the cable to the republisher</h3>
+          <p>The odometry crosses the same USB link, and the republisher puts it on the Pi's ROS 2.</p>
+          <details><summary>Details</summary><ul>
+            <li>The same address pair, in the other direction. The <a href="../tools/timing/README.md">timing recorder</a> measures the gap between two arrivals of <code>/odom</code> and reads the header stamp, so it can tell "the base stopped producing" from "the message was late".</li>
+          </ul></details>
+        </li>
+        <li data-n="b1" data-e="e21">
+          <h3>ROS 2 delivers <code>/odom</code> to your program</h3>
+          <p>DDS on the Pi hands the odometry to every program that subscribed.</p>
+          <details><summary>Details</summary><ul>
+            <li>A new subscriber to <code>/odom</code> is also a new participant that must be introduced to the base. That introduction is what section 02 is about.</li>
+          </ul></details>
+        </li>
+        <li data-n="b0" data-e="e10 eloop">
+          <h3>Your program reads <code>/odom</code> and corrects</h3>
+          <p>It knows where the robot is now, compares that with the plan, and sends the next command. The loop repeats about 20 times a second.</p>
+          <details><summary>Details</summary><ul>
+            <li>The callback stores x, y and yaw. The 20 Hz loop (one cycle every 50 ms) checks safety, then publishes the next velocity (<a href="motion-program-design.html">motion program design</a>).</li>
+            <li>If the stored odometry is older than 0.3 s the program publishes zero velocity and waits. If there is none for 2.0 s it aborts. See section 03.</li>
+          </ul></details>
+        </li>
+      </ol>
+    </section>
+
+    <section id="pauses">
+      <div class="section-head"><span class="section-tag">02</span><h2>When the base pauses</h2></div>
+      <p class="legend"><span class="chip ok">measured</span> seen in a recording <span class="chip warn">inferred</span> a reading of the numbers, not tested directly <span class="chip todo">not proven</span> one run or open</p>
+
+      <h3>What was seen <span class="chip ok">measured</span></h3>
+      <ul>
+        <li>Now and then every topic from the base stops at once, for 1 to 12 s. That includes <code>/odom</code>, <code>/tf</code>, <code>/imu</code> and <code>/wheel_status</code>.</li>
+        <li>The header stamps stop too. So the base produced nothing; the messages were not just late on the way.</li>
+        <li>Ping from the Pi to the base gets slower during the stall (19.5 to 73.5 ms in the join runs, against a median of 0.5 ms).</li>
+        <li>It is not the Wi-Fi (no errors or drops) and not the Pi (CPU at most 61 % in the first recording).</li>
+        <li>The first sighting was a pause of 0.4 to 1.0 s when the wheels start (TB-15). A pause of 3.16 s aborted a drive on 2026-10-24 (the program's limit is 2.0 s).</li>
+      </ul>
+
+      <h3>The experiment <span class="chip ok">measured</span></h3>
+      <p>Robot docked, no motion, home Wi-Fi. A recording of <code>/odom</code> and <code>/dock_status</code> ran for 720 s. After a 120 s quiet start, a new ROS 2 program joined the network every 60 s, 8 times, and the recording showed which joins were followed by a stall.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Program that joins</th><th class="num">Joins followed by a stall</th><th class="num">Longest <code>/odom</code> gap</th></tr></thead>
+        <tbody>
+          <tr><td>Bare node, 5 s</td><td class="num">3 of 8</td><td class="num">2.46 s</td></tr>
+          <tr><td><code>ros2 topic list --no-daemon</code></td><td class="num">1 of 8</td><td class="num">0.26 s</td></tr>
+          <tr><td>Node subscribing to <code>/odom</code>, 5 s</td><td class="num">5 of 8</td><td class="num">10.87 s</td></tr>
+        </tbody>
+      </table></div>
+      <p>A program that subscribes to <code>/odom</code> triggers stalls more often and for much longer than a bare node. That is what every motion program does. One run of each, one robot, so treat the counts as a pattern, not a rate. Stalls began 0.8 to 14.7 s after the subscriber started, and each cluster had ended by about 17 s after it.</p>
+
+      <h3>Likely cause <span class="chip warn">inferred</span></h3>
+      <p>The base is a small computer and it is already busy. Docked and doing nothing it uses about half its CPU (mean 52 to 56 %). Each new ROS 2 program on the Pi announces itself, and the base has to answer and match its topics. That is called discovery. The numbers fit this: stalls start soon after a join, a program with more topics stalls the base more, and the base itself stops producing. iRobot's own issue tracker describes the same behaviour (create3_docs issue 381). It has not been proven here. It also does not explain why the <code>/odom</code> subscriber is so much worse than a bare node.</p>
+
+      <h3>Before and after: try it</h3>
+      <div class="chartbox">
+        <fieldset class="seg" id="seg">
+          <legend>Which test</legend>
+          <label><input type="radio" name="jt" value="bare"> Bare node</label>
+          <label><input type="radio" name="jt" value="list"> <span>topic list</span></label>
+          <label><input type="radio" name="jt" value="sub" checked> /odom subscriber, before R19</label>
+          <label class="after"><input type="radio" name="jt" value="after"> /odom subscriber, after R19 (one run)</label>
+        </fieldset>
+        <h3 id="chTitle"></h3>
+        <p class="k">8 joins (the order of the tiles is not the real order)</p>
+        <div class="tilesrow" id="tiles" aria-hidden="true"></div>
+        <p class="k">Longest <code>/odom</code> gap</p>
+        <div class="scale" aria-hidden="true"><div class="fill" id="fill" style="width:0"></div></div>
+        <div class="ticks" aria-hidden="true"><span>0 s</span><span>3 s</span><span>6 s</span><span>9 s</span><span>12 s</span></div>
+        <p id="chText" style="margin:12px 0 0;" aria-live="polite"></p>
+      </div>
+
+      <h3>What the programs do about it <span class="chip ok">measured</span></h3>
+      <p>Since the stall follows the program's own start, the motion programs now wait before the first move: at least 20 s after they started, and 5 s of steady <code>/odom</code> (no gap over 0.3 s), with a 30 s timeout. In 10 supervised motion starts with this check, all 10 completed and none aborted. The two longest stalls of that test (9.8 s and 4.4 s) came about 9 s after those programs started, while they were still waiting, so the robot stood still through them. The cost is about 20 s per run (20.0 to 22.5 s). Two runs still had a short pause at motion start (0.52 s and 0.79 s). The 0.3 s hold covers those. Short start pauses are not gone, and the target of no gap over 0.3 s across 10 starts is not met.</p>
+
+      <h3>The newest result <span class="chip todo">one run, not proof</span></h3>
+      <p>On 2026-10-24 the base's leftover Wi-Fi search was removed (<a href="../MAINTENANCE.md#change-register">change R19</a>). The base had no network address but kept scanning for a saved network it could not find, with a scan and a failed address request about every 7.5 s. The TurtleBot 4 manual keeps the base off Wi-Fi anyway. In one repeat of the <code>/odom</code>-subscriber join test, 0 of 8 joins were followed by a stall. There was one unrelated 1.27 s pause later in the run, not after a join. Before R19 the same test gave 5 of 8 and 10.87 s.</p>
+      <div class="note"><b>Read this carefully.</b> One run is not enough to say R19 fixed it: the earlier stalls also came and went between runs. The recording and write-up are in ROADMAP.md (TB-25, "change A applied (R19) and join test") and MAINTENANCE.md. A second option, TurtleBot 4 discovery server mode, is proposed (ROADMAP, TB-25 change B) but not applied. It would change how every ROS 2 program on the robot finds the others, so it needs the maintainer's go-ahead.</div>
+    </section>
+
+    <section id="program">
+      <div class="section-head"><span class="section-tag">03</span><h2>What this means for your program</h2></div>
+      <h3>Why a closed-loop program holds still when <code>/odom</code> is late</h3>
+      <p>A closed-loop program decides each next command from where the robot is. If the position is old, the decision is a guess, and the robot may overshoot. So every 50 ms cycle the program checks how old its last odometry is.</p>
+      <ul>
+        <li>Older than <b>0.3 s</b>: publish zero velocity and wait for fresh odometry. The segment carries on afterwards.</li>
+        <li>None for <b>2.0 s</b>: abort. This is a safety stop. Do not raise the limit without a decision, because the longest stall seen was 3.16 s at motion start and 10.87 s in the join test.</li>
+      </ul>
+      <h3>Why a program waits at the start</h3>
+      <p>The program's own start is a join. If it moved at once, a stall of several seconds could land right at motion start and abort the run. Waiting for 20 s and 5 s of steady <code>/odom</code> lets the base settle first. You will see a line like <code>odometry steady for 5.0 s, 20.3 s after start</code>. It is not stuck.</p>
+      <p>Read next: <a href="../examples/README.md">examples README</a> (the start-up check and the safety checklist) and <a href="motion-program-design.html">motion program design</a> (the 20 Hz loop and the hold and stale rules). Measurements: <a href="test-results.html">test results</a>.</p>
+    </section>
+
+    <footer>
+      <p>Facts on this page come from <a href="../ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving">ROADMAP.md, TB-25</a>, <a href="../MAINTENANCE.md">MAINTENANCE.md</a> (R18, R19 and the 2026-10-24 updates), <a href="../examples/README.md">examples/README.md</a> and <a href="../tools/timing/README.md">tools/timing/README.md</a>. Last updated 2026-10-24.</p>
+      <p><a href="index.html">Docs index</a> &middot; <a href="meet-the-robot.html">Meet the robot</a> &middot; <a href="what-you-can-build.html">What you can build</a> &middot; <a href="../ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving">ROADMAP, TB-25</a> &middot; <a href="test-results.html">Test results</a></p>
+    </footer>
+  </main>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- path animation ---- */
+  var items = Array.prototype.slice.call(document.querySelectorAll('#steps > li'));
+  var N = items.length;
+  var EDGE_PTS = {
+    e01:[138,92,170,92], e12:[290,92,322,92], e23:[442,92,478,92], e34:[598,92,630,92],
+    e4d:[690,122,690,214], e43:[630,244,598,244], e32:[478,244,442,244], e21:[322,244,290,244],
+    e10:[170,244,138,244], eloop:[78,214,78,122]
+  };
+  var NODE_XY = {t0:[78,92], t1:[230,92], t2:[382,92], t3:[538,92], t4:[690,92], b4:[690,244], b3:[538,244], b2:[382,244], b1:[230,244], b0:[78,244]};
+  var step = 0, timer = null, raf = null;
+  var pkt = $('pkt');
+
+  function cls(el, name, on){ if(!el) return; if(on) el.classList.add(name); else el.classList.remove(name); }
+  function ids(s){ return s ? s.split(' ').filter(Boolean) : []; }
+
+  function clearAll(){
+    Object.keys(NODE_XY).forEach(function(k){ var n = $(k); if(n){ cls(n,'on',false); cls(n,'done',false); } });
+    Object.keys(EDGE_PTS).forEach(function(k){ var e = $(k); cls(e,'on',false); cls(e,'done',false); });
+    items.forEach(function(li){ cls(li,'on',false); cls(li,'done',false); });
+  }
+
+  function movePacket(p){
+    if(raf){ cancelAnimationFrame(raf); raf = null; }
+    if(!p){ pkt.setAttribute('visibility','hidden'); return; }
+    pkt.setAttribute('visibility','visible');
+    if(reduce){ pkt.setAttribute('cx', p[2]); pkt.setAttribute('cy', p[3]); return; }
+    var t0 = null, dur = 700;
+    function f(t){
+      if(t0 === null) t0 = t;
+      var k = Math.min(1, (t - t0) / dur);
+      pkt.setAttribute('cx', p[0] + (p[2]-p[0])*k);
+      pkt.setAttribute('cy', p[1] + (p[3]-p[1])*k);
+      if(k < 1) raf = requestAnimationFrame(f); else raf = null;
+    }
+    raf = requestAnimationFrame(f);
+  }
+
+  function show(){
+    clearAll();
+    var cap = $('cap');
+    $('stepNo').textContent = 'step ' + step + ' of ' + N;
+    if(step === 0){
+      movePacket(null);
+      cap.className = '';
+      cap.innerHTML = '<b>Ready.</b><p>Press Play, or Step to go one stage at a time.</p>';
+      return;
+    }
+    for(var i = 0; i < step; i++){
+      var li = items[i], cur = (i === step - 1);
+      cls(li, cur ? 'on' : 'done', true);
+      ids(li.getAttribute('data-n')).forEach(function(n){ cls($(n), cur ? 'on' : 'done', true); });
+      ids(li.getAttribute('data-e')).forEach(function(e){ cls($(e), cur ? 'on' : 'done', true); });
+    }
+    var c = items[step-1];
+    var es = ids(c.getAttribute('data-e'));
+    var ns = ids(c.getAttribute('data-n'));
+    if(es.length) movePacket(EDGE_PTS[es[0]]);
+    else if(ns.length){ var xy = NODE_XY[ns[0]]; movePacket([xy[0], xy[1], xy[0], xy[1]]); }
+    else movePacket(null);
+    cap.className = 'run';
+    cap.innerHTML = '<b>Step ' + step + ' of ' + N + ': ' + c.querySelector('h3').textContent + '</b><p>' + c.querySelector('p').textContent + '</p>';
+    if(!reduce && c.scrollIntoView && false){ c.scrollIntoView({block:'nearest'}); }
+  }
+
+  function stopTimer(){ if(timer){ clearTimeout(timer); timer = null; } $('bPlay').textContent = 'Play'; }
+  function tick(){
+    if(step >= N){ stopTimer(); return; }
+    step++; show();
+    if(step >= N){ stopTimer(); return; }
+    timer = setTimeout(tick, reduce ? 3000 : 2600);
+  }
+  $('bPlay').addEventListener('click', function(){
+    if(timer){ stopTimer(); return; }
+    if(step >= N){ step = 0; show(); }
+    $('bPlay').textContent = 'Pause';
+    tick();
+  });
+  $('bStep').addEventListener('click', function(){
+    stopTimer();
+    if(step >= N) step = 0;
+    step++; show();
+  });
+  $('bReset').addEventListener('click', function(){ stopTimer(); step = 0; show(); });
+  show();
+
+  /* ---- before / after join chart (numbers from ROADMAP TB-25 and the lab's report of 2026-10-24) ---- */
+  var DATA = {
+    bare:  {t:'Bare node, 5 s (first run, before R19)', hit:3, gap:2.46, style:'small',
+            x:'3 of 8 joins were followed by a stall. Longest /odom gap 2.46 s (longest /dock_status gap 6.50 s). Measured.'},
+    list:  {t:'ros2 topic list --no-daemon (before R19)', hit:1, gap:0.26, style:'small',
+            x:'1 of 8 joins was followed by a stall. Longest /odom gap 0.26 s. A short command-line listing almost never upsets the base. Measured.'},
+    sub:   {t:'Node subscribing to /odom, 5 s (before R19)', hit:5, gap:10.87, style:'',
+            x:'5 of 8 joins were followed by a stall. Longest /odom gap 10.87 s (longest /dock_status gap 12.28 s). This is the closest test to what a motion program does. Measured.'},
+    after: {t:'Same /odom-subscriber test, after R19 (one repeat)', hit:0, gap:1.27, style:'odd',
+            x:'0 of 8 joins were followed by a stall. The hatched bar is a single 1.27 s pause later in the run that did not follow a join. One run, not yet proof; written up in ROADMAP.md, TB-25.'}
+  };
+  function drawChart(key){
+    var d = DATA[key], tiles = $('tiles');
+    $('chTitle').textContent = d.t;
+    tiles.innerHTML = '';
+    for(var i = 0; i < 8; i++){
+      var s = document.createElement('div');
+      var hit = i < d.hit;
+      s.className = 'jt ' + (hit ? 'hit' : 'clear');
+      s.textContent = hit ? 'stall' : 'ok';
+      tiles.appendChild(s);
+    }
+    var f = $('fill');
+    f.className = 'fill ' + d.style;
+    f.style.width = Math.min(100, d.gap / 12 * 100) + '%';
+    $('chText').textContent = d.x;
+  }
+  var radios = document.querySelectorAll('input[name=jt]');
+  Array.prototype.forEach.call(radios, function(r){ r.addEventListener('change', function(){ if(r.checked) drawChart(r.value); }); });
+  drawChart('sub');
+})();
+</script>
+</body>
+</html>

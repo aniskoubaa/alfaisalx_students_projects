@@ -1,0 +1,19 @@
+recorder_launch mono=11606.326 joiner=B cmd=python3 /tmp/tb25_odom_joiner.py
+JOIN_START mono=11726.326 idx=1
+JOIN_END mono=11734.393 rc=0 out_lines=1 last=odom messages in 5 s: 99
+JOIN_START mono=11786.326 idx=2
+JOIN_END mono=11793.714 rc=0 out_lines=1 last=odom messages in 5 s: 101
+JOIN_START mono=11846.326 idx=3
+JOIN_END mono=11853.889 rc=0 out_lines=1 last=odom messages in 5 s: 99
+JOIN_START mono=11906.326 idx=4
+JOIN_END mono=11914.045 rc=0 out_lines=1 last=odom messages in 5 s: 101
+JOIN_START mono=11966.326 idx=5
+JOIN_END mono=11974.430 rc=0 out_lines=1 last=odom messages in 5 s: 89
+JOIN_START mono=12026.326 idx=6
+JOIN_END mono=12033.992 rc=0 out_lines=1 last=odom messages in 5 s: 58
+JOIN_START mono=12086.326 idx=7
+JOIN_END mono=12093.863 rc=0 out_lines=1 last=odom messages in 5 s: 40
+JOIN_START mono=12146.326 idx=8
+JOIN_END mono=12154.560 rc=0 out_lines=1 last=odom messages in 5 s: 100
+driver_done
+recorder_exit rc=0 mono=12327.186

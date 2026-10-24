@@ -8,6 +8,7 @@ Markdown version of [network-and-connectivity.html](network-and-connectivity.htm
 | Fault | The robot answers SSH only briefly, then drops off the Wi-Fi; `turtlebot4.local` fails now and then |
 | Seen | 2026-10-04, about 15:42 (robot time, EDT) and 2026-10-05, afternoon (laptop time, UTC+3) |
 | Status on 2026-10-10 | **Open. Fix proposed, not applied.** Cause not confirmed |
+| Status on 2026-10-24 | **Fix applied as R14; effect not verified** (needs the robot on campus). See the [update below](#update-2026-10-24-new-evidence-and-fix-applied-r14) |
 | Likely cause | Wi-Fi power saving on the Raspberry Pi (diagnosis, not confirmed) |
 | Robot changes | None for this problem. The only robot change since 2026-10-04 is `~/robot_code/motion_shapes.py` (R11) |
 | Lab router | Linksys WRT54G set up on 2026-10-05. **The robot is not on it** |
@@ -127,9 +128,36 @@ A robot change that needs `sudo`. The full steps, with commands, are in [ROADMAP
 
 Verify: `nmcli -t -f NAME,DEVICE connection show --active` shows the lab profile on `wlan0`, and `ip -4 -br addr show wlan0` shows the reserved `192.168.1.x` address. Undo: `sudo nmcli connection delete "<lab SSID>"`; the robot returns to `Students`; then remove the reservation on the router.
 
+## Update 2026-10-24: new evidence and fix applied (R14)
+
+Note: the illustrated page [network-and-connectivity.html](network-and-connectivity.html) is **not updated yet** for this section; it still shows the status of 2026-10-10. This Markdown file and [MAINTENANCE.md](../MAINTENANCE.md#update-2026-10-24-new-evidence-and-fix-applied-r14) are current.
+
+Read-only checks of the robot's journal and NetworkManager files, then one change. The robot was reached over an Ethernet cable and was running its own `Turtlebot4` hotspot, because `Students` was not in range. Its signal strength on `Students` could not be measured; no signal strength is recorded in the journals ([TB-26](../ROADMAP.md#tb-26-measure-students-signal-strength-on-campus)).
+
+| Evidence | Finding |
+|---|---|
+| Power saving setting | `/etc/NetworkManager/conf.d/default-wifi-powersave-on.conf` sets `wifi.powersave = 3` (enable; the Ubuntu default). The `Students` and `Turtlebot4` profiles had `0` (default), so they inherited 3 |
+| Kernel log, every boot | `brcmfmac: brcmf_cfg80211_set_power_mgmt: power save enabled`. Driver `brcmfmac`, chip BCM43455, firmware 7.45.234. `iw` and `iwconfig` are not installed |
+| Boot -2 (2026-10-04 afternoon) | 0 disconnects. 6 association rejects (status 16) before it connected at 83 s |
+| Boot -1 (2026-10-05) | 0 disconnects. 5 WNM "Disassociation Imminent" notices (the access point asking the robot to roam) |
+| Boot -5 (2026-10-04, 6.8 h) | 3 disconnects: reason 8 at 1920 s, reason 3 (locally generated) at 5978 s and 9818 s. Roaming across 3 campus access points; one outage of about 67 s after the first |
+| Beacon loss, deauthentication | None anywhere in the journals |
+
+**Inference (not proven):** on the days with the "answers only in 10 to 40 s windows" symptom the robot stayed associated. That is consistent with Wi-Fi power saving (or filtering on the campus side), not with Wi-Fi disconnects.
+
+**Change R14** (about 00:22 laptop time, UTC+3, the user typing the `sudo` password): `sudo nmcli connection modify Students 802-11-wireless.powersave 2`. Before: `default`; after: `disable`. Location: `/etc/NetworkManager/system-connections/Students.nmconnection`. `nmcli connection up Students` was not run, so it takes effect the next time the robot joins `Students`. The global file and the `Turtlebot4` profile were not touched.
+
+- **Verify:** `nmcli -g 802-11-wireless.powersave connection show Students` prints `disable`.
+- **Undo:** `sudo nmcli connection modify Students 802-11-wireless.powersave 0`.
+- **Effect:** not verified until the robot is on campus: [TB-20](../ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving) steps 5 and 6 (30 attempts over 30 minutes on two days, reboot test).
+
+The same day showed that the `/odom` pauses are not a Wi-Fi problem: [MAINTENANCE.md, finding](../MAINTENANCE.md#update-2026-10-24-measurements-with-the-timing-recorder).
+
 ## Not known yet
 
-- Whether power saving is actually on for `wlan0` on this robot (the value has not been read).
+- Whether power saving is actually on for `wlan0` on this robot (the value has not been read). Update 2026-10-24: the global setting and the kernel log say it is on; the live state of `wlan0` was not read (`iw` is not installed).
+- Whether R14 stops the drops (2026-10-24: applied, not verified).
+- The signal strength of `Students` where the robot works ([TB-26](../ROADMAP.md#tb-26-measure-students-signal-strength-on-campus)).
 - Why the robot did not come back at all for about 25 minutes on 2026-10-04, and why it was off the network for about 1.5 hours earlier that day.
 - Which robot log was read on 2026-10-05.
 - Whether the drops also happen on the lab router network.
