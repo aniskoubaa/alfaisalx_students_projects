@@ -1,0 +1,9 @@
+[Unit]
+Description=Retry the saved client Wi-Fi while the robot sits on its own hotspot with nobody connected
+Wants=NetworkManager.service
+After=NetworkManager.service
+
+[Service]
+Type=oneshot
+TimeoutStartSec=300
+ExecStart=/usr/local/sbin/tb4-wifi-retry

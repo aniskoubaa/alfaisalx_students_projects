@@ -1,0 +1,337 @@
+/* ---------- Frontend F2: Wi-Fi, topics, tools, settings, setup wizard ---------- */
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1);
+}
+.stack-tight {
+  gap: 12px;
+}
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+.grid-ways {
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+.grid-settings {
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+}
+
+/* the three ways to connect: the one in use is marked */
+.panel-here {
+  border-color: var(--signal);
+  box-shadow: inset 0 3px 0 var(--signal);
+}
+.here {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--signal-text);
+}
+.way-steps {
+  margin: 0;
+  padding-left: var(--sp-3);
+  display: grid;
+  gap: var(--sp-0);
+  font-size: var(--fs-13);
+}
+.wired {
+  display: grid;
+  gap: 4px;
+  margin-top: var(--sp-1);
+}
+.wired-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: var(--fs-13);
+}
+
+/* progress of adding a network */
+.job {
+  display: grid;
+  gap: var(--sp-2);
+}
+.job-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.job-step {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  font-size: var(--fs-13);
+}
+.job-icon {
+  display: inline-flex;
+  color: var(--muted);
+}
+.job-ok .job-icon {
+  color: var(--green);
+}
+.job-bad .job-icon {
+  color: var(--red);
+}
+.job-wait .job-icon,
+.job-run .job-icon,
+.job-warn .job-icon {
+  color: var(--amber-text);
+}
+.job-idle {
+  color: var(--muted);
+}
+.job-state {
+  font-size: var(--fs-12);
+  color: var(--muted);
+}
+
+/* topics */
+.watch-list {
+  display: grid;
+  gap: var(--sp-1);
+}
+.watch {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  background: var(--surface);
+}
+.watch-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px var(--sp-1);
+}
+.watch-topic {
+  overflow-wrap: anywhere;
+}
+.watch-data {
+  height: auto;
+  max-height: 220px;
+  min-height: 56px;
+}
+
+/* tools */
+.tool-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.applog {
+  white-space: normal;
+}
+.applog-line {
+  display: grid;
+  grid-template-columns: 72px 64px 1fr;
+  gap: var(--sp-1);
+  padding: 1px 0;
+}
+.applog-time {
+  color: var(--muted);
+}
+.applog-level {
+  color: var(--muted);
+}
+.applog-error .applog-level,
+.applog-error .applog-text {
+  color: var(--ink);
+  font-weight: 600;
+}
+.applog-warn .applog-level {
+  color: var(--amber-text);
+  font-weight: 600;
+}
+.applog-text {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.diag {
+  display: grid;
+  gap: var(--sp-1);
+}
+.diag-text {
+  width: 100%;
+  height: 260px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-ctl);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+}
+
+/* settings */
+.savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 12px var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+}
+.save-err {
+  border-left: 3px solid var(--red);
+  padding-left: var(--sp-1);
+  color: var(--ink);
+}
+textarea.input {
+  resize: vertical;
+  min-height: 72px;
+}
+.more summary {
+  cursor: pointer;
+  color: var(--signal-text);
+  font-size: var(--fs-13);
+  width: fit-content;
+}
+.more-body {
+  margin-top: var(--sp-1);
+  max-width: 520px;
+}
+
+/* setup wizard */
+.wiz {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-1);
+}
+.wiz-step {
+  display: grid;
+  gap: var(--sp-1);
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  background: var(--surface);
+}
+.wiz-step.is-off {
+  background: var(--surface-2);
+}
+.wiz-step.is-off .wiz-body > p {
+  color: var(--muted);
+}
+.wiz-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1);
+}
+.wiz-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+.wiz-n {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  font-size: var(--fs-12);
+  font-weight: 600;
+}
+.wiz-body {
+  display: grid;
+  gap: var(--sp-1);
+  font-size: var(--fs-13);
+}
+.wiz-cands {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.wiz-cand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px var(--sp-1);
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  background: var(--surface-2);
+}
+
+@media (max-width: 559px) {
+  .grid-2,
+  .grid-ways,
+  .grid-settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .applog-line {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding-bottom: 6px;
+  }
+  .savebar {
+    padding: 10px 12px;
+  }
+}
+
+.watch-gap {
+  flex: 1 1 0;
+}
+.watch-head {
+  flex-wrap: nowrap;
+}
+.watch-topic {
+  min-width: 0;
+}
+.table td.wrap-any {
+  overflow-wrap: anywhere;
+}
+
+/* long values (paths, fingerprints) wrap instead of pushing a dialog wider than the screen */
+.dialog-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+.wiz,
+.wiz-step,
+.wiz-body,
+.job,
+.diag {
+  min-width: 0;
+}
+.wiz-body,
+.wiz-title,
+.job-text {
+  overflow-wrap: anywhere;
+}
+.dialog-text {
+  overflow-wrap: anywhere;
+}
+
+/* topic types break after a slash, not in the middle of a word */
+.table td.type-cell {
+  overflow-wrap: break-word;
+  min-width: 0;
+}

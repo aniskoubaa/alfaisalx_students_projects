@@ -2,9 +2,9 @@
 
 The robot's address can change when it joins a different network. This page lists the ways to find it.
 
-Guides: [First connection](FIRST-CONNECTION.md) | [Everyday use](EVERYDAY-USE.md) | [Find the robot](FIND-THE-ROBOT.md) | [Troubleshooting](TROUBLESHOOTING.md)
+Guides: [First connection](FIRST-CONNECTION.md) | [Everyday use](EVERYDAY-USE.md) | [Live view and driving](LIVE-AND-DRIVING.md) | [Find the robot](FIND-THE-ROBOT.md) | [Troubleshooting](TROUBLESHOOTING.md)
 
-> Status: version 1.3 was tested offline and against the simulated robot only. Open real-robot checks: README [Not verified yet](../README.md#not-verified-yet).
+> Status (2026-10-30): version 2.0 was tested offline, in the simulated robot and with automated browser tests. (Earlier status, version 1.3: tested offline and against the simulated robot only.) Open real-robot checks: README [Not verified yet](../README.md#not-verified-yet).
 
 ## Which way to use
 
@@ -24,7 +24,7 @@ The address `10.42.0.1` means the robot is running its own hotspot.
 
 ## 2. Discover
 
-Press **Discover** on the Dashboard or in the wizard. Studio checks the places where the robot is usually found:
+Press **Discover** on **Overview**, in the wizard, or in the **Ctrl+K** command list. Studio checks the places where the robot is usually found:
 
 - the address it used last time on this network,
 - `turtlebot4.local`,
@@ -60,7 +60,7 @@ When no known Wi-Fi is in range, the robot starts its own network:
 
 More about this mode: [HOW-TO-CONNECT.md, Step 2](../../../HOW-TO-CONNECT.md#step-2-find-out-which-network-the-robot-is-on-and-its-address).
 
-To put the robot on a Wi-Fi network instead, use **Join a Wi-Fi network** in the Wi-Fi tab ([First connection, step 3](FIRST-CONNECTION.md#3-put-the-robot-on-the-network-you-will-use)).
+To put the robot on a Wi-Fi network instead, use **Join a Wi-Fi network** on the **Wi-Fi** screen ([First connection, step 3](FIRST-CONNECTION.md#3-put-the-robot-on-the-network-you-will-use)).
 
 ## 5. The Ethernet cable
 

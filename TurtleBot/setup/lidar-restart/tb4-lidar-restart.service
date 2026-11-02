@@ -1,0 +1,20 @@
+[Unit]
+Description=TurtleBot 4 lidar auto-restart (calls /start_motor if /scan is silent after an undock, TB-24)
+After=turtlebot4.service
+BindsTo=turtlebot4.service
+PartOf=turtlebot4.service
+
+[Service]
+Type=simple
+User=ubuntu
+Environment=PYTHONUNBUFFERED=1
+# Let the bringup settle first: every new ROS participant can stall the Create 3 base for seconds (TB-25).
+ExecStartPre=/bin/sleep 20
+# /etc/turtlebot4/setup.bash gives the same ROS environment as the bringup (RMW_IMPLEMENTATION=rmw_fastrtps_cpp,
+# ROS_DOMAIN_ID=0, ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET).
+ExecStart=/bin/bash -c 'source /etc/turtlebot4/setup.bash && exec python3 /usr/local/lib/tb4/tb4_lidar_restart.py'
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target turtlebot4.service

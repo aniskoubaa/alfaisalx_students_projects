@@ -1,0 +1,146 @@
+/*
+ * Design tokens for TurtleBot Studio 2.0 (see studio-2.0-plan.md).
+ * Red is reserved for the E-STOP and destructive actions. Amber means "needs care" or
+ * "motion armed". State is always written in words; colour only supports it.
+ */
+:root {
+  color-scheme: light;
+
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --surface-2: #f5f7f9;
+  --ink: #18212b;
+  --muted: #5a6676;
+  --line: #d3d9e1;
+  --line-strong: #aeb8c5;
+
+  --signal: #1d5bd6;
+  --red: #c4122f;
+  --amber: #d99a00;
+  --green: #1d8a3a;
+
+  --on-signal: #ffffff;
+  --on-red: #ffffff;
+
+  --signal-soft: #e4ecfb;
+  --red-soft: #fbe7ea;
+  --amber-soft: #fbf1d6;
+  --green-soft: #e1f3e6;
+
+  /* Text-safe versions of the status colours (AA on the surface). */
+  --signal-text: #1a4fb8;
+  --amber-text: #7a5600;
+
+  --code-keyword: #1d5bd6;
+  --code-string: #1d7a3a;
+  --code-number: #a35200;
+  --code-comment: #5a6676;
+  --code-function: #7b3fb5;
+  --code-type: #0b7285;
+  --code-invalid: #c4122f;
+
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-20: 20px;
+  --fs-28: 28px;
+
+  --sp-0: 4px;
+  --sp-1: 8px;
+  --sp-2: 16px;
+  --sp-3: 24px;
+  --sp-4: 32px;
+
+  --r-ctl: 6px;
+  --r-panel: 10px;
+
+  --topbar-h: 56px;
+  --sidebar-w: 216px;
+  --sidebar-w-collapsed: 56px;
+  --drawer-w: 320px;
+
+  --elevation-dialog: 0 12px 32px rgb(10 20 35 / 0.22);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --bg: #0e1319;
+    --surface: #151c24;
+    --surface-2: #1b2430;
+    --ink: #e4e9ef;
+    --muted: #8e9bad;
+    --line: #253040;
+    --line-strong: #3a4a5f;
+
+    --signal: #5e8ef0;
+    --red: #ff4b5c;
+    --amber: #f0b429;
+    --green: #42b862;
+
+    --on-signal: #0b1220;
+    --on-red: #1a0508;
+
+    --signal-soft: #1b2a47;
+    --red-soft: #3a1a20;
+    --amber-soft: #3a2f12;
+    --green-soft: #14301d;
+
+    --signal-text: #8fb0f7;
+    --amber-text: #f0b429;
+
+    --code-keyword: #8fb0f7;
+    --code-string: #7bd88f;
+    --code-number: #f0b05e;
+    --code-comment: #8e9bad;
+    --code-function: #c9a2f2;
+    --code-type: #5fd0e3;
+    --code-invalid: #ff4b5c;
+
+    --elevation-dialog: 0 12px 32px rgb(0 0 0 / 0.55);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0e1319;
+  --surface: #151c24;
+  --surface-2: #1b2430;
+  --ink: #e4e9ef;
+  --muted: #8e9bad;
+  --line: #253040;
+  --line-strong: #3a4a5f;
+
+  --signal: #5e8ef0;
+  --red: #ff4b5c;
+  --amber: #f0b429;
+  --green: #42b862;
+
+  --on-signal: #0b1220;
+  --on-red: #1a0508;
+
+  --signal-soft: #1b2a47;
+  --red-soft: #3a1a20;
+  --amber-soft: #3a2f12;
+  --green-soft: #14301d;
+
+  --signal-text: #8fb0f7;
+  --amber-text: #f0b429;
+
+  --code-keyword: #8fb0f7;
+  --code-string: #7bd88f;
+  --code-number: #f0b05e;
+  --code-comment: #8e9bad;
+  --code-function: #c9a2f2;
+  --code-type: #5fd0e3;
+  --code-invalid: #ff4b5c;
+
+  --elevation-dialog: 0 12px 32px rgb(0 0 0 / 0.55);
+}

@@ -67,7 +67,7 @@ OTHER = st.FAKE_HOST_KEY
 # ================================================================ version.json, packaging
 with open(os.path.join(STUDIO_DIR, 'version.json'), encoding='utf-8') as f:
     vj = json.load(f)
-check('VERSION is 1.3 and version.json carries the same version', st.VERSION == '1.3' and vj['version'] == st.VERSION, str(vj))
+check('VERSION is 2.0 and version.json carries the same version', st.VERSION == '2.0' and vj['version'] == st.VERSION, str(vj))
 check('version.json: date, one plain sentence, page on the lab repo',
       set(vj) == {'version', 'date', 'notes', 'page'} and re.match(r'^\d{4}-\d\d-\d\d$', vj['date']) and vj['notes'].endswith('.')
       and '\n' not in vj['notes'] and vj['page'].startswith(st.UPDATE_PAGE_PREFIX), str(vj))

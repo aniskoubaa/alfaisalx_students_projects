@@ -30,7 +30,7 @@ Status on 2026-10-10 (version 1.1.0): every menu option and command was tested o
    - To avoid the box completely, either right-click the file, choose **Properties**, tick **Unblock** and click **OK** before the first run, or [build the program yourself](#build-it-yourself).
    - On Windows 11 with **Smart App Control** turned on, unsigned programs can be blocked with no "Run anyway" button. Use the plain `ssh` commands in [HOW-TO-CONNECT.md](../../HOW-TO-CONNECT.md) instead.
 3. A window with a numbered menu opens. Join the robot's network first (see [Step 3 of HOW-TO-CONNECT.md](../../HOW-TO-CONNECT.md#step-3-connect-your-computer-to-the-same-network)), then:
-   - type `1` and press Enter to open a terminal on the robot. Type the robot's `ubuntu` password when asked (ask the lab maintainer; nothing shows while you type).
+   - type `1` and press Enter to open a terminal on the robot. Type the robot's `ubuntu` password when asked (`turtlebot4`; nothing shows while you type).
    - type `3` once, to set up key login, so you no longer need the password.
 
 `ssh` must be installed. Windows 10 and 11 include it. If the tool says it is missing, add **OpenSSH Client** under **Settings > System > Optional features**, or run this in PowerShell opened with **Run as administrator**:

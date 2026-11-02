@@ -34,7 +34,6 @@ import socket
 import subprocess
 import sys
 import tarfile
-import tempfile
 import threading
 import time
 import urllib.parse
@@ -43,7 +42,7 @@ import webbrowser
 import http.client
 
 sys.dont_write_bytecode = True
-VERSION = '1.3'
+VERSION = '2.0'
 FROZEN = bool(getattr(sys, 'frozen', False))  # PyInstaller one-file build
 HERE = getattr(sys, '_MEIPASS', None) if FROZEN else None
 HERE = HERE or os.path.dirname(os.path.abspath(__file__))
@@ -94,6 +93,22 @@ DEEP_KEYSCAN_PARALLEL = 8
 CLOSE_GRACE = 45.0              # s without any open Studio page before the built app stops itself
 WINDOW_MODES = ('app', 'browser')
 DEFAULT_WINDOW_MODE = 'app'
+UI_CHOICES = ('v2', 'classic')  # 2.0: which interface GET / serves; 'classic' is the 1.3 page (always also at /classic/)
+TELEOP_MAX_LINEAR = 0.30        # m/s, same hard caps as robot_bridge.py (the bridge enforces them; Studio mirrors them)
+TELEOP_MAX_ANGULAR = 1.20       # rad/s
+TELEOP_MIN_LINEAR = 0.02
+TELEOP_MIN_ANGULAR = 0.10
+TELEOP_DEFAULT_LINEAR = 0.15
+TELEOP_DEFAULT_ANGULAR = 0.60
+HISTORY_KEEP_S = 1800           # s of 1 Hz metrics kept in memory
+HISTORY_SERIES = ('battery_pct', 'voltage', 'current_a', 'speed', 'odom_hz', 'scan_hz', 'cpu_pct', 'temp_c', 'wifi_dbm')
+ALERT_DEDUP_S = 60.0            # the same alert code is raised at most once per this many seconds
+ALERT_EDGE_DEDUP_S = 2.0        # state changes (e-stop, dock, connection, programs, driving) only drop exact repeats
+ALERT_EDGE_CODES = frozenset({'estop_on', 'estop_off', 'docked', 'undocked', 'teleop_armed', 'teleop_disarmed',
+                              'conn_connected', 'conn_lost', 'conn_restored', 'conn_disconnected', 'program_started',
+                              'program_exited', 'program_failed'})
+ALERT_SEVERITIES = ('info', 'warn', 'critical')
+EVENTS_MAX_BYTES = 1_000_000    # events.jsonl rotates to events.jsonl.old at this size
 
 # ============================================================================ pure helpers
 
@@ -458,6 +473,14 @@ def order_deep(cands):
             n = 0
         return (0 if c.get('identity') == 'confirmed' else 1 if c.get('pi') else 2, n)
     return sorted(cands, key=key)
+
+
+ROUTE_WORDS = {'cable': 'Ethernet cable', 'wifi': 'Wi-Fi', 'hotspot': 'robot hotspot', 'custom': 'typed address'}
+
+
+def route_words(via):
+    """How the robot is reached, in words for people (the internal names are cable, wifi, hotspot, custom)."""
+    return ROUTE_WORDS.get(via, via) if via else via
 
 
 # ---- v1.3: update notice, reconnect timing, diagnostics redaction ----
@@ -1357,12 +1380,27 @@ class Bus:
         self.clients = set()
         self.last_conn = {'ev': 'conn', 'state': 'disconnected', 'host': None, 'via': None, 'error': None}
         self.last_status = None
+        self.last_hello = None  # a page opened later still learns the robot's name and ROS version
         self.logs = collections.deque(maxlen=200)
+        self.tap = None         # 2.0: optional callable(ev) that sees every published event (alerts); must not raise
 
     def publish(self, ev):
+        self._publish(ev)
+        tap = self.tap
+        if tap is not None:
+            try:
+                tap(ev)
+            except Exception:
+                pass
+
+    def _publish(self, ev):
         with self.lock:
             if ev.get('ev') == 'conn':
                 self.last_conn = ev
+                if ev.get('state') in ('disconnected', 'error', 'connecting', 'discovering'):
+                    self.last_hello = None
+            elif ev.get('ev') == 'hello':
+                self.last_hello = ev
             elif ev.get('ev') == 'status':
                 self.last_status = ev
             elif ev.get('ev') == 'log':
@@ -1376,7 +1414,7 @@ class Bus:
     def subscribe(self):
         q = queue.Queue(maxsize=2000)
         with self.lock:
-            pre = [self.last_conn] + ([self.last_status] if self.last_status else []) + list(self.logs)
+            pre = [self.last_conn] + ([self.last_hello] if self.last_hello else []) +                   ([self.last_status] if self.last_status else []) + list(self.logs)
             for ev in pre:
                 q.put_nowait(ev)
             self.clients.add(q)
@@ -1397,6 +1435,209 @@ class Bus:
                     q.put_nowait(None)
                 except queue.Full:
                     pass
+
+
+# ============================================================================ 2.0: history and alerts
+
+
+def finite_num(v):
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and v == v and abs(v) != float('inf') else None
+
+
+def history_sample(ev):
+    """One status event -> the plotted numbers (None where the robot did not report one)."""
+    g = lambda k: ev.get(k) if isinstance(ev.get(k), dict) else {}
+    b, o, sc, sy, net = g('battery'), g('odom'), g('scan'), g('system'), g('net')
+    vx = finite_num(o.get('vx'))
+    return {'battery_pct': finite_num(b.get('percent')), 'voltage': finite_num(b.get('voltage')),
+            'current_a': finite_num(b.get('current_a')), 'speed': None if vx is None else round(abs(vx), 3),
+            'odom_hz': finite_num(o.get('rate_hz')), 'scan_hz': finite_num(sc.get('rate_hz')),
+            'cpu_pct': finite_num(sy.get('cpu_pct')), 'temp_c': finite_num(sy.get('temp_c')),
+            'wifi_dbm': finite_num(net.get('signal_dbm'))}
+
+
+def clamp_minutes(v, default=15.0):
+    m = finite_num(v)
+    return default if m is None else min(HISTORY_KEEP_S / 60.0, max(1.0, m))
+
+
+class History:
+    """Metrics from the robot's status events, at most one sample per second, the newest HISTORY_KEEP_S seconds."""
+
+    def __init__(self, keep=HISTORY_KEEP_S):
+        self.rows = collections.deque(maxlen=int(keep))
+        self.lock = threading.Lock()
+
+    def add(self, ev, now=None):
+        now = time.time() if now is None else now
+        with self.lock:
+            if self.rows and now - self.rows[-1][0] < 0.9:
+                return False
+            self.rows.append((now, history_sample(ev)))
+            return True
+
+    def query(self, minutes=15, now=None):
+        now = time.time() if now is None else now
+        cut = now - clamp_minutes(minutes) * 60.0
+        with self.lock:
+            rows = [r for r in self.rows if r[0] >= cut]
+        return {'t': [round(t, 1) for t, _ in rows], 'series': {k: [smp.get(k) for _, smp in rows] for k in HISTORY_SERIES}}
+
+
+class AlertCenter:
+    """Alerts with severity, de-duplicated per code, kept in memory and in <config>/events.jsonl (rotated at max_bytes,
+    one old file kept). Conditions are edge-triggered: an alert is raised when a condition starts and an info alert when it
+    ends. publish(ev) is called with {'ev': 'alert', ...} for every alert that is kept."""
+
+    def __init__(self, path, publish, clock=time.time, max_bytes=EVENTS_MAX_BYTES, keep=500):
+        self.path, self.publish, self.clock, self.max_bytes = path, publish, clock, max_bytes
+        self.lock = threading.RLock()
+        self.items = collections.deque(maxlen=keep)
+        self.last_t = {}
+        self.next_id = 1
+        self.active = {}
+        self.batt_level = 0
+        self.prev_docked = None
+        self.prev_estop = None
+        self.lidar_bad_since = None
+        self._load()
+
+    def _load(self):
+        for fn in (self.path + '.old', self.path):
+            try:
+                with open(fn, encoding='utf-8') as f:
+                    for line in f:
+                        try:
+                            a = json.loads(line)
+                        except ValueError:
+                            continue
+                        if isinstance(a, dict) and isinstance(a.get('id'), int) and a.get('severity') in ALERT_SEVERITIES:
+                            self.items.append({k: a.get(k) for k in ('id', 't', 'severity', 'code', 'text')})
+                            self.next_id = max(self.next_id, a['id'] + 1)
+            except OSError:
+                pass
+
+    def raise_alert(self, code, severity, text):
+        """Returns the alert dict, or None when the same code was already raised recently."""
+        now = self.clock()
+        window = ALERT_EDGE_DEDUP_S if code in ALERT_EDGE_CODES else ALERT_DEDUP_S
+        with self.lock:
+            last = self.last_t.get(code)
+            if last is not None and 0 <= now - last < window:
+                return None
+            self.last_t[code] = now
+            a = {'id': self.next_id, 't': round(now, 3), 'severity': severity if severity in ALERT_SEVERITIES else 'info',
+                 'code': str(code), 'text': str(text)[:300]}
+            self.next_id += 1
+            self.items.append(a)
+            self._persist(a)
+        try:
+            self.publish(dict(a, ev='alert'))
+        except Exception:
+            pass
+        return a
+
+    def _persist(self, a):
+        try:
+            try:
+                if os.path.getsize(self.path) >= self.max_bytes:
+                    os.replace(self.path, self.path + '.old')
+            except OSError:
+                pass
+            with open(self.path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(a) + '\n')
+        except OSError:
+            pass
+
+    def since(self, since_id=0, limit=500):
+        with self.lock:
+            out = [dict(a) for a in self.items if a['id'] > since_id]
+            last = self.next_id - 1
+        return out[-limit:], last
+
+    def _cond(self, code, active, severity, text, clear_text):
+        was = self.active.get(code, False)
+        if active and not was:
+            self.active[code] = True
+            self.raise_alert(code, severity, text)
+        elif not active and was:
+            self.active[code] = False
+            self.raise_alert(code + '_cleared', 'info', clear_text)
+
+    def check_status(self, ev, moving=False):
+        """Evaluate one status event. moving = a motion program runs or manual driving is armed."""
+        g = lambda k: ev.get(k) if isinstance(ev.get(k), dict) else {}
+        b, d, o, sc, es, sy, net, ck = g('battery'), g('dock'), g('odom'), g('scan'), g('estop'), g('system'), g('net'), g('clock')
+        now = self.clock()
+        # battery (a robot that is charging is not "low")
+        pct = finite_num(b.get('percent'))
+        if pct is not None:
+            if b.get('charging') is True:
+                lvl = 0
+            else:
+                prev = self.batt_level
+                lvl = 2 if (pct < 10 or (prev == 2 and pct < 12)) else 1 if (pct < 20 or (prev >= 1 and pct < 22)) else 0
+            if lvl != self.batt_level:
+                old, self.batt_level = self.batt_level, lvl
+                if lvl == 2:
+                    self.raise_alert('battery_critical', 'critical', 'Battery is critically low (%d %%). Dock the robot now.' % pct)
+                elif lvl == 1 and old == 0:
+                    self.raise_alert('battery_low', 'warn', 'Battery is low (%d %%). Dock the robot soon.' % pct)
+                else:
+                    self.raise_alert('battery_cleared', 'info', 'Battery is %d %%.' % pct)
+        # dock
+        dk = d.get('is_docked')
+        if isinstance(dk, bool):
+            if self.prev_docked is not None and dk != self.prev_docked:
+                self.raise_alert('docked' if dk else 'undocked', 'info', 'The robot is docked.' if dk else 'The robot left the dock.')
+            self.prev_docked = dk
+        # e-stop
+        on = es.get('on')
+        if isinstance(on, bool):
+            if on and self.prev_estop is not True:
+                self.raise_alert('estop_on', 'critical', 'E-stop is on (%s).' % (es.get('source') or 'unknown source'))
+            elif not on and self.prev_estop is True:
+                self.raise_alert('estop_off', 'info', 'E-stop released.')
+            self.prev_estop = on
+        # lidar silent while undocked for 10 s (it is off while docked)
+        silent = dk is False and (sc.get('age_s') is None or finite_num(sc.get('age_s')) is None or sc['age_s'] > 3.0)
+        if silent:
+            self.lidar_bad_since = self.lidar_bad_since or now
+        else:
+            self.lidar_bad_since = None
+        self._cond('lidar_silent', silent and now - self.lidar_bad_since >= 10.0, 'warn',
+                   'The lidar is not sending scans although the robot is undocked.', 'The lidar is sending scans again.')
+        # odometry stall while moving (TB-25)
+        age = finite_num(o.get('age_s'))
+        vx, wz = finite_num(o.get('vx')) or 0.0, finite_num(o.get('wz')) or 0.0
+        stalled = age is not None and age > 0.5 and (moving or abs(vx) > 0.02 or abs(wz) > 0.02)
+        self._cond('odom_stall', stalled, 'warn', 'Odometry paused for %.1f s while the robot was moving (TB-25).' % (age or 0.0),
+                   'Odometry is flowing again.')
+        # Wi-Fi, temperature, clock
+        dbm = finite_num(net.get('signal_dbm'))
+        if dbm is not None:
+            weak = dbm < -75 or (self.active.get('wifi_weak', False) and dbm < -72)
+            self._cond('wifi_weak', weak, 'warn', 'Wi-Fi signal is weak (%d dBm).' % dbm, 'Wi-Fi signal is fine again (%d dBm).' % dbm)
+        temp = finite_num(sy.get('temp_c'))
+        if temp is not None:
+            hot = temp > 75 or (self.active.get('temp_high', False) and temp > 72)
+            self._cond('temp_high', hot, 'warn', 'The robot computer is hot (%d C).' % temp, 'The robot computer cooled down (%d C).' % temp)
+        wall = finite_num(ev.get('wall'))
+        if wall is None and finite_num(ck.get('year')) is not None:
+            wrong = abs(ck['year'] - time.gmtime(now).tm_year) >= 1
+        else:
+            wrong = wall is not None and abs(wall - now) > 86400
+        self._cond('clock_wrong', wrong, 'warn', 'The robot clock is wrong. Log timestamps will be off.', 'The robot clock is correct again.')
+
+
+def is_status_moving(ev, tele_armed=False):
+    runs = ev.get('runs') if isinstance(ev.get('runs'), list) else []
+    return bool(tele_armed) or any(isinstance(r, dict) and r.get('motion') and r.get('alive') for r in runs)
+
+
+def limit_value(v, default, lo, hi):
+    n = finite_num(v)
+    return default if n is None or n <= 0 else min(hi, max(lo, n))
 
 
 # ============================================================================ bridge process
@@ -1627,6 +1868,17 @@ class Studio:
         self.update = {'checked': None, 'latest': None, 'page': None, 'notes': '', 'error': None}
         self.update_lock = threading.Lock()
         self._update_logged = False
+        # 2.0
+        self.web_dir = getattr(args, 'web_dir', None) or WEB_DIR
+        self.history = History()
+        self.alerts = AlertCenter(os.path.join(self.cfg, 'events.jsonl'), self.bus.publish)
+        self.tele_armed = False         # what Studio believes (from the bridge's teleop events and replies)
+        self.tele_gen = None            # bridge generation the arm belongs to: motion is never sent to another process
+        self.conn_lost = False
+        self.run_names = {}
+        self.run_stopped = set()       # run ids the user stopped (a stopped program ends with a non-zero code: not an error)
+        self.estop_until = 0.0         # runs that end shortly after an e-stop or Stop all were stopped by it
+        self.bus.tap = self._tap
 
     # ---------------------------------------------------------------- settings / logging
     def _load_settings(self):
@@ -1634,7 +1886,8 @@ class Studio:
              'remote_dir': DEFAULT_REMOTE_DIR, 'motion_files': [], 'trust_host_key': None, 'known_addresses': {},
              'builtin_host_key': True, 'trusted_host_keys': [], 'setup_done': False,
              'auto_reconnect': True, 'update_check': True, 'update_last': {}, 'update_dismissed': None,
-             'window_mode': DEFAULT_WINDOW_MODE}
+             'window_mode': DEFAULT_WINDOW_MODE, 'ui': 'v2', 'teleop_linear': TELEOP_DEFAULT_LINEAR,
+             'teleop_angular': TELEOP_DEFAULT_ANGULAR}
         s.update(DEFAULT_SETTINGS)
         d = {}
         try:
@@ -1661,6 +1914,9 @@ class Studio:
         s['auto_reconnect'] = bool(s['auto_reconnect'])
         s['update_check'] = bool(s['update_check'])
         s['window_mode'] = s['window_mode'] if s['window_mode'] in WINDOW_MODES else DEFAULT_WINDOW_MODE
+        s['ui'] = s['ui'] if s['ui'] in UI_CHOICES else 'v2'
+        s['teleop_linear'] = limit_value(s['teleop_linear'], TELEOP_DEFAULT_LINEAR, TELEOP_MIN_LINEAR, TELEOP_MAX_LINEAR)
+        s['teleop_angular'] = limit_value(s['teleop_angular'], TELEOP_DEFAULT_ANGULAR, TELEOP_MIN_ANGULAR, TELEOP_MAX_ANGULAR)
         ul = s['update_last'] if isinstance(s['update_last'], dict) else {}
         s['update_last'] = ({'t': float(ul['t']), 'latest': ul['latest']} if isinstance(ul.get('t'), (int, float))
                             and isinstance(ul.get('latest'), str) and VERSION_RE.match(ul['latest']) else {})
@@ -1763,6 +2019,7 @@ class Studio:
     def connect(self, host=None, auto=False):
         if not auto:
             self.reconnect_cancel(quiet=True)  # the user takes over
+        self.teleop_off('reconnecting' if auto else 'connecting')  # a new bridge process always starts disarmed
         host = (host or self.args.host_override or '').strip()
         if self.fake:
             return self._connect_fake()
@@ -1828,6 +2085,7 @@ class Studio:
         return {'ok': False, 'error': c.get('error') or 'connection failed', 'kind': c.get('kind')}
 
     def disconnect(self):
+        self.teleop_off('Disconnected.')
         self.reconnect_cancel(quiet=True)
         self.bridge.stop()
         self.conn('disconnected', self.bridge.host, self.bridge.via)
@@ -1945,6 +2203,7 @@ class Studio:
     # ---------------------------------------------------------------- v1.3: automatic reconnect
     def bridge_lost(self, host, via, msg, kind):
         """Called by the bridge when it ended on its own while connected. True = Studio takes over (reconnects)."""
+        self.teleop_off('Connection lost.')
         if self.closing or not host or not self.settings.get('auto_reconnect', True):
             return False
         if kind in ('host_key', 'key_not_set_up', 'key_missing', 'no_ssh'):
@@ -2036,15 +2295,117 @@ class Studio:
         reasons = None
         if name == 'run':
             reasons = self.motion_for_run(cmd)
+        if name in ('teleop_arm', 'teleop'):
+            # the limits always come from Studio's settings, whatever the page sent; the bridge caps them again
+            cmd['max_linear'] = self.settings.get('teleop_linear', TELEOP_DEFAULT_LINEAR)
+            cmd['max_angular'] = self.settings.get('teleop_angular', TELEOP_DEFAULT_ANGULAR)
+        if name == 'stop':      # before the request: the program's exit event can arrive before the answer
+            if cmd.get('run_id') == 'all':
+                self.estop_until = time.time() + 12.0
+            elif cmd.get('run_id'):
+                self.run_stopped.add(str(cmd.get('run_id')))
+        if name == 'teleop' and (not self.tele_armed or self.tele_gen != self.bridge.gen):
+            # never send motion unless this very bridge process was armed (no resend after a reconnect)
+            return {'ok': False, 'error': 'Manual driving is not armed.', 'armed': False}
         try:
-            r = self.bridge.request(cmd, 8 if name == 'estop' else 15)
+            r = self.bridge.request(cmd, 8 if name == 'estop' else 2 if name == 'teleop' else 15)
         except BridgeError as e:
             return {'ok': False, 'error': str(e)}
         if reasons is not None and isinstance(r, dict):
             r['motion_decision'] = {'motion': bool(cmd.get('motion')), 'reasons': reasons}
+        if name == 'teleop_arm' and isinstance(r, dict) and r.get('ok'):
+            if cmd.get('on') is True:
+                self.tele_armed, self.tele_gen = True, self.bridge.gen
+            else:
+                self.tele_armed = False
+        if name == 'run' and isinstance(r, dict) and r.get('ok') and r.get('run_id'):
+            pname = os.path.basename(str(cmd.get('path', ''))) or 'program'
+            self.run_names[r['run_id']] = pname
+            self.alerts.raise_alert('program_started', 'info', 'Started %s.' % pname)
         return r
 
+    def teleop_off(self, reason, wait=2.0):
+        """Disarm manual driving (the bridge publishes zero velocity). Safe to call at any time and from any thread."""
+        was = self.tele_armed
+        self.tele_armed = False
+        confirmed = False
+        if self.bridge.connected:
+            try:
+                r = self.bridge.request({'cmd': 'teleop_arm', 'on': False, 'reason': reason}, wait)
+                confirmed = bool(r.get('ok'))
+            except BridgeError:
+                pass
+        if was and not confirmed:   # the bridge could not say it: tell the page ourselves
+            self.bus.publish({'ev': 'teleop', 'armed': False, 'reason': reason})
+        return was
+
+    def client_gone(self):
+        """An event stream (page) closed. When it was the last one nobody is watching the robot: stop manual driving."""
+        if self.closing or self.bus.count() > 0:
+            return
+        if self.tele_armed or self.bridge.connected:
+            threading.Thread(target=self.teleop_off, args=('The last Studio page was closed.',), daemon=True,
+                             name='teleop-off').start()
+
+    def teleop_limits(self, req=None):
+        if req is not None:
+            upd = {}
+            for key, setting, lo, hi, unit in (('linear', 'teleop_linear', TELEOP_MIN_LINEAR, TELEOP_MAX_LINEAR, 'm/s'),
+                                               ('angular', 'teleop_angular', TELEOP_MIN_ANGULAR, TELEOP_MAX_ANGULAR, 'rad/s')):
+                if key not in req:
+                    continue
+                n = finite_num(req[key])
+                if n is None or n <= 0:
+                    return {'ok': False, 'error': '%s must be a number above 0 (%s, at most %.2f)' % (key, unit, hi)}
+                upd[setting] = round(min(hi, max(lo, n)), 3)
+            if not upd:
+                return {'ok': False, 'error': 'give linear and/or angular'}
+            with self.set_lock:
+                self.settings.update(upd)
+                self.save_settings()
+        return {'ok': True, 'linear': self.settings['teleop_linear'], 'angular': self.settings['teleop_angular'],
+                'max_linear': TELEOP_MAX_LINEAR, 'max_angular': TELEOP_MAX_ANGULAR}
+
+    def _tap(self, ev):
+        """Every published event passes here: raises alerts for connection, driving and program events."""
+        kind = ev.get('ev')
+        if kind == 'conn':
+            st, host = ev.get('state'), ev.get('host') or 'the robot'
+            if st == 'connected':
+                if self.conn_lost:
+                    self.alerts.raise_alert('conn_restored', 'info', 'Connection to %s restored.' % host)
+                else:
+                    self.alerts.raise_alert('conn_connected', 'info', 'Connected to %s.' % host)
+                self.conn_lost = False
+            elif st == 'reconnecting':
+                if not self.conn_lost:
+                    self.conn_lost = True
+                    self.alerts.raise_alert('conn_lost', 'critical', 'Connection to %s lost. Studio is reconnecting.' % host)
+            elif st == 'error':
+                self.alerts.raise_alert('conn_error', 'warn', 'Connection problem: %s' % (ev.get('error') or 'unknown'))
+            elif st == 'disconnected':
+                self.conn_lost = False
+                self.alerts.raise_alert('conn_disconnected', 'info', 'Disconnected from %s.' % host)
+        elif kind == 'teleop':
+            self.tele_armed = bool(ev.get('armed'))
+            if ev.get('armed'):
+                self.alerts.raise_alert('teleop_armed', 'info', 'Manual driving is armed.')
+            else:
+                self.alerts.raise_alert('teleop_disarmed', 'info', 'Manual driving is off: %s' % (ev.get('reason') or 'disarmed'))
+        elif kind == 'run_exit':
+            name = self.run_names.get(ev.get('run_id'), 'A program')
+            code = ev.get('code')
+            if code != 0 and (str(ev.get('run_id')) in self.run_stopped or time.time() < self.estop_until):
+                self.alerts.raise_alert('program_exited', 'info', '%s was stopped.' % name)
+            elif code == 0:
+                self.alerts.raise_alert('program_exited', 'info', '%s finished.' % name)
+            else:
+                self.alerts.raise_alert('program_failed', 'warn', '%s exited with an error%s.' % (
+                    name, '' if code is None else ' (code %s)' % code))
+
     def estop(self):
+        self.tele_armed = False     # the bridge disarms manual driving first thing; Studio stops sending at once
+        self.estop_until = time.time() + 15.0
         out = {'ok': False}
         try:
             r = self.bridge.request({'cmd': 'estop'}, 8)
@@ -2356,7 +2717,7 @@ class Studio:
             upd, trust_add, trust_clear = {}, None, False
             for k in ('last_host', 'key_path', 'local_dir', 'remote_dir', 'motion_files', 'trust_host_key', 'robot_hostname',
                       'robot_user', 'hotspot_ssid', 'hotspot_addr', 'cable_addr', 'builtin_host_key', 'setup_done',
-                      'auto_reconnect', 'update_check', 'update_dismissed', 'window_mode'):
+                      'auto_reconnect', 'update_check', 'update_dismissed', 'window_mode', 'ui'):
                 if k not in req:
                     continue
                 v = req[k]
@@ -2377,6 +2738,9 @@ class Studio:
                 elif k == 'window_mode':
                     if v not in WINDOW_MODES:
                         return {'ok': False, 'error': 'window_mode must be app or browser'}
+                elif k == 'ui':
+                    if v not in UI_CHOICES:
+                        return {'ok': False, 'error': 'ui must be v2 or classic'}
                 elif k == 'update_dismissed':
                     if v not in (None, '') and not (isinstance(v, str) and VERSION_RE.match(v)):
                         return {'ok': False, 'error': 'update_dismissed must be a version number'}
@@ -2602,6 +2966,11 @@ class Studio:
 
     # ---------------------------------------------------------------- v1.1: laptop network, known addresses
     def laptop_net(self):
+        osname = 'windows' if IS_WIN else ('macos' if sys.platform == 'darwin' else 'linux')
+        if self.fake and not os.environ.get('STUDIO_REAL_LAPTOP_NET'):
+            # the simulated robot gets a simulated computer network too, so screenshots and tests never show the real one
+            return {'ok': True, 'wifi': {'ssid': 'HomeNet', 'signal_pct': 80, 'state': 'connected', 'interface': 'Wi-Fi'},
+                    'wired': [], 'os': osname, 'fake': True}
         box = {}
         ths = [threading.Thread(target=lambda: box.__setitem__('wifi', laptop_wifi()), daemon=True),
                threading.Thread(target=lambda: box.__setitem__('wired', laptop_wired()), daemon=True)]
@@ -2609,11 +2978,15 @@ class Studio:
             t.start()
         for t in ths:
             t.join(8)
-        osname = 'windows' if IS_WIN else ('macos' if sys.platform == 'darwin' else 'linux')
         return {'ok': True, 'wifi': box.get('wifi'), 'wired': box.get('wired') or [], 'os': osname}
 
     def on_status(self, ev):
-        """Remember the robot's Wi-Fi address per SSID (client mode only)."""
+        """Record metrics and raise alerts, then remember the robot's Wi-Fi address per SSID (client mode only)."""
+        try:
+            self.history.add(ev)
+            self.alerts.check_status(ev, is_status_moving(ev, self.tele_armed))
+        except Exception as e:
+            self.log('warn', 'status bookkeeping failed: %s' % e)
         try:
             net = ev.get('net') or {}
             ssid, ip = net.get('ssid'), (net.get('addresses') or {}).get('wlan0')
@@ -2660,7 +3033,7 @@ class Studio:
                 kv('Wi-Fi / wired', 'could not read (%s)' % e)
         sec('Settings')
         for k in ('robot_hostname', 'robot_user', 'last_host', 'last_via', 'hotspot_ssid', 'hotspot_addr', 'cable_addr'):
-            kv(k, s.get(k))
+            kv(k, route_words(s.get(k)) if k == 'last_via' else s.get(k))
         ki = self.key_info()
         kv('ssh key file present', 'yes' if ki['exists'] else 'no')
         kv('ssh key fingerprint (public)', ki['fingerprint'])
@@ -2675,7 +3048,7 @@ class Studio:
         c = self.bus.last_conn
         kv('State', c.get('state'))
         kv('Host', c.get('host'))
-        kv('Via', c.get('via'))
+        kv('Reached over', route_words(c.get('via')))
         kv('Last error', c.get('error'))
         if c.get('state') == 'reconnecting':
             kv('Reconnect attempt', c.get('attempt'))
@@ -2928,6 +3301,7 @@ class Studio:
     def quit(self):
         """Quit Studio button: answer first, then stop cleanly (the page shows 'Studio has stopped')."""
         self.log('info', 'Quit requested from the page')
+        self.teleop_off('Studio is quitting.', 1.5)
         self.bus.publish({'ev': 'quit'})
         t = threading.Timer(0.4, lambda: self.stop_cb() if self.stop_cb else None)
         t.daemon = True
@@ -2936,6 +3310,7 @@ class Studio:
 
     def shutdown(self):
         self.closing = True
+        self.teleop_off('Studio is quitting.', 1.5)
         self.reconnect_cancel(quiet=True)
         try:
             self.bridge.stop()
@@ -3108,7 +3483,25 @@ PLACEHOLDER = (b'<!doctype html><meta charset="utf-8"><title>TurtleBot Studio</t
                b'The backend is running; the API works, but there is nothing to show here.</p></body>')
 CTYPES = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
           '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json',
-          '.txt': 'text/plain; charset=utf-8'}
+          '.txt': 'text/plain; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.map': 'application/json',
+          '.woff2': 'font/woff2', '.woff': 'font/woff', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+          '.gif': 'image/gif', '.webmanifest': 'application/manifest+json'}
+CSP = ("default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; "
+       "connect-src 'self'; frame-ancestors 'none'")
+
+
+def _to_float(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _to_int(v):
+    try:
+        return max(0, int(v))
+    except (TypeError, ValueError):
+        return 0
 
 
 def make_handler(app):
@@ -3171,27 +3564,67 @@ def make_handler(app):
                     return self._json(app.diagnostics())
                 if u.path == '/api/update_status':
                     return self._json(app.update_status())
+                if u.path == '/api/history':
+                    mins = clamp_minutes(_to_float((q.get('minutes') or ['15'])[0]))
+                    return self._json(dict(app.history.query(mins), ok=True, minutes=mins, interval_s=1))
+                if u.path == '/api/alerts':
+                    since = _to_int((q.get('since') or ['0'])[0])
+                    items, last = app.alerts.since(since)
+                    return self._json({'ok': True, 'alerts': items, 'last_id': last})
+                if u.path == '/api/teleop_limits':
+                    return self._json(app.teleop_limits())
                 if u.path.startswith('/api/templates/'):
                     txt = app.template_text(urllib.parse.unquote(u.path[len('/api/templates/'):]))
                     if txt is None:
                         return self._json({'ok': False, 'error': 'no such template'}, 404)
                     return self._send(200, txt.encode('utf-8'), 'text/plain; charset=utf-8')
                 return self._json({'ok': False, 'error': 'not found'}, 404)
-            self._static(u.path)
+            self._static(u.path, u.query)
 
-        def _static(self, path):
-            name = 'index.html' if path in ('/', '') else path.lstrip('/')
-            full = safe_member_path(WEB_DIR, name)
+        def _file(self, base, rel, html_ok=True):
+            full = safe_member_path(base, rel)
             if full and os.path.isfile(full):
                 with open(full, 'rb') as f:
                     body = f.read()
                 ext = os.path.splitext(full)[1].lower()
-                csp = {'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
-                                                   "connect-src 'self'; frame-ancestors 'none'"} if ext == '.html' else None
-                return self._send(200, body, CTYPES.get(ext, 'application/octet-stream'), csp)
-            if name == 'index.html':
-                return self._send(200, PLACEHOLDER, 'text/html; charset=utf-8')
-            self._send(404, b'not found', 'text/plain')
+                return self._send(200, body, CTYPES.get(ext, 'application/octet-stream'),
+                                  {'Content-Security-Policy': CSP} if ext == '.html' else None)
+            return None
+
+        def _redirect(self, where):
+            self.send_response(302)
+            self.send_header('Location', where)
+            self.send_header('Content-Length', '0')
+            self.send_header('Cache-Control', 'no-store')
+            self.end_headers()
+
+        def _static(self, path, query=''):
+            web = app.web_dir
+            v2 = os.path.join(web, 'v2')
+            qs = ('?' + query) if query else ''
+            if path == '/favicon.ico':     # the 1.3 page has no icon link: answer "no icon" instead of a 404 in the browser console
+                self.send_response(204)
+                self.send_header('Cache-Control', 'max-age=86400')
+                self.end_headers()
+                return
+            if path in ('/', '', '/index.html'):
+                if app.settings.get('ui') != 'classic' and os.path.isfile(os.path.join(v2, 'index.html')):
+                    return self._file(v2, 'index.html')
+                if self._file(web, 'index.html') is None:
+                    self._send(200, PLACEHOLDER, 'text/html; charset=utf-8')
+                return
+            if path in ('/classic', '/v2'):
+                return self._redirect(path + '/' + qs)
+            if path.startswith('/classic/'):
+                if self._file(web, path[len('/classic/'):] or 'index.html') is None:
+                    self._send(404, b'not found', 'text/plain')
+                return
+            if path.startswith('/v2/'):
+                if self._file(v2, path[len('/v2/'):] or 'index.html') is None:
+                    self._send(404, b'not found', 'text/plain')
+                return
+            if self._file(web, path.lstrip('/')) is None:
+                self._send(404, b'not found', 'text/plain')
 
         def _events(self):
             q = app.bus.subscribe()
@@ -3219,6 +3652,7 @@ def make_handler(app):
                 pass
             finally:
                 app.bus.unsubscribe(q)
+                app.client_gone()
 
         def do_POST(self):
             u = urllib.parse.urlsplit(self.path)
@@ -3263,6 +3697,7 @@ def make_handler(app):
                 '/api/deep_discover': app.deep_discover,
                 '/api/reconnect_cancel': app.reconnect_cancel,
                 '/api/quit': app.quit,
+                '/api/teleop_limits': lambda: app.teleop_limits(req),
                 '/api/check_updates': lambda: app.check_updates(force=bool(req.get('force', True))),
             }
             if app.fake:
@@ -3325,6 +3760,7 @@ def parse_args(argv=None):
     ap.add_argument('--bridge-script', default=None, help=argparse.SUPPRESS)
     ap.add_argument('--catalog', default=None, help=argparse.SUPPRESS)
     ap.add_argument('--templates-dir', default=None, help=argparse.SUPPRESS)
+    ap.add_argument('--web-dir', default=None, help=argparse.SUPPRESS)
     ap.add_argument('--heartbeat', type=float, default=15.0, help=argparse.SUPPRESS)
     ap.add_argument('--update-delay', type=float, default=5.0, help=argparse.SUPPRESS)
     ap.add_argument('--exit-when-closed', action='store_true', help='stop Studio when its window has been closed for a while (default in the built app)')

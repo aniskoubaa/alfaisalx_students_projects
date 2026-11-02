@@ -11,9 +11,23 @@ import sys
 from urllib.parse import unquote
 
 ROOT = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.getcwd())   # repo root
-FILES = sorted(os.path.relpath(os.path.join(d, f), ROOT)
-               for d, _, fs in os.walk(os.path.join(ROOT, 'TurtleBot')) for f in fs
-               if f.endswith(('.md', '.html')))
+# Not documentation: npm packages, and the Studio 2.0 web app (Vite entry page and its build output use absolute
+# /src and /v2 paths that only exist when the app is served).
+SKIP_DIRS = {'node_modules'}
+SKIP_FILES = {os.path.join('TurtleBot', 'tools', 'studio', 'ui', 'index.html'),
+              os.path.join('TurtleBot', 'tools', 'studio', 'web', 'v2', 'index.html')}
+
+
+def _walk(top):
+    for d, dirs, fs in os.walk(top):
+        dirs[:] = [x for x in dirs if x not in SKIP_DIRS]
+        for f in fs:
+            yield d, f
+
+
+FILES = sorted(p for p in (os.path.relpath(os.path.join(d, f), ROOT) for d, f in _walk(os.path.join(ROOT, 'TurtleBot'))
+                           if f.endswith(('.md', '.html')))
+               if p not in SKIP_FILES)
 
 
 def gh_slug(h):

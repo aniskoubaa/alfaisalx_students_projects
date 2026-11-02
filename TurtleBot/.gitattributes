@@ -2,3 +2,9 @@
 # so a script copied to the robot with scp works there. See MAINTENANCE.md, Maintainer notes.
 *.sh text eol=lf
 *.py text eol=lf
+# systemd units, drop-ins and extensionless robot scripts (added 2026-10-30)
+*.service text eol=lf
+*.timer text eol=lf
+*.conf text eol=lf
+setup/tb4-https-time text eol=lf
+setup/wifi-retry/tb4-wifi-retry text eol=lf

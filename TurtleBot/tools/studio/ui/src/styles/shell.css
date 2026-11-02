@@ -1,0 +1,463 @@
+/* ---------- frame ---------- */
+.app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.app-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+.main:focus {
+  outline: none;
+}
+.page {
+  padding: var(--sp-3);
+  display: grid;
+  gap: var(--sp-2);
+  align-content: start;
+  max-width: 1480px;
+}
+.page-title {
+  font-size: var(--fs-20);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: relative;
+  z-index: 60;
+  flex: none;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 0 var(--sp-2);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  /* The E-STOP stays clickable while a dialog is open. */
+  pointer-events: auto;
+}
+.topbar-spacer {
+  flex: 1;
+}
+.nav-toggle {
+  display: none;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: var(--sp-1);
+}
+.brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-ctl);
+  background: var(--signal);
+  color: var(--on-signal);
+}
+.brand-name {
+  font-weight: 600;
+  font-size: var(--fs-16);
+  white-space: nowrap;
+}
+.brand-sub {
+  font-weight: 400;
+  color: var(--muted);
+}
+.conn-pill {
+  max-width: 46vw;
+}
+.conn-pill .pill-text {
+  white-space: nowrap;
+  overflow: hidden;
+}
+.conn-label {
+  font-weight: 500;
+}
+.conn-host {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.conn-route {
+  color: var(--muted);
+}
+.vitals {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-right: var(--sp-1);
+}
+.vital {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-13);
+  white-space: nowrap;
+}
+.vital svg {
+  color: var(--muted);
+}
+.vital-warn svg {
+  color: var(--amber);
+}
+.vital-note {
+  font-weight: 600;
+}
+
+/* ---------- E-STOP: the one loud element ---------- */
+.estop {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 18px 0 12px;
+  margin-left: var(--sp-1);
+  border: 2px solid var(--red);
+  border-radius: var(--r-ctl);
+  background: var(--red);
+  color: var(--on-red);
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.estop:hover {
+  filter: brightness(0.92);
+}
+.estop:active {
+  transform: translateY(1px);
+}
+.estop:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+.estop-text {
+  display: grid;
+  text-align: left;
+  line-height: 1.1;
+}
+.estop-label {
+  font-size: var(--fs-16);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.estop-hint {
+  font-size: var(--fs-12);
+  opacity: 0.9;
+}
+
+/* ---------- banners ---------- */
+.banners {
+  flex: none;
+}
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 8px var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-13);
+}
+.banner-text {
+  flex: 1;
+  min-width: 0;
+}
+.banner-actions {
+  flex: none;
+}
+.banner-icon {
+  display: inline-flex;
+  flex: none;
+}
+.banner-red {
+  background: var(--red-soft);
+  border-bottom-color: var(--red);
+}
+.banner-red .banner-icon {
+  color: var(--red);
+}
+.banner-amber {
+  background: var(--amber-soft);
+  border-bottom-color: var(--amber);
+}
+.banner-amber .banner-icon {
+  color: var(--amber);
+}
+.banner-blue {
+  background: var(--signal-soft);
+  border-bottom-color: var(--signal);
+}
+.banner-blue .banner-icon {
+  color: var(--signal);
+}
+
+/* ---------- sidebar ---------- */
+.sidebar {
+  flex: none;
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-1);
+  overflow-y: auto;
+  transition: width 160ms var(--ease);
+}
+.sidebar.is-collapsed {
+  width: var(--sidebar-w-collapsed);
+}
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.nav-gap {
+  margin-top: var(--sp-1);
+  padding-top: var(--sp-1);
+  border-top: 1px solid var(--line);
+}
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-ctl);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: left;
+}
+.nav-item svg {
+  flex: none;
+  color: var(--muted);
+}
+.nav-item:hover {
+  background: var(--surface-2);
+}
+.nav-item.is-active {
+  background: var(--signal-soft);
+  font-weight: 600;
+}
+.nav-item.is-active svg {
+  color: var(--signal);
+}
+.nav-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--signal);
+}
+.nav-dot,
+.dirty-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex: none;
+}
+.nav-dot {
+  margin-left: auto;
+}
+.nav-foot {
+  margin-top: auto;
+  padding-top: var(--sp-1);
+  display: grid;
+  gap: 2px;
+  border-top: 1px solid var(--line);
+}
+.is-collapsed .nav-label {
+  display: none;
+}
+.is-collapsed .nav-item {
+  justify-content: center;
+  padding: 0;
+}
+.is-collapsed .nav-dot {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  margin: 0;
+}
+.nav-scrim {
+  display: none;
+}
+
+/* ---------- events drawer ---------- */
+.drawer {
+  flex: none;
+  width: var(--drawer-w);
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-1) var(--sp-2);
+  border-bottom: 1px solid var(--line);
+}
+.drawer-title {
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+.drawer-empty {
+  padding: var(--sp-2);
+  color: var(--muted);
+  font-size: var(--fs-13);
+}
+.alert-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--sp-1) var(--sp-2);
+  display: grid;
+  gap: var(--sp-1);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-13);
+}
+.event-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--sp-1) 0;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+.event {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: baseline;
+  gap: 6px var(--sp-1);
+  padding: 4px var(--sp-2);
+  font-size: var(--fs-12);
+}
+.event-time {
+  color: var(--muted);
+}
+.event-text {
+  overflow-wrap: anywhere;
+  font-size: var(--fs-13);
+}
+
+.stopped {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-3);
+}
+
+/* ---------- small screens ---------- */
+@media (max-width: 1099px) {
+  .drawer {
+    position: fixed;
+    z-index: 40;
+    top: var(--topbar-h);
+    right: 0;
+    bottom: 0;
+    box-shadow: var(--elevation-dialog);
+  }
+}
+
+@media (max-width: 899px) {
+  .nav-toggle {
+    display: inline-flex;
+  }
+  .sidebar,
+  .sidebar.is-collapsed {
+    position: fixed;
+    z-index: 45;
+    top: var(--topbar-h);
+    bottom: 0;
+    left: 0;
+    width: 240px;
+    transform: translateX(-100%);
+    transition: transform 160ms var(--ease);
+    box-shadow: var(--elevation-dialog);
+  }
+  .sidebar.is-open {
+    transform: none;
+  }
+  .sidebar.is-collapsed .nav-label {
+    display: inline;
+  }
+  .sidebar.is-collapsed .nav-item {
+    justify-content: flex-start;
+    padding: 0 12px;
+  }
+  .nav-collapse {
+    display: none;
+  }
+  .nav-scrim {
+    display: block;
+    position: fixed;
+    z-index: 42;
+    inset: var(--topbar-h) 0 0 0;
+    border: 0;
+    background: rgb(10 18 30 / 0.4);
+  }
+  .vitals {
+    display: none;
+  }
+  .page {
+    padding: var(--sp-2);
+  }
+}
+
+@media (max-width: 559px) {
+  .topbar {
+    padding: 0 var(--sp-1);
+    gap: 4px;
+  }
+  .brand-name,
+  .palette-btn {
+    display: none; /* a phone has no Ctrl+K; the events button stays, so alerts can be read */
+  }
+  .brand {
+    display: none; /* room for the connection pill: its words must fit */
+  }
+  .conn-host,
+  .conn-route {
+    display: none;
+  }
+  .conn-pill {
+    max-width: none;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .estop {
+    padding: 0 12px 0 8px;
+    margin-left: 0;
+  }
+  .estop-hint {
+    display: none;
+  }
+  .toast-viewport {
+    right: var(--sp-1);
+    bottom: var(--sp-1);
+  }
+}

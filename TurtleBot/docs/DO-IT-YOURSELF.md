@@ -125,7 +125,7 @@ Compare it with the expected line above. If it is exactly the same, type `yes`.
 
 #### Password and prompt
 
-SSH asks for the `ubuntu` password. Type it and press Enter. Nothing appears while you type; that is normal. Ask the lab maintainer for the password.
+SSH asks for the `ubuntu` password. Type it and press Enter. Nothing appears while you type; that is normal. The password is `turtlebot4`.
 
 When the prompt reads `ubuntu@turtlebot4:~$`, you are on the robot: every command you type now runs there. To leave:
 
@@ -695,7 +695,7 @@ ssh ubuntu@10.87.10.205
 
 **What to do.**
 
-Retype the password slowly. Repeat the [key setup](#step-4-optional-log-in-with-a-key-one-time-per-computer) if you use a key. Ask the lab maintainer if the password was changed. Never write the password into the repository.
+Retype the password slowly. Repeat the [key setup](#step-4-optional-log-in-with-a-key-one-time-per-computer) if you use a key. The password is `turtlebot4`; if it no longer works, ask the lab maintainer whether it was changed.
 
 ### WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!
 

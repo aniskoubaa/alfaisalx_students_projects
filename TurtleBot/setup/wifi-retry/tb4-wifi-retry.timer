@@ -1,0 +1,10 @@
+[Unit]
+Description=Run tb4-wifi-retry 3 minutes after boot and every 5 minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+Persistent=false
+
+[Install]
+WantedBy=timers.target

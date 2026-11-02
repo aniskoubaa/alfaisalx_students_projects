@@ -2,6 +2,7 @@
 #   Windows: TurtleBotStudio.exe (windowed, no console) and TurtleBotStudio-Setup-<version>.exe (NSIS 3 installer)
 #   macOS:   TurtleBotStudio-macOS.zip (windowed .app, not code-signed)
 #   Linux:   TurtleBotStudio binary and install-linux.sh
+# The 2.0 interface (TurtleBot/tools/studio/ui, React) is built and tested first; its committed output web/v2 must match.
 # Runs on a tag like studio-v1.3 or by hand (Actions tab, Run workflow). The files are workflow artifacts only.
 name: TurtleBot Studio build
 
@@ -27,8 +28,31 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install PyInstaller
-        run: python -m pip install pyinstaller==6.20.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: TurtleBot/tools/studio/ui/package-lock.json
+      - name: Install PyInstaller and Playwright
+        run: python -m pip install pyinstaller==6.20.0 playwright
+      - name: Browser for the end-to-end test (Linux)
+        if: runner.os == 'Linux'
+        run: python -m playwright install --with-deps chromium
+      # Windows uses the preinstalled Edge, macOS the preinstalled Chrome (the test tries msedge, chrome, then bundled Chromium).
+      - name: Studio interface (install, lint, type check, test, build)
+        working-directory: TurtleBot/tools/studio/ui
+        shell: bash
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm test
+          npm run build
+      - name: The committed web/v2 build must match the source (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          git diff --exit-code -- TurtleBot/tools/studio/web/v2
+          test -z "$(git status --porcelain -- TurtleBot/tools/studio/web/v2)" || { git status --short -- TurtleBot/tools/studio/web/v2; echo "web/v2 is not committed or not up to date: run npm run build in TurtleBot/tools/studio/ui and commit web/v2"; exit 1; }
       - name: Studio offline tests
         shell: bash
         run: |
@@ -38,6 +62,8 @@ jobs:
           python TurtleBot/tests/offline/test_studio_setup.py
           python TurtleBot/tests/offline/test_studio_upgrades.py
           python TurtleBot/tests/offline/test_studio_window.py
+          python TurtleBot/tests/offline/test_studio_v2_backend.py
+          python TurtleBot/tests/offline/test_studio_e2e.py
       - name: Install NSIS (Windows installer)
         if: runner.os == 'Windows'
         run: choco install nsis -y

@@ -2,13 +2,13 @@
 
 Find what you see in the left column, then do what is on the right.
 
-Guides: [First connection](FIRST-CONNECTION.md) | [Everyday use](EVERYDAY-USE.md) | [Find the robot](FIND-THE-ROBOT.md) | [Troubleshooting](TROUBLESHOOTING.md)
+Guides: [First connection](FIRST-CONNECTION.md) | [Everyday use](EVERYDAY-USE.md) | [Live view and driving](LIVE-AND-DRIVING.md) | [Find the robot](FIND-THE-ROBOT.md) | [Troubleshooting](TROUBLESHOOTING.md)
 
-> Status: version 1.3 was tested offline and against the simulated robot only. Open real-robot checks: README [Not verified yet](../README.md#not-verified-yet).
+> Status (2026-10-30): version 2.0 was tested offline, in the simulated robot and with automated browser tests. (Earlier status, version 1.3: tested offline and against the simulated robot only.) Open real-robot checks: README [Not verified yet](../README.md#not-verified-yet).
 
 ## Ask for help with one click
 
-1. Press **Copy diagnostics** in the Tools tab (or next to a connection error).
+1. Open **Tools** and press **Show diagnostics** (or **Show diagnostics** next to a connection error). The command list (**Ctrl+K**) also has **Copy diagnostics**.
 2. Press **Copy**, or **Save as file** (`studio-diagnostics.txt`).
 3. Send the text to the lab maintainer.
 
@@ -46,7 +46,7 @@ The text has the Studio version, your system, the connection state and the last 
 | "robot key does not match" | Stop. It may be a different or reinstalled robot, or another device at the same address. Ask the lab maintainer. Do not trust it just to get in |
 | "robot not reachable" | No route, or the robot is off. Check the cable or the Wi-Fi and press Discover. On the cable, wait about 20 seconds after plugging in |
 | The terminal window asks for a password and nothing appears as you type | Normal. Type the robot password and press Enter |
-| "Permission denied" after the password | The password is wrong. Ask the lab maintainer for it. Do not guess repeatedly |
+| "Permission denied" after the password | The password is wrong. It is `turtlebot4`, all lower case. If that fails, ask the lab maintainer whether it was changed |
 | The connection drops now and then | Studio reconnects by itself and shows a banner. If the Wi-Fi keeps dropping, use the cable, or ask the lab maintainer |
 | "gave up reconnecting after 10 minutes" | The robot is off, out of range or on another address. Find it again ([Find the robot](FIND-THE-ROBOT.md)) and press **Connect** |
 
@@ -64,10 +64,28 @@ The text has the Studio version, your system, the connection state and the last 
 | What you see | What to do |
 |---|---|
 | "motion needs confirmation" | Tick the motion confirmation. Read the warning first |
-| "no /scan" | Press **Start lidar motor** on the Dashboard |
+| "no /scan" | Press **Start lidar motor** on **Overview** |
 | The robot does not move | Check that it is undocked and that no red e-stop banner is showing. If there is one, press **Release e-stop** only when it is safe |
 | The program stops when the odometry pauses | Known base behaviour. See [Known issues](../../../MAINTENANCE.md#known-issues) |
 | The robot clock is wrong | The robot has no internet on the cable, so its clock can drift. The health check flags it |
+
+## Live view, driving, charts and logs (2.0)
+
+Driving was tested only with the simulated robot so far. More detail: [Live view and driving](LIVE-AND-DRIVING.md).
+
+| What you see | What to do |
+|---|---|
+| The map says "No lidar data" | While the robot is docked the lidar is off. That is normal. Undock, or press **Start lidar motor** on **Overview**. If the robot is undocked and it stays, tell the lab maintainer |
+| **Arm driving** is refused: "The robot is docked. Undock first." | Undock from **Overview** |
+| Arm refused: "The e-stop is on." | Press **Release e-stop** only when it is safe, then arm again |
+| Arm refused: "A motion program is running." | Stop it in **Programs** |
+| Arm refused: "Battery below 10 %" | Dock the robot and charge it |
+| Arm refused: "The robot state is not known yet" | Wait a few seconds and try again |
+| Driving switched off by itself | Normal in several cases: 60 s idle, you left **Live**, the window was hidden, the connection dropped, E-STOP, battery below 8 %. Arm again. See [When driving switches off](LIVE-AND-DRIVING.md#when-driving-switches-off) |
+| The robot does not move when you hold W | Check the amber bar and the **Armed** label. Check that no slider or box has the keyboard focus, and that no dialog is open. Use the joystick instead |
+| Charts are empty | They fill while the robot reports. Wait a minute after you connect. **Reload history** loads the values again |
+| Logs says the log cannot be read | Ask the lab maintainer. Do not try sudo from Studio |
+| The old (1.3) interface is needed | **Tools, Settings, Use the classic interface**, or add `/classic/` to the address |
 
 ## Start over
 

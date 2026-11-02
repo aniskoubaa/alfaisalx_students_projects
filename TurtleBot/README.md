@@ -1,6 +1,34 @@
 # TurtleBot 4
 
-Documentation, example programs and setup scripts for the lab's TurtleBot 4 Standard (Raspberry Pi 4 on an iRobot Create 3 base, Ubuntu 24.04 Server, ROS 2 Jazzy). New users start with [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md).
+The lab's TurtleBot 4 robot: an app to control it, guides, example programs and setup records.
+
+## Start here: control the robot with TurtleBot Studio
+
+TurtleBot Studio is a desktop app. It finds the robot, shows what the robot sees, runs programs, lets you drive it and has an emergency stop. You do not need Python, ROS or a terminal.
+
+**[Download TurtleBot Studio for Windows](https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.0.exe)** (version <!-- studio-version -->2.0<!-- /studio-version -->, <!-- studio-size -->8.8 MB<!-- /studio-size -->). More about the download, and macOS and Linux: [Download/](Download/README.md).
+
+| Step | What to do |
+|---|---|
+| 1. Install | Open the downloaded file. If Windows says "Windows protected your PC", click **More info**, then **Run anyway**. Click **Next**, **Install**, **Finish** |
+| 2. Practice (optional) | Start **TurtleBot Studio (simulated robot)** from the Start menu. It is a pretend robot: click everything, nothing real moves |
+| 3. Turn the robot on | Put the robot on its dock. After about 2 minutes it plays a chime and shows its address on its small screen |
+| 4. Connect the first time | Plug an Ethernet cable from your computer into the robot. Open **TurtleBot Studio** from the desktop and follow the setup wizard. You need the robot password once: user `ubuntu`, password `turtlebot4`. Step by step: [First connection](tools/studio/docs/FIRST-CONNECTION.md) |
+| 5. Every day after that | Open Studio, press **Discover**, then **Connect**. No cable and no password |
+
+**Safety first.** The red **E-STOP** button is always at the top right of Studio; **Esc** or **Space** also stops the robot. Before the robot moves, clear about 1 m of floor around it and stay next to it. Driving by hand is described in [Live view and driving](tools/studio/docs/LIVE-AND-DRIVING.md).
+
+| Guide | When you need it |
+|---|---|
+| [First connection](tools/studio/docs/FIRST-CONNECTION.md) | The one-time setup over the cable |
+| [Everyday use](tools/studio/docs/EVERYDAY-USE.md) | Start, connect, run a program, edit code, move files |
+| [Live view and driving](tools/studio/docs/LIVE-AND-DRIVING.md) | See the lidar map, drive with the keyboard or the joystick, charts, events and the robot log |
+| [Find the robot](tools/studio/docs/FIND-THE-ROBOT.md) | Studio cannot find the robot, or its address changed |
+| [Troubleshooting](tools/studio/docs/TROUBLESHOOTING.md) | Something does not work |
+
+## Everything else (for advanced users and maintainers)
+
+Documentation, example programs and setup scripts for the lab's TurtleBot 4 Standard (Raspberry Pi 4 on an iRobot Create 3 base, Ubuntu 24.04 Server, ROS 2 Jazzy). To connect without the app (ssh, VS Code), start with [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md).
 
 **Quick connect** (details and troubleshooting: [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md)):
 
@@ -23,7 +51,8 @@ Documentation, example programs and setup scripts for the lab's TurtleBot 4 Stan
 | File | What it is for |
 |---|---|
 | [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md) | Connect from any computer (Windows, macOS, Linux), log in, write and run code, turn the robot off, troubleshoot. **Start here.** |
-| [tools/studio/](tools/studio/README.md) | **TurtleBot Studio (recommended way to work with the robot):** a local app that opens in your browser (`Start TurtleBot Studio.cmd` on Windows, `bash start-studio.sh` on macOS and Linux, or `python studio.py`). Finds the robot over Wi-Fi, hotspot or cable, shows its status, explains each program, copies and runs programs, has a code editor with templates (spin, circle, forward and back) and a Wi-Fi guide, watches topics and has an E-STOP. Nothing is installed on the robot. Built and tested over the cable on 2026-10-24 with the robot docked, no motion; macOS, Linux and Wi-Fi not tested yet |
+| [Download/](Download/README.md) | **The TurtleBot Studio installer for Windows** (version 2.0 from 2026-10-30). Download it from there; no Python needed |
+| [tools/studio/](tools/studio/README.md) | **TurtleBot Studio (recommended way to work with the robot).** From version 2.0 (2026-10-30): an installed app with its own window, a live lidar map, driving with the keyboard or a joystick, charts, events and the robot log; technical details in its README. Earlier text: a local app that opens in your browser (`Start TurtleBot Studio.cmd` on Windows, `bash start-studio.sh` on macOS and Linux, or `python studio.py`). Finds the robot over Wi-Fi, hotspot or cable, shows its status, explains each program, copies and runs programs, has a code editor with templates (spin, circle, forward and back) and a Wi-Fi guide, watches topics and has an E-STOP. Nothing is installed on the robot. Built and tested over the cable on 2026-10-24 with the robot docked, no motion; macOS, Linux and Wi-Fi not tested yet |
 | [tools/connect/](tools/connect/README.md) | Connect tool: `TurtleBotConnect.exe` (Windows 10 or 11, no installation) and `connect-turtlebot.sh` (macOS, Linux). A menu that finds the robot, opens a terminal, sets up key login, shows the robot's status, stops the motion programs in an emergency and copies files. Not yet used with the real robot as of 2026-10-10 |
 | [tools/timing/](tools/timing/README.md) | Timing recorder and analyzer: records when `/odom` and the other base topics arrive, together with processor load, network counters, ping to the base and Wi-Fi events, then lists every pause and what it coincides with. Read only; run it next to a motion test. First used on the robot on 2026-10-24 (results in [tests/logs/](tests/logs/)) |
 | [MAINTENANCE.md](MAINTENANCE.md) | Configuration record: every change made to the robot with verify and undo steps, incident reports (clock fix, lidar, Wi-Fi drops), the lab router, known issues, admin scripts |
@@ -55,7 +84,7 @@ Want to learn to do everything yourself? Follow [docs/do-it-yourself.html](docs/
 1. Put the robot on its dock, wait about 2 minutes for the chime, and read the address on its display.
 2. Join the same Wi-Fi as the robot: `Students` if the address starts with `10.87.`, or the robot's own `Turtlebot4` network if it shows `10.42.0.1`. (The lab router network does not have the robot on it.)
 
-Or skip the manual steps and use the app: [TurtleBot Studio](tools/studio/README.md) (needs Python 3.10 or newer; on Windows double-click `tools/studio/Start TurtleBot Studio.cmd`, on macOS or Linux run `bash tools/studio/start-studio.sh`). Press Discover, then Connect.
+Or skip the manual steps and use the app: [TurtleBot Studio](#start-here-control-the-robot-with-turtlebot-studio). On Windows, install it from [Download/](Download/README.md) (no Python needed). On macOS or Linux it needs Python 3.10 or newer: run `bash tools/studio/start-studio.sh` (on Windows the Python way is `tools/studio/Start TurtleBot Studio.cmd`). Press Discover, then Connect.
 
 Otherwise connect in one of two ways.
 
@@ -83,6 +112,6 @@ The tool only talks to a device that presents the lab robot's host key, so it wi
    exit
    ```
 
-Passwords are not stored in this repository; ask the lab maintainer. Full instructions, including key login and VS Code, are in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md).
+The robot login is user `ubuntu`, password `turtlebot4`. Full instructions, including key login and VS Code, are in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md).
 
 **Safety:** `drive_test.py`, `motion_test.sh` and `motion_shapes.py` move the robot. Clear about 1 m around it before running them and stay nearby. Read [examples/README.md](examples/README.md) first.

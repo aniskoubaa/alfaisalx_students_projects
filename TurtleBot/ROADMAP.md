@@ -2,7 +2,7 @@
 
 Plan of work for the lab's TurtleBot 4.
 
-**Last updated:** 2026-10-24, late evening (10 supervised motion starts with the start-up check: all completed, short start pauses remain; TB-25 follow-up joins done, Pi-local ROS silence fixed as R18, 240 automatic package upgrades noted in TB-28). Earlier the same evening (home Wi-Fi network added as R16; supervised motion through Studio over Wi-Fi; long `/odom` stalls seen at idle, new hypothesis in TB-25; new task TB-28; TB-17 proposal added). Earlier on 2026-10-24 (Wi-Fi power-save fix applied as R14, effect not verified; `/odom` stall cause located in the base; new tasks TB-24 to TB-27). Previous update: 2026-10-10 (state as of 2026-10-10: no robot change since 2026-10-04; robot last reached briefly on 2026-10-05). Previous update: 2026-10-04 (robot state as of 2026-10-04, about 12:30 robot time)
+**Last updated:** 2026-10-30 (robot still at home, lab under renovation: first boot on the new kernel checked over the cable, R17 and R18 survive the reboot; TB-28 decided and applied as R22: no automatic updates, monthly manual update). Previous update: 2026-10-24, late evening (10 supervised motion starts with the start-up check: all completed, short start pauses remain; TB-25 follow-up joins done, Pi-local ROS silence fixed as R18, 240 automatic package upgrades noted in TB-28). Earlier the same evening (home Wi-Fi network added as R16; supervised motion through Studio over Wi-Fi; long `/odom` stalls seen at idle, new hypothesis in TB-25; new task TB-28; TB-17 proposal added). Earlier on 2026-10-24 (Wi-Fi power-save fix applied as R14, effect not verified; `/odom` stall cause located in the base; new tasks TB-24 to TB-27). Previous update: 2026-10-10 (state as of 2026-10-10: no robot change since 2026-10-04; robot last reached briefly on 2026-10-05). Previous update: 2026-10-04 (robot state as of 2026-10-04, about 12:30 robot time)
 
 ## Purpose
 
@@ -39,6 +39,19 @@ Admin steps (`sudo`, Wi-Fi changes) need a person who knows the robot's `ubuntu`
 | **[to verify]** | Not tested on this robot; check before relying on it |
 
 Commands run in a terminal on the robot (SSH or VS Code Remote-SSH), from the home folder, unless marked **On the laptop**. Text in angle brackets, such as `<robot-address>`, is a placeholder.
+
+## State on 2026-10-30
+
+The lab was still being renovated, so the robot stayed at Ibrahim's home. It came up on its own hotspot (the home Wi-Fi profile was deleted by R21 before the planned move) and was reached over the Ethernet cable. Details: [MAINTENANCE.md, State on 2026-10-30](MAINTENANCE.md#state-on-2026-10-30).
+
+| Item | State on 2026-10-30 | Tasks |
+|---|---|---|
+| Kernel | First boot on `6.8.0-1065-raspi`: ROS, base link, lidar and Wi-Fi hotspot work. Rollback to `6.8.0-1013` prepared and written down, not needed | [MAINTENANCE.md, kernel rollback](MAINTENANCE.md#booting-the-previous-kernel-again) |
+| R17, R18 | Survive the reboot (`wifi.powersave=2`; `/odom` 20 Hz after SSH logouts) | [TB-20](#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving), [TB-25](#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving) |
+| Ubuntu updates | **Decided:** no automatic updates (R22), monthly manual update | [TB-28](#tb-28-decide-whether-the-robot-installs-ubuntu-updates-by-itself) (done) |
+| Clock | Wrong at boot without internet (12 October 2026). Corrected once the robot was online: the Pi stepped 17.6 days and the base followed by itself 16.5 minutes later (no base restart needed) | [TB-17](#tb-17-decide-whether-to-keep-or-remove-the-clock-fix) |
+| SD card backup | Still not made (no card reader at hand) | [TB-07](#tb-07-sd-card-backups) |
+| Home Wi-Fi | Added again (R23) while the robot stays at home; the robot is on 192.168.100.31 again. Delete it before the move to the lab (R23 undo) | [MAINTENANCE.md, R23](MAINTENANCE.md#change-register) |
 
 ## State on 2026-10-24
 
@@ -1248,7 +1261,7 @@ Remaining:
 
 ### TB-28 Decide whether the robot installs Ubuntu updates by itself
 
-**Priority:** P2 | **Status:** Open (proposed 2026-10-24, evening) | **Depends on:** None
+**Priority:** P2 | **Status:** Done 2026-10-30 (proposed 2026-10-24, evening; decided and applied as MAINTENANCE.md R22) | **Depends on:** None
 
 **Goal.** A recorded decision on whether the lab robot lets Ubuntu download and install updates by itself, and what is done about it.
 
@@ -1265,10 +1278,13 @@ Remaining:
    - **Allow security updates only,** at a fixed hour when the robot is not in use. **[to verify]** that the configuration can restrict this on this image.
 3. Record the decision, the date and who made it here and in MAINTENANCE.md (Known issues row on automatic updates), and apply it with an undo.
 
+**Decision 2026-10-30.** Made by Ibrahim (lab RA); approval by the lab supervisor is not recorded. Options weighed: keep the automatic updates; download only; turn them off with no routine; **turn them off and update by hand once a month (chosen)**. Reasons: on 2026-10-24 the automatic download kept one core at 100 % for 45 minutes and the install restarted the ROS bringup at least 8 times while it ran, and an unplanned kernel update waited for the next power-on. Applied as [MAINTENANCE.md, R22](MAINTENANCE.md#change-register): a new file `/etc/apt/apt.conf.d/99zz-tb4-no-auto-upgrades` sets the four `APT::Periodic` values to `"0"` (verify: `apt-config dump | grep '^APT::Periodic::'`; undo: delete the file). The routine is in [MAINTENANCE.md, Monthly manual update](MAINTENANCE.md#monthly-manual-update-tb-28). Step 1 was done read-only on 2026-10-24 (configuration snapshot); the "security updates only at a fixed hour" option was not taken, so its **[to verify]** stays open and unneeded. The first boot on the new kernel was checked on 2026-10-30: R14 not testable away from campus, R17 and R18 survive.
+
 **Acceptance criteria.**
-- [ ] The decision is recorded with the date and who made it.
-- [ ] If changed: the MAINTENANCE.md register has the change with verify and undo.
-- [ ] Timing measurements are only run when no update job is running (check with `pgrep -a unattended-upgrade`).
+- [x] The decision is recorded with the date and who made it (2026-10-30, Ibrahim).
+- [x] If changed: the MAINTENANCE.md register has the change with verify and undo (R22).
+- [ ] Timing measurements are only run when no update job is running (check with `pgrep -a unattended-upgrade`). Ongoing rule; since R22 no automatic job should start, but a manual update can still be running.
+- [ ] The first monthly manual update has been done and recorded.
 
 **Risks and rollback.** Step 1 changes nothing. Turning timers off means no automatic security patches; the robot is on the campus network and TB-05 (security hardening) should be planned with this. Rollback: switch the timers on again.
 

@@ -2,15 +2,15 @@
 
 Read this before you use Studio for the first time. It takes about 10 minutes. After it, you do not need the cable again. The robot password is needed for only two things: allowing key login from this computer (once) and adding a Wi-Fi network to the robot.
 
-Guides: [First connection](FIRST-CONNECTION.md) | [Everyday use](EVERYDAY-USE.md) | [Find the robot](FIND-THE-ROBOT.md) | [Troubleshooting](TROUBLESHOOTING.md)
+Guides: [First connection](FIRST-CONNECTION.md) | [Everyday use](EVERYDAY-USE.md) | [Live view and driving](LIVE-AND-DRIVING.md) | [Find the robot](FIND-THE-ROBOT.md) | [Troubleshooting](TROUBLESHOOTING.md)
 
-> Status: version 1.3 was tested offline and against the simulated robot only. Not every step below has been run on the real robot yet. The open checks are listed in the README under [Not verified yet](../README.md#not-verified-yet).
+> Status (2026-10-30): version 2.0 was tested offline, in the simulated robot and with automated browser tests. Not every step below has been run on the real robot yet. (Earlier status, version 1.3: tested offline and against the simulated robot only.) The open checks are listed in the README under [Not verified yet](../README.md#not-verified-yet).
 
 ## The short version
 
 1. Plug an Ethernet cable between your computer and the robot.
 2. Start Studio and follow the setup wizard. Type the robot password in the terminal window the wizard opens (once per computer).
-3. While the cable is still plugged in, open the **Wi-Fi** tab, press **Join a Wi-Fi network** and put the robot on the network you will use.
+3. While the cable is still plugged in, open **Wi-Fi** in the left menu, press **Join a Wi-Fi network** and put the robot on the network you will use.
 4. Unplug the cable. From now on: **Discover**, then **Connect**.
 
 ## Why the cable
@@ -24,7 +24,7 @@ You need:
 - Studio installed ([INSTALL.md](../INSTALL.md)).
 - An Ethernet cable and, if your computer has no wired port, a USB or Thunderbolt Ethernet adapter.
 - The robot switched on. Plug the cable into the Ethernet port of the Raspberry Pi on the robot.
-- The robot's `ubuntu` password. Ask the lab maintainer. Do not write it in documents, chats or screenshots.
+- The robot's `ubuntu` password: `turtlebot4`.
 - For step 3: the name and password of the Wi-Fi network you want. It must be WPA or WPA2 personal (one shared password). Networks that need a login page or a university account (for example `eduroam`) are not supported.
 
 ## Steps
@@ -36,7 +36,7 @@ You need:
 
 ### 2. Start Studio and run the setup wizard
 
-1. Start Studio ([INSTALL.md](../INSTALL.md#2-start-it)). The wizard opens by itself the first time. If it does not, press **Setup wizard** on the Dashboard or in the Tools tab.
+1. Start Studio ([INSTALL.md](../INSTALL.md#2-start-it)). The wizard opens by itself the first time. If it does not, press **Setup wizard** on **Overview** (under **Change robot** when you are connected) or open **Tools** and press **Open the setup wizard**.
 2. Go through the six steps:
 
 | Step | What you do |
@@ -48,7 +48,7 @@ You need:
 | 5 Key login | Press **Open terminal**. See the next part |
 | 6 Test | Studio logs in with your key and shows the robot's name. Press **Connect** |
 
-![The setup wizard on the first start](img/wizard.png)
+![The setup wizard on the first start](img/v2-wizard.png)
 
 *Screenshot from the simulated robot.*
 
@@ -65,7 +65,7 @@ You do this once for each computer. The password is not saved anywhere.
 
 Do this while the cable is still plugged in. The cable stays up while the robot changes network, so you cannot lock yourself out.
 
-1. In Studio, open the **Wi-Fi** tab.
+1. In Studio, open **Wi-Fi** in the left menu.
 2. Under **Join a Wi-Fi network**, pick the network from **Networks the robot can see**, or type its name. If the robot is running its own hotspot it cannot scan, so type the name.
 3. Type the Wi-Fi password in Studio. Tick **Switch the robot to it now and test it**.
 4. Press the button and confirm. A terminal opens again and asks for the robot's `ubuntu` (sudo) password. Type it there.
@@ -74,7 +74,7 @@ Do this while the cable is still plugged in. The cable stays up while the robot 
 
 The Wi-Fi password goes to the robot once, over the existing ssh link. Studio does not write it to disk or to its log.
 
-![Wi-Fi tab with Join a Wi-Fi network](img/wifi.png)
+![Wi-Fi screen with Join a Wi-Fi network](img/v2-wifi.png)
 
 *Screenshot from the simulated robot.*
 

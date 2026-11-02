@@ -4,12 +4,17 @@ TurtleBot Studio is a small app for working with the lab's TurtleBot 4 from your
 
 This page is the short version for students. The full details are in the [technical README](README.md).
 
-> **Status (version 1.3):** the version 1.3 features are tested offline and in the simulated robot only. Real-robot checks are listed in the README under [Not verified yet](README.md#not-verified-yet). If a step fails, tell the lab maintainer and use the [Python version](#option-b-run-it-with-python) in the meantime.
+> **Status (version 2.0, 2026-10-30):** version 2.0 is tested offline, in the simulated robot and with automated browser tests. The real-robot checks are listed in the README under [Not verified yet](README.md#not-verified-yet). Driving the robot by hand was tested only with the simulated robot so far. If a step fails, tell the lab maintainer and use the [Python version](#option-b-run-it-with-python) in the meantime.
+>
+> The 1.3 interface is still available as the classic interface: **Tools, Settings, Use the classic interface**, or add `/classic/` to the address of Studio (for example `http://127.0.0.1:8765/classic/`, with your own port and the token as printed).
+>
+> (Earlier status, version 1.3: the version 1.3 features were tested offline and in the simulated robot only.)
 
 ## Guides
 
 - [First connection](docs/FIRST-CONNECTION.md): the one-time setup over the Ethernet cable. Read this first.
 - [Everyday use](docs/EVERYDAY-USE.md): start, connect, run a program, edit code, quit.
+- [Live view and driving](docs/LIVE-AND-DRIVING.md): the lidar map, driving by hand with safety rules, charts, events, robot logs.
 - [Find the robot](docs/FIND-THE-ROBOT.md): when the robot's address has changed.
 - [Troubleshooting](docs/TROUBLESHOOTING.md): what you see and what to do.
 
@@ -19,12 +24,14 @@ This page is the short version for students. The full details are in the [techni
 
 - A computer with Windows 10 or 11, macOS, or Linux.
 - The OpenSSH client. Windows 10 and 11, macOS and most Linux systems already have it. To check, open a terminal and run `ssh -V`. It should print a version.
-- The robot's `ubuntu` password, from the lab maintainer. You type it once, in a terminal window, to set up key login. Studio never sees it.
+- The robot's `ubuntu` password, which is `turtlebot4`. You type it once, in a terminal window, to set up key login. Studio never sees it.
 - The robot switched on and near you.
 
 ## 1. Get the app
 
 ### Option A: download the ready-made app (no Python needed)
+
+**Windows, the easy way (from 2026-10-30):** download the installer from the [Download folder](../../Download/README.md) and open it. No GitHub account needed. The steps below (GitHub Actions builds) are for the single-file app and for macOS and Linux test builds.
 
 1. Sign in to GitHub and open the [TurtleBot Studio build](https://github.com/aniskoubaa/alfaisalx_students_projects/actions/workflows/turtlebot-studio-build.yml) runs.
 2. Open the newest run with a green tick. Scroll down to **Artifacts**.
@@ -32,12 +39,12 @@ This page is the short version for students. The full details are in the [techni
 
 | System | What to download | What it is |
 |---|---|---|
-| Windows (recommended) | The installer `TurtleBotStudio-Setup-1.3.exe` | Installs for your user only, no administrator rights. Adds a Start menu entry and a desktop shortcut. Studio opens in its own window, with no console window |
+| Windows (recommended) | The installer `TurtleBotStudio-Setup-2.0.exe` | Installs for your user only, no administrator rights. Adds a Start menu entry and a desktop shortcut. Studio opens in its own window, with no console window |
 | Windows (no install) | The single file `TurtleBotStudio.exe` | Run it from any folder |
 | macOS | The zip with the `TurtleBotStudio` app | Unzip and open the `.app` |
 | Linux | The `TurtleBotStudio` binary and `install-linux.sh` | The script copies the binary to `~/.local/bin` and adds a menu entry. It prints how to undo it |
 
-Windows installer: double-click `TurtleBotStudio-Setup-1.3.exe`, follow the pages, and leave **Launch TurtleBot Studio** ticked on the last page. To uninstall, use **Settings, Apps** and remove **TurtleBot Studio**. Uninstalling keeps your settings folder (see [Reset or remove Studio](#reset-or-remove-studio)), so your login key and robot list stay.
+Windows installer: double-click `TurtleBotStudio-Setup-2.0.exe`, follow the pages, and leave **Launch TurtleBot Studio** ticked on the last page. To uninstall, use **Settings, Apps** and remove **TurtleBot Studio**. Uninstalling keeps your settings folder (see [Reset or remove Studio](#reset-or-remove-studio)), so your login key and robot list stay.
 
 GitHub keeps these files for 90 days. If there is no run, or no artifacts, ask the lab maintainer or use option B.
 
@@ -60,7 +67,7 @@ The first time, your system may warn you because the file is not signed:
 - **Windows:** "Windows protected your PC". Click **More info**, then **Run anyway**.
 - **macOS:** "cannot be opened because the developer cannot be verified". Right-click the file and choose **Open**, or run `xattr -d com.apple.quarantine TurtleBotStudio` once.
 
-Version 1.3 opens Studio in its own window (Edge or Chrome in app mode when installed, otherwise your default browser). There is no console window in the installed and downloaded apps. Closing the window ends Studio after about 45 seconds; **Tools, Quit Studio** ends it at once. When you run it with Python, a console window is used and closing it stops Studio. The address contains a private token. Do not share it.
+Version 2.0 (like 1.3) opens Studio in its own window (Edge or Chrome in app mode when installed, otherwise your default browser). There is no console window in the installed and downloaded apps. Closing the window ends Studio after about 45 seconds; **Tools, Quit Studio** ends it at once. When you run it with Python, a console window is used and closing it stops Studio. The address contains a private token. Do not share it.
 
 To try Studio without a robot, start it with `--fake` (for example `TurtleBotStudio.exe --fake` in a terminal, or `python studio.py --fake`). It shows a simulated robot.
 
@@ -87,7 +94,7 @@ Next time you start Studio, press **Discover**, then **Connect**. You do not nee
 
 ## 5. Before anything moves
 
-- **E-STOP** is always at the top of the page. You can also press **Esc** or **Space**.
+- **E-STOP** is always at the top right of the page. You can also press **Esc** or **Space**.
 - Studio asks you to confirm anything that moves the robot. Read the message before you confirm.
 - Stay next to the robot, with about 1 m of clear floor around it. Read the [safety checklist](../../examples/README.md#safety-checklist-before-anything-moves) first.
 

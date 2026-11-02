@@ -2,10 +2,11 @@
 
 **New to Studio? Start with the short student guide: [INSTALL.md](INSTALL.md).** This README has the full details.
 
-Student guides (version 1.3):
+Student guides (version 2.0):
 
 - [First connection](docs/FIRST-CONNECTION.md): the one-time setup over the Ethernet cable.
 - [Everyday use](docs/EVERYDAY-USE.md): start, connect, run a program, edit code, quit.
+- [Live view and driving](docs/LIVE-AND-DRIVING.md): the lidar map, driving by hand and its safety rules, charts, events, robot logs.
 - [Find the robot](docs/FIND-THE-ROBOT.md): when the robot's address has changed.
 - [Troubleshooting](docs/TROUBLESHOOTING.md): what you see and what to do.
 
@@ -21,7 +22,7 @@ TurtleBot Studio is the recommended way to work with the lab robot (task [TB-27]
    - **Any system:** run `python studio.py` (on Windows `py studio.py`). The program prints an address like `http://127.0.0.1:8765/?token=...` and opens it in your browser. Keep that address private. If port 8765 is busy, the next free port is used.
 4. Connect the computer to the robot: join the same Wi-Fi (`Students` or the robot's own `Turtlebot4`), or plug in an Ethernet cable ([HOW-TO-CONNECT.md](../../HOW-TO-CONNECT.md#connect-with-an-ethernet-cable-no-wi-fi-needed)).
 5. In Studio press **Discover**, pick the robot from the candidates, and press **Connect**.
-6. If Studio says **key not set up**, open **Tools, Set up key login**. A terminal window opens; type the robot's `ubuntu` password there (ask the lab maintainer; the app never sees it). Then press **Connect** again.
+6. If Studio says **key not set up**, open **Tools, Set up key login**. A terminal window opens; type the robot's `ubuntu` password there (`turtlebot4`; the app never sees it). Then press **Connect** again.
 
 Try it without a robot: open `web/mock.html` in a browser to see the interface with fake data, or start the app with `python studio.py --fake` for a demo with a simulated robot (it says nothing about real robot behaviour).
 
@@ -29,7 +30,7 @@ Try it without a robot: open `web/mock.html` in a browser to see the interface w
 
 From version 1.2 Studio is also built as a single file per system, so no Python is needed.
 
-1. Download `TurtleBotStudio.exe` (Windows) or the `TurtleBotStudio` binary (macOS, Linux) from the artifacts of the GitHub Actions build "turtlebot-studio-build" (see [Building the app](#building-the-app)).
+1. Windows, from 2.0: install from [TurtleBot/Download/](../../Download/README.md) (the easy way, no GitHub account). Otherwise: download `TurtleBotStudio.exe` (Windows) or the `TurtleBotStudio` binary (macOS, Linux) from the artifacts of the GitHub Actions build "turtlebot-studio-build" (see [Building the app](#building-the-app)).
 2. Double-click it (Linux and macOS: see below). A console window opens and shows the address of Studio; your browser opens it and the [setup wizard](#the-setup-wizard) starts on the first run. **Closing the console window stops Studio.**
 3. The file is not code-signed, so your system warns you once:
    - **Windows SmartScreen:** click **More info**, then **Run anyway**.
@@ -37,6 +38,58 @@ From version 1.2 Studio is also built as a single file per system, so no Python 
    - **Linux:** make it executable first: `chmod +x TurtleBotStudio`, then run `./TurtleBotStudio`.
 
 Running from source (`python studio.py`, steps above) still works and does the same.
+
+## What's new in 2.0
+
+Version 2.0 (2026-10-30) has a new interface and a few new robot features. Status: tested offline, in the simulated robot (`--fake`) and with automated browser tests. **Nothing new has run on the real robot yet**; the checks are listed under [Not verified yet](#not-verified-yet). Student guide: [Live view and driving](docs/LIVE-AND-DRIVING.md).
+
+### Architecture of 2.0
+
+- The Python core is unchanged in design: `studio.py` (desktop side) and `robot_bridge.py` (robot side, one ssh bridge with one ROS participant). It was extended with new bridge commands and endpoints (see [Architecture](#architecture)).
+- The interface is new: React 18 and TypeScript (strict), built with Vite. The source is in `ui/`. The build output is in `web/v2/` and **is committed**, so running Studio needs no Node and no npm. The packaged app is still one file.
+- The 1.3 interface is kept as the classic interface. `/` serves the 2.0 interface, `/classic/` serves the 1.3 one (`web/index.html` and its files). The setting `ui` (`v2` by default, or `classic`) chooses which one `/` serves. In the interface: **Tools, Settings, Use the classic interface**.
+- Runtime is still the Python standard library plus static files. npm packages are needed only to build the interface. Fonts (IBM Plex) and styles are bundled; nothing loads from a CDN.
+
+### New features
+
+| Area | What it does |
+|---|---|
+| Layout | Left menu: Overview, Live, Programs, Code, Files, Charts, Logs, Wi-Fi, Topics, Tools. Settings is opened from Tools. E-STOP top right (Esc or Space). Light and dark theme. Usable at phone width (read-only plus E-STOP) |
+| Overview | The 1.3 Dashboard. When connected it shows a short summary and a **Change robot** disclosure. Connection routes are named in words (Ethernet cable, Wi-Fi, robot hotspot, typed address) |
+| Live | Lidar map with the robot, an odometry trail, range rings, zoom, follow or free view, robot up or north up, nearest-obstacle line |
+| Driving | Joystick and W/A/S/D or arrow keys, armed with a confirmation. See "Safety design of driving" below |
+| Charts | Battery, voltage and current, speed, message rates, CPU and temperature, Wi-Fi. 5, 15 or 30 minutes. Studio keeps 30 minutes at 1 Hz in memory (`GET /api/history`) |
+| Events | Alerts with severity (info, warn, critical) and an activity list, in a drawer. Raised by conditions on the live data (battery, e-stop, dock, lidar silent, odometry stall, weak Wi-Fi, high temperature, wrong robot clock, connection, programs, driving). Saved in `events.jsonl` |
+| Logs | Read-only robot journal (`journalctl`, no sudo) for an allow-list of units, with lines, since, a text filter and a warnings-only filter. Copy and save as file |
+| Command list | **Ctrl+K** (**Cmd+K**): go to a screen, Discover, Connect, Disconnect, health check, copy diagnostics, theme, settings. No movement commands. **?** shows the shortcuts |
+| Files | Optional **also delete files on the robot that are not in my folder**: off by default, dry run first, then a danger confirmation (the backend refuses `delete` without `confirm_delete`). 1.3 never offered delete |
+| Parity with 1.3 | Wi-Fi join, Topics, Tools, Settings (including trusted robots) and the setup wizard are ported with the same rules |
+| Smaller fixes | The E-STOP result is a checklist, not raw data. A program stopped by you is reported "was stopped" and not as an error. `/favicon.ico` answers 204. The robot's hello is replayed to a page opened later |
+
+### Safety design of driving
+
+Driving by hand must leave the robot controllable when anything fails. The design has these parts:
+
+1. **Arm first.** `teleop_arm {on:true}` is refused when the e-stop is on, the robot is docked, the dock state is not known yet, a motion program is running, ROS is not ready, or the battery is below 10 %. The interface asks for a confirmation ("I am next to the robot and about 1 m around it is clear").
+2. **Watchdog on the robot.** The bridge publishes zero velocity once when no `teleop` message has arrived for 0.3 s, then holds. This does not depend on Studio or the network. The interface sends at about 10 Hz only while a key or the stick is held, and sends one zero on release.
+3. **Limits.** Default 0.15 m/s and 0.60 rad/s. Caps 0.30 m/s and 1.20 rad/s, enforced in the bridge. The user limits (Settings, `teleop_linear` and `teleop_angular`; floors 0.02 and 0.10) can only lower them. Studio overwrites any limit the page sends, so the page cannot raise them.
+4. **Sequence numbers.** A `teleop` message with a `seq` that is not higher than the last one is ignored (late packet). The counter restarts at every arm.
+5. **Idle disarm.** 60 s without a non-zero command disarms. A zero command does not keep the arm alive.
+6. **Automatic disarm (zero velocity sent each time).** E-stop; the last event-stream client disconnecting; connection lost, reconnecting, connecting or disconnect; Studio quitting; bridge shutdown; docking; a motion program starting; the STOP file; ROS not ready; battery below 8 %. In the interface also: leaving Live, window hidden or blurred, three failed sends.
+7. **No re-arm after a reconnect.** Studio sends `teleop` only to the same bridge process that was armed (generation check). A new bridge process always starts disarmed.
+8. **Colours and words.** Red is only for E-STOP and destructive actions. Amber means driving is armed (a bar across the top). Every state is also written in words.
+
+### Tests and CI
+
+| Test | What it checks | How to run |
+|---|---|---|
+| Python offline tests | `tests/offline/test_studio_v2_backend.py` (new), `test_studio_bridge.py`, `test_studio_desktop.py`, `test_studio_templates.py`, `test_studio_setup.py`, `test_studio_upgrades.py`, `test_studio_window.py`, `test_pure.py`, `test_sim_runs.py` | `python TurtleBot/tests/offline/<file>.py` from the repository root |
+| Vitest (unit and component) | The interface: state, API client, Live model, drive controller, charts, wizard and Wi-Fi logic | `npm test` in `ui/` |
+| Playwright end to end | `tests/offline/test_studio_e2e.py` starts `studio.py --fake` and drives a real browser (Edge, else Chrome, else Chromium) through the first run, connect, E-STOP, Programs, Code, Files, Wi-Fi, Topics, Tools, Settings, Live (arming refused while docked, arm, hold W, release, E-STOP, battery refusals), Charts, Events, Logs, Ctrl+K, theme, phone width and `/classic/`, and checks for console errors. It skips with exit 0 when Playwright is not installed | `python TurtleBot/tests/offline/test_studio_e2e.py` |
+| Accessibility | axe-core scans of 14 screens in light and dark inside the end-to-end test: no serious or critical findings at the time of the build | Part of the end-to-end test |
+| CI | `.github/workflows/turtlebot-studio-build.yml`: Node 22, `npm ci`, lint, typecheck, test, build; on Linux it fails if `web/v2` differs from the committed files; runs the Python tests and the end-to-end test; then builds the packages | Push a tag `studio-v*` or start it by hand |
+
+Counts at the time of the build (2026-10-30), all with 0 failures: vitest 219 tests in 19 files, v2 backend 235, end to end 138, bridge 115, desktop 140, templates 171, setup 135, upgrades 106, window 69.
 
 ## What's new in 1.3
 
@@ -104,7 +157,7 @@ How to use it:
 
 1. Open the Wi-Fi tab. Pick a network from **Networks the robot can see** (press **Use**) or type its name. The robot cannot scan while it runs its own hotspot, so in that case type the name (this also covers hidden networks).
 2. Type the Wi-Fi password in Studio. Optionally tick **Switch the robot to it now and test it**.
-3. Press the add button and confirm. A terminal window opens on your computer. Type the robot's `ubuntu` (sudo) password there, and only that password. Ask the lab maintainer if you do not have it.
+3. Press the add button and confirm. A terminal window opens on your computer. Type the robot's `ubuntu` (sudo) password there, and only that password. It is `turtlebot4`.
 4. If you ticked switch now, the robot joins the network with a 45 s timeout. Studio shows the result and the robot's new IP address, and remembers the address so **Discover** finds it.
 
 What happens to the Wi-Fi password:
@@ -210,6 +263,22 @@ Run these from `TurtleBot/tools/studio/`. On macOS and Linux build the same way 
 
 From 1.3, `python packaging/build.py --smoke --installer` also builds the Windows installer `packaging/dist/TurtleBotStudio-Setup-<version>.exe` from `packaging/installer.nsi`. It needs NSIS 3 (`makensis`): on PATH, in `Program Files (x86)\NSIS`, or in the electron-builder cache. The smoke test also checks the single-instance start and a clean quit. The workflow installs NSIS with `choco install nsis -y` on Windows and uploads the setup file, the macOS zip, and the Linux binary with `install-linux.sh`.
 
+### Building the interface (2.0)
+
+The interface source is in `ui/`. You need Node 22 only for this step. Students do not need it, because `web/v2/` is committed.
+
+```
+cd TurtleBot/tools/studio/ui
+npm ci               # exact versions from package-lock.json
+npm run lint
+npm run typecheck
+npm test             # vitest
+npm run build        # writes ../web/v2/ (emptied first)
+npm run dev          # development server on http://localhost:5173/v2/?token=... (proxies /api to Studio)
+```
+
+The build is deterministic: two builds give identical files. CI rebuilds the interface and fails if `web/v2/` differs from what is committed, so commit `web/v2/` together with any change in `ui/`. After the interface build, build the app as above with `python packaging/build.py --smoke --installer`. The smoke test also checks that `/` serves the 2.0 interface and `/classic/` the 1.3 one. The installer is `TurtleBotStudio-Setup-2.0.exe`. PyInstaller already bundles `web/` recursively, so `web/v2` is included; the build warns if `web/v2/index.html` is missing.
+
 ## Tested on the robot 2026-10-24
 
 Laptop time about 00:45 to 01:15 (UTC+3), over the Ethernet cable, robot docked, **no motion**. The robot's clock was wrong (year 2024), as expected.
@@ -247,7 +316,7 @@ Laptop time from about 04:26 (UTC+3); robot clock correct from about 04:50. Fact
 
 Verified:
 
-- **Add to the robot** worked for the network `TP-LINK_Extender_5GHz` with "Switch now" ticked. The robot joined at once (5 GHz, signal 61 %, -60 dBm), and `connection successfully activated` was printed. One `sudo` password typo was retried inside the terminal window. The saved file is root-only (mode 600) with autoconnect on, priority 10 and power saving off.
+- **Add to the robot** worked for a home test network with "Switch now" ticked. The robot joined at once (5 GHz, signal 61 %, -60 dBm), and `connection successfully activated` was printed. One `sudo` password typo was retried inside the terminal window. The saved file is root-only (mode 600) with autoconnect on, priority 10 and power saving off.
 - After the cable was unplugged, **Discover** found `turtlebot4.local` over Wi-Fi in 233 ms (mDNS works on that home network); the cable and hotspot candidates answered "No answer", as expected. Studio ran over Wi-Fi only; the dashboard stayed live.
 - **Undock** and **Dock** through the Dashboard both reported "succeeded (status 4)".
 - Programs from the Code tab (**Save and Run**) with the motion confirmation ticked: `my_spin_in_place.py --turns 1 --yes` and `my_drive_circle.py --radius 0.3 --yes`. The first spin was aborted by the program's own safety check ("odometry is stale (none for 2.0 s)") after an `/odom` gap of 7.81 s; the robot stopped as designed. The second spin finished ("turned 359 degrees in total (odometry)", 14 s). The circle template finished in about 22 s. Its message "ended 17.3 cm from the start" is **not valid**: the robot drove over the dock edge and was moved by hand during the lap.
@@ -277,7 +346,7 @@ Updated 2026-10-24, evening: the items "Add to the robot", "Connections over Wi-
 - The **Remove** Wi-Fi flow (it changes the robot's saved networks) and joining the hotspot from Studio. (**Add to the robot** and laptop Wi-Fi detection were verified on 2026-10-24, evening.)
 - The motion templates other than `spin_in_place` and `drive_circle` on the real robot (only the simulator and `--dry-run` were run for them).
 - macOS and Linux (only Windows was used), and discovery on other computers.
-- Connections over the robot's hotspot and over `Students` (the cable and the home network `TP-LINK_Extender_5GHz` have been used).
+- Connections over the robot's hotspot and over `Students` (the cable and a home test network have been used).
 - Stopping a move with E-STOP while the robot is driving (E-STOP was only tested docked).
 - Runs that keep going on the robot after the connection drops (the POSIX path).
 - The GitHub Actions run on Linux (the workflow runs both offline test files and `node --check`; no run seen yet).
@@ -300,6 +369,18 @@ Added for 1.3 (2026-10-24):
 - What programs on the robot do when the ssh link drops and Studio reconnects.
 
 Verified on 2026-10-25: all six offline test files pass (desktop 140, bridge 112, templates 171, setup 135, upgrades 106, window 69). The installer was built locally and installed silently into a test folder (Start menu and desktop shortcuts, Apps entry, version 1.3). The installed app opened its own Edge app window and stopped by itself 47 s after that window was closed. The silent uninstall removed the program, the shortcuts and the Apps entry and kept the settings folder.
+
+Added for 2.0 (2026-10-30). All of these ran only in tests and in the simulated robot:
+
+- **Real driving and the watchdog stop on the Create 3.** Publishing `TwistStamped` on `/cmd_vel`, the robot creeping at 0.15 m/s, stopping on key release, and stopping within about 0.3 s when the network is cut.
+- **Real scan and pose decoding.** The accessors `RosReal.scan_data`, `pose_data`, `publish_cmd` and `is_docked`, the lidar frame and yaw, and `/dock_status` arriving so that arming is not refused as "state not known".
+- **Journal permissions and unit names.** Whether the `ubuntu` account can run `journalctl` without sudo, and whether `turtlebot4.service` and the other allow-listed units exist on the robot.
+- **Reconnect while armed.** That a lost link while driving disarms and the robot stops, and that nothing is re-armed after the reconnect.
+- **Odometry stalls (TB-25) during driving**, and behaviour over a slow link (scan events of about 3 KB at 4 Hz).
+- **Battery rules** (arming refused below 10 %, disarm below 8 %) with the real battery percentage.
+- **The macOS and Linux builds, and the CI run.** The workflow now also builds the interface and checks `web/v2`; no run seen yet. `web/v2/` and `ui/` must be committed before the CI check can pass.
+- Safari and Firefox (the end-to-end test uses Chromium-based browsers only) and tablet width (768 px).
+- The robot checklist for these items is the file "TurtleBot Studio robot test checklist 2026-10-25" (section "Studio 2.0 additions"), kept by the lab maintainer outside the repository.
 
 ## Known gaps
 
@@ -357,7 +438,7 @@ added to the robot. Then press Connect again.
 ## Architecture
 
 ```
- Browser (web/index.html, app.js, style.css)
+ Browser: 2.0 interface (web/v2, built from ui/) at "/"; 1.3 interface (web/index.html, app.js, style.css) at "/classic/"
     |  HTTP + JSON (POST), Server-Sent Events (GET /api/events)
     |  127.0.0.1 only, header X-Studio-Token, Host/Origin checks
     v
@@ -375,6 +456,27 @@ added to the robot. Then press Connect again.
         e-stop, undock/dock, lidar motor
 ```
 
+New in 2.0 (all through the same single bridge, no new ROS participant). The commands are sent with `POST /api/bridge {cmd, ...}`; events arrive on `/api/events`.
+
+| Bridge command | Reply and events |
+|---|---|
+| `scan_on {hz 1-10 (4), max_points 90-720 (360)}`, `scan_off` | `scan` events: `frame`, `angle_min`, `angle_inc`, `range_max`, `ranges` (metres, null for no return); 0 = straight ahead, counter-clockwise positive. Sent only while a scan under 2 s old exists (no events while the lidar is off) |
+| `pose_on {hz 1-20 (10)}`, `pose_off` | `pose` events: `x`, `y`, `yaw`, `vx`, `wz` (odometry frame) |
+| `teleop_arm {on}` | Arms or disarms. Refusals come back with `ok:false` and an error text. A `teleop` event `{armed, reason}` on every change |
+| `teleop {vx, wz, seq}` | Only while armed. Values are clamped. Watchdog 0.3 s |
+| `journal {unit, lines, grep, since}` | `{ok, lines, count, ...}` or `{ok:false, error, permission?}`. Allow-listed units only: `turtlebot4.service`, `NetworkManager.service`, `ssh.service`, `systemd-timesyncd.service`, `chrony.service`. Runs `journalctl` without sudo; `grep` is applied by the bridge and never passed to `journalctl` |
+
+New Studio endpoints in 2.0:
+
+| Endpoint | Content |
+|---|---|
+| `GET /api/history?minutes=15` | Time series at 1 Hz (battery, voltage, current, speed, odometry and scan rate, CPU, temperature, Wi-Fi). 1 to 30 minutes, kept in memory |
+| `GET /api/alerts?since=<id>` | Alerts `{id, t, severity, code, text}`; also pushed as `alert` events. Saved in `events.jsonl` |
+| `GET` and `POST /api/teleop_limits` | The driving limits (`linear`, `angular`) and the caps (`max_linear` 0.30, `max_angular` 1.20) |
+| `GET /`, `/v2/...`, `/classic/` | The interfaces. The token handling is unchanged |
+
+The `status` event gains `teleop: {armed, max_linear, max_angular}`. The bridge VERSION stays "1".
+
 Protocol and endpoint details are in the TurtleBot Studio interface spec (ROADMAP TB-27). In short: the bridge
 reads JSON command lines (`{"id":1,"cmd":"ping"}`) and writes one `reply` per command plus unsolicited events
 (`hello`, `status`, `msg`, `run_output`, `run_exit`, `action`); the desktop passes every event to the browser
@@ -386,8 +488,12 @@ Source layout:
 |---|---|
 | `studio.py` | Entry point and the whole desktop backend: pure helpers (ssh arguments, parsers, sync planning), bridge manager, discovery, sync, HTTP server |
 | `robot_bridge.py` | Robot side (separate document) |
-| `web/` | The browser interface (plain HTML/CSS/JS, no external assets, works offline) |
+| `web/` | The 1.3 browser interface (plain HTML/CSS/JS, no external assets, works offline). Served at `/classic/` from 2.0 |
+| `ui/` | Source of the 2.0 interface (React, TypeScript, Vite). `ui/src/api/` has the typed client and the types of every endpoint and event; `state/` the store fed by the event stream; `screens/` one folder per screen; `components/` shared parts; `features/` driving and the command list |
+| `web/v2/` | Build output of `ui/` (committed, served at `/` and `/v2/...`). Do not edit by hand |
 | `../../tests/offline/test_studio_desktop.py` | Offline tests of this backend |
+| `../../tests/offline/test_studio_v2_backend.py` | Offline tests of the 2.0 bridge commands and endpoints |
+| `../../tests/offline/test_studio_e2e.py` | End-to-end browser test of the 2.0 interface (Playwright) |
 
 ## Security model
 
@@ -429,6 +535,8 @@ Source layout:
 Contents: `settings.json` (last host, key path, local and remote folder, extra motion files, trusted key; from 1.2 also the settings above and the trusted robots),
 `known_hosts` (the trusted keys), `id_ed25519` and `.pub` (only if the app created a key), `studio.log` (no
 tokens, no passwords). Deleting the folder resets the app.
+
+From 2.0 also: `events.jsonl` (the alerts shown in the Events drawer, one JSON object per line; at 1 MB it is renamed to `events.jsonl.old` and one old file is kept) and the settings `ui` (`v2` or `classic`), `teleop_linear` and `teleop_angular` (the driving limits).
 
 From 1.3 also: `instance.json` while Studio runs (process id, port and the session token, so a second start can open the running copy; removed on exit; the folder belongs to your user) and `window/` (the browser profile of Studio's app window).
 

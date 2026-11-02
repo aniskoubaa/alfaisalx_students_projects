@@ -65,6 +65,13 @@ check('scan: no valid beam gives None', rb.scan_front_min([float('inf'), float('
 f3, _ = rb.scan_front_min(rng, AMIN, INC, yaw_off=0.0)
 check('scan: with yaw 0 the front would be laser 0 deg (inf ignored -> 3.0)', f3 == 3.0, str(f3))
 
+# ---- Studio 2.0: scan downsampling (min per bin, null for inf/nan) and manual-drive clamps (more in test_studio_v2_backend.py)
+ds, kk = rb.downsample_ranges([5.0, 1.0, 3.0, 4.0, float('inf'), float('nan')], 3)
+check('downsample: minimum per bin, null for inf / nan', ds == [1.0, 3.0, None] and kk == 2, str(ds))
+check('downsample: at most max_points values', len(rb.downsample_ranges([1.0] * 720, 90)[0]) == 90)
+check('clamp_teleop: 0.30 m/s and 1.20 rad/s, nan gives 0, user limits only lower',
+      rb.clamp_teleop(9, -9) == (0.30, -1.20) and rb.clamp_teleop(float('nan'), 1) == (0.0, 1.0) and rb.clamp_teleop(0.3, 1.2, 0.1, 0.5) == (0.1, 0.5))
+
 check('yaw from quaternion', abs(rb.yaw_deg_from_quat(0, 0, math.sin(math.pi / 4), math.cos(math.pi / 4)) - 90.0) < 1e-6)
 
 big = {'ranges': [float(i) for i in range(720)], 'name': 'x', 'inf': float('inf'), 'nested': {'a': list(range(5))}}

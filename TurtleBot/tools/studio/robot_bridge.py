@@ -16,7 +16,10 @@ Protocol (one JSON object per line). Command: {"id":1,"cmd":"ping",...}. Every c
 run_output, run_exit, action). Diagnostics go to stderr. Times: "t" = time.monotonic() of the robot, "wall" = time.time()
 (may be years wrong on the robot).
 
-Safety: this program never publishes anything but zero velocity (estop). It starts no motion by itself: "run" of a motion
+Safety: the only velocity this program ever publishes is zero (estop) and, since Studio 2.0, bounded manual driving
+("teleop"): it needs teleop_arm first, is clamped here to 0.30 m/s and 1.20 rad/s (and to the limits Studio passes), stops
+300 ms after the last command, and is disarmed by e-stop, the ~/STOP file, docking, a running motion program, 60 s
+without non-zero commands and by this bridge ending. It starts no motion by itself: "run" of a motion
 program needs confirmed=true, undock/dock need confirmed=true, and a ~/STOP file blocks them. Runs are detached
 (own session), so they survive the bridge; logs in ~/robot_code/logs/. CPU: raw (undeserialised) subscriptions, the
 scan is evaluated only at the status period, nmcli/systemctl results are cached for 10 s.
@@ -58,6 +61,16 @@ FAKE_TOPICS = [
     ("/hmi/display", "turtlebot4_msgs/msg/UserDisplay", 1, 1),
     ("/diagnostics_toplevel_state", "diagnostic_msgs/msg/DiagnosticStatus", 1, 1), ("/tf", "tf2_msgs/msg/TFMessage", 3, 4),
 ]
+TELEOP_MAX_LINEAR = 0.30    # m/s, hard cap of manual driving (the lab programs use 0.15)
+TELEOP_MAX_ANGULAR = 1.20   # rad/s
+TELEOP_WATCHDOG_S = 0.30    # no teleop message for this long -> zero velocity, once
+TELEOP_IDLE_S = 60.0        # armed but no non-zero command for this long -> disarm
+TELEOP_ARM_MIN_PCT = 10     # arming is refused when the battery is known and below this percent
+TELEOP_STOP_PCT = 8         # an armed session is disarmed when the battery drops below this percent
+JOURNAL_UNITS = ("turtlebot4.service", "NetworkManager.service", "ssh.service", "systemd-timesyncd.service",
+                 "chrony.service")
+JOURNAL_SINCE = ("10 min ago", "1 hour ago", "6 hours ago", "1 day ago", "boot")
+JOURNAL_LINE_MAX = 600
 HAZARD_NAMES = {0: "backup_limit", 1: "bump", 2: "cliff", 3: "stall", 4: "wheel_drop", 5: "object_proximity"}
 
 
@@ -160,6 +173,110 @@ def scan_front_min(ranges, angle_min, angle_inc, yaw_off=SCAN_YAW_DEFAULT, range
         if (front is None or r < front) and abs(wrap_pi(angle_min + i * angle_inc + yaw_off)) <= half:
             front = r
     return (None if front is None else round(float(front), 3)), (None if low is None else round(float(low), 3))
+
+
+# ---- Studio 2.0: scan / pose streams, teleop, journal (pure helpers, tested offline)
+def clamp_int(v, lo, hi, default):
+    """Integer in [lo, hi]; None/missing -> default; anything that is not a number raises ValueError."""
+    if v is None:
+        return default
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
+        raise ValueError("must be a number")
+    return int(min(hi, max(lo, round(v))))
+
+
+def clamp_float(v, lo, hi, default):
+    if v is None:
+        return default
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
+        raise ValueError("must be a number")
+    return float(min(hi, max(lo, v)))
+
+
+def clamp_teleop(vx, wz, user_linear=None, user_angular=None, max_linear=TELEOP_MAX_LINEAR, max_angular=TELEOP_MAX_ANGULAR):
+    """Manual-drive command -> (vx, wz) limited to +-min(hard cap, user limit). Non-numbers, nan and inf give 0."""
+    lim_l, lim_a = max_linear, max_angular
+    for u, name in ((user_linear, "l"), (user_angular, "a")):
+        if isinstance(u, (int, float)) and not isinstance(u, bool) and math.isfinite(u) and u >= 0:
+            if name == "l":
+                lim_l = min(lim_l, float(u))
+            else:
+                lim_a = min(lim_a, float(u))
+
+    def one(v, lim):
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
+            return 0.0
+        return float(max(-lim, min(lim, v)))
+    return one(vx, lim_l), one(wz, lim_a)
+
+
+def downsample_ranges(ranges, max_points, range_min=0.0, range_max=None):
+    """Laser ranges -> (out, k): out has at most max_points entries, each the MINIMUM valid range of k neighbouring beams
+    (so a thin obstacle is never lost), rounded to 0.01 m. inf, nan, beams closer than range_min (robot body) and beyond
+    range_max give None (JSON null). k = beams per bin."""
+    n = len(ranges)
+    k = max(1, -(-n // max(1, int(max_points))))
+    out = []
+    for i in range(0, n, k):
+        low = None
+        for r in ranges[i:i + k]:
+            if r is None or not (r == r) or r in (math.inf, -math.inf) or r < range_min or r <= 0.0:
+                continue
+            if range_max is not None and r > range_max:
+                continue
+            if low is None or r < low:
+                low = r
+        out.append(None if low is None else round(float(low), 2))
+    return out, k
+
+
+def build_scan_event(ranges, angle_min, angle_inc, range_min, range_max, yaw_off, max_points, t):
+    """The 'scan' event: ranges downsampled and the angles given in the ROBOT frame (0 = straight ahead, counter-clockwise
+    positive): angle of ranges[i] = angle_min + i * angle_inc."""
+    out, k = downsample_ranges(ranges, max_points, range_min or 0.0, range_max)
+    inc = angle_inc * k
+    first = wrap_pi(angle_min + angle_inc * (k - 1) / 2.0 + yaw_off)     # centre of the first bin
+    rmax = range_max if range_max and math.isfinite(range_max) else 12.0
+    return {"ev": "scan", "t": round(t, 3), "frame": "base", "angle_min": round(first, 5), "angle_inc": round(inc, 6),
+            "range_max": round(float(rmax), 2), "ranges": out}
+
+
+def journal_argv(unit, lines, since):
+    """journalctl argv (a list, never a shell string) or ValueError. Read-only, no sudo: unit and since come from fixed
+    allow-lists, lines is a clamped integer. User text (grep) is never part of the command."""
+    unit = unit or JOURNAL_UNITS[0]
+    if unit not in JOURNAL_UNITS:
+        raise ValueError("unit not allowed (use one of: %s)" % ", ".join(JOURNAL_UNITS))
+    try:
+        n = clamp_int(lines, 50, 2000, 300)
+    except ValueError:
+        raise ValueError("lines must be a number")
+    argv = ["journalctl", "-u", unit, "-n", str(n), "--no-pager", "-o", "short-iso"]
+    if since not in (None, ""):
+        if since not in JOURNAL_SINCE:
+            raise ValueError("since not allowed (use one of: %s)" % ", ".join(JOURNAL_SINCE))
+        argv += ["-b"] if since == "boot" else ["--since", since]
+    return argv
+
+
+def journal_lines(text, grep=None, limit=2000):
+    """journalctl output -> list of lines (each cut to 600 chars), optionally only those containing the plain text grep
+    (case-insensitive), at most `limit`, newest last."""
+    out = []
+    g = (grep or "").strip().lower() if isinstance(grep, str) else ""
+    for ln in (text or "").splitlines():
+        ln = ln.rstrip()
+        if not ln or ln.startswith("-- "):
+            continue
+        if g and g not in ln.lower():
+            continue
+        out.append(ln[:JOURNAL_LINE_MAX])
+    return out[-limit:]
+
+
+def journal_permission_problem(text):
+    t = (text or "").lower()
+    return "insufficient permissions" in t or "no journal files were opened" in t or "not seen by" in t
 
 
 def parse_proc_stat(text):
@@ -860,6 +977,23 @@ class RosBase:
     def services_ready(self):
         return {}
 
+    # ---- Studio 2.0 (default: nothing available)
+    def publish_cmd(self, vx, wz):
+        """Publish ONE velocity command (manual driving). Zero velocity must always work."""
+        raise NotImplementedError
+
+    def is_docked(self):
+        """True / False, or None when /dock_status has not been seen."""
+        return None
+
+    def scan_data(self):
+        """Newest laser scan as {ranges, angle_min, angle_inc, range_min, range_max, yaw, seq, age_s} or None."""
+        return None
+
+    def pose_data(self):
+        """Newest odometry as {x, y, yaw (rad), vx, wz, age_s} or None."""
+        return None
+
 
 class RosReal(RosBase):
     def __init__(self):
@@ -1097,6 +1231,49 @@ class RosReal(RosBase):
             except Exception:
                 pass
 
+    # ---- Studio 2.0: manual driving, scan and pose streams (reuse the existing node, publisher and subscriptions)
+    def publish_cmd(self, vx, wz):
+        ts = self.M["TwistStamped"]()
+        ts.header.stamp = self.node.get_clock().now().to_msg()
+        ts.twist.linear.x = float(vx)
+        ts.twist.angular.z = float(wz)
+        self.pub_cmd.publish(ts)
+        if vx == 0.0 and wz == 0.0:
+            self.pub_unst.publish(self.M["Twist"]())       # a zero must reach whichever topic the base listens to
+
+    def is_docked(self):
+        v = self._dock.get("is_docked")
+        return None if v is None else bool(v)
+
+    def scan_data(self):
+        sc = self._scan
+        if sc is None or not self.available:
+            return None
+        try:
+            m = self._cached("scan", sc[0], lambda: self.deser(sc[0], self.M["LaserScan"]))
+            if self._scan_frame is None:
+                self._scan_frame = m.header.frame_id
+                self._start_tf(m.header.frame_id)
+            return {"ranges": m.ranges, "angle_min": m.angle_min, "angle_inc": m.angle_increment,
+                    "range_min": max(BODY_MIN_M, m.range_min or 0.0), "range_max": m.range_max, "yaw": self._scan_yaw,
+                    "seq": self._scan_n, "age_s": time.monotonic() - sc[1], "yaw_assumed": self._yaw_assumed}
+        except Exception as e:
+            log("scan decode:", e)
+            return None
+
+    def pose_data(self):
+        od = self._odom
+        if od is None or not self.available:
+            return None
+        try:
+            m = self._cached("odom", od[0], lambda: self.deser(od[0], self.M["Odometry"]))
+            p, q, tw = m.pose.pose.position, m.pose.pose.orientation, m.twist.twist
+            return {"x": p.x, "y": p.y, "yaw": math.radians(yaw_deg_from_quat(q.x, q.y, q.z, q.w)),
+                    "vx": tw.linear.x, "wz": tw.angular.z, "age_s": time.monotonic() - od[1], "seq": self._odom_n}
+        except Exception as e:
+            log("odom decode:", e)
+            return None
+
     # ---- graph
     def topics(self):
         out = []
@@ -1258,6 +1435,47 @@ class RosReal(RosBase):
         return names
 
 
+FAKE_ROOM = (-3.0, 3.0, -2.0, 2.0)          # x0, x1, y0, y1 of the fake room (metres, odom frame)
+FAKE_DOOR_HALF = 0.3                         # the east wall has a gap |y| < 0.3: those beams get no return (null)
+FAKE_BOX = (1.0, 1.4, 0.3, 0.7)              # a box inside the room
+
+
+def fake_room_ranges(px, py, yaw, angle_min, angle_inc, n, yaw_off):
+    """Ray-cast a fake rectangular room with a box and a doorway. Beam i has laser angle angle_min + i * angle_inc, robot
+    angle = laser angle + yaw_off, world angle = yaw + robot angle. A robot outside the room is moved inside first."""
+    x0, x1, y0, y1 = FAKE_ROOM
+    px = min(x1 - 0.1, max(x0 + 0.1, px))
+    py = min(y1 - 0.1, max(y0 + 0.1, py))
+    bx0, bx1, by0, by1 = FAKE_BOX
+    out = []
+    for i in range(n):
+        a = yaw + angle_min + i * angle_inc + yaw_off
+        dx, dy = math.cos(a), math.sin(a)
+        best, door = math.inf, False
+        for lim, d, p0, axis in ((x1, dx, px, "x"), (x0, dx, px, "x"), (y1, dy, py, "y"), (y0, dy, py, "y")):
+            if abs(d) < 1e-9:
+                continue
+            t = (lim - p0) / d
+            if t <= 0 or t >= best:
+                continue
+            best = t
+            door = axis == "x" and lim == x1 and abs(py + t * dy) < FAKE_DOOR_HALF
+        if door:
+            best = math.inf
+        tmin, tmax = 0.0, math.inf
+        for p0, d, lo, hi in ((px, dx, bx0, bx1), (py, dy, by0, by1)):
+            if abs(d) < 1e-9:
+                if p0 < lo or p0 > hi:
+                    tmax = -1.0
+                continue
+            ta, tb = (lo - p0) / d, (hi - p0) / d
+            tmin, tmax = max(tmin, min(ta, tb)), min(tmax, max(ta, tb))
+        if tmax >= tmin and 0 < tmin < best:
+            best = tmin
+        out.append(best)
+    return out
+
+
 class FakeRos(RosBase):
     """No ROS: simulated, slowly changing data so the desktop and the UI can be developed without a robot."""
     fake = True
@@ -1272,9 +1490,53 @@ class FakeRos(RosBase):
         self.goals = {}
         self.watch_threads = {}
         self._lock = threading.Lock()
+        self._plock = threading.Lock()
+        self.px = self.py = self.pyaw = 0.0           # fake pose (odom frame), integrated from the published velocity
+        self.pvx = self.pwz = 0.0
+        self.battery_override = None                  # tests and the e2e run: a fixed battery percent (hidden fake_battery command)
+        self._pt = time.monotonic()
+        self._pseq = 0
+        self.cmd_log = collections.deque(maxlen=200)  # (monotonic, vx, wz) of every publish_cmd, for tests
 
     def start(self, emit):
         self.emit = emit
+
+    def _integrate(self):
+        with self._plock:
+            now = time.monotonic()
+            dt = min(0.5, max(0.0, now - self._pt))
+            self._pt = now
+            mid = self.pyaw + self.pwz * dt / 2.0
+            self.px += self.pvx * math.cos(mid) * dt
+            self.py += self.pvx * math.sin(mid) * dt
+            self.pyaw = wrap_pi(self.pyaw + self.pwz * dt)
+            self._pseq += 1
+
+    def publish_cmd(self, vx, wz):
+        self._integrate()
+        with self._plock:
+            self.pvx, self.pwz = float(vx), float(wz)
+            self.cmd_log.append((time.monotonic(), float(vx), float(wz)))
+
+    def is_docked(self):
+        return bool(self.docked)
+
+    def pose_data(self):
+        self._integrate()
+        with self._plock:
+            return {"x": self.px, "y": self.py, "yaw": self.pyaw, "vx": self.pvx, "wz": self.pwz, "age_s": 0.05,
+                    "seq": self._pseq}
+
+    def scan_data(self):
+        if not self.lidar_on:
+            return None
+        pose = self.pose_data()
+        n = 360
+        inc = 2 * math.pi / n
+        amin = -math.pi
+        rs = fake_room_ranges(pose["x"], pose["y"], pose["yaw"], amin, inc, n, SCAN_YAW_DEFAULT)
+        return {"ranges": rs, "angle_min": amin, "angle_inc": inc, "range_min": BODY_MIN_M, "range_max": 12.0,
+                "yaw": SCAN_YAW_DEFAULT, "seq": int(time.monotonic() * 8), "age_s": 0.05, "yaw_assumed": False}
 
     def shutdown(self):
         for k in list(self.watch_threads):
@@ -1283,10 +1545,13 @@ class FakeRos(RosBase):
     def snapshot(self):
         t = time.monotonic() - self.t0
         scan_on = self.lidar_on
-        return {"battery": {"percent": round(max(5.0, 87.0 - t * 0.01), 1), "voltage": round(15.9 - t * 0.0002, 2),
+        pz = self.pose_data()
+        pct = self.battery_override if self.battery_override is not None else round(max(5.0, 87.0 - t * 0.01), 1)
+        return {"battery": {"percent": pct, "voltage": round(15.9 - t * 0.0002, 2),
                             "charging": self.docked, "current_a": 0.5 if self.docked else -0.8, "full": False},
                 "dock": {"is_docked": self.docked, "dock_visible": self.docked},
-                "odom": {"x": 0.0, "y": 0.0, "yaw_deg": 0.0, "vx": 0.0, "wz": 0.0, "age_s": 0.05, "rate_hz": 19.9},
+                "odom": {"x": round(pz["x"], 3), "y": round(pz["y"], 3), "yaw_deg": round(math.degrees(pz["yaw"]), 1),
+                         "vx": round(pz["vx"], 3), "wz": round(pz["wz"], 3), "age_s": 0.05, "rate_hz": 19.9},
                 "scan": {"rate_hz": 7.7 if scan_on else None, "front_m": round(1.2 + 0.1 * math.sin(t / 3.0), 3) if scan_on else None,
                          "min_m": round(0.6 + 0.05 * math.sin(t / 5.0), 3) if scan_on else None,
                          "age_s": 0.1 if scan_on else None, "scan_yaw_assumed": True},
@@ -1429,6 +1694,13 @@ class Bridge:
         self.secrets = WifiSecrets()
         self.fw_lock = threading.Lock()
         self.fw = fake_wifi_state()
+        # Studio 2.0: manual driving + streams
+        self.tele_lock = threading.Lock()
+        self.tele = {"armed": False, "last_cmd": 0.0, "last_move": 0.0, "zeroed": True, "seq": -1,
+                     "max_linear": TELEOP_MAX_LINEAR, "max_angular": TELEOP_MAX_ANGULAR, "armed_t": 0.0}
+        self.status_estop = None            # estop.on of the newest status (None = unknown)
+        self.streams = {"scan": None, "pose": None}      # name -> {"period", "next", "max_points", "last_seq"} while on
+        self.stream_lock = threading.Lock()
 
     # ---- infrastructure
     def emit(self, obj, droppable=False):
@@ -1440,7 +1712,8 @@ class Bridge:
         except OSError as e:
             log("cannot create", self.logdir, e)
         self.rediscover()
-        for fn, name in ((self._status_loop, "status"), (self._slow_loop, "slow"), (self._run_monitor, "runmon")):
+        for fn, name in ((self._status_loop, "status"), (self._slow_loop, "slow"), (self._run_monitor, "runmon"),
+                         (self._teleop_loop, "teleop"), (self._stream_loop, "streams")):
             threading.Thread(target=fn, name=name, daemon=True).start()
 
     def reply(self, cid, ok, **kw):
@@ -1477,6 +1750,7 @@ class Bridge:
         return {"pong": True}
 
     def h_shutdown(self, c):
+        self.teleop_disarm("bridge shutting down")
         threading.Timer(0.2, self.stop.set).start()
         return {"bye": True}
 
@@ -1709,6 +1983,19 @@ class Bridge:
             res["scan"] = [{"ssid": n, "signal": sig, "security": sec, "chan": ch} for n, sec, sig, ch in
                            sorted(FAKE_SCAN, key=lambda x: -x[2])]
         return res
+
+    def h_fake_battery(self, c):
+        """Fake robot only (tests): fix the battery percent, or null to go back to the slowly draining value."""
+        if not self.fake:
+            raise BridgeError("only available in fake mode")
+        v = c.get("percent")
+        if v is None:
+            self.ros.battery_override = None
+        elif isinstance(v, bool) or not isinstance(v, (int, float)) or not 0 <= v <= 100:
+            raise BridgeError("percent must be 0 to 100 or null")
+        else:
+            self.ros.battery_override = float(v)
+        return {"percent": self.ros.battery_override}
 
     def h_wifi_fake_add(self, c):
         if not self.fake:
@@ -2023,6 +2310,7 @@ class Bridge:
         return {"ok": True, "cancelled": self.ros.cancel_all_actions() if self.ros.available else []}
 
     def h_estop(self, c):
+        self.teleop_disarm("e-stop")        # manual driving ends first; the zero burst below follows at once
         # step 1 starts first and immediately; the other steps never wait for it or for each other
         res = self._parallel({"zero_cmd_vel": self._estop_zero, "stop_file": self._estop_stopfile,
                               "programs": self._estop_programs, "e_stop_service": lambda: self._estop_service(True),
@@ -2047,9 +2335,264 @@ class Bridge:
         if svc.get("success"):
             self.estop_on = False
             self.estop_app = False
+            self.status_estop = False
         self.status_wake.set()
         return {"steps": {"e_stop_service": svc, "stop_file": rm}, "fake": self.fake,
                 "all_ok": bool(svc.get("success")) and rm["ok"]}
+
+
+    # ---- Studio 2.0: scan and pose streams (read the subscriptions that already exist; no new ROS objects)
+    def _start_stream(self, name, hz, lo, hi, default_hz, **extra):
+        try:
+            hz = clamp_float(hz, lo, hi, default_hz)
+        except ValueError:
+            raise BridgeError("hz must be a number")
+        with self.stream_lock:
+            self.streams[name] = dict(period=1.0 / hz, next=0.0, last_seq=None, **extra)
+        return hz
+
+    def h_scan_on(self, c):
+        self.need_ros()
+        try:
+            mp = clamp_int(c.get("max_points"), 90, 720, 360)
+        except ValueError:
+            raise BridgeError("max_points must be a number")
+        hz = self._start_stream("scan", c.get("hz"), 1.0, 10.0, 4.0, max_points=mp)
+        return {"hz": hz, "max_points": mp}
+
+    def h_scan_off(self, c):
+        with self.stream_lock:
+            self.streams["scan"] = None
+        return {}
+
+    def h_pose_on(self, c):
+        self.need_ros()
+        hz = self._start_stream("pose", c.get("hz"), 1.0, 20.0, 10.0)
+        return {"hz": hz}
+
+    def h_pose_off(self, c):
+        with self.stream_lock:
+            self.streams["pose"] = None
+        return {}
+
+    def _stream_tick(self, now):
+        with self.stream_lock:
+            due = [(k, v) for k, v in self.streams.items() if v is not None and now >= v["next"]]
+            for k, v in due:
+                v["next"] = now + v["period"]
+        for k, v in due:
+            if k == "scan":
+                sc = self.ros.scan_data()
+                if not sc or sc["age_s"] > 2.0 or sc["seq"] == v["last_seq"]:
+                    continue
+                v["last_seq"] = sc["seq"]
+                ev = build_scan_event(sc["ranges"], sc["angle_min"], sc["angle_inc"], sc["range_min"], sc["range_max"],
+                                      sc["yaw"], v["max_points"], now)
+                ev["yaw_assumed"] = bool(sc.get("yaw_assumed"))
+                self.emit(ev, True)
+            else:
+                po = self.ros.pose_data()
+                if not po or po["age_s"] > 2.0:
+                    continue
+                self.emit({"ev": "pose", "t": round(now, 3), "x": round(po["x"], 3), "y": round(po["y"], 3),
+                           "yaw": round(po["yaw"], 4), "vx": round(po["vx"], 3), "wz": round(po["wz"], 3)}, True)
+
+    def _stream_loop(self):
+        while not self.stop.is_set():
+            try:
+                if self.ros.available:
+                    self._stream_tick(time.monotonic())
+            except Exception as e:
+                log("stream:", repr(e))
+            self.stop.wait(0.02)
+
+    # ---- Studio 2.0: manual driving (teleop)
+    def estop_active(self):
+        return self.estop_on is True or self.status_estop is True or os.path.exists(self.stop_file)
+
+    def motion_running(self):
+        with self.runs_lock:
+            return any(r.motion and self.run_alive(r) for r in self.runs.values())
+
+    def battery_percent(self):
+        """Battery percent from the robot, or None when it is not known (then nothing is refused because of it)."""
+        try:
+            p = self.ros.snapshot()["battery"]["percent"]
+        except Exception:
+            return None
+        return float(p) if isinstance(p, (int, float)) and not isinstance(p, bool) and math.isfinite(p) else None
+
+    def teleop_refusal(self, deep=False):
+        """Why manual driving is not allowed right now (text), or None. deep=True also looks for motion programs that were
+        not started by this bridge (pgrep; only when arming)."""
+        if self.estop_active():
+            return "The e-stop is on. Release it first."
+        if not self.ros.available:
+            return "ROS is not ready: %s" % (self.ros.error or "not started")
+        d = self.ros.is_docked()
+        if d is True:
+            return "The robot is docked. Undock first."
+        if d is None:
+            return "The robot state is not known yet. Wait a few seconds and try again."
+        if self.motion_running():
+            return "A motion program is running. Stop it first."
+        pct = self.battery_percent()
+        if pct is not None and pct < (TELEOP_ARM_MIN_PCT if deep else TELEOP_STOP_PCT):
+            return ("Battery below %d %%. Charge the robot before driving." % TELEOP_ARM_MIN_PCT) if deep else                    ("Battery below %d %%. Manual driving was stopped." % TELEOP_STOP_PCT)
+        if deep and not self.fake and shutil.which("pgrep") and (run_cmd(["pgrep", "-f", MOTION_REGEX]) or "").split():
+            return "A motion program is running. Stop it first."
+        return None
+
+    def _zero(self, repeats=1):
+        for i in range(repeats):
+            try:
+                self.ros.publish_cmd(0.0, 0.0)
+            except Exception as e:
+                log("zero velocity failed:", repr(e))
+            if i < repeats - 1:
+                time.sleep(0.02)
+
+    def teleop_disarm(self, reason):
+        """Disarm and publish zero velocity. Does nothing when not armed (so a program that drives is never disturbed by a
+        stray zero). Returns True when it was armed."""
+        with self.tele_lock:
+            was = self.tele["armed"]
+            self.tele["armed"] = False
+            self.tele["zeroed"] = True
+        if was:
+            self._zero(3)
+            self.emit({"ev": "teleop", "armed": False, "reason": reason})
+        return was
+
+    def h_teleop_arm(self, c):
+        on = c.get("on")
+        if not isinstance(on, bool):
+            raise BridgeError("on must be true or false")
+        if not on:
+            reason = c.get("reason")
+            reason = " ".join(reason.split())[:80] if isinstance(reason, str) and reason.strip() else "disarmed"
+            was = self.teleop_disarm(reason)
+            return {"armed": False, "was_armed": was}
+        why = self.teleop_refusal(deep=True)
+        if why:
+            raise BridgeError(why, armed=False)
+        try:
+            ml = clamp_float(c.get("max_linear"), 0.0, TELEOP_MAX_LINEAR, TELEOP_MAX_LINEAR)
+            ma = clamp_float(c.get("max_angular"), 0.0, TELEOP_MAX_ANGULAR, TELEOP_MAX_ANGULAR)
+        except ValueError:
+            raise BridgeError("max_linear and max_angular must be numbers")
+        now = time.monotonic()
+        with self.tele_lock:
+            changed = not self.tele["armed"]
+            self.tele.update(armed=True, last_cmd=now, last_move=now, zeroed=True, seq=-1, max_linear=ml, max_angular=ma,
+                             armed_t=now)
+        if changed:
+            self.emit({"ev": "teleop", "armed": True, "reason": "armed"})
+        return {"armed": True, "max_linear": ml, "max_angular": ma, "watchdog_s": TELEOP_WATCHDOG_S, "idle_s": TELEOP_IDLE_S}
+
+    def h_teleop(self, c):
+        with self.tele_lock:
+            armed = self.tele["armed"]
+        if not armed:
+            raise BridgeError("Manual driving is not armed.", armed=False)
+        why = self.teleop_refusal()
+        if why:
+            self.teleop_disarm(why)
+            raise BridgeError(why, armed=False)
+        seq = c.get("seq")
+        if seq is not None and (isinstance(seq, bool) or not isinstance(seq, int)):
+            raise BridgeError("seq must be a whole number")
+        now = time.monotonic()
+        with self.tele_lock:
+            if not self.tele["armed"]:
+                raise BridgeError("Manual driving is not armed.", armed=False)
+            if seq is not None and seq <= self.tele["seq"]:
+                return {"armed": True, "ignored": True, "seq": seq}       # an older command that arrived late
+            if seq is not None:
+                self.tele["seq"] = seq
+            # limits sent with the command (Studio's current settings) replace the ones from arming; the hard caps apply always
+            ul = c.get("max_linear") if c.get("max_linear") is not None else self.tele["max_linear"]
+            ua = c.get("max_angular") if c.get("max_angular") is not None else self.tele["max_angular"]
+            vx, wz = clamp_teleop(c.get("vx"), c.get("wz"), ul, ua)
+            self.tele["last_cmd"] = now
+            self.tele["zeroed"] = (vx == 0.0 and wz == 0.0)
+            if not self.tele["zeroed"]:
+                self.tele["last_move"] = now
+            self.ros.publish_cmd(vx, wz)         # under the lock: the watchdog can never publish an older value after it
+        return {"armed": True, "vx": vx, "wz": wz, "seq": seq}
+
+    def _teleop_loop(self):
+        """Watchdog. Runs on its own thread so it works whether or not messages arrive: it never waits for one."""
+        last_deep = 0.0
+        while not self.stop.is_set():
+            now = time.monotonic()
+            trip, why = False, None
+            with self.tele_lock:
+                if self.tele["armed"]:
+                    if not self.tele["zeroed"] and now - self.tele["last_cmd"] > TELEOP_WATCHDOG_S:
+                        self.tele["zeroed"] = True
+                        trip = True
+                        try:
+                            self.ros.publish_cmd(0.0, 0.0)
+                        except Exception as e:
+                            log("watchdog zero failed:", repr(e))
+                    if now - self.tele["last_move"] > TELEOP_IDLE_S:
+                        why = "No command for %d s." % TELEOP_IDLE_S
+                    elif os.path.exists(self.stop_file):
+                        why = "The e-stop is on."
+            if why is None and now - last_deep > 0.25:
+                last_deep = now
+                with self.tele_lock:
+                    armed = self.tele["armed"]
+                if armed:
+                    why = self.teleop_refusal()
+            if why:
+                self.teleop_disarm(why)
+            elif trip:
+                log("teleop watchdog: zero velocity sent")
+            self.stop.wait(0.02)
+
+    # ---- Studio 2.0: robot log (journal)
+    def h_journal(self, c):
+        unit = c.get("unit") or JOURNAL_UNITS[0]
+        try:
+            argv = journal_argv(unit if isinstance(unit, str) else "", c.get("lines"), c.get("since"))
+            n = clamp_int(c.get("lines"), 50, 2000, 300)
+        except ValueError as e:
+            raise BridgeError(str(e))
+        grep = c.get("grep")
+        if grep is not None and (not isinstance(grep, str) or len(grep) > 80 or "\0" in grep):
+            raise BridgeError("grep must be plain text of at most 80 characters")
+        if self.fake:
+            text = "\n".join(self.fake_journal(unit, n))
+        else:
+            if not shutil.which("journalctl"):
+                raise BridgeError("journalctl is not available on this machine.")
+            try:
+                p = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=12.0, encoding="utf-8",
+                                   errors="replace", stdin=subprocess.DEVNULL)
+            except subprocess.TimeoutExpired:
+                raise BridgeError("journalctl took too long.")
+            except OSError as e:
+                raise BridgeError("cannot run journalctl: %s" % e)
+            text = p.stdout or ""
+            if journal_permission_problem(text) or (p.returncode != 0 and not text.strip()):
+                raise BridgeError("This account may not read the robot log (journal). Ask a lab admin to add it to the "
+                                  "systemd-journal group. Nothing was changed.", permission=True)
+        lines = journal_lines(text, grep, n)
+        return {"unit": unit, "requested": n, "since": c.get("since") or None, "grep": (grep or "").strip() or None,
+                "count": len(lines), "lines": lines, "fake": self.fake}
+
+    def fake_journal(self, unit, n):
+        base = time.time() - 3600
+        msgs = ["Started %s." % unit, "rplidar_node: scan published", "create3: battery state updated", "wifi: signal -55 dBm",
+                "turtlebot4: dock status changed", "WARNING: odometry delayed 0.6 s", "ERROR: example error line for testing",
+                "ros2: discovery server heartbeat"]
+        out = []
+        for i in range(n):
+            ts = time.strftime("%Y-%m-%dT%H:%M:%S+0000", time.gmtime(base + i * 3600.0 / max(1, n)))
+            out.append("%s turtlebot4 %s[%d]: %s" % (ts, unit.split(".")[0], 1000 + i % 7, msgs[i % len(msgs)]))
+        return out
 
     # ---- actions
     def _action(self, name, c):
@@ -2159,9 +2702,13 @@ class Bridge:
         runs = [{k: v for k, v in r.items() if k in ("run_id", "name", "pid", "alive", "started_wall", "motion")} for r in runs]
         wall = time.time()
         net = dict(slow.get("net") or {})
+        estop = self.estop_status(s["wheels_enabled"])
+        self.status_estop = estop.get("on")
+        with self.tele_lock:
+            tele = {"armed": self.tele["armed"], "max_linear": self.tele["max_linear"], "max_angular": self.tele["max_angular"]}
         return {"ev": "status", "t": round(time.monotonic(), 3), "wall": round(wall, 3),
                 "battery": s["battery"], "dock": s["dock"], "odom": s["odom"], "scan": s["scan"], "hazards": s["hazards"],
-                "estop": self.estop_status(s["wheels_enabled"]), "system": self.read_system(), "net": net,
+                "estop": estop, "teleop": tele, "system": self.read_system(), "net": net,
                 "clock": {"synced": slow.get("clock_synced"), "year": time.gmtime(wall).tm_year},
                 "ros_service": slow.get("ros_service"), "runs": runs}
 
@@ -2199,7 +2746,7 @@ class BridgeError(Exception):
 
 # ======================================================================= main
 def hello(ros, fake, home):
-    return {"ev": "hello", "version": VERSION, "bridge": "robot_bridge", "hostname": socket.gethostname(),
+    return {"ev": "hello", "version": VERSION, "bridge": "robot_bridge", "hostname": "fake-turtlebot4" if fake else socket.gethostname(),
             "ros": bool(ros.available) and not fake, "ros_distro": os.environ.get("ROS_DISTRO"),
             "rmw": os.environ.get("RMW_IMPLEMENTATION"), "domain": os.environ.get("ROS_DOMAIN_ID", "0"),
             "python": sys.version.split()[0], "pid": os.getpid(), "fake": bool(fake), "home": home,
@@ -2255,6 +2802,10 @@ def main(argv=None):
     finally:
         # user programs started with "run" are detached and keep running; only our own threads stop
         bridge.status_period = None
+        try:
+            bridge.teleop_disarm("bridge ended")
+        except Exception:
+            pass
         t = threading.Thread(target=ros.shutdown, daemon=True)
         t.start()
         t.join(1.0)

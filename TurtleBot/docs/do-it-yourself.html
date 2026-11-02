@@ -378,7 +378,7 @@ Are you sure you want to continue connecting (yes/no/[fingerprint])?</code></pre
 <div class="fpbox"><label for="fpin">Check it here: paste the fingerprint line you see (or just the SHA256:... part)</label><input type="text" id="fpin" autocomplete="off" spellcheck="false" placeholder="SHA256:..."><div class="fpres" id="fpres" aria-live="polite"></div></div>
 <ul><li><b>It matches:</b> type <code>yes</code> and press Enter.</li><li><b>It does not match:</b> type <code>no</code>. You reached a different device (campus addresses change) or the robot was reinstalled. Ask the lab maintainer before typing any password.</li></ul>
 <h3>Password and prompt</h3>
-<p>SSH asks for the <code>ubuntu</code> password. Type it and press Enter. Nothing appears while you type; that is normal. Ask the lab maintainer for the password.</p>
+<p>SSH asks for the <code>ubuntu</code> password. Type it and press Enter. Nothing appears while you type; that is normal. The password is <code>turtlebot4</code>.</p>
 <p>When the prompt reads <code>ubuntu@turtlebot4:~$</code>, you are on the robot: every command you type now runs there. To leave:</p>
 <div class="cmd"><div class="cmdhead"><span class="where robot">On the robot (after ssh)</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c5">Copy</button></div><pre><code id="c5">exit</code></pre></div>
 <h3>When it does not answer: retry</h3>
@@ -629,7 +629,7 @@ python3 my_first_drive.py</code></pre></div>
 <div class="cmd"><div class="cmdhead"><span class="where pc">On your computer</span><span class="sp"></span><button type="button" class="btn copy" data-copy="c47">Copy</button></div><pre><code id="c47">ssh ubuntu@<span class="addr">10.87.10.205</span></code></pre></div>
 </div>
 <div class="symptom" data-sym="denied" id="sym-denied"><h3>Permission denied</h3><p class="cause"><b>Likely cause.</b> Wrong password (nothing shows while you type), or your key is not installed on the robot.</p><p class="fixlbl">What to do</p>
-<p>Retype the password slowly. Repeat the <a href="#step-4">key setup</a> if you use a key. Ask the lab maintainer if the password was changed. Never write the password into the repository.</p>
+<p>Retype the password slowly. Repeat the <a href="#step-4">key setup</a> if you use a key. The password is <code>turtlebot4</code>; if it no longer works, ask the lab maintainer whether it was changed.</p>
 </div>
 <div class="symptom" data-sym="hostkey" id="sym-hostkey"><h3>WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!</h3><p class="cause"><b>Likely cause.</b> The robot was reinstalled, or that address now belongs to another device (campus addresses change).</p><p class="fixlbl">What to do</p>
 <p>Do not ignore it. Check with the lab maintainer first (the correct fingerprint is <code>SHA256:P2rMsKzoIV+vsYEUViVNEFf9H8ORHn+qYbEhaTciyi4</code>). Only after they confirm, remove the old entry and connect again:</p>

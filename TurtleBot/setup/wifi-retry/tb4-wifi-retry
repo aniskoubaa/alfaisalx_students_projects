@@ -1,0 +1,97 @@
+#!/bin/bash
+# tb4-wifi-retry: while wlan0 is running the factory hotspot (AP mode) and nobody is connected to it,
+# try the saved client Wi-Fi profiles again. Runs as root from tb4-wifi-retry.timer.
+# Exit codes: 0  = nothing to do, skipped, or joined a client network
+#             10 = no saved network could be joined, hotspot brought back
+#             11 = no saved network could be joined and the hotspot could not be brought back
+#             12 = could not read the NetworkManager state
+# Never touches eth0 or usb0 (every connection change names wlan0).
+
+IFACE="${TB4_WIFI_IFACE:-wlan0}"
+LOCKFILE="${TB4_WIFI_LOCK:-/run/tb4-wifi-retry.lock}"
+LEASES="${TB4_WIFI_LEASES:-/var/lib/NetworkManager/dnsmasq-$IFACE.leases}"
+AP_FALLBACK="netplan-wlan0-Turtlebot4"
+WAIT="${TB4_WIFI_WAIT:-40}"
+TAB=$'\t'
+NL=$'\n'
+
+log() { logger -t tb4-wifi-retry -- "$*"; echo "$*"; }
+
+exec 9>"$LOCKFILE" || { echo "tb4-wifi-retry: cannot open lock file $LOCKFILE" >&2; exit 12; }
+if ! flock -n 9; then
+  log "another run is still in progress, skipping"
+  exit 0
+fi
+
+active=$(nmcli -g GENERAL.CONNECTION device show "$IFACE" 2>/dev/null) || active=""
+if [ -z "$active" ] || [ "$active" = "--" ]; then
+  log "$IFACE has no active connection (NetworkManager is probably still connecting), nothing to do"
+  exit 0
+fi
+mode=$(nmcli -g 802-11-wireless.mode connection show id "$active" 2>/dev/null) || mode=""
+if [ "$mode" != "ap" ]; then
+  log "$IFACE is on '$active' (mode '${mode:-none}'), not the hotspot, nothing to do"
+  exit 0
+fi
+
+# Hotspot clients: neighbour entries for 10.42.0.x in a live state, plus unexpired DHCP leases.
+# Leases count only while the clock is synchronised: after a boot without internet the clock is days behind,
+# so an old lease would look unexpired for days and block every retry. The neighbour table is from this boot.
+clients=$(ip neigh show dev "$IFACE" 2>/dev/null | awk '
+  $1 ~ /^10\.42\.0\.[0-9]+$/ { s = $NF; if (s == "REACHABLE" || s == "STALE" || s == "DELAY" || s == "PROBE") n++ }
+  END { print n + 0 }')
+leased=0
+synced="${TB4_WIFI_CLOCK_SYNCED:-$(timedatectl show -p NTPSynchronized --value 2>/dev/null)}"
+if [ "$synced" = "yes" ] && [ -r "$LEASES" ]; then
+  leased=$(awk -v now="$(date +%s)" '$3 ~ /^10\.42\.0\.[0-9]+$/ && $1 > now { n++ } END { print n + 0 }' "$LEASES")
+fi
+if [ "${clients:-0}" -gt 0 ] || [ "${leased:-0}" -gt 0 ]; then
+  log "hotspot '$active' has clients (neighbours: $clients, active leases: $leased), skipping"
+  exit 0
+fi
+
+# Saved Wi-Fi profiles: find the hotspot profile, collect autoconnect client profiles.
+uuids=$(nmcli -t -f UUID,TYPE connection show 2>/dev/null | awk -F: '$2 == "802-11-wireless" { print $1 }')
+if [ -z "$uuids" ]; then
+  log "could not list the Wi-Fi profiles"
+  exit 12
+fi
+ap_name=""
+cands=""
+for u in $uuids; do
+  name=$(nmcli -g connection.id connection show uuid "$u" 2>/dev/null) || continue
+  pmode=$(nmcli -g 802-11-wireless.mode connection show uuid "$u" 2>/dev/null)
+  if [ "$pmode" = "ap" ]; then
+    [ -z "$ap_name" ] && ap_name="$name"
+    continue
+  fi
+  [ "$pmode" = "infrastructure" ] || continue
+  auto=$(nmcli -g connection.autoconnect connection show uuid "$u" 2>/dev/null)
+  [ "$auto" = "yes" ] || continue
+  prio=$(nmcli -g connection.autoconnect-priority connection show uuid "$u" 2>/dev/null)
+  case "$prio" in ''|*[!0-9-]*) prio=0 ;; esac
+  cands="$cands$prio$TAB$name$NL"
+done
+[ -z "$ap_name" ] && ap_name="$AP_FALLBACK"
+sorted=$(printf '%s' "$cands" | sort -s -t "$TAB" -k1,1nr)
+
+log "hotspot '$active' has no clients, trying saved Wi-Fi networks"
+tried=0
+while IFS="$TAB" read -r prio name; do
+  [ -n "$name" ] || continue
+  tried=$((tried + 1))
+  log "trying '$name' (priority $prio)"
+  if nmcli --wait "$WAIT" connection up id "$name" ifname "$IFACE" >/dev/null 2>&1; then
+    log "joined '$name', hotspot is off"
+    exit 0
+  fi
+  log "could not join '$name'"
+done <<< "$sorted"
+
+log "no saved network could be joined ($tried tried), bringing the hotspot '$ap_name' back"
+if nmcli --wait "$WAIT" connection up id "$ap_name" ifname "$IFACE" >/dev/null 2>&1; then
+  log "hotspot '$ap_name' is back"
+  exit 10
+fi
+log "ERROR: could not bring the hotspot '$ap_name' back, $IFACE may have no Wi-Fi"
+exit 11

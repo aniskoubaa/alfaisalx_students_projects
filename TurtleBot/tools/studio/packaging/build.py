@@ -14,6 +14,7 @@ instance.json in a temporary STUDIO_CONFIG_DIR and checks --version through the 
 import argparse
 import glob
 import json
+import re
 import os
 import shutil
 import socket
@@ -227,6 +228,24 @@ def smoke():
             print('FAIL: web page not served')
             return False
         print('web page ok (%d bytes)' % len(page))
+        # 4b. / is the 2.0 interface (React build under /v2/assets) and /classic/ is the 1.3 interface (app.js)
+        if b'/v2/assets/' not in page and b'assets/index-' not in page:
+            print('FAIL: / does not serve the 2.0 interface (no /v2/assets/ reference); is web/v2 built and bundled?')
+            return False
+        asset = re.search(rb'(?:src|href)="(/v2/assets/[^"]+\.js)"', page)
+        if not asset:
+            print('FAIL: the 2.0 page references no script under /v2/assets/')
+            return False
+        with urllib.request.urlopen('http://127.0.0.1:%s%s' % (p, asset.group(1).decode()), timeout=20) as resp:
+            if resp.status != 200 or len(resp.read()) < 10000:
+                print('FAIL: the 2.0 script is missing or too small: ' + asset.group(1).decode())
+                return False
+        with urllib.request.urlopen('http://127.0.0.1:%s/classic/?token=%s' % (p, token), timeout=20) as resp:
+            classic = resp.read()
+        if resp.status != 200 or b'app.js' not in classic or b'/v2/assets/' in classic:
+            print('FAIL: /classic/ does not serve the 1.3 interface')
+            return False
+        print('/ serves the 2.0 interface (%s), /classic/ serves the 1.3 interface' % asset.group(1).decode())
         # 5. a second start finds the running one and exits 0 without a new server
         r = subprocess.run([exe, '--fake', '--no-browser', '--stay-open'], env=env, capture_output=True, timeout=START_TIMEOUT)
         if r.returncode != 0 or read_instance(cfg) != info:
@@ -309,17 +328,63 @@ def installer():
     return True
 
 
+# Where students download the app: TurtleBot/Download/ (one installer, the current version). The pages that link
+# straight to the file name it with its version, so --publish rewrites those names and the size and checksum lines.
+DOWNLOAD = os.path.abspath(os.path.join(HERE, '..', '..', '..', 'Download'))
+DOWNLOAD_PAGES = [os.path.join(DOWNLOAD, 'README.md'), os.path.abspath(os.path.join(HERE, '..', '..', '..', 'README.md'))]
+SETUP_RE = re.compile(r'TurtleBotStudio-Setup-\d+(?:\.\d+){0,3}\.exe')
+
+
+def publish():
+    import hashlib
+    ver = app_version()
+    name = 'TurtleBotStudio-Setup-%s.exe' % ver
+    src = os.path.join(DIST, name)
+    if not os.path.isfile(src):
+        print('FAIL: %s not found (build it with --installer first)' % src)
+        return False
+    os.makedirs(DOWNLOAD, exist_ok=True)
+    for old in os.listdir(DOWNLOAD):
+        if SETUP_RE.fullmatch(old) and old != name:
+            os.remove(os.path.join(DOWNLOAD, old))
+            print('removed the older installer ' + old)
+    dst = os.path.join(DOWNLOAD, name)
+    shutil.copyfile(src, dst)
+    with open(dst, 'rb') as f:
+        sha = hashlib.sha256(f.read()).hexdigest().upper()
+    size = '%.1f MB' % (os.path.getsize(dst) / 1048576.0)
+    for page in DOWNLOAD_PAGES:
+        if not os.path.isfile(page):
+            continue
+        with open(page, encoding='utf-8', newline='') as f:
+            text = f.read()
+        new = SETUP_RE.sub(name, text)
+        new = re.sub(r'(<!-- studio-version -->)[^<]*(<!-- /studio-version -->)', r'\g<1>%s\g<2>' % ver, new)
+        new = re.sub(r'(<!-- studio-size -->)[^<]*(<!-- /studio-size -->)', r'\g<1>%s\g<2>' % size, new)
+        new = re.sub(r'(<!-- studio-sha256 -->)[^<]*(<!-- /studio-sha256 -->)', r'\g<1>%s\g<2>' % sha, new)
+        if new != text:
+            with open(page, 'w', encoding='utf-8', newline='') as f:
+                f.write(new)
+            print('updated ' + page)
+    print('Published %s (%s, SHA-256 %s)' % (dst, size, sha))
+    return True
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--smoke', action='store_true', help='build, then smoke-test the program')
     ap.add_argument('--smoke-only', action='store_true', help='smoke-test the existing program, no build')
     ap.add_argument('--installer', action='store_true', help='(Windows) after the build and smoke test, make the setup program with NSIS')
+    ap.add_argument('--publish', action='store_true', help='after --installer, copy the setup program to TurtleBot/Download/ '
+                    'and update the version, size and checksum on the download pages')
     a = ap.parse_args(argv)
     if not a.smoke_only and not build():
         return 1
     if (a.smoke or a.smoke_only) and not smoke():
         return 1
     if a.installer and not installer():
+        return 1
+    if a.publish and not publish():
         return 1
     return 0
 

@@ -29,6 +29,10 @@ def tree(sub):
     return out
 
 
+# Studio 2.0: tree('web') walks every sub-folder, so the built interface web/v2/ (index.html + assets/) and the 1.3 page
+# (served at /classic/) are both bundled. A build without web/v2 still works: Studio then falls back to the 1.3 page at /.
+if not os.path.isfile(os.path.join(STUDIO, 'web', 'v2', 'index.html')):
+    print('WARNING: web/v2/index.html not found: this build contains only the classic (1.3) interface')
 datas = tree('web') + tree('templates') + [
     (os.path.join(STUDIO, 'programs.json'), '.'),
     (os.path.join(STUDIO, 'version.json'), '.'),

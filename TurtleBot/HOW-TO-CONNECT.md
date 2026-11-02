@@ -35,6 +35,8 @@ For a beginner's overview of the robot's hardware and ROS 2, read the [TurtleBot
 
 ## Easiest: TurtleBot Studio
 
+**From version 2.0 (2026-10-30), on Windows:** download the installer from [Download/](Download/README.md), install it (no Python needed), plug in the Ethernet cable the first time and follow the setup wizard. Step by step: [First connection](tools/studio/docs/FIRST-CONNECTION.md). Everyday use afterwards: open Studio, press **Discover**, then **Connect**. On macOS and Linux, use the Python way below.
+
 Added 2026-10-24. [TurtleBot Studio](tools/studio/README.md) is an app that runs on your own computer and opens in your browser. It finds the robot itself (over the university Wi-Fi, the robot's own hotspot or an Ethernet cable), shows its status, copies files, runs and stops programs, and has an emergency stop. Nothing is installed on the robot. It needs Python 3.10 or newer. Start it with `Start TurtleBot Studio.cmd` (Windows), `bash start-studio.sh` (macOS, Linux) or `python studio.py`, press **Discover**, then **Connect**. Quick start, safety rules and what has been tested: [tools/studio/README.md](tools/studio/README.md).
 
 Status on 2026-10-24: built and tested over the Ethernet cable with the robot docked and no motion. Not yet tested on macOS, Linux or over Wi-Fi. The manual steps below still work and explain what the app does.

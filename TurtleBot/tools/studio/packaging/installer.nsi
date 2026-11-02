@@ -80,6 +80,8 @@ Section "TurtleBot Studio" SecMain
   File "/oname=${APP_FILE}" "${APP_EXE}"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   CreateShortcut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\${APP_FILE}" "" "$INSTDIR\${APP_FILE}" 0
+  ; practice without a robot: a simulated robot with its own settings folder, so it never touches the real settings
+  CreateShortcut "$SMPROGRAMS\${APP_NAME} (simulated robot).lnk" "$INSTDIR\${APP_FILE}" '--fake --config-dir "$APPDATA\TurtleBotStudio-sim"' "$INSTDIR\${APP_FILE}" 0
   WriteRegStr HKCU "${APP_KEY}" "InstallDir" "$INSTDIR"
   WriteRegStr HKCU "${UNINST_KEY}" "DisplayName" "${APP_NAME}"
   WriteRegStr HKCU "${UNINST_KEY}" "DisplayVersion" "${APP_VERSION}"
@@ -97,7 +99,7 @@ Section "Desktop shortcut" SecDesktop
 SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMain} "The TurtleBot Studio program and a Start menu entry."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMain} "The TurtleBot Studio program, a Start menu entry, and a second entry with a simulated robot for practice."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} "A shortcut on your desktop."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
@@ -107,6 +109,7 @@ Section "Uninstall"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
   Delete "$SMPROGRAMS\${APP_NAME}.lnk"
+  Delete "$SMPROGRAMS\${APP_NAME} (simulated robot).lnk"
   Delete "$DESKTOP\${APP_NAME}.lnk"
   DeleteRegKey HKCU "${UNINST_KEY}"
   DeleteRegKey HKCU "${APP_KEY}"
