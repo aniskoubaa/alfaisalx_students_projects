@@ -21,16 +21,14 @@ clients created at the start (TB-25: every new ROS participant can stall the bas
     python3 delivery_menu.py              # the real thing (normally started by systemd)
 
 Needs the ROS environment (source /etc/turtlebot4/setup.bash). Stop it with Ctrl+C or SIGTERM: it leaves cleanly. A
-running mission and the navigation stack are NOT stopped: they were started in their own session and carry on (the
-mission owns the screen and the buttons while it runs; a restarted menu notices it with pgrep and stays silent).
+running mission and the navigation stack are NOT stopped: they were started in their own session and carry on (once it
+has loaded, the mission owns the screen and the buttons; a restarted menu notices it with pgrep and stays silent).
 
 Files: ~/robot_code/logs/delivery/menu.log (time stamp, every press and state change), menu_<date>_<time>.out (output of
 start_stack.sh and the mission of one trip). Route folder: env DELIVERY_ROUTE_DIR, default ~/robot_code/routes/current
 (must hold route.yaml, written by tools/plan_route.py).
 
-NOT VERIFIED: nothing here has run on the robot yet. Open points: the exact action and service names (dock, undock,
-wall_follow, e_stop, robot_power in the robot's namespace), the WheelStatus field wheels_enabled, how fast the stock
-node shows the menu again after button 2, and the systemd user service (robot/install_menu.sh).
+Tested on the real robot since 2026-11-06; delivery/README.md section 9 lists what was and was not tested.
 """
 import argparse
 import os
@@ -287,6 +285,15 @@ class RosMenuIO(mc.MenuIO):
             return
         self.log('running: ' + ' '.join(cmd))
         self.mission_proc = self._spawn(cmd, out_path, cwd=HERE)
+
+    def mission_interrupt(self):
+        if self.dry_run:
+            self.log('DRY RUN would send the mission SIGINT')
+            return True
+        if self.mission_proc is None or self.mission_proc.poll() is not None:
+            return False
+        self.mission_proc.send_signal(signal.SIGINT)
+        return True
 
     def mission_poll(self):
         if self.dry_run:

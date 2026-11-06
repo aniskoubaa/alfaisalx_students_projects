@@ -476,7 +476,7 @@ Other options: `--allow-undocked` (the robot is already localized on the map; sk
 
 **Dock retry (changed 2026-11-06).** The hand-off pose is 0.7 m from the dock, and the goal tolerance (`xy_goal_tolerance`) is 0.25 m, so the robot stops 0.92 to 0.98 m from the dock in the simulator (four runs). The fake base accepts `/dock` only within 1.0 m, which is an assumption: **the real Create 3 dock range is NOT VERIFIED**, so there is little margin. Record the distance at which the real `/dock` succeeds or fails on the first real runs (the mission log has the event). If the first dock fails, the mission now drives to a point 0.45 m from the dock pose, on the line from the hand-off pose to the dock (`DOCK_RETRY_DISTANCE` in `delivery_core.py`), and docks once more; the event text is "dock failed, driving closer to the dock and docking once more". *Earlier the second try started at the hand-off pose, where the robot already believed it was, so the leg ended at once with no motion and the second dock failed the same way (found in the simulator on 2026-11-06).*
 
-**Display texts and buttons since 2026-11-06 (replaces the "Robot display" texts above where they differ).** Tested on the real robot with simulated presses; how the screen looks to a person and the physical buttons are **NOT yet confirmed**.
+**Display texts and buttons since 2026-11-06 (replaces the "Robot display" texts above where they differ).** Tested on the real robot with simulated presses; how the screen looks to a person and the physical buttons are **NOT yet confirmed** *(superseded 2026-11-06, later: a person pressed the physical buttons and saw the screen, see "Physical buttons and Stop while loading" below; Power, Wall Follow Right, menu start after a reboot and campus are still untested)*.
 
 | Moment | Screen | Buttons |
 |---|---|---|
@@ -484,6 +484,20 @@ Other options: `--allow-undocked` (the robot is already localized on the map; sk
 | At the food court | `Food placed?` / `>Back to the lab` / `Press button 1` | Button 1 (or 3) = food placed, the robot drives home. Button 2 only puts the text back |
 | At the lab | `Your food is here` / `>Done, thank you` / `Press button 1` | Button 1 (or 4) = received, the robot docks. Button 2 only puts the text back |
 | After a stop or an alarm | The text stays until a button is pressed | Any press returns to the menu, which then offers `Back to the lab` |
+
+**Physical buttons and Stop while loading (2026-11-06, about 17:40 to 17:50 UTC+3).** A person pressed the real front-panel buttons on the new menu and reported that they work. `menu.log` shows real presses: scroll (3, 4), select (1), Yes and No on the confirm screen, button 2 as Stop in the middle of a route (the mission ended with exit 130 at 17:42:16 after a 59 s run) and Dock from the menu (succeeded, 17:42:29 to 17:43:10).
+
+*Bug found by that test.* For about 12 s after a trip starts, `delivery_mission.py` is still importing ROS and does not listen to the buttons, although the screen already said `2 = Stop`. In the physical test, button 2 at 17:41:09 was only logged, and the robot undocked and drove anyway at 17:41:59 (the mission armed its stop button at 17:41:17; button 2 worked from then on). The same press could also bring the stock menu back on the screen.
+
+*Fix.* The menu has a new state `loading` (in `menu_core.py`) between `starting` and `mission`. The menu keeps drawing the screen (`Starting` / `please wait` / `2 = Stop`). In this state:
+
+- Button 2 sends the mission one SIGINT. The screen shows `Stopping` / `please wait`, then `Stopped`.
+- Buttons 1, 3 and 4 do nothing.
+- The state ends when the trip's output file (`menu_*.out`) contains the mission's log line `[stop_button] armed`, or after `MISSION_LOAD_S` = 90 s at the latest. After that the mission owns the screen and the buttons as before.
+- `delivery_mission.py` also catches the interrupt during its imports and exits 130 (`stopped by SIGINT before moving`), so the robot does not undock.
+- A mission that a restarted menu adopts goes straight to `mission`, so this stop is not available there during its loading.
+
+*Tests of the fix on the real robot (home room, route `home`, 1.1 m route, Wi-Fi, cable out; presses simulated with `press_buttons.py` on the same `/hmi/buttons` topic).* Stop during loading: Yes at 17:46:30, button 3 at 17:46:34 ignored, button 2 at 17:46:36, screen `Stopping` at once, mission exit 130 at 17:46:38, the robot never undocked, screen `Stopped`, navigation stack stopped. Full delivery from the menu: stack start at 17:47:29, handover `loading` to `mission` at 17:47:54 (17 s after the mission started, with the stack starting at the same time), exit 0, outcome delivered, 110 s, 0 holds, 0 retries, longest /odom gap 0.555 s, 0 CRITICAL lines. **A person has NOT repeated a physical press during `loading` since the fix.** Offline menu test: 162 checks pass.
 
 The mission re-shows the text every 0.5 s while it waits for a button (`RESHOW_PERIOD`; it was 5 s). Reason: on the real robot, a press of button 2 wiped the screen for up to 3 s. The menu also redraws after the press and after the release.
 
@@ -559,7 +573,7 @@ It is a systemd user service (`~/.config/systemd/user/delivery-menu.service`), n
 
 **Test tool.** `robot/press_buttons.py` presses the buttons from software (a flood of `/hmi/buttons` messages for 0.15 s, because the real publisher runs at about 95 Hz), for example `python3 ~/robot_code/delivery/robot/press_buttons.py show 4 4 3 1 2 show` after `source /etc/turtlebot4/setup.bash`. Button 1 can start a trip: use it only with a person next to the robot.
 
-**What was tested on the real robot (2026-11-06, simulated presses):** scrolling, confirm and No, Yes, a whole delivery, Stop in the middle of a route, Back to the lab, Dock, Undock, EStop on and off, Wall Follow Left. **NOT tested:** `Power` (it would switch the robot off; only checked that the service `/robot_power` exists as `irobot_create_msgs/srv/RobotPower`), `Wall Follow Right`, and a press of the PHYSICAL buttons on the new menu, and how the screen looks to a person.
+**What was tested on the real robot (2026-11-06, simulated presses):** scrolling, confirm and No, Yes, a whole delivery, Stop in the middle of a route, Back to the lab, Dock, Undock, EStop on and off, Wall Follow Left. **NOT tested:** `Power` (it would switch the robot off; only checked that the service `/robot_power` exists as `irobot_create_msgs/srv/RobotPower`), `Wall Follow Right`, and a press of the PHYSICAL buttons on the new menu, and how the screen looks to a person. *(Update 2026-11-06, later: the physical buttons and the screen were tried by a person and work, see "Physical buttons and Stop while loading"; Stop during `loading` was tested with simulated presses only. Still not tested: `Power`, `Wall Follow Right`.)*
 
 **Known weakness, fixed 2026-11-06.** The first version read `/hmi/buttons` at about 95 Hz and used 33 % of a core when idle. `ros_buttons.py` polls every 0.1 s instead, and the menu left the top of the CPU list (under 14 %, not measured exactly). The mission uses it too.
 
@@ -728,6 +742,7 @@ Each prints PASS or FAIL lines and exits non-zero on failure. The GitHub Actions
 | Stack and trip timing | Stack ready 27 to 70 s after the start; from pressing `Yes` to moving about 1 min 15 s |
 | Chime | Heard by Ibrahim, audible (told to us; not measured) |
 | Menu on the real robot with simulated presses | Scrolling, confirm and No, Yes, whole delivery, Stop mid-route, Back to the lab, Dock, Undock, EStop on and off, Wall Follow Left (section 9, "The front-panel menu") |
+| Menu on the real robot with physical presses (2026-11-06, later) | Scroll, select, Yes and No, Stop mid-route (exit 130), Dock; works, reported by a person. A bug (no Stop during the first 12 s) was found and fixed with the `loading` state; Stop during `loading` tested with simulated presses (exit 130, never undocked) and a full delivery after the fix (exit 0, 110 s, 0 holds, 0 retries, longest /odom gap 0.555 s). Physical press during `loading` after the fix, `Power`, `Wall Follow Right`, menu start after a reboot: not tested |
 | `/odom` longest gap during a run | 0.576 s in a stop test, 0.253 s in a home trip |
 
 Bugs found by this real driving, all fixed in the code: the mission froze with the stop button dead (no limit on the goal answer, now 5 s); a false Nav2 reset at CPU load 15 (`bond_timeout` now 0, section 11); button 2 wiped the screen for up to 3 s (redraw after press and release, re-show every 0.5 s); the idle menu used 33 % of a core (polling every 0.1 s); the OAK-D container used about 100 % of a core (now stopped at stack start).
@@ -735,6 +750,8 @@ Bugs found by this real driving, all fixed in the code: the mission froze with t
 *Update 2026-11-06 to the "Still open" paragraph below.* From it, these are now verified (above): the real Create 3 dock range (partly, as measured), the real wall-follow distance (one run), whether a menu redraw hides the prompt (it is re-shown every 0.5 s; how it looks to a person is still open), and whether the chime is audible (heard by Ibrahim). The rest of the paragraph still applies.
 
 **Still open (needs the robot, the floor or people):** the real lidar with glass and cables; the real Create 3 dock range (assumed 1.0 m in the simulator); the real size of the SLAM shrink on the real hall; the real Pi load while driving; whether a menu redraw after a button press hides the prompt (the mission re-sends it every 5 s); the real wall-follow distance of the Create 3; Controller B as emergency stop; buttons 3 and 4 on this robot; the real odometry error for AMCL; whether the chime is loud enough.
+
+*Update 2026-11-06, later:* a person pressed the physical buttons on the new menu and saw the screen; they work (section 9). Of the list below, "the feel of the PHYSICAL front-panel buttons and how the screen looks to a person" is therefore done. A physical press during `loading` (Stop while the mission is importing) has not been repeated since the fix. Still untested: `Power`, `Wall Follow Right`, menu start after a reboot, everything on campus.
 
 **Still NOT verified after 2026-11-06 (needs campus, people or the physical buttons):** the real campus route; the real SLAM scale on a long wall (tape comparison); lidar and glass; driving load over a long route; Wi-Fi `Students` during a run; the Controller B emergency stop in a real run; `/hazard_detection` is not republished; the feel of the PHYSICAL front-panel buttons and how the screen looks to a person; the `Power` menu entry (not pressed on purpose); `Wall Follow Right` from the menu. The 1.1 m home route proves the program flow, not campus behaviour.
 

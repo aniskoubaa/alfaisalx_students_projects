@@ -120,6 +120,10 @@ class FakeIO(mc.MenuIO):
     def mission_poll(self):
         return None if self.mission_code is None else (mc.NO_CODE if self.mission_code == -2 else self.mission_code)
 
+    def mission_interrupt(self):
+        self.calls.append(('mission_interrupt',))
+        return self.mission_code is None
+
     # actions and services
     def start_action(self, kind):
         self.calls.append(('start_action', kind))
@@ -330,7 +334,10 @@ check('trip: when the stack is up the mission starts as a child (route, --yes, n
       len(io.called('start_mission')) == 1 and io.mission_args == ['--route', ROUTE_FILE, '--yes'], str(io.calls))
 check('trip: the mission output goes to the same menu_*.out file as the stack',
       io.called('start_mission')[0][2] == io.called('start_stack')[0][2])
-check('trip: one transition screen is drawn, then it is the mission\'s screen', last(io) == 'Starting\nplease wait\n2 = Stop')
+check('trip: the menu draws the first screen while the mission loads', last(io) == 'Starting\nplease wait\n2 = Stop')
+io.files[io.called('start_mission')[0][2]] = 'x [stop_button] armed\n'
+run(io, menu, mc.ARMED_CHECK_S + 0.2)
+check('trip: the armed line hands the screen to the mission', menu.state == 'mission')
 n0 = len(io.published)
 for n in (1, 2, 3, 4, 2, 2):
     tap(io, menu, n)
@@ -484,9 +491,11 @@ tap(io, menu, 1)
 check('...Yes: the mission starts with --trip home --allow-undocked and no stack start',
       io.mission_args == ['--route', ROUTE_FILE, '--yes', '--trip', 'home', '--allow-undocked'] and not io.called('start_stack'),
       str(io.calls))
+io.files[io.called('start_mission')[0][2]] = 'x [stop_button] armed\n'
+run(io, menu, mc.ARMED_CHECK_S + 0.2)
 n0 = len(io.published)
 run(io, menu, 30.0)
-check('...and the menu is silent while it runs', len(io.published) == n0)
+check('...and the menu is silent once the mission has loaded', len(io.published) == n0)
 io.mission_code = 4
 run(io, menu, 1.0)
 check('home trip ended not docked (exit 4): result state, stack kept', menu.state == 'result' and not io.called('stop_stack'))
@@ -538,6 +547,88 @@ io.mission_code = mc.NO_CODE
 run(io, menu, 1.0)
 check('...when it ends (code unknown) the result state starts, the stack is stopped at the dock', menu.state == 'result'
       and len(io.called('stop_stack')) == 1)
+
+# ---------------------------------------------------------------- the seconds before the mission listens to the buttons
+def loading(**kw):
+    """Yes was pressed with the stack already up: the mission has been started and is loading."""
+    io, menu = make(stack=True, **kw)
+    tap(io, menu, 1)
+    tap(io, menu, 1)
+    return io, menu, io.called('start_mission')[0][2]
+
+
+io, menu, out = loading()
+check('mission started: the menu keeps the screen, 2 = Stop is on it', menu.state == 'loading'
+      and last(io) == 'Starting\nplease wait\n2 = Stop', last(io))
+tap(io, menu, 3)
+tap(io, menu, 4)
+tap(io, menu, 1)
+check('...1, 3 and 4 do nothing and start no stock entry', menu.state == 'loading' and not io.called('mission_interrupt')
+      and len(io.called('start_mission')) == 1 and last(io) == 'Starting\nplease wait\n2 = Stop', last(io))
+check('...the mission gets no SIGINT by itself', not io.called('mission_interrupt'))
+now = len(io.published)
+run(io, menu, mc.REPUBLISH_S + 0.5)
+check('...the text is published again while it loads (the stock node may have drawn over it)', len(io.published) > now)
+tap(io, menu, 2)
+check('button 2 while it loads: SIGINT, screen says Stopping', io.called('mission_interrupt') == [('mission_interrupt',)]
+      and last(io) == 'Stopping\nplease wait', last(io))
+tap(io, menu, 2)
+run(io, menu, 1.0)
+tap(io, menu, 2)
+check('...more presses send no second SIGINT', len(io.called('mission_interrupt')) == 1)
+io.mission_code = mc.EXIT_STOPPED
+run(io, menu, 1.0)
+check('...the mission exits 130 at the dock: Stopped, the stack is stopped', menu.state == 'result'
+      and last(io) == 'Stopped' and len(io.called('stop_stack')) == 1, last(io))
+tap(io, menu, 1)
+check('...any press returns to the menu, no new trip', menu.state == 'menu' and len(io.called('start_mission')) == 1)
+
+io, menu, out = loading()
+tap(io, menu, 2)
+io.mission_code = -9       # the real code would be -2 (SIGINT), which this fake reserves for "no mission"
+run(io, menu, 1.0)
+check('killed by the SIGINT before its handler was set (negative code): still Stopped, not "Trip ended"',
+      menu.state == 'result' and last(io) == 'Stopped', last(io))
+
+io, menu, out = loading(docked=True)
+io.files[out] = 'x\n12:00:00 run=a [stop_button] armed\n'
+run(io, menu, mc.ARMED_CHECK_S + 0.2)
+now = len(io.published)
+check('armed line in the output: the mission owns the screen and the buttons', menu.state == 'mission')
+run(io, menu, mc.REPUBLISH_S + 1.0)
+tap(io, menu, 2)
+check('...the menu stays silent and sends no SIGINT, the mission handles button 2', len(io.published) == now
+      and not io.called('mission_interrupt'))
+
+io, menu, out = loading()
+run(io, menu, mc.MISSION_LOAD_S + 1.0)
+now = len(io.published)
+check('no armed line ever: after MISSION_LOAD_S the menu leaves the screen to the mission', menu.state == 'mission')
+run(io, menu, mc.REPUBLISH_S + 1.0)
+check('...and stays silent, it cannot draw over a prompt', len(io.published) == now)
+
+io, menu, out = loading()
+io.files[out] = 'x REFUSING: battery too low\n'
+io.mission_code = mc.EXIT_REFUSED
+run(io, menu, 1.0)
+check('mission refuses while it loads: Cannot start with the reason', lines(last(io))[0] == 'Cannot start'
+      and not io.called('mission_interrupt'), last(io))
+
+io, menu, out = loading()
+tap(io, menu, 2)
+io.mission_code = 0   # the SIGINT lost the race against a very short mission: keep the mission's own result
+io.files[out] = 'x [show] Delivered\n'
+run(io, menu, 1.0)
+check('a known exit code is kept even after a SIGINT', menu.result_code == 0 and last(io) == 'Delivered', last(io))
+io, menu, out = loading()
+tap(io, menu, 2)
+io.mission_code = 130
+run(io, menu, 1.0)
+tap(io, menu, 1)
+tap(io, menu, 1)
+tap(io, menu, 1)
+check('the next trip after a stop while loading starts clean', menu.state == 'loading'
+      and last(io) == 'Starting\nplease wait\n2 = Stop', last(io))
 
 # ---------------------------------------------------------------- Dock, Undock, Wall Follow
 def at_entry(n, **kw):

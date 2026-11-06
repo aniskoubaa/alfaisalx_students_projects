@@ -670,6 +670,9 @@ def main(argv=None):
         log(f'SETUP FAILED: ROS 2 / TurtleBot 4 packages not found ({e}). Run this on the robot with the ROS '
             'environment loaded (source /opt/ros/jazzy/setup.bash)')
         return core.EXIT_REFUSED
+    except KeyboardInterrupt:   # on_signal, during the imports (about 12 s on the Pi): the menu's button 2 lands here
+        log(f'stopped by {stop_request or "Ctrl+C"} before moving')
+        return core.EXIT_STOPPED
     logfile = jsonl = None
     code = core.EXIT_REFUSED
     try:

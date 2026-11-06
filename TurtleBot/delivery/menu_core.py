@@ -18,6 +18,9 @@ Screens and states:
   help      what the buttons do.
   action    Dock, Undock or Wall Follow is running; 2 = Cancel.
   starting  the navigation stack is starting (about a minute); 2 = Cancel stops it again.
+  loading   delivery_mission.py was started but is not listening to the buttons yet (its imports take about 12 s on
+            the Pi). This program keeps the screen, and 2 = Stop sends the mission SIGINT, once. It ends when the
+            output file shows the mission's "[stop_button] armed" line, after MISSION_LOAD_S at the latest.
   mission   delivery_mission.py runs as a child process in its own session. The mission owns the screen and the
             buttons: this program publishes nothing and ignores the buttons (it only logs them).
   result    the mission ended. The mission's last text (from its output file, or a short text for the exit code) stays
@@ -48,6 +51,9 @@ IDLE_TOP_S = 30.0            # s, with no press for this long the cursor goes ba
 NOTE_S = 3.0                 # s, a result text stays this long, then the menu comes back
 REFUSED_S = 10.0             # s, a refusal ("Cannot start" and the reason) stays this long
 RESULT_RETURN_S = 60.0       # s, after a docked, successful mission the menu comes back by itself
+MISSION_LOAD_S = 90.0        # s, the menu keeps the screen at most this long after starting the mission
+ARMED_CHECK_S = 0.5          # s, how often the output file is read for ARMED_MARK while the mission loads
+ARMED_MARK = '[stop_button] armed'   # the mission's log line: from here on it handles the buttons itself
 STACK_START_TIMEOUT = 150.0  # s, start_stack.sh must be done within this time
 ACTION_TIMEOUT = {'dock': 120.0, 'undock': 60.0, 'wall_left': 20.0, 'wall_right': 20.0}   # s, then cancel
 WALL_FOLLOW_SECONDS = 10     # s, max_runtime of the wall follow goal (same as the stock menu)
@@ -71,9 +77,10 @@ ACTION_TEXT = {   # while running, if it worked, if it failed
 HELP_LINES = ['1 Select  2 Back', '3 Up  4 Down', 'Top = delivery']
 STARTING_LINES = ['Starting', 'about 1 minute', '2 = Cancel']
 MISSION_STARTING_LINES = ['Starting', 'please wait', '2 = Stop']   # same text the mission shows first
+MISSION_STOPPING_LINES = ['Stopping', 'please wait']
 RESULT_TEXT = {EXIT_DELIVERED: ['Delivery done'], EXIT_NO_FOOD: ['Back at the lab'], EXIT_ALARM: ['NEED HELP'],
                EXIT_STOPPED: ['Stopped'], NO_CODE: ['Trip ended']}
-PUBLISHING = ('menu', 'confirm', 'note', 'help', 'action', 'starting', 'result')   # this program draws the screen
+PUBLISHING = ('menu', 'confirm', 'note', 'help', 'action', 'starting', 'loading', 'result')   # this program draws
 
 
 # ---------------------------------------------------------------- pure helpers
@@ -243,6 +250,10 @@ class MenuIO(abc.ABC):
         exit code, or NO_CODE when the code is unknown."""
 
     @abc.abstractmethod
+    def mission_interrupt(self):
+        """Send SIGINT to the mission started here. False if there is none."""
+
+    @abc.abstractmethod
     def start_action(self, kind):
         """Send the goal for 'dock', 'undock', 'wall_left' or 'wall_right'. False if it cannot be sent."""
 
@@ -279,6 +290,9 @@ class Menu:
         self.action = None           # kind of the running action
         self.action_deadline = 0.0
         self.stack_deadline = 0.0
+        self.load_deadline = 0.0
+        self.armed_check_at = 0.0
+        self.stop_sent = False       # button 2 already sent the loading mission its SIGINT
         self.out_path = None
         self.result_code = None
         self.result_at = 0.0
@@ -329,6 +343,8 @@ class Menu:
             return ACTION_TEXT[self.action][0] + ['2 = Cancel']
         if self.state == 'starting':
             return STARTING_LINES
+        if self.state == 'loading':
+            return MISSION_STOPPING_LINES if self.stop_sent else MISSION_STARTING_LINES
         if self.state == 'result':
             return self.result_lines
         return []
@@ -408,6 +424,9 @@ class Menu:
         elif state == 'starting':
             if number == 2:
                 self._cancel_start()
+        elif state == 'loading':
+            if number == 2:
+                self._stop_loading()
         elif state == 'result':
             self._to_menu(keep_cursor=False)
         # state == 'mission': the mission owns the buttons; the press is only logged
@@ -486,9 +505,19 @@ class Menu:
         if self.out_path is None:
             self.out_path = self._new_out_path()
         self._log(f'starting the {kind} mission, output {self.out_path}')
-        io.publish(fit(MISSION_STARTING_LINES))   # the last text this program draws; the mission replaces it
         io.start_mission(mission_args(self.route_dir, kind), self.out_path)
-        self._goto('mission')
+        self.stop_sent = False
+        self.load_deadline = io.now() + MISSION_LOAD_S
+        self.armed_check_at = io.now() + ARMED_CHECK_S
+        self._goto('loading')
+
+    def _stop_loading(self):
+        """Button 2 before the mission listens to the buttons. One SIGINT: a second one could interrupt its clean-up."""
+        if self.stop_sent:
+            return
+        sent = self.io.mission_interrupt()
+        self.stop_sent = sent
+        self._log(f'stop while the mission loads, SIGINT sent: {sent}')
 
     def _cancel_start(self):
         self._log('trip cancelled while the stack starts: stopping the stack')
@@ -557,10 +586,20 @@ class Menu:
                 self._note(refusal_lines(reason or 'Stack did not start'), REFUSED_S)
             else:
                 self._spawn_mission('full')
-        elif self.state == 'mission':
+        elif self.state in ('loading', 'mission'):
             code = io.mission_poll()
             if code is not None:
+                if self.stop_sent and code not in RESULT_TEXT:   # killed by the SIGINT before its own handler was set
+                    code = EXIT_STOPPED
+                self.stop_sent = False
                 self._mission_ended(code, now)
+            elif self.state == 'loading' and now >= self.armed_check_at:
+                self.armed_check_at = now + ARMED_CHECK_S
+                if ARMED_MARK in io.read_text(self.out_path):
+                    self._goto('mission')
+                elif now >= self.load_deadline:
+                    self._log(f'no "{ARMED_MARK}" line after {MISSION_LOAD_S:.0f} s: leaving the screen to the mission')
+                    self._goto('mission')
         elif self.state == 'result':
             waiting = any('food is here' in line for line in self.result_lines)   # handoff timed out: keep the message
             if (self.result_code in (EXIT_DELIVERED, EXIT_NO_FOOD) and io.docked() is True and not waiting
