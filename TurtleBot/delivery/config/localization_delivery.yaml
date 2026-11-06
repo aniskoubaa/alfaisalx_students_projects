@@ -1,0 +1,63 @@
+# AMCL and map server settings for the delivery project. Copy of the file installed on the robot
+# (ros-jazzy-turtlebot4-navigation 2.0.1, config/localization.yaml), read from the robot on 2026-11-05.
+# delivery: the only change is use_sim_time true -> false in the 3 places below. The installed file sets it to
+# true, and a node's parameter file overrides the launch use_sim_time argument, so on a real robot AMCL would wait
+# for a /clock topic that does not exist.
+amcl:
+  ros__parameters:
+    use_sim_time: false  # delivery: installed file says true
+    # delivery: alpha1 to alpha4 0.2 -> 0.05. Measured in sim/ on 2026-11-06: with 0.2 the estimate fell behind the true
+    # position by about 3.7 % of the distance driven along a wall with no features (1.38 m after 25 m), which made docking
+    # fail in some runs. See the results in sim/README.md.
+    alpha1: 0.05
+    alpha2: 0.05
+    alpha3: 0.05
+    alpha4: 0.05
+    alpha5: 0.2
+    base_frame_id: "base_link"
+    beam_skip_distance: 0.5
+    beam_skip_error_threshold: 0.9
+    beam_skip_threshold: 0.3
+    do_beamskip: false
+    global_frame_id: "map"
+    lambda_short: 0.1
+    laser_likelihood_max_dist: 2.0
+    laser_max_range: 100.0
+    laser_min_range: -1.0
+    laser_model_type: "likelihood_field"
+    max_beams: 60
+    max_particles: 800      # delivery: 2000 -> 800, CPU on the Pi; the robot always starts at a known pose
+    min_particles: 200      # delivery: 500 -> 200
+    odom_frame_id: "odom"
+    pf_err: 0.05
+    pf_z: 0.99
+    recovery_alpha_fast: 0.0
+    recovery_alpha_slow: 0.0
+    resample_interval: 1
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"
+    save_pose_rate: 0.5
+    sigma_hit: 0.2
+    tf_broadcast: true
+    transform_tolerance: 1.0
+    update_min_a: 0.2
+    update_min_d: 0.25
+    z_hit: 0.5
+    z_max: 0.05
+    z_rand: 0.5
+    z_short: 0.05
+    scan_topic: scan
+
+map_server:
+  ros__parameters:
+    use_sim_time: false  # delivery: installed file says true
+    # Overridden in launch by the "map" launch configuration or provided default value.
+    # To use in yaml, remove the default "map" value in the tb3_simulation_launch.py file & provide full path to map below.
+    yaml_filename: ""
+
+map_saver:
+  ros__parameters:
+    use_sim_time: false  # delivery: installed file says true
+    save_map_timeout: 5.0
+    free_thresh_default: 0.25
+    occupied_thresh_default: 0.65
+    map_subscribe_transient_local: true

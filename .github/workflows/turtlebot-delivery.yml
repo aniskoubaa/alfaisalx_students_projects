@@ -1,0 +1,69 @@
+# Checks for the delivery project only (TurtleBot/delivery): lint, and a Nav2 parameter check inside a ROS 2 Jazzy
+# container. The general offline tests stay in turtlebot-tests.yml. Runs only when delivery files or delivery tests
+# change. The ros-integration job runs delivery/sim/ci_check_params.py once that file exists.
+name: TurtleBot delivery checks
+
+on:
+  push:
+    paths:
+      - 'TurtleBot/delivery/**'
+      - 'TurtleBot/tests/offline/test_delivery_*.py'
+      - 'TurtleBot/tests/offline/test_plan_route.py'
+      - '.github/workflows/turtlebot-delivery.yml'
+  pull_request:
+    paths:
+      - 'TurtleBot/delivery/**'
+      - 'TurtleBot/tests/offline/test_delivery_*.py'
+      - 'TurtleBot/tests/offline/test_plan_route.py'
+      - '.github/workflows/turtlebot-delivery.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'   # weekly: the ROS packages change under us even when this code does not
+
+permissions:
+  contents: read
+
+concurrency:
+  group: turtlebot-delivery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the linters (pinned)
+        run: python -m pip install ruff==0.17.3 yamllint==1.38.0 shellcheck-py==0.11.0.1
+      - name: ruff
+        run: python -m ruff check --config TurtleBot/delivery/ruff.toml TurtleBot/delivery TurtleBot/tests/offline/test_delivery_*.py
+      - name: yamllint
+        run: python -m yamllint -c TurtleBot/delivery/.yamllint.yml TurtleBot/delivery .github/workflows/turtlebot-delivery.yml
+      - name: shellcheck
+        run: find TurtleBot/delivery -name '*.sh' -print0 | xargs -0 shellcheck -x
+
+  ros-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: ros:jazzy
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Nav2, slam_toolbox and the TurtleBot 4 / Create 3 messages
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends python3-yaml \
+            ros-jazzy-nav2-bringup ros-jazzy-slam-toolbox ros-jazzy-nav2-map-server ros-jazzy-nav2-costmap-2d \
+            ros-jazzy-irobot-create-msgs ros-jazzy-turtlebot4-msgs
+      - name: Check the Nav2 parameters against the installed packages
+        shell: bash
+        run: |
+          if [ -f TurtleBot/delivery/sim/ci_check_params.py ]; then
+            source /opt/ros/jazzy/setup.bash
+            python3 TurtleBot/delivery/sim/ci_check_params.py
+          else
+            echo "TurtleBot/delivery/sim/ci_check_params.py does not exist yet; nothing to check"
+          fi

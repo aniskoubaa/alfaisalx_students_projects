@@ -1,0 +1,25 @@
+# Example delivery route for delivery_mission.py. A real route.yaml is written by tools/plan_route.py from the
+# map of the route; this example only shows the format (made-up coordinates for a straight 60 m route).
+# Map frame, metres, yaw in degrees (0 = along +x of the map, 90 = along +y).
+version: 1
+frame_id: map
+map: map.yaml                  # the map this route was planned on; plan_route.py copies it into the same folder
+dock_pose: {x: 0.0, y: 0.0, yaw: 0.0}        # robot pose on the dock = initial pose for localization (AMCL)
+outbound:                      # lab -> food court; the LAST pose is the pickup pose
+  - {x: 2.0, y: 0.5, yaw: 0.0}
+  - {x: 20.0, y: 0.5, yaw: 0.0}
+  - {x: 40.0, y: 0.5, yaw: 0.0}
+  - {x: 60.0, y: 0.5, yaw: 0.0}
+inbound:                       # food court -> lab; the LAST pose is the handoff pose, about 0.7 m in front of the dock, facing it
+  - {x: 40.0, y: 0.5, yaw: 180.0}
+  - {x: 20.0, y: 0.5, yaw: 180.0}
+  - {x: 0.7, y: 0.0, yaw: 180.0}
+settings:
+  max_speed: 0.20              # m/s, informational (the cap itself is set in config/nav2_delivery.yaml)
+  pickup_timeout_s: 600        # no "food placed" press within this: drive home empty
+  handoff_timeout_s: 900       # no "received" press within this: dock anyway, keep the message on the display
+  hands_clear_s: 5             # wait after the vendor's press before moving
+  min_battery_start: 0.40      # refuse to start below this (0..1)
+  leg_timeout_s: 600           # one navigation leg may take at most this
+  button_placed: 3             # front-panel button, 3 or 4; button 1 (Select) is always accepted too, 2 (Back) = stop
+  button_received: 4

@@ -2,7 +2,7 @@
 
 Plan of work for the lab's TurtleBot 4.
 
-**Last updated:** 2026-10-30 (robot still at home, lab under renovation: first boot on the new kernel checked over the cable, R17 and R18 survive the reboot; TB-28 decided and applied as R22: no automatic updates, monthly manual update). Previous update: 2026-10-24, late evening (10 supervised motion starts with the start-up check: all completed, short start pauses remain; TB-25 follow-up joins done, Pi-local ROS silence fixed as R18, 240 automatic package upgrades noted in TB-28). Earlier the same evening (home Wi-Fi network added as R16; supervised motion through Studio over Wi-Fi; long `/odom` stalls seen at idle, new hypothesis in TB-25; new task TB-28; TB-17 proposal added). Earlier on 2026-10-24 (Wi-Fi power-save fix applied as R14, effect not verified; `/odom` stall cause located in the base; new tasks TB-24 to TB-27). Previous update: 2026-10-10 (state as of 2026-10-10: no robot change since 2026-10-04; robot last reached briefly on 2026-10-05). Previous update: 2026-10-04 (robot state as of 2026-10-04, about 12:30 robot time)
+**Last updated:** 2026-11-06 (TB-29: the delivery stack, mapping and docking were run in the simulator on the robot's Pi with the robot on its dock; root cause of the old `stall` failure found; AMCL and slam_toolbox settings changed; nothing has driven the real base; see "Progress 2026-11-06" in TB-29). Previous update: 2026-11-03 (new task TB-29: campus food delivery along the wall; offline code in `delivery/`, nothing run on the robot). Previous update: 2026-10-30 (robot still at home, lab under renovation: first boot on the new kernel checked over the cable, R17 and R18 survive the reboot; TB-28 decided and applied as R22: no automatic updates, monthly manual update). Previous update: 2026-10-24, late evening (10 supervised motion starts with the start-up check: all completed, short start pauses remain; TB-25 follow-up joins done, Pi-local ROS silence fixed as R18, 240 automatic package upgrades noted in TB-28). Earlier the same evening (home Wi-Fi network added as R16; supervised motion through Studio over Wi-Fi; long `/odom` stalls seen at idle, new hypothesis in TB-25; new task TB-28; TB-17 proposal added). Earlier on 2026-10-24 (Wi-Fi power-save fix applied as R14, effect not verified; `/odom` stall cause located in the base; new tasks TB-24 to TB-27). Previous update: 2026-10-10 (state as of 2026-10-10: no robot change since 2026-10-04; robot last reached briefly on 2026-10-05). Previous update: 2026-10-04 (robot state as of 2026-10-04, about 12:30 robot time)
 
 ## Purpose
 
@@ -18,7 +18,7 @@ How the robot is configured, and every change made to it, is recorded in [MAINTE
 4. Change only what the task needs. The robot is shared lab hardware.
 5. Record every change to the robot, or to shared accounts and network settings, in [MAINTENANCE.md](MAINTENANCE.md), with how to verify it and how to undo it. Add a dated entry to the [General Tasks log](../General%20Tasks/TurtleBot4%20-%20connect%20to%20university%20Wi-Fi.txt).
 6. When the acceptance criteria are met, set the status to **Done** with the date, and go through the [definition of done](#definition-of-done-for-any-change).
-7. New work gets the next free ID (TB-15, TB-16, and so on; on 2026-10-24 the last ID was TB-27; updated in the evening: the last ID is now TB-28, so the next is TB-29). Do not reuse or renumber IDs.
+7. New work gets the next free ID (TB-15, TB-16, and so on; on 2026-10-24 the last ID was TB-27; updated in the evening: the last ID is now TB-28, so the next is TB-29; on 2026-11-03 TB-29 was added, so the next is TB-30). Do not reuse or renumber IDs.
 
 Admin steps (`sudo`, Wi-Fi changes) need a person who knows the robot's `ubuntu` password to type it. Never write passwords, Wi-Fi keys or private keys in this repository: it is public.
 
@@ -168,6 +168,7 @@ Not working or open:
 | [TB-26](#tb-26-measure-students-signal-strength-on-campus) | Measure `Students` signal strength on campus | P1 | Open (proposed 2026-10-24) | None |
 | [TB-27](#tb-27-desktop-control-app-for-connecting-file-sync-and-running-programs) | Desktop control app for connecting, file sync, running and stopping programs | P1 | Built and tested on the robot over the cable 2026-10-24 (no motion); evening: also tested over Wi-Fi with supervised motion; remaining checks listed in the task | None |
 | [TB-28](#tb-28-decide-whether-the-robot-installs-ubuntu-updates-by-itself) | Decide whether the robot installs Ubuntu updates by itself | P2 | Open (proposed 2026-10-24, evening) | None |
+| [TB-29](#tb-29-campus-food-delivery-along-the-wall-supervised-demo) | Campus food delivery along the wall (supervised demo) | P1 | In progress (2026-11-06: simulator runs done on the robot's Pi, real-robot steps next; 2026-11-03: offline parts built) | TB-25 |
 
 Suggested order (updated 2026-10-24): **TB-27 is the next task** (owner the user). On the next campus visit, in one session: **TB-26** (signal strength, read only) together with **TB-20** steps 5 and 6 (30 connection attempts over 30 minutes, then the reboot test), because R14 is applied but its effect is unverified. At the robot, which also works over the Ethernet cable: **TB-24** (small, makes every motion run start cleanly) and **TB-25** (why the base stalls; it blocks reliable shapes and feeds TB-15 and TB-16). Then the order of 2026-10-10 below: TB-22 and TB-21, TB-23, TB-17, TB-05, TB-07 before risky changes.
 
@@ -1254,6 +1255,120 @@ Remaining:
 **Risks and rollback.** A control app can send motion commands: keep the emergency stop prominent and test motion only supervised.
 
 **Estimated effort:** to be estimated by the owner.
+
+---
+
+### TB-29 Campus food delivery along the wall (supervised demo)
+
+**Priority:** P1 | **Status:** In progress (Ibrahim; 2026-11-06 later: the real robot drove a 1.1 m test route at home and a front-panel menu was installed, see Progress 2026-11-06, real robot; not yet on campus. Earlier 2026-11-06: simulator runs done on the robot's Pi with the robot docked, the real base has not driven; the human-only steps are listed under Progress 2026-11-06. 2026-11-03: offline parts built) | **Depends on:** TB-25 (base steady with the navigation stack running)
+
+**Goal.** The professor's assignment: map the route from the campus food court to the AlfaisalX lab and have the robot deliver food along it, keeping close to the wall. The target is a supervised demo, with a person walking behind the robot carrying the TurtleBot 4 controller.
+
+**Why it matters.** It is the first task that uses mapping and autonomous navigation on this robot, and the professor asked for it.
+
+**Route facts (Ibrahim, 2026-11-03).**
+- Same floor, about 50 to 100 m (estimate), a straight path with no doors and no corridors.
+- Glass doors along the way. A glass room opens off the wall and must be skipped.
+- Sometimes ramps or cables on the floor. Very crowded at lunch (left for after the prototype).
+- No floor plans: the robot should map the route itself.
+- A vendor loads the food and a student receives it; the vendor needs a button.
+- No spending, and no permission needed.
+
+**Chosen approach (Option B of the research).**
+1. Map the route with slam_toolbox while the Create 3 follows the wall (controller R2), or by teleop as a fallback.
+2. Plan a lane about 0.5 m from the wall on the saved map. Use lethal keepout lines across the glass room opening and in front of the glass doors, and slow zones for ramps and cables.
+3. Navigate with AMCL and Nav2, with a soft "preferred lane" keepout mask, lower inflation and a speed cap of 0.20 m/s.
+4. Hand off with front-panel buttons 3 ("food placed") and 4 ("received"). Buttons 3 and 4 only scroll the menu by default; never use 1 (Select) or 2 (Back). *(Replaced 2026-11-06: with the delivery menu installed, button 1 selects and answers prompts and button 2 is Stop while the robot moves; see delivery/README.md section 2.)*
+
+Code: [delivery/](delivery/README.md). The research report and the Phase 0 checklist are outside the repo, with Ibrahim.
+
+**Steps.**
+1. Phase 0, no motion:
+   - Read-only checks (`delivery/phase0/p0_checks.sh`).
+   - One-hour soak with SLAM and Nav2 running on the dock (`delivery/phase0/p0_soak.sh`). Pass: no `/odom` gap over 0.3 s from 10 minutes after start-up.
+   - Walk the route and measure it. **[to verify]**
+2. Phase 1: map the route by wall-follow at a quiet hour, clean the map (glass as walls), plan the route (`delivery/tools/plan_route.py`), and run supervised Nav2 tests on one stretch. **[to verify]**
+3. Phase 2: 10 supervised round trips outside lunch hours. Log successes, interventions, time and battery used. **[to verify]**
+4. Phase 3: the delivery demo with a vendor and a student (`delivery/delivery_mission.py`). **[to verify]**
+
+**Acceptance criteria.**
+- [ ] Phase 0 soak passes, or the stall cause is handled.
+- [ ] A clean map of the route and a planned route with masks.
+- [ ] 10 supervised round trips with at least 9 completed without a takeover. Distance to the wall within 0.15 m of the chosen value on straight stretches.
+- [ ] One full delivery demo: vendor press, return, student press, dock.
+
+**Risks and rollback.**
+- Motion in a public area: supervised only, 0.20 m/s cap, controller B as the emergency stop, runs outside lunch hours.
+- Glass and floor cables are invisible to the lidar; the map edits and slow zones mitigate this, and the walker is the backstop.
+- TB-25 stalls with many ROS nodes running.
+- Nothing is installed on the robot. The programs run from `~/robot_code/delivery`; rollback is deleting that folder.
+
+**Progress 2026-11-06.** All of this ran in the simulator (`delivery/sim/`) on the robot's Pi in ROS domain 77, with the robot on its dock and a fake base in place of the Create 3 and the lidar. The robot did not drive. Details, tables and run folders: [delivery/sim/README.md, Results](delivery/sim/README.md#results-2026-11-06). Record of the changes: [delivery/README.md](delivery/README.md). The software on the robot lives in `~/robot_code` (numbered releases with a symlink, see `delivery/tools/deploy.py`); only files there changed, no robot configuration, so there is no new row in the MAINTENANCE.md change register.
+
+*Found and fixed:*
+- **Root cause of the old `stall` failure** ("Dock failed", exit 3, `sim_20261105_022632_stall`). Not the stall: hold and resume worked. (1) AMCL drifted along the wall: with `alpha` 0.2 its estimate fell behind the truth by about 3.7 % of the distance driven when nothing in view fixes the position along the wall (0.53 m off at the failure, 1.23 m from the dock). (2) The fake base accepts `/dock` only within 1.0 m, an assumption. (3) The dock retry drove to the hand-off pose, where the robot already believed it was, so it did not move and the second dock failed the same way. That was a real mission bug. The same scenario passed on the next run with no code change, so it is intermittent.
+- **Dock retry:** the second try now starts 0.45 m from the dock (`DOCK_RETRY_DISTANCE`, `dock_retry_pose()` in `delivery_core.py`). New scenario `dock_retry`: PASS, the retry drove closer (0.98 m then 0.72 m).
+- **AMCL:** `alpha1` to `alpha4` 0.2 to 0.05. Maximum error along the wall 1.38 m before, 0.24 to 0.60 m after (four runs on a 25 m route, a small sample). Side-to-side error under 0.1 m in all of them.
+- **slam_toolbox:** the installed `slam.yaml` shrinks a long plain wall: on a 40 m synthetic hall the map was about 30 % short (end wall at -6.0, truth -1.5). New `config/slam_delivery.yaml` with `distance_variance_penalty` 0.05 (installed 0.5): end wall -1.53, glass room about 3.4 % short, no ghost wall. `start_stack.sh map` and `sim/run_mapping.sh` use it. The real size of the effect on the real hall is NOT VERIFIED.
+- **Mapping safety:** wall-follow keeps the robot only about 0.13 m from the wall at its edge in the simulator; with 2 % odometry error a straight drive across the glass room opening from there touched the glass. Move out to at least 0.6 m before crossing an opening or passing glass (now in delivery/README.md, section 6). New step: compare the saved map with one measured distance before planning; more than about 3 % short means do not plan on it.
+- **Simulator and checks:** `run_mapping.sh` bugs fixed (missing `rclpy.init()`, the crossing on the way back reversed); tilt-aware map check and `along_wall_report`; AMCL error now logged (`est_*`, `amcl_error_m`); `tools/deploy.py` (numbered releases, manifest, rollback) and `tools/verify_all.py` added; the README sections on the removed `delivery_filters.launch.py`, MPPI and the SLAM-based soak were corrected.
+
+*Verified (in the simulator, on real Nav2, AMCL and slam_toolbox):* `robot/save_map.sh` service calls (`result=0`, `.pgm`, `.yaml`, `.posegraph`, `.data` written); slam_toolbox runs without `/clock`; the project's own yaml copies are needed because the installed TurtleBot 4 files set `use_sim_time: true`; Regulated Pure Pursuit at 10 Hz replaced MPPI (MPPI missed its loop rate on the Pi); the one-process stack with `bond_timeout` 20 s and BT `default_server_timeout` 1000 ms comes up on its own with the robot on the dock (AMCL gets the dock pose at start).
+
+*Found on the robot, not fixed:* the OAK-D container's main thread uses about 90 % of one core even with the camera stopped (seen 2026-11-05); the Pi ran at a mean CPU of about 75 to 91 % in the simulator, part of it the fake base (about half a core), so the real load is NOT VERIFIED. The robot was booted at 2026-11-06 07:05 and moved by hand (undock logged 2026-11-05 21:17, re-dock 2026-11-06 07:08), not from these sessions; the health check after it showed `/odom` 20 Hz, `/dock_status` 1 Hz, power save 2. See MAINTENANCE.md.
+
+*Still NOT VERIFIED:* the real lidar with glass and cables; the real Create 3 dock range (the robot stops 0.92 to 0.98 m from the dock at the hand-off, little margin against the assumed 1.0 m); the real SLAM shrink on the real hall; the real Pi load with the real base; how long a display message stays visible; the real wall-follow distance; controller B as emergency stop on this robot.
+
+*Left to do, human only:*
+1. Unplug the Ethernet cable for any motion, and have the lab maintainer's OK.
+2. Press front-panel buttons 3 and 4 in person on this robot (never 1 or 2) to check that they only scroll the menu.
+3. Map the route with a person walking behind the robot: move out to 0.6 m before openings and glass, then measure one known distance and compare it with the saved map.
+4. Take the robot to campus for the real route; then Phase 2 and 3. (The soak test on the final stack is done: see below.)
+5. Record the real `/dock` range on the first real runs.
+6. Push the work to GitHub (nothing is committed or pushed yet).
+
+*Soak test on the final code (about 80 minutes, `delivery/phase0/p0_soak.sh --recorder ...`, pass: no `/odom` gap over 0.3 s from 10 minutes after the stack starts):*
+
+**PASS** (`p0_soak_20261106_095510`, the real base, robot docked, lidar motor on, no goals, 2026-11-06 09:55 to 11:15). In the pass window (3659 s): `/odom` 20.0 Hz, longest gap 0.091 s, no gap over 0.3 s. Whole 78 minute recording: 93414 `/odom` messages, longest gap 0.257 s, about 20 s after the stack started (total CPU 92 %). Load average mean 6.1, maximum 11.9; 63 to 65 degrees C. The stack is one process using 130 to 146 % of a core. This test starts no new ROS participant while it runs, so it says nothing about the base stall a new participant can cause (TB-25), and nothing about the load while driving. Only `delivery_core.py` and `delivery_mission.py` changed after it (mission logic and display text), not the stack.
+
+Final simulator runs: `happy` at 60 m and 20 m, `stall`, `dock_retry`, and `run_mapping.sh` at 25 m and at 40 m with 2 % odometry error all PASS. Two small mission fixes (asking `get_state` again, the display text) landed during this series, so only `happy` 20 m ran on the very last code; which run had which fix is in [delivery/sim/README.md](delivery/sim/README.md#results-2026-11-06).
+
+Non-motion checks on the real robot, 2026-11-06: `delivery_mission.py --dry-run` with the real stack passed. Found and fixed there: (1) the display cuts text every 18 characters and ignores newlines, so every two-line prompt was garbled (now `core.display_wire`; read back correct on `/hmi/display`); (2) the first lifecycle `get_state` reply was lost on both real dry runs, and before the fix that could end in a false refusal. A display message does not time out (over 120 s unchanged). A chime was sent to the base's `/cmd_audio`; whether it is audible was not checked.
+
+**Progress 2026-11-06, real robot.** Later the same day the robot left its dock for the first time under this task: at home, over Wi-Fi with the Ethernet cable out, in a room of about 2.5 x 1.8 m with a corridor, with a person next to it. The robot has NOT been to campus. Details and tables: [delivery/README.md](delivery/README.md), sections 9, 11 and 13.
+
+*Done:*
+- Short supervised motion steps with `delivery/robot/motion_probe.py` (undock, dock, drive, turn, wall follow), log `~/robot_code/logs/delivery/motion/first_motion.log`.
+- A real map with `start_stack.sh map` and `config/slam_delivery.yaml`, saved with `save_map.sh`.
+- First real Nav2 deliveries on a 1.1 m route (`~/robot_code/routes/home`, slowed near the dock): by hand and from the menu.
+- A front-panel menu with `Go to food court` / `Back to the lab` as its first entry (`delivery_menu.py`, installed as a user service, MAINTENANCE.md R24).
+- Bugs found by real driving and fixed (below).
+
+*Verified on the real robot (small samples, one room):*
+- Docking: 7 of 10 attempts docked (from 0.13 m up to about 1.55 m, 19 to 40 s). Three failed after 16 s: about 2 m facing away (dock not seen), about 1 m facing the dock by odometry only (dock not seen), and one after 10 s of wall follow from the menu. A closer second try (0.45 m) docked in 23.4 s. So the retry leg to 0.45 m is right and the hand-off distance of 0.7 to 1.1 m is inside the range. The simulator's 1.0 m limit is on the safe side.
+- Undock: backs about 0.13 m and turns about 180 degrees (5.6 s). Docked, the robot faces the dock: yaw -32 on the dock, 147 after undocking. The planner's default `start` was INTO the dock; fixed (`tools/plan_route.py`), `dock_pose.yaw` is the real yaw.
+- Wall follow (Create 3, 8 s): the nearest return ended about 0.15 m from the lidar centre, 0.75 m moved. The simulator assumed 0.30 m.
+- Real mapping: map 4.10 x 4.45 m, walls closed. Not compared with a tape, so the SLAM scale is NOT VERIFIED.
+- Deliveries: run 1 (by hand, no button) outbound 18 s, inbound 9 s, docked at the first try in 26 s, exit 4, 0 holds, 0 retries; run 2 (menu, press too early) exit 4; run 3 (menu, full delivery with presses) exit 0. Final run on the final code, from the menu: delivered, exit 0, 96 s, 0 holds, 0 retries, longest /odom gap 0.452 s, no false Nav2 reset, load average about 8.6 (it was 18 with the camera container running). Stack ready 27 to 70 s; from `Yes` to moving about 1 min 15 s. Chime heard by Ibrahim.
+- Menu, tested with simulated presses: scrolling, confirm and No, Yes, whole delivery, Stop mid-route, Back to the lab, Dock, Undock, EStop on and off, Wall Follow Left.
+
+*Bugs found by real driving, all fixed:* the mission froze with the stop button dead (5 s limit on the goal answer); a false Nav2 reset at load 15 (`bond_timeout` 0, cause not understood); button 2 wiped the screen for up to 3 s (redraw after press and release, text re-shown every 0.5 s); the idle menu used 33 % of a core (polling every 0.1 s); the OAK-D container used about 100 % of a core (stopped at each stack start).
+
+*Still NOT verified:* the campus route; the real SLAM scale on a long wall; lidar and glass; driving load over a long route; Wi-Fi `Students` during a run; the Controller B emergency stop in a real run; `/hazard_detection` is not republished; the PHYSICAL front-panel buttons on the new menu and how the screen looks to a person; the `Power` entry (not pressed on purpose); `Wall Follow Right` from the menu.
+
+*Next steps for the campus trip (2026-11-08 or 2026-11-09), in order:*
+1. **Point the route:** on the robot, `ln -sfn route1 ~/robot_code/routes/current` once the campus route folder `route1` is there (delivery/README.md, box at the start of section 6). Until then the link points to the home route.
+2. **Map by walking:** a person walks behind the robot (controller B ready); map with `start_stack.sh map`, move out to 0.6 m before openings and glass, close the loop, save the map.
+3. **Compare one tape distance:** measure one known distance on the floor and the same on the map; if the map is more than about 3 % short, do not plan on it (section 6, step 7).
+4. **Plan:** clean the map, write the spec (`dock_pose.yaw` is the real yaw on the dock), run `plan_route.py`, check the preview.
+5. **Copy** the route folder to the robot (`~/robot_code/routes/route1`), and check the `current` link.
+6. **Dry run:** start the stack on the dock, `delivery_mission.py --dry-run`.
+7. **Supervised run:** from the menu, with a person walking behind and B ready; record the distance at which the real `/dock` works and the Wi-Fi behaviour.
+8. **Demo** with a vendor and a student, outside lunch hours (section 10).
+
+*Rule change:* since 2026-11-06 Ibrahim allows committing and pushing straight to `main` of the lab repo. Earlier lines in this task that say Ibrahim pushes himself are history.
+
+**Estimated effort:** 2 to 3 weeks part-time.
 
 ---
 

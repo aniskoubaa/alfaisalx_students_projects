@@ -1,0 +1,15 @@
+[Unit]
+Description=Delivery robot front-panel menu (TurtleBot 4)
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c 'source /etc/turtlebot4/setup.bash && exec python3 %h/robot_code/delivery/delivery_menu.py'
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=5
+# Only the menu itself is stopped on a stop or a restart: the navigation stack and a running mission were started in
+# their own sessions and must carry on (the mission owns the screen and the buttons while it runs).
+KillMode=process
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,17 @@
+# yamllint settings for TurtleBot/delivery (run: python -m yamllint -c TurtleBot/delivery/.yamllint.yml TurtleBot/delivery)
+extends: relaxed
+
+ignore: |
+  config/upstream/
+
+rules:
+  line-length: disable
+  comments: disable
+  comments-indentation: disable
+  document-start: disable
+  truthy:
+    allowed-values: ['true', 'false', 'True', 'False']
+    check-keys: false
+  indentation:
+    spaces: consistent
+    indent-sequences: consistent

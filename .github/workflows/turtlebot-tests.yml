@@ -25,11 +25,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'   # same as the robot (Ubuntu 24.04)
+      - name: Install PyYAML (delivery route and Nav2 config files)
+        run: python -m pip install pyyaml
       - name: Compile every Python file
-        run: python -m py_compile TurtleBot/examples/*.py TurtleBot/tests/*.py TurtleBot/tests/offline/*.py TurtleBot/tools/timing/*.py TurtleBot/tools/studio/*.py TurtleBot/tools/studio/templates/*.py
+        run: python -m py_compile TurtleBot/examples/*.py TurtleBot/tests/*.py TurtleBot/tests/offline/*.py TurtleBot/tools/timing/*.py TurtleBot/tools/studio/*.py TurtleBot/tools/studio/templates/*.py TurtleBot/delivery/*.py TurtleBot/delivery/tools/*.py TurtleBot/delivery/launch/*.py TurtleBot/delivery/sim/*.py
       - name: Check shell scripts
         run: |
-          for f in TurtleBot/examples/*.sh TurtleBot/tools/connect/*.sh TurtleBot/tools/studio/*.sh; do
+          for f in TurtleBot/examples/*.sh TurtleBot/tools/connect/*.sh TurtleBot/tools/studio/*.sh TurtleBot/delivery/robot/*.sh TurtleBot/delivery/phase0/*.sh TurtleBot/delivery/sim/*.sh; do
             if [ -f "$f" ]; then bash -n "$f"; echo "ok $f"; fi
           done
       - name: Documentation links
@@ -46,6 +48,18 @@ jobs:
         run: python TurtleBot/tests/offline/test_studio_desktop.py
       - name: TurtleBot Studio templates and program catalog (simulated robot)
         run: python TurtleBot/tests/offline/test_studio_templates.py
+      - name: Delivery program (fake robot)
+        run: python TurtleBot/tests/offline/test_delivery_mission.py
+      - name: Delivery route planner and masks (synthetic maps)
+        run: python TurtleBot/tests/offline/test_plan_route.py
+      - name: Delivery Nav2 settings, launch file and robot scripts
+        run: python TurtleBot/tests/offline/test_delivery_config.py
+      - name: Delivery deploy tool (fake ssh and scp)
+        run: python TurtleBot/tests/offline/test_delivery_deploy.py
+      - name: Delivery simulator (pure parts, no ROS)
+        run: |
+          python -m pip install numpy
+          python TurtleBot/tests/offline/test_delivery_sim.py
       - name: TurtleBot Studio web files
         run: |
           node --check TurtleBot/tools/studio/web/app.js

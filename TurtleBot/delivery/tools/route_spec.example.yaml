@@ -1,0 +1,44 @@
+# Example spec for tools/plan_route.py ("plan a wall-hugging delivery route on a saved map").
+# All coordinates are map-frame metres: x to the right, y up, yaw in degrees (0 = +x, 90 = +y).
+# Any point can instead be written in image pixels, {px: COLUMN, py: ROW}, counted from the TOP-LEFT of the
+# map image (pixel centres). Use `plan_route.py --map MAP.yaml --info` to see the conversion for your map.
+# The numbers below are made up for the synthetic hall used by the offline tests; replace them for your map.
+#
+# Run (on the laptop, no robot needed):
+#   python plan_route.py --map my_map.yaml --spec route_spec.yaml --out route_out/
+
+dock_pose: {x: 1.0, y: 1.0, yaw: 180.0}    # robot pose on the dock (becomes the AMCL initial pose); it faces the dock
+start: {x: 1.7, y: 1.0}                    # optional; where the lane begins. Default: 0.7 m straight out from the dock
+goal: {x: 38.0, y: 1.0, yaw: 0.0}          # pickup spot (yaw optional; default = direction of travel)
+
+# via:                                     # optional points the path must pass through, in order
+#   - {x: 20.0, y: 1.0}
+#   - {px: 400, py: 200}                   # same thing in image pixels
+
+wall_offset_m: 0.5          # distance from robot centre to the nearest obstacle the planner aims for
+clearance_m: 0.30           # hard minimum distance to obstacles (cells closer than this are never used)
+lane_half_width_m: 0.25     # half width of the soft preferred lane in keepout_mask (value 0 inside)
+waypoint_spacing_m: 2.0     # distance between route waypoints
+
+keepout_lines:              # lethal lines (glass doors, the opening of the glass room)
+  - name: glass_room_opening
+    from: [18.0, 0.2]
+    to: [22.0, 0.2]
+    width_m: 0.10
+keepout_polygons:           # lethal filled areas
+  - name: cable_area
+    points: [[30.0, 3.0], [32.0, 3.0], [32.0, 4.0], [30.0, 4.0]]
+
+slow_zones:                 # speed limit areas: either points (polygon) or center + radius_m
+  - name: near_dock
+    speed_percent: 50       # 10..100 (percent of the normal speed)
+    center: [1.0, 1.0]
+    radius_m: 1.5
+  - name: ramp
+    speed_percent: 40
+    points: [[25.0, 0.0], [28.0, 0.0], [28.0, 2.0], [25.0, 2.0]]
+
+settings:                   # optional: overrides copied into route.yaml "settings"
+  pickup_timeout_s: 600
+  button_placed: 3
+  button_received: 4

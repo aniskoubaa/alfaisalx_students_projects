@@ -1,0 +1,23 @@
+# Lint settings for TurtleBot/delivery (run: python -m ruff check .). The code targets the robot's Python 3.12
+# but stays compatible with 3.10.
+target-version = "py310"
+line-length = 120
+extend-exclude = ["config/upstream"]
+
+[lint]
+select = ["E", "F", "W", "B", "UP"]
+ignore = [
+    "E402",   # tests and tools insert sys.path before importing sibling modules
+    "E701",   # short one-line `if x: y` is used in the repo style
+    "E702",   # `a = 1; b = 2` on one line is used in the repo style
+    "E731",   # small lambdas assigned to names
+    "UP015",  # explicit open(..., 'r') is clear
+    "UP032",  # keep existing %-format and .format calls
+    "UP031",  # keep existing %-format calls
+    "B905",   # zip() without strict=: lengths are equal by construction; adding it would change behaviour
+]
+
+[lint.per-file-ignores]
+# Test tables and simulator scenario text read better on one line; the robot code itself keeps the 120 limit.
+"**/sim/*.py" = ["E501"]
+"**/test_delivery_*.py" = ["E501"]

@@ -25,3 +25,6 @@ env/
 # Benchmark artifacts that shouldn't be versioned by default
 RAPTOR/jetson_orin_nano_benchmarks/models/
 RAPTOR/jetson_orin_nano_benchmarks/videos/
+
+# Lint caches
+.ruff_cache/
