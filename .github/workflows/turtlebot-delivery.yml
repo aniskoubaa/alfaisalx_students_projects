@@ -60,6 +60,8 @@ jobs:
             ros-jazzy-irobot-create-msgs ros-jazzy-turtlebot4-msgs
       - name: Check the Nav2 parameters against the installed packages
         shell: bash
+        env:
+          ROS_DOMAIN_ID: "77"   # the check refuses to start ROS nodes without a domain other than 0
         run: |
           if [ -f TurtleBot/delivery/sim/ci_check_params.py ]; then
             source /opt/ros/jazzy/setup.bash
