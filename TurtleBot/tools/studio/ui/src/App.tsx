@@ -19,6 +19,7 @@ import { Files } from './screens/Files';
 import { Overview } from './screens/Overview';
 import { Programs } from './screens/Programs';
 import { Live } from './screens/live/Live';
+import { Maps } from './screens/maps/Maps';
 import { Logs } from './screens/logs/Logs';
 import { Settings } from './screens/settings/Settings';
 import { Tools } from './screens/tools/Tools';
@@ -41,6 +42,8 @@ function Screen() {
       return <Files />;
     case '/live':
       return <Live />;
+    case '/maps':
+      return <Maps />;
     case '/charts':
       return (
         <Suspense

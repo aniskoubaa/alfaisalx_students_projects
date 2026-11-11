@@ -1,0 +1,113 @@
+/* ---------- Maps (2.1) ---------- */
+.maps .live-stage .panel-body {
+  display: grid;
+}
+.mapping-controls {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  border-bottom: 1px solid var(--line);
+}
+.mapping-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.mapping-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+.mapping-controls p {
+  margin: 0;
+}
+.mapping-error {
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--amber);
+  border-radius: var(--r-ctl);
+  background: var(--amber-soft);
+  color: var(--amber-text);
+  font-size: var(--fs-13);
+}
+.map-stage {
+  display: grid;
+}
+.map-stage .live-toolbar {
+  align-items: center;
+}
+.map-info {
+  margin-left: var(--sp-1);
+}
+.map-canvas-wrap {
+  border-radius: 0 0 var(--r-panel) var(--r-panel);
+}
+.map-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: var(--sp-2);
+  color: var(--muted);
+  text-align: center;
+  pointer-events: none;
+}
+.map-canvas-wrap .map-error {
+  position: absolute;
+  left: var(--sp-2);
+  right: var(--sp-2);
+  bottom: var(--sp-2);
+}
+.maps-note {
+  position: static;
+  max-width: none;
+  margin: 0 0 var(--sp-2);
+}
+.maps-drive {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.maps-drive:disabled {
+  opacity: 0.55;
+}
+.map-table th[scope='row'] {
+  text-align: left;
+}
+.map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--signal-text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.map-table tr.is-selected th,
+.map-table tr.is-selected td {
+  background: var(--signal-soft);
+}
+.map-preview-box {
+  margin-top: var(--sp-2);
+}
+.map-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  image-rendering: pixelated;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+}
+
+.maps-library {
+  margin-top: var(--sp-2);
+}

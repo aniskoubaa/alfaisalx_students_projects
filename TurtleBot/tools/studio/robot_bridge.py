@@ -25,6 +25,7 @@ program needs confirmed=true, undock/dock need confirmed=true, and a ~/STOP file
 scan is evaluated only at the status period, nmcli/systemctl results are cached for 10 s.
 """
 import argparse
+import base64
 import collections
 import hashlib
 import json
@@ -40,6 +41,7 @@ import sys
 import tempfile
 import threading
 import time
+import zlib
 
 VERSION = "1"
 MOTION_REGEX = (r"motion_shapes\.py|drive_test\.py|motion_test\.sh|more_shapes\.py|wall_approach\.py|"
@@ -874,6 +876,193 @@ class WifiSecrets:
 
 
 # ======================================================================= single locked writer
+# ======================================================================= mapping helpers (pure, Studio 2.1)
+MAP_NAME_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,47}")
+MAP_EXTS = (".pgm", ".yaml", ".posegraph", ".data")
+SLAM_PATTERN = "slam.launch.py"                      # pgrep -f patterns, the same as delivery/robot/start_stack.sh
+OTHER_STACK_PATTERNS = ("localization.launch.py", "delivery_stack.launch.py", "nav2.launch.py")
+NUM_RE = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
+PGM_SPACE = (b" ", b"\t", b"\r", b"\n", b"\x0b", b"\x0c")
+
+
+def valid_map_name(name):
+    """True for a map name: 1 to 48 characters of A-Z a-z 0-9 _ -, starting with a letter or digit."""
+    return isinstance(name, str) and MAP_NAME_RE.fullmatch(name) is not None
+
+
+def parse_map_yaml(text):
+    """Minimal map_server YAML (flat key: value lines, no PyYAML) -> {image, resolution, origin [x, y, yaw], negate,
+    occupied_thresh, free_thresh, mode}. Raises ValueError without image or a positive resolution."""
+    vals = {}
+    for line in str(text).splitlines():
+        line = line.split("#", 1)[0].strip()
+        if ":" in line:
+            k, v = line.split(":", 1)
+            vals[k.strip()] = v.strip()
+
+    def unquote(s):
+        return s[1:-1] if len(s) >= 2 and s[0] == s[-1] and s[0] in "'\"" else s
+
+    def num(key, default):
+        m = NUM_RE.match(vals.get(key, ""))
+        return float(m.group(0)) if m else default
+
+    image = unquote(vals.get("image", ""))
+    if not image:
+        raise ValueError("the map YAML has no image")
+    res = num("resolution", 0.0)
+    if res <= 0:
+        raise ValueError("the map YAML has no valid resolution")
+    org = [float(x) for x in NUM_RE.findall(vals.get("origin", ""))]
+    if len(org) == 2:
+        org.append(0.0)
+    origin = org[:3] if len(org) >= 3 else [0.0, 0.0, 0.0]
+    return {"image": image, "resolution": res, "origin": origin, "negate": int(num("negate", 0)),
+            "occupied_thresh": num("occupied_thresh", 0.65), "free_thresh": num("free_thresh", 0.25),
+            "mode": unquote(vals.get("mode", "trinary")) or "trinary"}
+
+
+def rewrite_yaml_image(text, image):
+    """The map YAML text with its image: line set to image (added at the top when missing)."""
+    new, n = re.subn(r"(?m)^(\s*image\s*:).*$", lambda m: "%s %s" % (m.group(1), image), text, count=1)
+    return new if n else "image: %s\n%s" % (image, text)
+
+
+def pgm_header(data):
+    """Header of a PGM (P5 binary or P2 ascii, '#' comments) -> (kind, width, height, maxval, offset after maxval)."""
+    n = len(data)
+    pos = 0
+
+    def token():
+        nonlocal pos
+        while pos < n:
+            ch = data[pos:pos + 1]
+            if ch == b"#":
+                while pos < n and data[pos:pos + 1] not in (b"\n", b"\r"):
+                    pos += 1
+            elif ch in PGM_SPACE:
+                pos += 1
+            else:
+                break
+        start = pos
+        while pos < n and data[pos:pos + 1] not in PGM_SPACE and data[pos:pos + 1] != b"#":
+            pos += 1
+        if start == pos:
+            raise ValueError("PGM header is incomplete")
+        return bytes(data[start:pos])
+    kind = token()
+    if kind not in (b"P5", b"P2"):
+        raise ValueError("not a PGM file (P5 or P2 expected)")
+    try:
+        w, h, mx = int(token()), int(token()), int(token())
+    except ValueError:
+        raise ValueError("PGM header is not numeric")
+    if w < 1 or h < 1 or w > 100000 or h > 100000:
+        raise ValueError("PGM size is not valid")
+    if mx < 1 or mx > 255:
+        raise ValueError("PGM maxval above 255 is not supported")
+    return kind.decode(), w, h, mx, pos
+
+
+def read_pgm(data):
+    """PGM bytes (P5 or P2, maxval <= 255) -> (width, height, pixel bytes), row 0 = top row of the file."""
+    kind, w, h, mx, pos = pgm_header(data)
+    if kind == "P5":
+        pix = bytes(data[pos + 1:pos + 1 + w * h])
+    else:
+        body = re.sub(rb"#[^\r\n]*", b"", bytes(data[pos:]))
+        try:
+            vals = [int(x) for x in body.split()]
+        except ValueError:
+            raise ValueError("PGM pixels are not numeric")
+        if any(v < 0 or v > mx for v in vals[:w * h]):
+            raise ValueError("PGM pixel above maxval")
+        pix = bytes(vals[:w * h])
+    if len(pix) != w * h:
+        raise ValueError("PGM has %d pixels, expected %d" % (len(pix), w * h))
+    return w, h, pix
+
+
+def sample_grid(w, h, data, stride):
+    """Every stride-th cell of every stride-th row (nearest sample, bytes slicing) -> (width, height, bytes)."""
+    s = max(1, int(stride))
+    rows = [data[y * w:(y + 1) * w][::s] for y in range(h)[::s]]
+    return len(range(w)[::s]), len(rows), b"".join(rows)
+
+
+def choose_stride(w, h, max_cells):
+    """Smallest stride >= 1 for which the sampled grid has at most max_cells cells."""
+    s = 1
+    while ((w + s - 1) // s) * ((h + s - 1) // s) > max_cells and s < max(w, h):
+        s += 1
+    return s
+
+
+def cells_bytes(cells):
+    """OccupancyGrid data (int8: -1 unknown, 0..100) as bytes, like array('b').tobytes(): unknown becomes 255."""
+    if isinstance(cells, (bytes, bytearray)):
+        return bytes(cells)
+    if hasattr(cells, "tobytes") and getattr(cells, "itemsize", 1) == 1:
+        return cells.tobytes()
+    return bytes(int(v) & 0xFF for v in cells)
+
+
+def pack_cells(raw):
+    """bytes -> base64 text of zlib data."""
+    return base64.b64encode(zlib.compress(raw, 6)).decode("ascii")
+
+
+def encode_cells(cells):
+    """OccupancyGrid data -> base64 of zlib of one byte per cell (0..100, 255 unknown)."""
+    return pack_cells(cells_bytes(cells))
+
+
+def build_map_event(seq, t, width, height, resolution, origin, cells, max_cells):
+    """The `map` event: the grid sampled to at most max_cells cells (stride in both directions; width, height and
+    resolution are the sampled values), encoding "cells", row 0 = bottom row."""
+    raw = cells_bytes(cells)
+    stride = choose_stride(width, height, max_cells)
+    w, h = width, height
+    if stride > 1:
+        w, h, raw = sample_grid(width, height, raw, stride)
+    return {"ev": "map", "seq": seq, "t": round(t, 3), "width": w, "height": h,
+            "resolution": round(resolution * stride, 6),
+            "origin": {"x": round(origin[0], 4), "y": round(origin[1], 4), "yaw": round(origin[2], 4)},
+            "stride": stride, "encoding": "cells", "data": pack_cells(raw)}
+
+
+def pose_compose(a, b):
+    """2D rigid transforms (x, y, yaw): a followed by b."""
+    c, s = math.cos(a[2]), math.sin(a[2])
+    return (a[0] + c * b[0] - s * b[1], a[1] + s * b[0] + c * b[1], wrap_pi(a[2] + b[2]))
+
+
+def pose_inverse(p):
+    c, s = math.cos(p[2]), math.sin(p[2])
+    return (-(c * p[0] + s * p[1]), -(-s * p[0] + c * p[1]), wrap_pi(-p[2]))
+
+
+def compose_map_pose(slam_pose, odom_at_slam, odom_now):
+    """Pose in the map frame: the slam_toolbox pose moved forward by the odometry since it was published.
+    map<-odom = slam * inverse(odom at that time); result = map<-odom * odometry now. All are (x, y, yaw)."""
+    return pose_compose(pose_compose(slam_pose, pose_inverse(odom_at_slam)), odom_now)
+
+
+def detect_stack(running):
+    """running(pattern) -> bool. Returns (slam_running, name of a running navigation launch or None)."""
+    other = None
+    for pat in OTHER_STACK_PATTERNS:
+        if running(pat):
+            other = pat
+            break
+    return bool(running(SLAM_PATTERN)), other
+
+
+def tail_lines(text, n=20):
+    """The last n non-empty lines of a script output, as a list."""
+    return [ln.rstrip()[:300] for ln in str(text or "").splitlines() if ln.strip()][-n:]
+
+
 class Writer:
     """All stdout output goes through one queue and one writer thread, so ROS callbacks never block on a slow pipe.
     Droppable events (status, msg) are dropped when the queue is long; replies are never dropped."""
@@ -994,6 +1183,17 @@ class RosBase:
         """Newest odometry as {x, y, yaw (rad), vx, wz, age_s} or None."""
         return None
 
+    def ensure_map_subs(self):
+        """Create the /map and /pose subscriptions (once, on the existing node)."""
+
+    def map_data(self):
+        """Newest map as {seq, width, height, resolution, origin (x, y, yaw), cells, age_s} or None."""
+        return None
+
+    def map_pose(self):
+        """Robot pose in the map frame as {x, y, yaw, source: "slam" or "odom"} or None."""
+        return None
+
 
 class RosReal(RosBase):
     def __init__(self):
@@ -1003,6 +1203,10 @@ class RosReal(RosBase):
         self._lock = threading.Lock()
         self._odom = self._scan = self._wheel = None        # (raw bytes, receive monotonic)
         self._odom_n = self._scan_n = 0
+        self._map = None                                    # (raw OccupancyGrid bytes, receive monotonic)
+        self._map_n = 0
+        self._slam = None                                   # ((x, y, yaw), odom (x, y, yaw) or None, receive monotonic)
+        self._map_subs = False
         self._rate = {}
         self._battery = {}
         self._dock = {}
@@ -1274,6 +1478,70 @@ class RosReal(RosBase):
             log("odom decode:", e)
             return None
 
+    # ---- map (subscriptions are created on the first map_on and kept; decoded only when the stream asks)
+    def ensure_map_subs(self):
+        with self._lock:
+            if self._map_subs:
+                return
+            if not self.available:
+                raise RosError("ROS not available: %s" % (self.error or "not started"))
+            try:
+                from geometry_msgs.msg import PoseWithCovarianceStamped
+                from nav_msgs.msg import OccupancyGrid
+                from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
+                qos = QoSProfile(depth=1, history=HistoryPolicy.KEEP_LAST, reliability=ReliabilityPolicy.RELIABLE,
+                                 durability=DurabilityPolicy.TRANSIENT_LOCAL)
+                self.M["OccupancyGrid"] = OccupancyGrid
+                self.node.create_subscription(OccupancyGrid, "/map", self._cb_map, qos, raw=True)
+                self.node.create_subscription(PoseWithCovarianceStamped, "/pose", self._cb_slam_pose, 10)
+            except Exception as e:
+                raise RosError("cannot subscribe to /map and /pose: %s: %s" % (type(e).__name__, e))
+            self._own_subs.update(["/map", "/pose"])
+            self._map_subs = True
+
+    def _cb_map(self, data):
+        self._map = (data, time.monotonic())
+        self._map_n += 1
+
+    def _cb_slam_pose(self, m):
+        try:
+            p, q = m.pose.pose.position, m.pose.pose.orientation
+            slam = (p.x, p.y, math.radians(yaw_deg_from_quat(q.x, q.y, q.z, q.w)))
+            od = self.pose_data()
+            odom = (od["x"], od["y"], od["yaw"]) if od and od["age_s"] < 1.0 else None
+            self._slam = (slam, odom, time.monotonic())
+        except Exception as e:
+            log("slam pose:", e)
+
+    def map_data(self):
+        mp = self._map
+        if mp is None or not self.available:
+            return None
+        try:
+            m = self._cached("map", mp[0], lambda: self.deser(mp[0], self.M["OccupancyGrid"]))
+            i = m.info
+            if i.width < 1 or i.height < 1 or len(m.data) != i.width * i.height:
+                return None
+            q = i.origin.orientation
+            yaw = math.radians(yaw_deg_from_quat(q.x, q.y, q.z, q.w))
+            return {"seq": self._map_n, "width": i.width, "height": i.height, "resolution": i.resolution,
+                    "origin": (i.origin.position.x, i.origin.position.y, yaw), "cells": m.data,
+                    "age_s": time.monotonic() - mp[1]}
+        except Exception as e:
+            log("map decode:", e)
+            return None
+
+    def map_pose(self):
+        od = self.pose_data()
+        if od is None or od["age_s"] > 2.0:
+            return None
+        now = (od["x"], od["y"], od["yaw"])
+        sl = self._slam
+        if sl is None or sl[1] is None:
+            return {"x": now[0], "y": now[1], "yaw": now[2], "source": "odom"}
+        x, y, yaw = compose_map_pose(sl[0], sl[1], now)
+        return {"x": x, "y": y, "yaw": yaw, "source": "slam"}
+
     # ---- graph
     def topics(self):
         out = []
@@ -1476,6 +1744,146 @@ def fake_room_ranges(px, py, yaw, angle_min, angle_inc, n, yaw_off):
     return out
 
 
+def fake_map_scale():
+    """Time scale of the fake mapping (env STUDIO_FAKE_MAP_SCALE, default 1; tests use a small value)."""
+    try:
+        v = float(os.environ.get("STUDIO_FAKE_MAP_SCALE", "1"))
+    except ValueError:
+        return 1.0
+    return v if math.isfinite(v) and v > 0 else 1.0
+
+
+class FakeMapGrid:
+    """Fake occupancy grid: 0.05 m cells over FAKE_ROOM plus a 1 m margin, in the odom frame (map frame = odom frame).
+    Cell values like OccupancyGrid data as bytes: 0 free, 100 occupied, 255 unknown; row 0 = bottom row."""
+    RES = 0.05
+    MARGIN = 1.0
+    CAST_S = 0.5            # seconds between ray casts while mapping
+    RANGE_FROM, RANGE_TO, RANGE_GROW_S = 1.0, 12.0, 10.0
+
+    def __init__(self, scale=1.0):
+        x0, x1, y0, y1 = FAKE_ROOM
+        self.scale = scale
+        self.origin = (x0 - self.MARGIN, y0 - self.MARGIN, 0.0)
+        self.width = round((x1 - x0 + 2 * self.MARGIN) / self.RES)
+        self.height = round((y1 - y0 + 2 * self.MARGIN) / self.RES)
+        self.lock = threading.Lock()
+        self.cells = bytearray(b"\xff" * (self.width * self.height))
+        self.seq = 0                    # grows whenever a cell changed
+        self.t_start = None
+        self._stop = threading.Event()
+        self._thread = None
+
+    def reset(self):
+        with self.lock:
+            self.cells = bytearray(b"\xff" * (self.width * self.height))
+            self.seq = 0
+
+    def usable_range(self, elapsed):
+        f = min(1.0, max(0.0, elapsed / (self.RANGE_GROW_S * self.scale)))
+        return self.RANGE_FROM + (self.RANGE_TO - self.RANGE_FROM) * f
+
+    def _index(self, x, y):
+        cx = math.floor((x - self.origin[0]) / self.RES)
+        cy = math.floor((y - self.origin[1]) / self.RES)
+        return (cy * self.width + cx) if 0 <= cx < self.width and 0 <= cy < self.height else None
+
+    def cast(self, px, py, yaw, limit):
+        """Ray cast from a pose with the fake lidar geometry: free along every beam, occupied at the hits within limit.
+        Returns True when a cell changed."""
+        n = 360
+        inc = 2 * math.pi / n
+        rs = fake_room_ranges(px, py, yaw, -math.pi, inc, n, SCAN_YAW_DEFAULT)
+        step = self.RES * 0.7
+        changed = False
+        with self.lock:
+            cells = self.cells
+            for i, r in enumerate(rs):
+                a = yaw - math.pi + i * inc + SCAN_YAW_DEFAULT
+                dx, dy = math.cos(a), math.sin(a)
+                hit = math.isfinite(r) and r <= limit
+                reach = r if hit else limit
+                k = 0.0
+                while k < reach:
+                    ix = self._index(px + k * dx, py + k * dy)
+                    if ix is not None and cells[ix] == 255:
+                        cells[ix] = 0
+                        changed = True
+                    k += step
+                if hit:
+                    ix = self._index(px + r * dx, py + r * dy)
+                    if ix is not None and cells[ix] != 100:
+                        cells[ix] = 100
+                        changed = True
+            if changed:
+                self.seq += 1
+        return changed
+
+    def begin(self, pose_fn):
+        """Start mapping from an empty grid: one cast every CAST_S * scale seconds from pose_fn() -> (x, y, yaw)."""
+        self.end()
+        self.reset()
+        self.t_start = time.monotonic()
+        self._stop = stop = threading.Event()
+
+        def loop():
+            while not stop.is_set():
+                try:
+                    x, y, yaw = pose_fn()
+                    self.cast(x, y, yaw, self.usable_range(time.monotonic() - self.t_start))
+                except Exception as e:
+                    log("fake map:", repr(e))
+                stop.wait(max(0.05, self.CAST_S * self.scale))
+        self._thread = threading.Thread(target=loop, name="fakemap", daemon=True)
+        self._thread.start()
+
+    def end(self):
+        self._stop.set()
+        t, self._thread = self._thread, None
+        if t is not None and t is not threading.current_thread():
+            t.join(1.0)
+
+    def mapping(self):
+        return self._thread is not None and not self._stop.is_set()
+
+    def reveal_all(self):
+        """Fully reveal the room (the sample map): casts from a few poses with the full range."""
+        for px, py in ((0.0, 0.0), (-2.0, 1.2), (2.0, -1.2), (-2.0, -1.2), (2.0, 1.2), (1.9, 0.0), (0.0, 1.4), (0.0, -1.4)):
+            for yaw in (0.0, 1.5, 3.0, -1.5):
+                self.cast(px, py, yaw, self.RANGE_TO)
+
+    def snapshot(self):
+        with self.lock:
+            return {"seq": self.seq, "width": self.width, "height": self.height, "resolution": self.RES,
+                    "origin": self.origin, "cells": bytes(self.cells)}
+
+    def pgm_bytes(self):
+        """P5 file content: 254 free, 0 occupied, 205 unknown, row 0 = top."""
+        with self.lock:
+            raw = bytes(self.cells)
+        lut = bytearray(b"\xcd" * 256)
+        for v in range(101):
+            lut[v] = 254 if v < 50 else 0
+        rows = [raw[y * self.width:(y + 1) * self.width] for y in range(self.height - 1, -1, -1)]
+        pix = b"".join(rows).translate(bytes(lut))
+        return b"P5\n# fake map\n%d %d\n255\n" % (self.width, self.height) + pix
+
+    def save(self, prefix):
+        """Write <prefix>.pgm, .yaml (map_server) and small placeholder .posegraph and .data files."""
+        d = os.path.dirname(prefix)
+        if d:
+            os.makedirs(d, exist_ok=True)
+        base = os.path.basename(prefix)
+        yaml = ("image: %s.pgm\nmode: trinary\nresolution: %s\norigin: [%.3f, %.3f, 0.0]\nnegate: 0\n"
+                "occupied_thresh: 0.65\nfree_thresh: 0.25\n" % (base, self.RES, self.origin[0], self.origin[1]))
+        for ext, data in ((".pgm", self.pgm_bytes()), (".posegraph", b"fake pose graph\n"), (".data", b"fake pose graph data\n"),
+                          (".yaml", yaml.encode("ascii"))):
+            tmp = prefix + ext + ".tmp"
+            with open(tmp, "wb") as f:
+                f.write(data)
+            os.replace(tmp, prefix + ext)
+
+
 class FakeRos(RosBase):
     """No ROS: simulated, slowly changing data so the desktop and the UI can be developed without a robot."""
     fake = True
@@ -1497,6 +1905,7 @@ class FakeRos(RosBase):
         self._pt = time.monotonic()
         self._pseq = 0
         self.cmd_log = collections.deque(maxlen=200)  # (monotonic, vx, wz) of every publish_cmd, for tests
+        self.map_grid = FakeMapGrid(fake_map_scale())
 
     def start(self, emit):
         self.emit = emit
@@ -1538,7 +1947,19 @@ class FakeRos(RosBase):
         return {"ranges": rs, "angle_min": amin, "angle_inc": inc, "range_min": BODY_MIN_M, "range_max": 12.0,
                 "yaw": SCAN_YAW_DEFAULT, "seq": int(time.monotonic() * 8), "age_s": 0.05, "yaw_assumed": False}
 
+    def map_data(self):
+        g = self.map_grid.snapshot()
+        if g["seq"] == 0:
+            return None
+        g["age_s"] = 0.05
+        return g
+
+    def map_pose(self):
+        p = self.pose_data()
+        return {"x": p["x"], "y": p["y"], "yaw": p["yaw"], "source": "slam"}
+
     def shutdown(self):
+        self.map_grid.end()
         for k in list(self.watch_threads):
             self.watch_remove(k)
 
@@ -1671,6 +2092,499 @@ def fake_wifi_state():
                        "powersave": "default"}]}
 
 
+# ======================================================================= mapping: adapters and services (Studio 2.1)
+START_TIMEOUT_S, SAVE_TIMEOUT_S, STOP_TIMEOUT_S = 120.0, 200.0, 90.0       # the delivery scripts, see DESIGN-MAPPING.md
+MAP_SCRIPTS = ("start_stack.sh", "save_map.sh", "stop_stack.sh")
+
+
+class ServiceError(Exception):
+    """A refusal of a service (bad name, wrong state, ...). extra goes into the reply (for example exists=True)."""
+
+    def __init__(self, msg, **extra):
+        Exception.__init__(self, msg)
+        self.extra = extra
+
+
+class StackRunner:
+    """Runs one of the delivery scripts and waits for it: run(script, args, timeout) -> (ok, output text)."""
+
+    def scripts_ok(self):
+        raise NotImplementedError
+
+    def missing_scripts(self):
+        return []
+
+    def run(self, script, args, timeout):
+        raise NotImplementedError
+
+
+class RealStackRunner(StackRunner):
+    """bash <delivery>/robot/<script> args, cwd = home, output captured. Delivery folder: ~/robot_code/delivery, or the
+    environment variable STUDIO_DELIVERY_DIR."""
+
+    def __init__(self, home):
+        self.home = home
+        self.delivery = os.environ.get("STUDIO_DELIVERY_DIR") or os.path.join(home, "robot_code", "delivery")
+
+    def script_path(self, script):
+        return os.path.join(self.delivery, "robot", script)
+
+    def missing_scripts(self):
+        return [s for s in MAP_SCRIPTS if not os.path.isfile(self.script_path(s))]
+
+    def scripts_ok(self):
+        return not self.missing_scripts()
+
+    def run(self, script, args, timeout):
+        argv = ["bash", self.script_path(script)] + [str(a) for a in args]
+        kw = {"start_new_session": True} if os.name == "posix" else {}
+        try:
+            p = subprocess.Popen(argv, cwd=self.home, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT, **kw)
+        except OSError as e:
+            return False, "cannot run %s: %s" % (script, e)
+        try:
+            out, _ = p.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            try:
+                if os.name == "posix":
+                    os.killpg(p.pid, signal.SIGTERM)
+                else:
+                    p.kill()
+            except OSError:
+                pass
+            try:
+                out, _ = p.communicate(timeout=5)
+            except Exception:
+                out = b""
+            return False, out.decode("utf-8", "replace") + "\n%s timed out after %d s" % (script, timeout)
+        return p.returncode == 0, out.decode("utf-8", "replace")
+
+
+class FakeStackRunner(StackRunner):
+    """No processes: timers (starting 1.5 s, saving 1 s, stopping 1 s, times STUDIO_FAKE_MAP_SCALE) and a FakeMapGrid
+    that saves real files."""
+
+    def __init__(self, ros, scale=None):
+        self.scale = fake_map_scale() if scale is None else scale
+        self.ros = ros
+        self.grid = getattr(ros, "map_grid", None) or FakeMapGrid(self.scale)
+        self.slam_running = False
+
+    def scripts_ok(self):
+        return True
+
+    def _pose(self):
+        try:
+            p = self.ros.pose_data()
+            return p["x"], p["y"], p["yaw"]
+        except Exception:
+            return 0.0, 0.0, 0.0
+
+    def run(self, script, args, timeout):
+        args = [str(a) for a in args]
+        if script == "start_stack.sh":
+            time.sleep(1.5 * self.scale)
+            if "map" not in args:
+                return False, "ERROR: give a mode: map or nav"
+            self.slam_running = True
+            self.grid.begin(self._pose)
+            return True, "fake: slam started"
+        if script == "save_map.sh":
+            time.sleep(1.0 * self.scale)
+            if not self.slam_running:
+                return False, "ERROR: the fake mapping is not running"
+            prefix = next((a for a in args if not a.startswith("-")), "")
+            if not prefix:
+                return False, "ERROR: give the output path prefix"
+            if os.path.exists(prefix + ".yaml") and "--force" not in args:
+                return False, "ERROR: %s.yaml exists (use --force to overwrite)" % prefix
+            self.grid.save(prefix)
+            return True, "fake: saved %s" % prefix
+        if script == "stop_stack.sh":
+            time.sleep(1.0 * self.scale)
+            was = self.slam_running
+            self.slam_running = False
+            self.grid.end()
+            self.grid.reset()
+            return True, "slam: sending SIGINT (fake)" if was else "slam: not running"
+        return False, "unknown script %s" % script
+
+
+class ProcessProbe:
+    def running(self, pattern):
+        raise NotImplementedError
+
+
+class RealProcessProbe(ProcessProbe):
+    def running(self, pattern):
+        return bool((run_cmd(["pgrep", "-f", pattern], timeout=3.0) or "").split())
+
+
+class FakeProcessProbe(ProcessProbe):
+    def __init__(self, runner):
+        self.runner = runner
+
+    def running(self, pattern):
+        return pattern == SLAM_PATTERN and bool(self.runner.slam_running)
+
+
+class MappingService:
+    """Mapping state machine (DESIGN-MAPPING.md section 4): idle, starting, mapping, saving, stopping, error.
+    start, save and stop reply at once and finish in their own thread; a probe (every probe_period s) finds a SLAM that
+    was started or stopped outside Studio. emit(dict) gets a `mapping` event on every change. Thread-safe."""
+
+    def __init__(self, runner, probe, maps_dir, emit, disarm=None, probe_period=2.0, start_timeout=START_TIMEOUT_S,
+                 save_timeout=SAVE_TIMEOUT_S, stop_timeout=STOP_TIMEOUT_S, seen_wait=15.0, gone_wait=10.0,
+                 clock=time.time):
+        self.runner, self.probe, self.maps_dir, self.emit, self.disarm = runner, probe, maps_dir, emit, disarm
+        self.probe_period, self.clock = probe_period, clock
+        self.start_timeout, self.save_timeout, self.stop_timeout = start_timeout, save_timeout, stop_timeout
+        self.seen_wait, self.gone_wait = seen_wait, gone_wait
+        self.lock = threading.Lock()
+        self.state = "idle"
+        self.since = clock()
+        self.last_error = None
+        self.last_saved = None
+        self.unsaved = False
+        self.other_stack = None
+        self.saving_name = None
+        self.gen = 0
+        self._stop = threading.Event()
+        self._probe_thread = None
+
+    # ---- state
+    def _info(self):
+        return {"state": self.state, "since": round(self.since, 3), "last_error": self.last_error,
+                "last_saved": self.last_saved, "unsaved": self.unsaved, "scripts_ok": bool(self.runner.scripts_ok()),
+                "other_stack": self.other_stack, "maps_dir": self.maps_dir}
+
+    def status(self):
+        with self.lock:
+            return self._info()
+
+    def busy_name(self):
+        """Name of the map that is being saved right now, or None."""
+        with self.lock:
+            return self.saving_name if self.state == "saving" else None
+
+    def _emit(self, result=None):
+        ev = dict(self._info(), ev="mapping")
+        if result is not None:
+            ev["result"] = result
+        try:
+            self.emit(ev)
+        except Exception as e:
+            log("mapping emit:", repr(e))
+
+    def _go(self, state, result=None, **fields):
+        """Enter a state (lock held), set fields, emit one event."""
+        self.state = state
+        self.since = self.clock()
+        self.gen += 1
+        for k, v in fields.items():
+            setattr(self, k, v)
+        self._emit(result)
+
+    def _disarm(self, why):
+        if self.disarm:
+            try:
+                self.disarm(why)
+            except Exception as e:
+                log("mapping disarm:", repr(e))
+
+    def _script(self, script, args, timeout):
+        try:
+            return self.runner.run(script, args, timeout)
+        except Exception as e:
+            return False, "%s failed: %s: %s" % (script, type(e).__name__, e)
+
+    def _wait_for(self, cond, secs):
+        end = time.monotonic() + secs
+        while True:
+            if cond():
+                return True
+            if time.monotonic() >= end or self._stop.wait(min(0.2, max(0.01, secs / 5.0))):
+                return bool(cond())
+
+    # ---- probe
+    def probe_once(self):
+        """Look at the processes once: adopts a SLAM started outside Studio, reports one that vanished."""
+        with self.lock:
+            g = self.gen
+        slam, other = detect_stack(self.probe.running)
+        with self.lock:
+            changed = other != self.other_stack
+            self.other_stack = other
+            if self.gen == g:
+                if self.state == "idle" and slam:
+                    self._go("mapping", unsaved=True, last_error=None)
+                    return
+                if self.state == "mapping" and not slam:
+                    self._go("error", last_error="The mapping process is no longer running. It stopped or crashed; "
+                                                 "the unsaved map is lost.")
+                    return
+            if changed:
+                self._emit()
+
+    def start_probe(self):
+        self.probe_once()
+
+        def loop():
+            while not self._stop.wait(self.probe_period):
+                try:
+                    self.probe_once()
+                except Exception as e:
+                    log("mapping probe:", repr(e))
+        self._probe_thread = threading.Thread(target=loop, name="mapprobe", daemon=True)
+        self._probe_thread.start()
+
+    def close(self):
+        """Stop the probe thread. A running SLAM is left alone (mapping survives a Studio disconnect)."""
+        self._stop.set()
+
+    # ---- commands
+    def start(self, keep_camera=False):
+        self.probe_once()
+        with self.lock:
+            if self.state != "idle":
+                raise ServiceError({"mapping": "Mapping is already running.", "error": "Mapping is in an error state. "
+                                    "Reset it or stop it first."}.get(self.state, "Mapping is busy (%s). Wait until it "
+                                                                                  "is done." % self.state))
+            if self.other_stack:
+                raise ServiceError("A navigation stack is running (%s). Stop it first." % self.other_stack,
+                                   other_stack=self.other_stack)
+            if not self.runner.scripts_ok():
+                miss = ", ".join(self.runner.missing_scripts()) or "delivery scripts"
+                raise ServiceError("The delivery scripts are missing on the robot (%s). Deploy them first." % miss,
+                                   scripts_missing=True)
+            self._go("starting", last_error=None)
+            info = self._info()
+        self._disarm("mapping is starting")
+        threading.Thread(target=self._run_start, args=(bool(keep_camera),), name="mapstart", daemon=True).start()
+        return info
+
+    def _run_start(self, keep_camera):
+        ok, out = self._script("start_stack.sh", ["map"] + (["--keep-camera"] if keep_camera else []), self.start_timeout)
+        tail = tail_lines(out)
+        err = None
+        if ok:
+            ok = self._wait_for(lambda: self.probe.running(SLAM_PATTERN), self.seen_wait)
+            if not ok:
+                err = "The start script finished but the SLAM process is not running."
+        else:
+            err = (tail[-1] if tail else "start_stack.sh failed")
+        with self.lock:
+            if ok:
+                self._go("mapping", {"op": "start", "ok": True, "output_tail": tail}, unsaved=True, last_error=None)
+            else:
+                self._go("error", {"op": "start", "ok": False, "error": err, "output_tail": tail}, last_error=err)
+
+    def save(self, name, overwrite=False):
+        if not valid_map_name(name):
+            raise ServiceError("Bad map name. Use 1 to 48 letters, digits, _ or -, starting with a letter or digit.")
+        prefix = os.path.join(self.maps_dir, name)
+        with self.lock:
+            if self.state != "mapping":
+                raise ServiceError("Saving needs a running mapping session (state: %s)." % self.state)
+            if os.path.exists(prefix + ".yaml") and not overwrite:
+                raise ServiceError("A map named %s already exists." % name, exists=True)
+            self._go("saving", saving_name=name)
+            info = self._info()
+        self._disarm("mapping is saving")
+        threading.Thread(target=self._run_save, args=(name, prefix, bool(overwrite)), name="mapsave", daemon=True).start()
+        return info
+
+    def _run_save(self, name, prefix, overwrite):
+        ok, out = self._script("save_map.sh", [prefix] + (["--force"] if overwrite else []), self.save_timeout)
+        tail = tail_lines(out)
+        if ok and not os.path.isfile(prefix + ".yaml"):
+            ok = False
+            tail.append("the script finished but %s.yaml was not written" % name)
+        with self.lock:
+            if ok:
+                self._go("mapping", {"op": "save", "ok": True, "name": name, "output_tail": tail},
+                         last_saved={"name": name, "t": round(self.clock(), 3)}, unsaved=False, last_error=None,
+                         saving_name=None)
+            else:
+                err = tail[-1] if tail else "save_map.sh failed"
+                self._go("mapping", {"op": "save", "ok": False, "name": name, "error": err, "output_tail": tail},
+                         last_error=err, saving_name=None)
+
+    def stop(self):
+        with self.lock:
+            if self.state not in ("mapping", "error"):
+                raise ServiceError("Mapping cannot be stopped now (state: %s)." % self.state)
+            self._go("stopping")
+            info = self._info()
+        self._disarm("mapping is stopping")
+        threading.Thread(target=self._run_stop, name="mapstop", daemon=True).start()
+        return info
+
+    def _run_stop(self):
+        ok, out = self._script("stop_stack.sh", [], self.stop_timeout)
+        tail = tail_lines(out)
+        gone = self._wait_for(lambda: not self.probe.running(SLAM_PATTERN), self.gone_wait)
+        with self.lock:
+            if ok and gone:
+                self._go("idle", {"op": "stop", "ok": True, "output_tail": tail}, unsaved=False, last_error=None)
+            else:
+                err = "The mapping process is still running after the stop script." if ok else \
+                    (tail[-1] if tail else "stop_stack.sh failed")
+                self._go("error", {"op": "stop", "ok": False, "error": err, "output_tail": tail}, last_error=err)
+
+    def reset(self):
+        """Leave the error state: idle or mapping again, from the processes."""
+        slam = bool(self.probe.running(SLAM_PATTERN))
+        with self.lock:
+            if self.state == "error":
+                self._go("mapping" if slam else "idle", last_error=None, unsaved=slam)
+            return self._info()
+
+
+class MapLibrary:
+    """The maps folder: <name>.pgm, .yaml, .posegraph, .data. Every path is checked to stay inside the folder."""
+
+    def __init__(self, maps_dir, busy=None):
+        self.dir = maps_dir
+        self.busy = busy or (lambda: None)
+
+    def _path(self, name, ext=""):
+        if not valid_map_name(name):
+            raise ServiceError("Bad map name. Use 1 to 48 letters, digits, _ or -, starting with a letter or digit.")
+        p = safe_join(self.dir, name + ext)
+        if p is None or os.path.dirname(p) != os.path.realpath(self.dir):
+            raise ServiceError("The path is outside the maps folder.")
+        return p
+
+    def names(self):
+        try:
+            files = os.listdir(self.dir)
+        except OSError:
+            return []
+        return sorted(f[:-5] for f in files if f.endswith(".yaml") and valid_map_name(f[:-5]))
+
+    def _image_path(self, name, meta):
+        """The PGM of a map: the image: line of its YAML when that stays inside the folder, else <name>.pgm."""
+        img = (meta or {}).get("image")
+        if img and not os.path.isabs(img):
+            p = safe_join(self.dir, img)
+            if p and os.path.isfile(p):
+                return p
+        return self._path(name, ".pgm")
+
+    def _meta(self, name):
+        try:
+            with open(self._path(name, ".yaml"), "r", encoding="utf-8", errors="replace") as f:
+                return parse_map_yaml(f.read())
+        except (OSError, ValueError):
+            return None
+
+    def entry(self, name):
+        files, mtime, total = {}, 0.0, 0
+        for ext in MAP_EXTS:
+            try:
+                st = os.stat(self._path(name, ext))
+                files[ext[1:]] = st.st_size
+                mtime, total = max(mtime, st.st_mtime), total + st.st_size
+            except OSError:
+                files[ext[1:]] = None
+        meta = self._meta(name)
+        w = h = None
+        try:
+            with open(self._image_path(name, meta), "rb") as f:
+                _, w, h, _, _ = pgm_header(f.read(512))
+        except (OSError, ValueError):
+            pass
+        return {"name": name, "width": w, "height": h, "resolution": meta["resolution"] if meta else None,
+                "origin": meta["origin"] if meta else None, "mtime": round(mtime, 3), "bytes": total, "files": files}
+
+    def list(self):
+        out = [self.entry(n) for n in self.names()]
+        out.sort(key=lambda e: (-e["mtime"], e["name"]))
+        return out
+
+    def preview(self, name, max_px=512):
+        if not os.path.isfile(self._path(name, ".yaml")):
+            raise ServiceError("There is no map named %s." % name)
+        try:
+            with open(self._image_path(name, self._meta(name)), "rb") as f:
+                w, h, pix = read_pgm(f.read())
+        except OSError:
+            raise ServiceError("The map %s has no image file." % name)
+        except ValueError as e:
+            raise ServiceError("The map image cannot be read: %s" % e)
+        stride = max(1, -(-max(w, h) // max(1, int(max_px))))
+        sw, sh, raw = sample_grid(w, h, pix, stride)
+        return {"width": sw, "height": sh, "stride": stride, "encoding": "gray", "data": pack_cells(raw)}
+
+    def rename(self, name, new_name):
+        src = self._path(name, ".yaml")
+        if not os.path.isfile(src):
+            raise ServiceError("There is no map named %s." % name)
+        if not valid_map_name(new_name):
+            raise ServiceError("Bad new map name. Use 1 to 48 letters, digits, _ or -, starting with a letter or digit.")
+        if name == new_name:
+            raise ServiceError("The new name is the same as the old one.")
+        if self.busy() == name:
+            raise ServiceError("The map %s is being saved right now." % name)
+        if any(os.path.lexists(self._path(new_name, ext)) for ext in MAP_EXTS):
+            raise ServiceError("A map named %s already exists." % new_name, exists=True)
+        try:
+            with open(src, "r", encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        except OSError as e:
+            raise ServiceError("Cannot read the map YAML: %s" % e)
+        moved = []
+        try:
+            for ext in MAP_EXTS:
+                a = self._path(name, ext)
+                if os.path.isfile(a):
+                    b = self._path(new_name, ext)
+                    os.rename(a, b)
+                    moved.append((a, b))
+            ydst = self._path(new_name, ".yaml")
+            tmp = ydst + ".tmp"
+            with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+                f.write(rewrite_yaml_image(text, new_name + ".pgm"))
+            os.replace(tmp, ydst)
+        except OSError as e:
+            for a, b in reversed(moved):
+                try:
+                    os.rename(b, a)
+                except OSError:
+                    pass
+            raise ServiceError("Rename failed: %s" % e)
+        return {"name": new_name}
+
+    def delete(self, name, confirm=False):
+        if confirm is not True:
+            raise ServiceError("Deleting a map needs confirm: true.")
+        if not os.path.isfile(self._path(name, ".yaml")):
+            raise ServiceError("There is no map named %s." % name)
+        if self.busy() == name:
+            raise ServiceError("The map %s is being saved right now." % name)
+        deleted = []
+        for ext in MAP_EXTS:
+            p = self._path(name, ext)
+            if os.path.isfile(p):
+                try:
+                    os.remove(p)
+                except OSError as e:
+                    raise ServiceError("Cannot delete %s%s: %s" % (name, ext, e), deleted=deleted)
+                deleted.append(name + ext)
+        return {"deleted": deleted}
+
+    def seed_demo(self, name="demo_room"):
+        """Fake robot: when the folder has no map, save a fully revealed fake room so the library is not empty."""
+        if self.names():
+            return False
+        g = FakeMapGrid()
+        g.reveal_all()
+        g.save(os.path.join(self.dir, name))
+        return True
+
+
 class Bridge:
     def __init__(self, ros, writer, home, fake):
         self.ros, self.writer, self.home, self.fake = ros, writer, home, fake
@@ -1699,8 +2613,25 @@ class Bridge:
         self.tele = {"armed": False, "last_cmd": 0.0, "last_move": 0.0, "zeroed": True, "seq": -1,
                      "max_linear": TELEOP_MAX_LINEAR, "max_angular": TELEOP_MAX_ANGULAR, "armed_t": 0.0}
         self.status_estop = None            # estop.on of the newest status (None = unknown)
-        self.streams = {"scan": None, "pose": None}      # name -> {"period", "next", "max_points", "last_seq"} while on
+        self.streams = {"scan": None, "pose": None, "map": None}      # name -> {"period", "next", "max_points", "last_seq"} while on
         self.stream_lock = threading.Lock()
+        self.map_seq = 0
+        # Studio 2.1: mapping (the delivery scripts, or timers in fake mode) and the map library
+        self.maps_dir = os.path.join(home, "robot_code", "maps")
+        if fake:
+            self.runner = FakeStackRunner(ros)
+            self.probe = FakeProcessProbe(self.runner)
+        else:
+            self.runner = RealStackRunner(home)
+            self.probe = RealProcessProbe()
+        self.mapping = MappingService(self.runner, self.probe, self.maps_dir, self.emit,
+                                      disarm=lambda why: self.teleop_disarm(why))
+        self.maps = MapLibrary(self.maps_dir, self.mapping.busy_name)
+        if fake:
+            try:
+                self.maps.seed_demo()
+            except OSError as e:
+                log("cannot seed the sample map:", e)
 
     # ---- infrastructure
     def emit(self, obj, droppable=False):
@@ -1712,6 +2643,7 @@ class Bridge:
         except OSError as e:
             log("cannot create", self.logdir, e)
         self.rediscover()
+        self.mapping.start_probe()
         for fn, name in ((self._status_loop, "status"), (self._slow_loop, "slow"), (self._run_monitor, "runmon"),
                          (self._teleop_loop, "teleop"), (self._stream_loop, "streams")):
             threading.Thread(target=fn, name=name, daemon=True).start()
@@ -2375,6 +3307,21 @@ class Bridge:
             self.streams["pose"] = None
         return {}
 
+    def h_map_on(self, c):
+        self.need_ros()
+        try:
+            mc = clamp_int(c.get("max_cells"), 10000, 4000000, 1000000)
+        except ValueError:
+            raise BridgeError("max_cells must be a number")
+        self.ros.ensure_map_subs()
+        hz = self._start_stream("map", c.get("hz"), 0.2, 2.0, 0.5, max_cells=mc)
+        return {"hz": hz, "max_cells": mc}
+
+    def h_map_off(self, c):
+        with self.stream_lock:
+            self.streams["map"] = None
+        return {}
+
     def _stream_tick(self, now):
         with self.stream_lock:
             due = [(k, v) for k, v in self.streams.items() if v is not None and now >= v["next"]]
@@ -2390,12 +3337,26 @@ class Bridge:
                                       sc["yaw"], v["max_points"], now)
                 ev["yaw_assumed"] = bool(sc.get("yaw_assumed"))
                 self.emit(ev, True)
+            elif k == "map":
+                md = self.ros.map_data()
+                if not md or md["seq"] == v["last_seq"]:
+                    continue
+                v["last_seq"] = md["seq"]
+                self.map_seq += 1
+                self.emit(build_map_event(self.map_seq, now, md["width"], md["height"], md["resolution"], md["origin"],
+                                          md["cells"], v["max_cells"]))
             else:
                 po = self.ros.pose_data()
                 if not po or po["age_s"] > 2.0:
                     continue
-                self.emit({"ev": "pose", "t": round(now, 3), "x": round(po["x"], 3), "y": round(po["y"], 3),
-                           "yaw": round(po["yaw"], 4), "vx": round(po["vx"], 3), "wz": round(po["wz"], 3)}, True)
+                ev = {"ev": "pose", "t": round(now, 3), "x": round(po["x"], 3), "y": round(po["y"], 3),
+                      "yaw": round(po["yaw"], 4), "vx": round(po["vx"], 3), "wz": round(po["wz"], 3)}
+                if self.streams.get("map") is not None:
+                    mp = self.ros.map_pose()
+                    if mp:
+                        ev["map"] = {"x": round(mp["x"], 3), "y": round(mp["y"], 3), "yaw": round(mp["yaw"], 4),
+                                     "source": mp["source"]}
+                self.emit(ev, True)
 
     def _stream_loop(self):
         while not self.stop.is_set():
@@ -2429,6 +3390,9 @@ class Bridge:
             return "The e-stop is on. Release it first."
         if not self.ros.available:
             return "ROS is not ready: %s" % (self.ros.error or "not started")
+        why = MAPPING_BUSY_TEXT.get(getattr(getattr(self, "mapping", None), "state", None))
+        if why:
+            return why
         d = self.ros.is_docked()
         if d is True:
             return "The robot is docked. Undock first."
@@ -2442,6 +3406,51 @@ class Bridge:
         if deep and not self.fake and shutil.which("pgrep") and (run_cmd(["pgrep", "-f", MOTION_REGEX]) or "").split():
             return "A motion program is running. Stop it first."
         return None
+
+    # ---- Studio 2.1: mapping and the map library (thin: check the arguments, call a service)
+    @staticmethod
+    def _svc(fn, *a, **kw):
+        try:
+            return fn(*a, **kw)
+        except ServiceError as e:
+            raise BridgeError(str(e), **e.extra)
+
+    def h_mapping_status(self, c):
+        return self.mapping.status()
+
+    def h_mapping_start(self, c):
+        kc = c.get("keep_camera", False)
+        if not isinstance(kc, bool):
+            raise BridgeError("keep_camera must be true or false")
+        return self._svc(self.mapping.start, kc)
+
+    def h_mapping_save(self, c):
+        ow = c.get("overwrite", False)
+        if not isinstance(ow, bool):
+            raise BridgeError("overwrite must be true or false")
+        return self._svc(self.mapping.save, c.get("name"), ow)
+
+    def h_mapping_stop(self, c):
+        return self._svc(self.mapping.stop)
+
+    def h_mapping_reset(self, c):
+        return self.mapping.reset()
+
+    def h_maps_list(self, c):
+        return {"maps": self.maps.list(), "dir": self.maps_dir}
+
+    def h_map_preview(self, c):
+        try:
+            mp = clamp_int(c.get("max_px"), 64, 1024, 512)
+        except ValueError:
+            raise BridgeError("max_px must be a number")
+        return self._svc(self.maps.preview, c.get("name"), mp)
+
+    def h_map_rename(self, c):
+        return self._svc(self.maps.rename, c.get("name"), c.get("new_name"))
+
+    def h_map_delete(self, c):
+        return self._svc(self.maps.delete, c.get("name"), c.get("confirm"))
 
     def _zero(self, repeats=1):
         for i in range(repeats):
@@ -2744,6 +3753,11 @@ class BridgeError(Exception):
         self.extra = extra
 
 
+MAPPING_BUSY_TEXT = {"starting": "Mapping is starting; driving is blocked until it is ready.",
+                     "saving": "Mapping is saving the map; driving is blocked until it is done.",
+                     "stopping": "Mapping is stopping; driving is blocked until it is done."}
+
+
 # ======================================================================= main
 def hello(ros, fake, home):
     return {"ev": "hello", "version": VERSION, "bridge": "robot_bridge", "hostname": "fake-turtlebot4" if fake else socket.gethostname(),
@@ -2802,6 +3816,7 @@ def main(argv=None):
     finally:
         # user programs started with "run" are detached and keep running; only our own threads stop
         bridge.status_period = None
+        bridge.mapping.close()          # only the probe thread: a running SLAM keeps running (the next bridge finds it)
         try:
             bridge.teleop_disarm("bridge ended")
         except Exception:

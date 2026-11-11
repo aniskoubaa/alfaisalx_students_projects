@@ -141,6 +141,22 @@ moved forward by the odometry since then; `source:"odom"` means no map pose is k
 
 A route folder is valid when it has `route.yaml`, `map.yaml`, `keepout_mask.yaml` and `speed_mask.yaml`.
 
+### Robot menu file (backlog item 4)
+
+The front-panel menu reads `~/robot_code/menu/menu.yaml` (format fixed by the delivery menu, checker
+`delivery/menu_config.py`). Studio never parses YAML itself on the robot side: the robot's own checker is the single
+source of truth, run as `python3 ~/robot_code/delivery/menu_config.py --check <file> --json --home <home>`.
+
+| Command | Reply |
+|---|---|
+| `menu_get` | `{path, exists, text, check, checker_ok}`; `check` is the checker's JSON for the current file (null when there is no file: the robot then shows the standard menu) |
+| `menu_check {text}` | `{check}`: the checker's JSON (`ok, errors, warnings, hide, layout, labels, custom`) for that text, without touching the menu file (the text is checked from a temporary file outside the menu folder). Reply `ok:false` only when the checker cannot run |
+| `menu_put {text, confirm:true}` | `{path, check}`; refused (`ok:false, error, check?`) without confirm, when the checker is missing, when the text is over 16000 characters, or when the checker says it is not valid. The old file is kept as `menu.yaml.bak`; the new one is written as `menu.yaml.tmp` and renamed over `menu.yaml` (atomic) |
+
+Fake robot: the checker path comes from the environment variable `STUDIO_MENU_CHECKER` (studio.py sets it to the
+repository's `delivery/menu_config.py` when that file exists next to it); without it the fake reports the checker as
+missing, as a robot without the deployed delivery package would.
+
 ## 5. Desktop endpoints (studio.py)
 
 | Endpoint | Content |

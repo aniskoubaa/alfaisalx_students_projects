@@ -31,14 +31,18 @@ import shlex
 import shutil
 import signal
 import socket
+import struct
 import subprocess
 import sys
 import tarfile
+import tempfile
 import threading
 import time
 import urllib.parse
 import urllib.request
 import webbrowser
+import zipfile
+import zlib
 import http.client
 
 sys.dont_write_bytecode = True
@@ -1640,6 +1644,122 @@ def limit_value(v, default, lo, hi):
     return default if n is None or n <= 0 else min(hi, max(lo, n))
 
 
+# ============================================================================ mapping (Studio 2.1)
+
+MAP_NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,47}$')
+MAP_MAX_SIDE = 8192
+MAP_MAX_CELLS = 16_000_000
+MAP_META_KEYS = ('seq', 't', 'width', 'height', 'resolution', 'origin', 'stride')
+MAP_FILE_EXTS = (('pgm', '.pgm'), ('yaml', '.yaml'), ('posegraph', '.posegraph'), ('data', '.data'))
+MAP_REMOTE_DIR = '~/robot_code/maps'
+MAP_UNKNOWN_GRAY = 205
+
+
+def valid_map_name(name):
+    """True for a map name the bridge accepts (same rule as robot_bridge.py)."""
+    return isinstance(name, str) and bool(MAP_NAME_RE.fullmatch(name))  # fullmatch: '$' would accept a trailing newline
+
+
+def png_gray(width, height, pixels):
+    """8-bit greyscale PNG (colour type 0, filter 0 on every row) of width x height pixel bytes, row 0 = top."""
+    if not (isinstance(width, int) and isinstance(height, int) and width > 0 and height > 0):
+        raise ValueError('bad image size')
+    if len(pixels) != width * height:
+        raise ValueError('pixel count does not match the size')
+
+    def chunk(kind, body):
+        return struct.pack('>I', len(body)) + kind + body + struct.pack('>I', zlib.crc32(kind + body) & 0xffffffff)
+
+    raw = b''.join(b'\x00' + bytes(pixels[y * width:(y + 1) * width]) for y in range(height))
+    return (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 0, 0, 0, 0))
+            + chunk(b'IDAT', zlib.compress(raw, 6)) + chunk(b'IEND', b''))
+
+
+def _gray_table():
+    t = bytearray([MAP_UNKNOWN_GRAY]) * 256
+    for v in range(101):
+        t[v] = int(254 - v * 254 / 100 + 0.5)
+    return bytes(t)
+
+
+_GRAY_TABLE = _gray_table()
+
+
+def cells_to_gray(data):
+    """Occupancy bytes (0..100, 255 unknown) to grey: 0 -> 254, 100 -> 0, in between scaled, unknown (and 101..254) -> 205."""
+    return bytes(data).translate(_GRAY_TABLE)
+
+
+def flip_rows(width, height, data):
+    """Reverse the row order (ROS row 0 = bottom of the map, image row 0 = top)."""
+    if len(data) != width * height:
+        raise ValueError('cell count does not match the size')
+    return b''.join(bytes(data[y * width:(y + 1) * width]) for y in range(height - 1, -1, -1))
+
+
+def decode_map_payload(ev):
+    """(meta, grey bytes with the top row first) from a bridge `map` event ('cells') or a map_preview reply ('gray').
+
+    Raises ValueError for a payload that is not what the contract says."""
+    if not isinstance(ev, dict):
+        raise ValueError('map payload is not an object')
+    w, h = ev.get('width'), ev.get('height')
+    if not (isinstance(w, int) and isinstance(h, int)) or isinstance(w, bool) or isinstance(h, bool):
+        raise ValueError('map size is not a whole number')
+    if not (0 < w <= MAP_MAX_SIDE and 0 < h <= MAP_MAX_SIDE and w * h <= MAP_MAX_CELLS):
+        raise ValueError('map size out of range')
+    enc = ev.get('encoding')
+    if enc not in ('cells', 'gray'):
+        raise ValueError('unknown map encoding: %r' % (enc,))
+    try:
+        comp = base64.b64decode(ev.get('data') or '', validate=True)
+        d = zlib.decompressobj()
+        raw = d.decompress(comp, w * h + 1)
+    except (ValueError, TypeError, zlib.error):
+        raise ValueError('map data is not zlib + base64')
+    if len(raw) != w * h or d.unconsumed_tail:
+        raise ValueError('map data length %d does not match %dx%d' % (len(raw), w, h))
+    meta = {k: ev[k] for k in MAP_META_KEYS if k in ev}
+    if enc == 'cells':
+        return meta, cells_to_gray(flip_rows(w, h, raw))
+    return meta, raw
+
+
+class MapStore:
+    """Thread-safe: the newest live map as a PNG with its metadata, and the last MappingInfo seen."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.png = None
+        self.meta = None
+        self.info = None
+
+    def set_map(self, meta, png):
+        with self.lock:
+            self.png, self.meta = png, dict(meta)
+
+    def get_map(self):
+        """(png, meta) or None."""
+        with self.lock:
+            return None if self.png is None else (self.png, dict(self.meta))
+
+    def set_info(self, info):
+        """Remember a MappingInfo (a `mapping` event or the reply of a mapping_* command); only a dict with a state counts."""
+        if not isinstance(info, dict) or not isinstance(info.get('state'), str):
+            return
+        clean = {k: v for k, v in info.items() if k not in ('ev', 'id', 'ok', 'result', 'error')}
+        with self.lock:
+            self.info = clean
+
+    def get_info(self):
+        with self.lock:
+            return None if self.info is None else dict(self.info)
+
+    def clear(self):
+        with self.lock:
+            self.png = self.meta = self.info = None
+
+
 # ============================================================================ bridge process
 
 
@@ -1677,6 +1797,9 @@ class Bridge:
         self.hello = None
         self.hello_evt.clear()
         self.stderr_tail.clear()
+        maps = getattr(self.app, 'maps', None)     # test doubles of the app have none
+        if maps is not None:
+            maps.clear()    # no map or mapping state from another robot or bridge process
         self.host, self.via = host, via
         self.app.conn('connecting', host, via)
         try:
@@ -1729,6 +1852,11 @@ class Bridge:
                     continue
                 if ev.get('ev') == 'status':
                     self.app.on_status(ev)
+                if ev.get('ev') == 'map':
+                    self.app.on_map(ev)     # decoded into the MapStore; the page gets the slim event
+                    continue
+                if ev.get('ev') == 'mapping':
+                    self.app.maps.set_info(ev)
                 self.app.bus.publish(ev)
         except (OSError, ValueError):
             pass
@@ -1838,11 +1966,14 @@ class Studio:
         self.heartbeat = getattr(args, 'heartbeat', 15.0)
         self.port = None
         self.bus = Bus()
+        self.maps = MapStore()
         self.bridge = Bridge(self)
         self.set_lock = threading.Lock()
         self.settings = self._load_settings()
         self.known_hosts = os.path.join(self.cfg, 'known_hosts')
-        self.fake_home = args.fake_home or os.path.join(self.cfg, 'fake_home')
+        # the fake robot's home: --fake-home, else STUDIO_BRIDGE_HOME (tests), else in the config folder. The fake bridge and
+        # the fake tar helper must use the same folder.
+        self.fake_home = args.fake_home or os.environ.get('STUDIO_BRIDGE_HOME') or os.path.join(self.cfg, 'fake_home')
         self.bridge_script = args.bridge_script or os.path.join(HERE, 'robot_bridge.py')
         self.catalog_path = getattr(args, 'catalog', None) or os.path.join(HERE, 'programs.json')
         self.templates_dir = getattr(args, 'templates_dir', None) or os.path.join(HERE, 'templates')
@@ -2058,7 +2189,9 @@ class Studio:
         except (OSError, BridgeError) as e:
             self.conn('error', 'fake', 'custom', str(e), kind='other')
             return {'ok': False, 'error': str(e)}
-        env = dict(os.environ, HOME=self.fake_home, USERPROFILE=self.fake_home, PYTHONDONTWRITEBYTECODE='1')
+        # STUDIO_BRIDGE_HOME: the fake robot keeps maps, routes and logs in the fake home, where the fake tar helper looks
+        env = dict(os.environ, HOME=self.fake_home, USERPROFILE=self.fake_home, STUDIO_BRIDGE_HOME=self.fake_home,
+                   PYTHONDONTWRITEBYTECODE='1')
         self.bridge.start(fake_bridge_argv(self.bridge_script), 'fake', 'custom', env=env)
         return self._await_hello('fake', 'custom')
 
@@ -2311,6 +2444,8 @@ class Studio:
             r = self.bridge.request(cmd, 8 if name == 'estop' else 2 if name == 'teleop' else 15)
         except BridgeError as e:
             return {'ok': False, 'error': str(e)}
+        if name.startswith('mapping_') and isinstance(r, dict) and r.get('ok'):
+            self.maps.set_info(r)
         if reasons is not None and isinstance(r, dict):
             r['motion_decision'] = {'motion': bool(cmd.get('motion')), 'reasons': reasons}
         if name == 'teleop_arm' and isinstance(r, dict) and r.get('ok'):
@@ -2980,6 +3115,73 @@ class Studio:
             t.join(8)
         return {'ok': True, 'wifi': box.get('wifi'), 'wired': box.get('wired') or [], 'os': osname}
 
+    # ---------------------------------------------------------------- mapping (2.1)
+    def on_map(self, ev):
+        """A bridge `map` event: keep the picture, publish the same event without its data."""
+        try:
+            if ev.get('encoding') != 'cells':
+                raise ValueError('live map must use the cells encoding')
+            meta, gray = decode_map_payload(ev)
+            png = png_gray(meta['width'], meta['height'], gray)
+        except (ValueError, KeyError) as e:
+            self.log('warn', 'bad map event dropped: %s' % e)
+            return
+        self.maps.set_map(meta, png)
+        self.bus.publish(dict(meta, ev='map'))
+
+    def mapping_info(self):
+        info = self.maps.get_info()
+        return dict(info, ok=True) if info else {'ok': True, 'state': 'unknown'}
+
+    def map_preview_png(self, name, max_px):
+        """(status, body, content type) of a saved map's preview picture; body is a dict for an error."""
+        if not valid_map_name(name):
+            return 400, {'ok': False, 'error': 'bad map name'}, None
+        try:
+            r = self.bridge.request({'cmd': 'map_preview', 'name': name, 'max_px': max_px}, 30)
+        except BridgeError as e:
+            return (409 if str(e) == 'not connected' else 502), {'ok': False, 'error': str(e)}, None
+        if not r.get('ok'):
+            err = str(r.get('error') or 'the robot refused')
+            return (404 if re.search(r'no such|not found|missing', err, re.I) else 502), {'ok': False, 'error': err}, None
+        try:
+            meta, gray = decode_map_payload(r)
+            return 200, png_gray(meta['width'], meta['height'], gray), 'image/png'
+        except (ValueError, KeyError) as e:
+            return 502, {'ok': False, 'error': 'bad preview from the robot: %s' % e}, None
+
+    def map_download_zip(self, name):
+        """(status, body, content type): the existing files of a saved map as a zip, built in memory."""
+        if not valid_map_name(name):
+            return 400, {'ok': False, 'error': 'bad map name'}, None
+        try:
+            r = self.bridge.request({'cmd': 'maps_list'}, 15)
+        except BridgeError as e:
+            return (409 if str(e) == 'not connected' else 502), {'ok': False, 'error': str(e)}, None
+        if not r.get('ok'):
+            return 502, {'ok': False, 'error': str(r.get('error') or 'the robot refused')}, None
+        entry = next((m for m in r.get('maps') or [] if isinstance(m, dict) and m.get('name') == name), None)
+        if entry is None:
+            return 404, {'ok': False, 'error': 'no such map'}, None
+        files = entry.get('files') if isinstance(entry.get('files'), dict) else {}
+        rels = [name + ext for key, ext in MAP_FILE_EXTS if files.get(key) is not None]
+        if not rels:
+            return 404, {'ok': False, 'error': 'the map has no files'}, None
+        tmp = tempfile.mkdtemp(prefix='studio_map_')
+        try:
+            self._download(tmp, MAP_REMOTE_DIR, rels)
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
+                for rel in rels:
+                    p = os.path.join(tmp, rel)
+                    if os.path.isfile(p):
+                        z.write(p, rel)
+            return 200, buf.getvalue(), 'application/zip'
+        except (BridgeError, OSError, ValueError, tarfile.TarError) as e:
+            return 502, {'ok': False, 'error': str(e)}, None
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
     def on_status(self, ev):
         """Record metrics and raise alerts, then remember the robot's Wi-Fi address per SSID (client mode only)."""
         try:
@@ -3485,7 +3687,7 @@ CTYPES = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=
           '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json',
           '.txt': 'text/plain; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.map': 'application/json',
           '.woff2': 'font/woff2', '.woff': 'font/woff', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-          '.gif': 'image/gif', '.webmanifest': 'application/manifest+json'}
+          '.gif': 'image/gif', '.webmanifest': 'application/manifest+json', '.zip': 'application/zip'}
 CSP = ("default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; "
        "connect-src 'self'; frame-ancestors 'none'")
 
@@ -3573,6 +3775,24 @@ def make_handler(app):
                     return self._json({'ok': True, 'alerts': items, 'last_id': last})
                 if u.path == '/api/teleop_limits':
                     return self._json(app.teleop_limits())
+                if u.path == '/api/mapping':
+                    return self._json(app.mapping_info())
+                if u.path == '/api/map/live.png':
+                    got = app.maps.get_map()
+                    if got is None:
+                        return self._json({'ok': False, 'error': 'no map yet'}, 404)
+                    return self._send(200, got[0], 'image/png', {'X-Map-Meta': json.dumps(got[1], separators=(',', ':'))})
+                if u.path in ('/api/maps/preview.png', '/api/maps/download'):
+                    name = (q.get('name') or [''])[0]
+                    if u.path == '/api/maps/download':
+                        code, body, ctype = app.map_download_zip(name)
+                    else:
+                        mx = _to_int((q.get('max') or ['512'])[0]) or 512
+                        code, body, ctype = app.map_preview_png(name, min(1024, max(64, mx)))
+                    if ctype is None:
+                        return self._json(body, code)
+                    extra = {'Content-Disposition': 'attachment; filename="%s.zip"' % name} if ctype == 'application/zip' else None
+                    return self._send(code, body, ctype, extra)
                 if u.path.startswith('/api/templates/'):
                     txt = app.template_text(urllib.parse.unquote(u.path[len('/api/templates/'):]))
                     if txt is None:

@@ -19,6 +19,8 @@ export interface ApiFailure {
   needs_confirm?: boolean;
   needs_settings?: boolean;
   preview?: string;
+  /** A map with that name already exists (mapping_save without overwrite). */
+  exists?: boolean;
 }
 
 export type ApiOk<T> = { ok: true } & T;
@@ -242,6 +244,67 @@ export interface PoseEvent {
   yaw: number;
   vx: number;
   wz: number;
+  /** Present while the map stream is on: the pose in the map frame. */
+  map?: MapPose;
+}
+export interface MapPose {
+  x: number;
+  y: number;
+  yaw: number;
+  /** "slam" is the SLAM pose moved on by odometry; "odom" means no map pose is known yet. */
+  source: 'slam' | 'odom';
+}
+
+/* ---------- mapping (2.1) ---------- */
+
+export type MappingState = 'idle' | 'starting' | 'mapping' | 'saving' | 'stopping' | 'error';
+
+export interface MappingInfo {
+  /** "unknown" is what Studio answers before it has seen the robot's state. */
+  state: MappingState | 'unknown';
+  since?: number;
+  last_error?: string | null;
+  last_saved?: { name: string; t: number } | null;
+  unsaved?: boolean;
+  scripts_ok?: boolean;
+  other_stack?: string | null;
+  maps_dir?: string;
+}
+export interface MappingResult {
+  op: 'start' | 'save' | 'stop';
+  ok: boolean;
+  name?: string;
+  error?: string;
+  output_tail?: string[] | string;
+}
+export type MappingEvent = { ev: 'mapping'; result?: MappingResult } & MappingInfo;
+
+/** The slim map event the page receives: no cells, the picture is fetched from /api/map/live.png. */
+export interface MapMeta {
+  seq: number;
+  t: number;
+  width: number;
+  height: number;
+  resolution: number;
+  origin: { x: number; y: number; yaw: number };
+  stride?: number;
+}
+export type MapEvent = { ev: 'map' } & MapMeta;
+
+export interface MapEntry {
+  name: string;
+  width: number;
+  height: number;
+  resolution: number;
+  origin: [number, number, number];
+  mtime: number;
+  bytes: number;
+  files: {
+    pgm: number | null;
+    yaml: number | null;
+    posegraph: number | null;
+    data: number | null;
+  };
 }
 export interface TeleopEvent {
   ev: 'teleop';
@@ -274,6 +337,8 @@ export type StudioEvent =
   | ActionEvent
   | ScanEvent
   | PoseEvent
+  | MappingEvent
+  | MapEvent
   | TeleopEvent
   | AlertEvent;
 
@@ -507,6 +572,17 @@ export interface BridgeArgs {
   teleop_arm: { on: boolean };
   teleop: { vx: number; wz: number; seq: number };
   journal: { unit: string; lines?: number; grep?: string; since?: string };
+  mapping_status: Record<string, never>;
+  mapping_start: { keep_camera?: boolean };
+  mapping_save: { name: string; overwrite?: boolean };
+  mapping_stop: Record<string, never>;
+  mapping_reset: Record<string, never>;
+  map_on: { hz?: number; max_cells?: number };
+  map_off: Record<string, never>;
+  maps_list: Record<string, never>;
+  map_preview: { name: string; max_px?: number };
+  map_rename: { name: string; new_name: string };
+  map_delete: { name: string; confirm: true };
 }
 export type BridgeCmd = keyof BridgeArgs;
 
@@ -534,4 +610,21 @@ export interface BridgeAnswers {
   teleop_arm: Record<string, never>;
   teleop: Record<string, never>;
   journal: { lines?: string[] };
+  mapping_status: MappingInfo;
+  mapping_start: MappingInfo;
+  mapping_save: MappingInfo;
+  mapping_stop: MappingInfo;
+  mapping_reset: MappingInfo;
+  map_on: Record<string, never>;
+  map_off: Record<string, never>;
+  maps_list: { maps: MapEntry[]; dir?: string };
+  map_preview: {
+    width: number;
+    height: number;
+    stride?: number;
+    encoding: 'gray';
+    data: string;
+  };
+  map_rename: { name: string };
+  map_delete: { deleted: string[] };
 }

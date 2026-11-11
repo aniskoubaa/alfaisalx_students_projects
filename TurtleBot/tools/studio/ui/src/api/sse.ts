@@ -16,6 +16,8 @@ const KNOWN: ReadonlySet<string> = new Set<EventName>([
   'action',
   'scan',
   'pose',
+  'mapping',
+  'map',
   'teleop',
   'alert',
 ]);

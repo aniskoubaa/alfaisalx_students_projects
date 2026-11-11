@@ -88,6 +88,7 @@ export function toResult<T>(status: number, httpOk: boolean, body: unknown): Api
     if (typeof body.kind === 'string') extra.kind = body.kind;
     if (body.needs_confirm === true) extra.needs_confirm = true;
     if (body.needs_settings === true) extra.needs_settings = true;
+    if (body.exists === true) extra.exists = true;
     if (typeof body.preview === 'string') extra.preview = body.preview;
     const msg = typeof body.error === 'string' && body.error ? body.error : 'HTTP ' + status;
     return fail(status === 403 && msg === 'bad token' ? BAD_TOKEN : msg, extra);
@@ -231,6 +232,51 @@ export class StudioClient {
       return fail(msg, { status: r.status });
     }
     return { ok: true, text: r.text };
+  }
+
+  /**
+   * Binary GET with the token header (images, downloads). Returns the body and the response
+   * headers it was asked for, or a failure with the server's words.
+   */
+  async getBlob(
+    path: string,
+    opts: CallOptions = {},
+  ): Promise<ApiResult<{ blob: Blob; headers: Record<string, string> }>> {
+    const timeoutMs = opts.timeoutMs ?? 60_000;
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), timeoutMs);
+    try {
+      const res = await this.fetchImpl(path, {
+        method: 'GET',
+        headers: { 'X-Studio-Token': this.token },
+        signal: opts.signal ?? ctl.signal,
+      });
+      if (!res.ok) {
+        let msg = 'HTTP ' + res.status;
+        try {
+          const j: unknown = JSON.parse(await res.text());
+          if (isRecord(j) && typeof j.error === 'string' && j.error) msg = j.error;
+        } catch {
+          /* not JSON: keep the status */
+        }
+        return fail(res.status === 403 && msg === 'bad token' ? BAD_TOKEN : msg, {
+          status: res.status,
+        });
+      }
+      const blob = await res.blob();
+      const headers: Record<string, string> = {};
+      res.headers.forEach((v, k) => {
+        headers[k.toLowerCase()] = v;
+      });
+      return { ok: true, blob, headers };
+    } catch (e) {
+      const why = e instanceof Error ? e.message : String(e);
+      return fail('Cannot reach Studio (' + why + '). Check that it is still running.', {
+        network: true,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /* ---- robot bridge ---- */
