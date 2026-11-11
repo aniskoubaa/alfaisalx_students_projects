@@ -1374,6 +1374,8 @@ Non-motion checks on the real robot, 2026-11-06: `delivery_mission.py --dry-run`
 
 *Rule change:* since 2026-11-06 Ibrahim allows committing and pushing straight to `main` of the lab repo. Earlier lines in this task that say Ibrahim pushes himself are history.
 
+**Progress 2026-11-12, configurable front-panel menu.** The menu can now be changed from a YAML file, `~/robot_code/menu/menu.yaml` (outside the deployed `delivery` folder): hide Undock, the two Wall Follow entries or Help, and add own programs under `~/robot_code` as entries (code: `menu_config.py`, `menu_core.py`, `delivery_menu.py`; example: `menu.example.yaml`). Locked: the trip entry first, Dock, EStop and Power always present; an invalid file shows the standard menu. The robot side is done and tested offline (`test_delivery_menu.py` 229 checks, `test_delivery_menu_config.py` 69 checks). **NOT VERIFIED on the real robot: not deployed.** The Studio page to edit the file will follow from another session. Next: deploy with `tools/deploy.py`, copy a file, run `menu_config.py --check` on the robot, then try a harmless program and a moving one with a person next to the robot, Stop during start-up, and the physical buttons. Details: [delivery/README.md](delivery/README.md), section 9, "Your own menu entries".
+
 **Estimated effort:** 2 to 3 weeks part-time.
 
 ---

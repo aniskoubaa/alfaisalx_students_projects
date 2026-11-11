@@ -27,6 +27,13 @@ Screens and states:
             on the screen, drawn by this program so button 2 cannot wipe it; any press returns to the menu. Docked and
             exit 0 or 4: back to the menu by itself after RESULT_RETURN_S, unless the text says the food still waits.
             Exit 2 (refused) shows "Cannot start" and the reason from the output file instead.
+  custom    an own entry from the menu file (menu_config.py) runs as a child process in its own session. This
+            program keeps
+            the screen ("<label> / Running / 2 = Stop"); 2 = Stop sends SIGINT to its process group once, SIGTERM after
+            CUSTOM_TERM_S and SIGKILL after CUSTOM_KILL_S more. The same stop happens at the entry's timeout and when
+            ~/STOP appears. Its end shows on the result screen (Finished / Failed / Stopped / Timed out, exit code).
+The menu file is read at start and again whenever the menu returns to the top menu, if its modification stamp changed.
+A missing file or an invalid one gives today's menu (an invalid one also gives a note on the screen).
 After a mission that ends while the robot is docked, the navigation stack is stopped (stop_stack.sh, in the
 background). If the robot is not docked the stack keeps running, so "Back to the lab" works afterwards. The stack is
 never started away from the dock: AMCL would be told the robot is on the dock.
@@ -38,6 +45,8 @@ import abc
 import re
 import textwrap
 import time
+
+import menu_config
 
 # ---------------------------------------------------------------- constants (units in comments)
 DISPLAY_LINES = 5            # lines on the TurtleBot 4 display
@@ -52,6 +61,9 @@ NOTE_S = 3.0                 # s, a result text stays this long, then the menu c
 REFUSED_S = 10.0             # s, a refusal ("Cannot start" and the reason) stays this long
 RESULT_RETURN_S = 60.0       # s, after a docked, successful mission the menu comes back by itself
 MISSION_LOAD_S = 90.0        # s, the menu keeps the screen at most this long after starting the mission
+CUSTOM_TERM_S = 15.0         # s, an own program still runs this long after SIGINT: SIGTERM
+CUSTOM_KILL_S = 10.0         # s, and this long after SIGTERM: SIGKILL
+CUSTOM_RESULT_S = 30.0       # s, the result of an own program stays this long, then the menu comes back
 ARMED_CHECK_S = 0.5          # s, how often the output file is read for ARMED_MARK while the mission loads
 ARMED_MARK = '[stop_button] armed'   # the mission's log line: from here on it handles the buttons itself
 STACK_START_TIMEOUT = 150.0  # s, start_stack.sh must be done within this time
@@ -80,7 +92,8 @@ MISSION_STARTING_LINES = ['Starting', 'please wait', '2 = Stop']   # same text t
 MISSION_STOPPING_LINES = ['Stopping', 'please wait']
 RESULT_TEXT = {EXIT_DELIVERED: ['Delivery done'], EXIT_NO_FOOD: ['Back at the lab'], EXIT_ALARM: ['NEED HELP'],
                EXIT_STOPPED: ['Stopped'], NO_CODE: ['Trip ended']}
-PUBLISHING = ('menu', 'confirm', 'note', 'help', 'action', 'starting', 'loading', 'result')   # this program draws
+PUBLISHING = ('menu', 'confirm', 'note', 'help', 'action', 'starting', 'loading', 'custom',
+              'result')   # this program draws
 
 
 # ---------------------------------------------------------------- pure helpers
@@ -264,6 +277,28 @@ class MenuIO(abc.ABC):
     @abc.abstractmethod
     def action_cancel(self): ...
 
+    # ---- menu file and own programs (not abstract: an adapter without them gives a menu without own entries)
+    def path_stamp(self, path):
+        """Something that changes when the file at path changes (modification time and size), None if it is missing."""
+        return None
+
+    def real_path(self, path):
+        """The path with links resolved, None if it does not exist."""
+        return None
+
+    def custom_start(self, cmd, out_path):
+        """Start the command (a list, no shell) in its own session, in the folder of the program, output appended to
+        out_path."""
+        raise NotImplementedError
+
+    def custom_poll(self):
+        """None while the own program runs, else its exit code, NO_CODE when there is none."""
+        return NO_CODE
+
+    def custom_signal(self, name):
+        """Send 'INT', 'TERM' or 'KILL' to the own program's process group. False if there is none."""
+        return False
+
     @abc.abstractmethod
     def call_estop(self, on):
         """Call the e_stop service with e_stop_on=on. False if it cannot be called."""
@@ -277,8 +312,18 @@ class MenuIO(abc.ABC):
 class Menu:
     """The state machine. start() once, then step() every POLL seconds (or run())."""
 
-    def __init__(self, io, route_dir, out_dir=DEFAULT_OUT_DIR):
+    def __init__(self, io, route_dir, out_dir=DEFAULT_OUT_DIR, menu_file=None, home=None):
         self.io, self.route_dir, self.out_dir = io, route_dir, out_dir
+        self.menu_file, self.home = menu_file, (home or '~')
+        self.keys = list(ENTRIES)     # the entries on the menu, top to bottom: built-in ids and own ids
+        self.custom = {}              # own entries from the menu file: id -> entry dict
+        self.stamp_seen, self.stamp_known = None, False
+        self.config_note = None       # lines to show once the menu is up (the file was rejected)
+        self.custom_entry = None      # the own entry that runs
+        self.custom_stage = 0         # 0 running, 1 SIGINT sent, 2 SIGTERM sent, 3 SIGKILL sent
+        self.custom_stage_at = self.custom_deadline = 0.0
+        self.custom_why = None        # 'stop', 'timeout' or 'stopfile'
+        self.result_custom = False
         self.state = 'menu'
         self.cursor = self.top = 0
         self.prev_buttons = None
@@ -309,6 +354,8 @@ class Menu:
         self.state = state
         if state not in PUBLISHING:
             self.last_pub = self.last_text = None
+        if state == 'menu':
+            self._reload_and_note()
 
     def _note(self, lines, seconds=NOTE_S):
         self.note_lines, self.note_until = list(lines), self.io.now() + seconds
@@ -327,13 +374,60 @@ class Menu:
 
     def labels(self):
         kind = self.trip_kind() or 'full'
-        return [TRIP_LABELS[kind] if key == 'trip' else LABELS[key] for key in ENTRIES]
+        names = dict(LABELS, **{k: e['label'] for k, e in self.custom.items()})
+        return [TRIP_LABELS[kind] if key == 'trip' else names[key] for key in self.keys]
+
+    # ---- the menu file
+    def _reload_and_note(self):
+        self._reload_menu_file()
+        if self.config_note:
+            lines, self.config_note = self.config_note, None
+            self._note(lines, REFUSED_S)
+
+    def _reload_menu_file(self):
+        """Read the menu file if its stamp changed since the last look (also the first look). Invalid or missing =
+        today's menu. Never raises: a broken file must not stop the menu."""
+        if self.menu_file is None:
+            return
+        io = self.io
+        stamp = io.path_stamp(self.menu_file)
+        if self.stamp_known and stamp == self.stamp_seen:
+            return
+        first = not self.stamp_known
+        self.stamp_seen, self.stamp_known = stamp, True
+        before = self.keys[self.cursor] if self.cursor < len(self.keys) else None
+        keys, custom = list(ENTRIES), {}
+        if stamp is None:
+            self._log(f'no menu file at {self.menu_file}: standard menu' if first
+                      else f'menu file removed ({self.menu_file}): standard menu')
+        else:
+            try:
+                res = menu_config.parse(io.read_text(self.menu_file), self.home)
+            except Exception as e:   # noqa: BLE001  (a bug in the checker must not stop the menu)
+                res = menu_config.Result()
+                res.errors.append(f'cannot check the file: {e}')
+            if res.ok:
+                keys, custom = res.layout(), res.custom
+                self._log(f'menu file loaded ({len(custom)} own entries, hidden: {",".join(res.hide) or "none"}): '
+                          + ', '.join(keys))
+                for w in res.warnings:
+                    self._log('menu file note: ' + w)
+            else:
+                self._log('menu file rejected, standard menu: ' + '; '.join(res.errors))
+                self.config_note = menu_config.screen_note(res.errors)
+        self.keys, self.custom = keys, custom
+        self.cursor = keys.index(before) if before in keys else min(self.cursor, len(keys) - 1)
+        self.cursor, self.top = scroll(self.cursor, min(self.top, max(0, len(keys) - DISPLAY_LINES)), len(keys), 0)
 
     def screen(self):
         """The lines of the current screen (only for the states in PUBLISHING)."""
         if self.state == 'menu':
             return menu_lines(self.labels(), self.cursor, self.top)
         if self.state == 'confirm':
+            if str(self.pending).startswith('custom:'):
+                entry = self.custom.get(self.pending[7:], {})
+                title = [entry.get('label', '')[:DISPLAY_CHARS - 1] + '?']
+                return title + (['Robot will move'] if entry.get('moves') else []) + ['1 = Yes', '2 = No']
             return [CONFIRM_TITLES[self.pending], '1 = Yes', '2 = No']
         if self.state == 'note':
             return self.note_lines
@@ -345,6 +439,9 @@ class Menu:
             return STARTING_LINES
         if self.state == 'loading':
             return MISSION_STOPPING_LINES if self.stop_sent else MISSION_STARTING_LINES
+        if self.state == 'custom':
+            label = self.custom_entry['label']
+            return [label, 'Stopping', 'please wait'] if self.custom_stage else [label, 'Running', '2 = Stop']
         if self.state == 'result':
             return self.result_lines
         return []
@@ -379,6 +476,7 @@ class Menu:
                 and now - self.last_press >= IDLE_TOP_S):
             self._log('idle: cursor back to the top')
             self.cursor = self.top = 0
+            self._reload_and_note()
         for number in pressed:
             self._log(f'press {number} in state {self.state}')
             self._on_press(number)
@@ -402,13 +500,13 @@ class Menu:
         state = self.state
         if state == 'menu':
             if number == 3:
-                self.cursor, self.top = scroll(self.cursor, self.top, len(ENTRIES), -1)
+                self.cursor, self.top = scroll(self.cursor, self.top, len(self.keys), -1)
             elif number == 4:
-                self.cursor, self.top = scroll(self.cursor, self.top, len(ENTRIES), +1)
+                self.cursor, self.top = scroll(self.cursor, self.top, len(self.keys), +1)
             elif number == 2:
                 self.cursor = self.top = 0
             elif number == 1:
-                self._select(ENTRIES[self.cursor])
+                self._select(self.keys[self.cursor])
         elif state == 'confirm':
             if number == 1:
                 self._confirmed()
@@ -427,6 +525,9 @@ class Menu:
         elif state == 'loading':
             if number == 2:
                 self._stop_loading()
+        elif state == 'custom':
+            if number == 2:
+                self._custom_stop('stop')
         elif state == 'result':
             self._to_menu(keep_cursor=False)
         # state == 'mission': the mission owns the buttons; the press is only logged
@@ -443,6 +544,8 @@ class Menu:
                 return
             self.pending = kind
             self._goto('confirm')
+        elif key in self.custom:
+            self._select_custom(self.custom[key])
         elif key == 'power':
             self.pending = 'power'
             self._goto('confirm')
@@ -459,6 +562,14 @@ class Menu:
             ok = self.io.call_power()
             self._log(f'power off requested, accepted: {ok}')
             self._note(['Powering off'] if ok else ['Power failed'])
+            return
+        if str(what).startswith('custom:'):
+            entry = self.custom.get(what[7:])
+            problem = self._custom_problem(entry) if entry else ['Entry is gone']
+            if problem:
+                self._note(problem, REFUSED_S)
+            else:
+                self._begin_custom(entry)
             return
         kind = self.trip_kind()
         if kind != what:   # the dock status changed while the question was on the screen
@@ -478,6 +589,8 @@ class Menu:
             return ['STOP file is set', 'Delete ~/STOP']
         if io.mission_poll() is None:
             return ['A delivery', 'is running']
+        if io.custom_poll() is None:
+            return ['A program', 'is running']
         if kind == 'home':
             if not io.stack_running():   # never start the stack away from the dock: AMCL would assume the dock
                 return ['Not on the map', 'Use the controller', 'then Dock']
@@ -525,6 +638,77 @@ class Menu:
         self.io.stop_stack_background()
         self._note(['Cancelled'])
 
+    # ---- own entries
+    def _custom_problem(self, entry):
+        """Lines for a note when the own program must not start, else None. Checked at Select and again at Yes."""
+        io = self.io
+        if io.stop_file_exists():
+            return ['STOP file is set', 'Delete ~/STOP']
+        if io.mission_poll() is None:
+            return ['A delivery', 'is running']
+        if io.custom_poll() is None:
+            return ['A program', 'is running']
+        if entry['moves']:
+            docked = io.docked()
+            if docked is None:
+                return ['Waiting for', 'dock status']
+            if docked and not entry['undocks']:
+                return ['Undock first']
+        path = menu_config.program_path(entry['program'], self.home)
+        real = io.real_path(path)
+        if real is None:
+            return ['Program not found']
+        root = io.real_path(self.home.rstrip('/') + '/' + menu_config.ROBOT_CODE)
+        if root is None or not menu_config.inside_robot_code(real, root):
+            return ['Not allowed', 'outside robot_code']
+        return None
+
+    def _select_custom(self, entry):
+        problem = self._custom_problem(entry)
+        if problem:
+            self._note(problem, REFUSED_S)
+            return
+        if entry['confirm'] or entry['moves']:
+            self.pending = 'custom:' + entry['id']
+            self._goto('confirm')
+        else:
+            self._begin_custom(entry)
+
+    def _begin_custom(self, entry):
+        io = self.io
+        path = menu_config.program_path(entry['program'], self.home)
+        self.out_path = self.out_dir.rstrip('/') + '/' + out_name(io.wall_time()).replace('menu_', 'menu_custom_', 1)
+        cmd = menu_config.command(path, entry['args'])
+        self._log(f'starting own entry {entry["id"]}: {" ".join(cmd)}, output {self.out_path}, '
+                  f'timeout {entry["timeout"]} s')
+        io.custom_start(cmd, self.out_path)
+        self.custom_entry, self.custom_stage, self.custom_why = entry, 0, None
+        self.custom_deadline = io.now() + entry['timeout']
+        self._goto('custom')
+
+    def _custom_stop(self, why):
+        """One SIGINT (button 2, the timeout, ~/STOP). Later the escalation in _poll sends SIGTERM and SIGKILL."""
+        if self.custom_stage:
+            return
+        self.custom_why = why
+        self.custom_stage, self.custom_stage_at = 1, self.io.now()
+        sent = self.io.custom_signal('INT')
+        self._log(f'stop own entry {self.custom_entry["id"]} ({why}), SIGINT sent: {sent}')
+
+    def _custom_ended(self, code):
+        entry = self.custom_entry
+        self._log(f'own entry {entry["id"]} ended, exit code {code}')
+        if self.custom_why == 'timeout':
+            status = 'Timed out'
+        elif self.custom_why:
+            status = 'Stopped'
+        else:
+            status = 'Finished' if code == 0 else 'Failed'
+        self.result_lines = [entry['label'], status, 'Exit code ' + ('?' if code == NO_CODE else str(code))]
+        self.result_code, self.result_at, self.result_custom = None, self.io.now(), True
+        self.custom_stage = 0
+        self._goto('result')
+
     # ---- actions
     def _begin_action(self, kind):
         io = self.io
@@ -542,6 +726,9 @@ class Menu:
             return
         if io.mission_poll() is None:
             self._note(['A delivery', 'is running'])
+            return
+        if io.custom_poll() is None:
+            self._note(['A program', 'is running'])
             return
         self._log(f'start {kind}')
         if not io.start_action(kind):
@@ -600,6 +787,26 @@ class Menu:
                 elif now >= self.load_deadline:
                     self._log(f'no "{ARMED_MARK}" line after {MISSION_LOAD_S:.0f} s: leaving the screen to the mission')
                     self._goto('mission')
+        elif self.state == 'custom':
+            code = io.custom_poll()
+            if code is not None:
+                self._custom_ended(code)
+            else:
+                if io.stop_file_exists():
+                    self._custom_stop('stopfile')
+                elif now > self.custom_deadline:
+                    self._custom_stop('timeout')
+                if self.custom_stage == 1 and now - self.custom_stage_at >= CUSTOM_TERM_S:
+                    self.custom_stage, self.custom_stage_at = 2, now
+                    sent = io.custom_signal('TERM')
+                    self._log(f'own entry still runs {CUSTOM_TERM_S:.0f} s after SIGINT: SIGTERM, sent: {sent}')
+                elif self.custom_stage == 2 and now - self.custom_stage_at >= CUSTOM_KILL_S:
+                    self.custom_stage, self.custom_stage_at = 3, now
+                    sent = io.custom_signal('KILL')
+                    self._log(f'own entry still runs {CUSTOM_KILL_S:.0f} s after SIGTERM: SIGKILL, sent: {sent}')
+        elif self.state == 'result' and self.result_custom:
+            if now - self.result_at >= CUSTOM_RESULT_S:
+                self._to_menu(keep_cursor=False)
         elif self.state == 'result':
             waiting = any('food is here' in line for line in self.result_lines)   # handoff timed out: keep the message
             if (self.result_code in (EXIT_DELIVERED, EXIT_NO_FOOD) and io.docked() is True and not waiting
@@ -611,7 +818,7 @@ class Menu:
     def _mission_ended(self, code, now):
         io = self.io
         self._log(f'mission ended, exit code {code}')
-        self.result_code, self.result_at = code, now
+        self.result_code, self.result_at, self.result_custom = code, now, False
         if io.docked() is True:
             self._log('docked: stopping the navigation stack')
             io.stop_stack_background()

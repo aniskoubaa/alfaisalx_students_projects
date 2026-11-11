@@ -1,0 +1,25 @@
+# Example menu file for the front-panel menu. Copy it to ~/robot_code/menu/menu.yaml on the robot and edit it.
+# Check it first on any computer:  python3 menu_config.py --check menu.example.yaml
+# Format: delivery/README.md section 9 ("Your own menu entries"). Any mistake makes the robot show the standard menu.
+version: 1
+
+# Built-in entries that can be hidden: undock, wall_left, wall_right, help.
+# The trip entry (first), Dock, EStop and Power cannot be hidden, renamed or moved.
+hide: [wall_left, wall_right]
+
+entries:
+  # A harmless program: no question is asked, it does not move the robot.
+  - id: hello
+    label: Hello demo              # at most 17 characters
+    program: ~/robot_code/programs/hello.py   # .py (python3) or .sh (bash), must stay under ~/robot_code
+    after: dock                    # goes right below Dock
+
+  # A program that drives the robot: it always asks "1 = Yes / 2 = No" and is refused while the robot is docked
+  # (unless it undocks the robot itself: undocks: true).
+  - id: square
+    label: Drive a square
+    program: ~/robot_code/programs/square.py
+    args: ["--side", 0.5]
+    moves: true
+    timeout: 120                   # seconds, then it is stopped
+    after: hello

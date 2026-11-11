@@ -27,6 +27,9 @@ def check(name, cond, info=''):
 ROUTE_DIR = '/home/u/robot_code/routes/current'
 OUT_DIR = '/home/u/robot_code/logs/delivery'
 ROUTE_FILE = ROUTE_DIR + '/route.yaml'
+HOME = '/home/u'
+MENU_FILE = HOME + '/robot_code/menu/menu.yaml'
+PROGRAM = HOME + '/robot_code/programs/lights.py'
 
 
 # ---------------------------------------------------------------- fake I/O
@@ -50,6 +53,12 @@ class FakeIO(mc.MenuIO):
         self.action_started_at = None
         self.action_ok = True
         self.estop_ok = self.power_ok = True
+        self.stamps, self.real = {}, {}                # menu file stamps; real paths that differ from the path (links)
+        self.custom_code = -2                          # -2 = no own program; None = running; else exit code
+        self.custom_started_at = 0.0
+        self.custom_exit_after = None                  # s after the start the program ends by itself (None = never)
+        self.custom_exit_code = 0
+        self.custom_dies_on = ('INT',)                 # signals that end it
         if mission is not None:
             self.mission_code = None
 
@@ -148,6 +157,36 @@ class FakeIO(mc.MenuIO):
     def call_power(self):
         self.calls.append(('power',))
         return self.power_ok
+
+    # own menu entries (menu file) and own programs
+    def path_stamp(self, path):
+        return self.stamps.get(path)
+
+    def real_path(self, path):
+        if path in self.real:
+            return self.real[path]
+        return path if path in self.files or path == HOME + '/robot_code' else None
+
+    def custom_start(self, cmd, out_path):
+        self.calls.append(('custom_start', tuple(cmd), out_path))
+        self.custom_code = None
+        self.custom_started_at = self.t
+
+    def custom_poll(self):
+        if self.custom_code is None and self.custom_exit_after is not None \
+                and self.t - self.custom_started_at >= self.custom_exit_after:
+            self.custom_code = self.custom_exit_code
+        return mc.NO_CODE if self.custom_code == -2 else self.custom_code
+
+    def custom_signal(self, name):
+        self.calls.append(('custom_signal', name))
+        if self.custom_code is None and name in self.custom_dies_on:
+            self.custom_code = 130 if name == 'INT' else -15
+        return True
+
+    def set_menu_file(self, text):
+        self.files[MENU_FILE] = text
+        self.stamps[MENU_FILE] = (self.t, len(text))
 
     # helpers for the tests
     def called(self, name):
@@ -829,6 +868,356 @@ run(io, menu, 1.0)
 check('result: the mission\'s last screen is drawn', last(io) == 'Your food is here\n>Done, thank you\nPress button 1', last(io))
 run(io, menu, 90.0)
 check('result: food still waiting: the message stays, no return to the menu by itself', menu.state == 'result')
+
+# ================================================================ the menu file (own entries, hidden entries)
+BASE = '''
+entries:
+  - id: lights
+    label: Lights demo
+    program: ~/robot_code/programs/lights.py
+    after: dock
+'''
+
+
+def make_file(text=None, with_program=True, **kw):
+    io = FakeIO(**kw)
+    if with_program:
+        io.files[PROGRAM] = 'print(1)'
+    if text is not None:
+        io.set_menu_file(text)
+    menu = mc.Menu(io, ROUTE_DIR, OUT_DIR, menu_file=MENU_FILE, home=HOME)
+    menu.start()
+    menu.step()
+    return io, menu
+
+
+def screen_lines(io):
+    return last(io).split('\n')
+
+
+def goto_entry(io, menu, label):
+    """Press 4 until the cursor is on the entry with this label."""
+    for _ in range(20):
+        if any(x == '>' + label for x in menu.screen()):
+            return
+        tap(io, menu, 4)
+
+
+# ---- missing, invalid and valid files
+io, menu = make_file(None)
+check('menu file missing: today\'s menu, the problem is only logged, no note', menu.state == 'menu'
+      and [x[1:] for x in screen_lines(io)] == ['Go to food court', 'Dock', 'Undock', 'EStop', 'Wall Follow Left']
+      and logged(io, 'no menu file'), (menu.state, last(io)))
+io, menu = make_file('hide: [dock]\n')
+check('menu file invalid: a short note at start, the error is logged', menu.state == 'note' and screen_lines(io)[0] == 'Menu file error'
+      and fits([last(io)]) and logged(io, 'menu file rejected') and logged(io, 'locked'), (menu.state, last(io)))
+tap(io, menu, 3)
+check('menu file invalid: a press dismisses the note and the menu is exactly today\'s menu', menu.state == 'menu'
+      and menu.keys == list(mc.ENTRIES) and last(io).split('\n')[0] == '>Go to food court', (menu.state, last(io)))
+io, menu = make_file('entries: [unclosed')
+check('menu file broken YAML: standard menu and a note, no crash', menu.state == 'note' and menu.keys == list(mc.ENTRIES))
+io, menu = make_file(BASE)
+check('menu file valid: own entry below Dock', menu.state == 'menu' and screen_lines(io) == ['>Go to food court', ' Dock', ' Lights demo', ' Undock', ' EStop'],
+      screen_lines(io))
+check('menu file valid: the trip entry is first and the log says what was loaded', menu.keys[0] == 'trip' and logged(io, 'menu file loaded'))
+io, menu = make_file('hide: [undock, wall_left, wall_right, help]\n')
+check('hide: the hidden entries are gone, Dock EStop Power stay', menu.keys == ['trip', 'dock', 'estop', 'power']
+      and screen_lines(io) == ['>Go to food court', ' Dock', ' EStop', ' Power'], screen_lines(io))
+tap(io, menu, 4)
+tap(io, menu, 4)
+tap(io, menu, 4)
+tap(io, menu, 4)
+check('hide: the cursor stops on the last entry', screen_lines(io)[-1] == '>Power', screen_lines(io))
+many = 'entries:\n' + ''.join(f'  - {{id: e{i}, label: Entry {i}, program: a.py}}\n' for i in range(8))
+io, menu = make_file(many)
+for _ in range(15):
+    tap(io, menu, 4)
+check('16 entries: scrolling shows 5 lines and reaches the last one', len(screen_lines(io)) == 5 and screen_lines(io)[-1] == '>Entry 7', screen_lines(io))
+io, menu = make_file(BASE, docked=False)
+check('trip label still follows the dock status with a menu file', screen_lines(io)[0] == '>Back to the lab', screen_lines(io))
+
+# ---- pick up changes when the menu returns to the top menu
+io, menu = make_file(None)
+io.set_menu_file(BASE)
+run(io, menu, 5.0)
+check('reload: a change is not read while the menu just sits there', 'lights' not in menu.keys)
+tap(io, menu, 4)
+tap(io, menu, 4)
+tap(io, menu, 4)
+tap(io, menu, 4)
+tap(io, menu, 4)
+tap(io, menu, 4)
+tap(io, menu, 4)
+tap(io, menu, 1)         # Help
+check('reload: help screen is up', menu.state == 'help')
+tap(io, menu, 1)         # any press: back to the menu
+check('reload: the file is read when the menu comes back, no restart', menu.state == 'menu' and 'lights' in menu.keys
+      and logged(io, 'menu file loaded'), (menu.state, menu.keys))
+n = len([1 for _, line in io.logs if 'menu file loaded' in line])
+tap(io, menu, 1)
+tap(io, menu, 1)
+check('reload: the same file (same stamp) is not read again', len([1 for _, line in io.logs if 'menu file loaded' in line]) == n)
+io, menu = make_file(BASE)
+goto_entry(io, menu, 'Lights demo')
+io.set_menu_file(BASE.replace('Lights demo', 'Lights show').replace('after: dock', 'after: trip'))
+tap(io, menu, 1)         # select: asks nothing, starts the program (no confirm)
+check('reload: not while the program runs, the screen keeps the old label', menu.state == 'custom'
+      and screen_lines(io)[0] == 'Lights demo', (menu.state, last(io)))
+io.custom_exit_after, io.custom_exit_code = 0.5, 0
+run(io, menu, 1.0)
+tap(io, menu, 1)         # any press: back to the menu, the new file is read now
+check('reload: after the program the menu reads the file again', menu.state == 'menu' and 'Lights show' in menu.labels(), menu.labels())
+io, menu = make_file(BASE)
+goto_entry(io, menu, 'Lights demo')
+io.set_menu_file(BASE.replace('after: dock', 'after: trip'))
+run(io, menu, 31.0)      # idle: the cursor falls back to the top, and the menu file is read again
+check('reload: the idle return to the top reads the file too', menu.keys[:2] == ['trip', 'lights'] and menu.cursor == 0, menu.keys)
+io, menu = make_file(BASE)
+goto_entry(io, menu, 'Lights demo')
+io.set_menu_file(BASE.replace('after: dock', 'after: trip'))
+tap(io, menu, 3)         # a press that does not leave the menu does not reload
+check('reload: moving the cursor in the menu does not reload', menu.keys[2] == 'lights')
+io, menu = make_file(BASE)
+io.set_menu_file('hide: [trip]\n')
+goto_entry(io, menu, 'Help')
+tap(io, menu, 1)
+tap(io, menu, 1)
+check('reload: a file that became invalid gives a note and today\'s menu', menu.state == 'note' and screen_lines(io)[0] == 'Menu file error'
+      and menu.keys == list(mc.ENTRIES), (menu.state, menu.keys))
+io, menu = make_file(BASE)
+del io.files[MENU_FILE]
+del io.stamps[MENU_FILE]
+goto_entry(io, menu, 'Help')
+tap(io, menu, 1)
+tap(io, menu, 1)
+check('reload: a file that was removed gives today\'s menu, no note', menu.state == 'menu' and menu.keys == list(mc.ENTRIES)
+      and logged(io, 'menu file removed'), (menu.state, menu.keys))
+io, menu = make_file(BASE)
+goto_entry(io, menu, 'Dock')
+io.set_menu_file('hide: [wall_left]\n')
+tap(io, menu, 1)         # Dock: the robot is docked, a note comes up; any press returns to the menu
+tap(io, menu, 1)
+check('reload: after a note the new file is in use and the cursor is on a real entry', 'wall_left' not in menu.keys
+      and menu.cursor < len(menu.keys), (menu.state, menu.keys, menu.cursor))
+check('reload: the cursor stays on the same entry when it is still there', menu.keys[menu.cursor] == 'dock', (menu.cursor, menu.keys))
+
+# ---- running an own entry
+def lights(io, menu):
+    goto_entry(io, menu, 'Lights demo')
+    tap(io, menu, 1)
+
+
+io, menu = make_file(BASE)
+lights(io, menu)
+cmds = io.called('custom_start')
+check('run: no question for a harmless program, the program starts at once', menu.state == 'custom' and len(cmds) == 1, menu.state)
+check('run: the command is python3, the path under robot_code, no shell', cmds[0][1] == ('python3', PROGRAM), cmds[0][1])
+check('run: output file menu_custom_<date>_<time>.out in the log folder', cmds[0][2].startswith(OUT_DIR + '/menu_custom_')
+      and cmds[0][2].endswith('.out'), cmds[0][2])
+check('run: the screen shows the label and 2 = Stop', screen_lines(io) == ['Lights demo', 'Running', '2 = Stop'], screen_lines(io))
+check('run: no delivery mission and no stack were started', not io.called('start_mission') and not io.called('start_stack'))
+tap(io, menu, 1)
+tap(io, menu, 3)
+tap(io, menu, 4)
+check('run: buttons 1, 3 and 4 do nothing while it runs', menu.state == 'custom' and not io.called('custom_signal'))
+tap(io, menu, 2)
+check('run: button 2 sends SIGINT once and the screen says Stopping', io.called('custom_signal') == [('custom_signal', 'INT')]
+      and screen_lines(io) == ['Lights demo', 'Stopping', 'please wait'] or menu.state == 'result', screen_lines(io))
+io, menu = make_file(BASE)
+io.custom_dies_on = ()
+lights(io, menu)
+tap(io, menu, 2)
+tap(io, menu, 2)
+tap(io, menu, 2)
+check('run: more presses of 2 send no second SIGINT', io.called('custom_signal') == [('custom_signal', 'INT')], io.calls)
+check('run: the screen says Stopping while it ends', screen_lines(io) == ['Lights demo', 'Stopping', 'please wait'], screen_lines(io))
+run(io, menu, 15.0)
+check('run: still running 15 s after SIGINT: SIGTERM once', ('custom_signal', 'TERM') in io.calls and io.calls.count(('custom_signal', 'TERM')) == 1, io.calls)
+run(io, menu, 10.0)
+check('run: still running 10 s after that: SIGKILL once', io.calls.count(('custom_signal', 'KILL')) == 1, io.calls)
+io.custom_code = -9
+run(io, menu, 1.0)
+check('run: killed program: result screen says Stopped with the exit code', menu.state == 'result'
+      and screen_lines(io) == ['Lights demo', 'Stopped', 'Exit code -9'], screen_lines(io))
+
+io, menu = make_file(BASE)
+io.custom_exit_after, io.custom_exit_code = 3.0, 0
+lights(io, menu)
+run(io, menu, 4.0)
+check('result: exit 0 = Finished with the exit code', menu.state == 'result' and screen_lines(io) == ['Lights demo', 'Finished', 'Exit code 0'], screen_lines(io))
+check('result: the menu does not stop the navigation stack for an own program', not io.called('stop_stack'))
+run(io, menu, 26.0)
+check('result: stays 30 s', menu.state == 'result')
+run(io, menu, 4.0)
+check('result: back to the menu by itself after 30 s', menu.state == 'menu')
+io, menu = make_file(BASE)
+io.custom_exit_after, io.custom_exit_code = 3.0, 7
+lights(io, menu)
+run(io, menu, 4.0)
+check('result: a non-zero exit code = Failed with the code', screen_lines(io) == ['Lights demo', 'Failed', 'Exit code 7'], screen_lines(io))
+tap(io, menu, 3)
+check('result: any press returns to the menu', menu.state == 'menu')
+io, menu = make_file(BASE)
+lights(io, menu)
+tap(io, menu, 2)
+run(io, menu, 1.0)
+check('result: ended by button 2 = Stopped with the exit code', screen_lines(io) == ['Lights demo', 'Stopped', 'Exit code 130'], screen_lines(io))
+
+# ---- timeout and the STOP file
+io, menu = make_file(BASE.replace('after: dock', 'after: dock\n    timeout: 20'))
+lights(io, menu)
+run(io, menu, 19.0)
+check('timeout: nothing before the time is up', not io.called('custom_signal'))
+run(io, menu, 2.0)
+check('timeout: SIGINT once, result says Timed out', io.called('custom_signal') == [('custom_signal', 'INT')]
+      and screen_lines(io) == ['Lights demo', 'Timed out', 'Exit code 130'], (io.calls, screen_lines(io)))
+io, menu = make_file(BASE)
+lights(io, menu)
+io.stop_file = True
+run(io, menu, 1.0)
+check('STOP file while it runs: SIGINT once, result Stopped', io.called('custom_signal') == [('custom_signal', 'INT')]
+      and screen_lines(io)[1] == 'Stopped' and logged(io, 'stopfile'), (io.calls, screen_lines(io)))
+
+# ---- confirm and moving programs
+CONF = BASE.replace('after: dock', 'after: dock\n    confirm: true')
+io, menu = make_file(CONF)
+lights(io, menu)
+check('confirm: asks first, nothing starts', menu.state == 'confirm' and screen_lines(io) == ['Lights demo?', '1 = Yes', '2 = No']
+      and not io.called('custom_start'), screen_lines(io))
+tap(io, menu, 2)
+check('confirm: 2 = No goes back, nothing started', menu.state == 'menu' and not io.called('custom_start'))
+lights(io, menu)
+tap(io, menu, 1)
+check('confirm: 1 = Yes starts the program', menu.state == 'custom' and len(io.called('custom_start')) == 1)
+LONG = BASE.replace('Lights demo', 'L' * 17).replace('after: dock', 'after: dock\n    confirm: true')
+io, menu = make_file(LONG)
+goto_entry(io, menu, 'L' * 17)
+tap(io, menu, 1)
+check('confirm: a 17 character label still fits the title (18)', fits([last(io)]) and screen_lines(io)[0] == 'L' * 17 + '?', screen_lines(io))
+MOVE = BASE.replace('after: dock', 'after: dock\n    moves: true')
+io, menu = make_file(MOVE, docked=False)
+lights(io, menu)
+check('moves: always asks, and says the robot will move', menu.state == 'confirm' and screen_lines(io)
+      == ['Lights demo?', 'Robot will move', '1 = Yes', '2 = No'], screen_lines(io))
+tap(io, menu, 1)
+check('moves: Yes while undocked starts it', menu.state == 'custom')
+io, menu = make_file(MOVE, docked=True)
+lights(io, menu)
+check('moves: refused while docked ("Undock first"), nothing asked or started', menu.state == 'note' and screen_lines(io) == ['Undock first']
+      and not io.called('custom_start'), (menu.state, last(io)))
+io, menu = make_file(MOVE.replace('moves: true', 'undocks: true'), docked=True)
+lights(io, menu)
+check('undocks: a moving program that undocks itself may start while docked (after a question)', menu.state == 'confirm', menu.state)
+tap(io, menu, 1)
+check('undocks: Yes starts it', menu.state == 'custom')
+io, menu = make_file(MOVE, docked=None)
+lights(io, menu)
+check('moves: refused while the dock status is unknown', menu.state == 'note' and screen_lines(io)[0] == 'Waiting for', last(io))
+io, menu = make_file(BASE, docked=None)
+lights(io, menu)
+check('harmless program: dock status does not matter', menu.state == 'custom')
+io, menu = make_file(MOVE, docked=False)
+lights(io, menu)
+io.docked_v = True
+tap(io, menu, 1)
+check('moves: the dock status is checked again at Yes', menu.state == 'note' and not io.called('custom_start'), (menu.state, last(io)))
+
+# ---- refusals
+io, menu = make_file(BASE)
+io.stop_file = True
+lights(io, menu)
+check('refused: ~/STOP exists', menu.state == 'note' and screen_lines(io)[0] == 'STOP file is set' and not io.called('custom_start'), last(io))
+io, menu = make_file(BASE)
+io.mission_code = None
+lights(io, menu)
+check('refused: a delivery is running', menu.state == 'note' and screen_lines(io)[:2] == ['A delivery', 'is running']
+      and not io.called('custom_start'), last(io))
+io, menu = make_file(BASE, with_program=False)
+lights(io, menu)
+check('refused: the program file is missing', menu.state == 'note' and screen_lines(io)[0] == 'Program not found'
+      and not io.called('custom_start'), last(io))
+io, menu = make_file(BASE)
+io.real[PROGRAM] = '/etc/evil.py'
+lights(io, menu)
+check('refused: a link that leads outside robot_code', menu.state == 'note' and screen_lines(io)[0] == 'Not allowed'
+      and not io.called('custom_start'), last(io))
+io, menu = make_file(BASE)
+io.real[HOME + '/robot_code'] = HOME + '/robot_code'
+io.real[PROGRAM] = HOME + '/robot_code/real/lights.py'
+lights(io, menu)
+check('allowed: a link that stays inside robot_code', menu.state == 'custom' and fits(io.published and [last(io)] or []), (menu.state, last(io)))
+io, menu = make_file(CONF)
+lights(io, menu)
+io.stop_file = True
+tap(io, menu, 1)
+check('refused: ~/STOP appears while the question is on the screen', menu.state == 'note' and not io.called('custom_start'), (menu.state, last(io)))
+io, menu = make_file(CONF)
+lights(io, menu)
+io.mission_code = None
+tap(io, menu, 1)
+check('refused: a delivery starts while the question is on the screen', menu.state == 'note' and not io.called('custom_start'))
+io, menu = make_file(BASE, stack=True)
+io.custom_code = None
+tap(io, menu, 1)
+check('a trip is refused while an own program runs', menu._trip_problem('full') == ['A program', 'is running'], menu._trip_problem('full'))
+
+# ---- the old menu still works when a file exists but changes nothing
+io, menu = make_file('version: 1\n')
+check('empty menu file: exactly today\'s menu', menu.keys == list(mc.ENTRIES) and screen_lines(io)[0] == '>Go to food court')
+
+# ---- the example file
+EXAMPLE = os.path.join(DELIVERY, 'menu.example.yaml')
+with open(EXAMPLE, encoding='utf-8') as f:
+    ex = mc.menu_config.parse(f.read(), HOME)
+check('menu.example.yaml is valid', ex.ok, ex.errors)
+
+# ---- the ROS adapter's own-program runner (real processes, so only where process groups exist)
+check('parse_args: --menu-file and the default (env DELIVERY_MENU_FILE, else ~/robot_code/menu/menu.yaml)',
+      dmenu.parse_args(['--menu-file', '/x/m.yaml']).menu_file == '/x/m.yaml' and dmenu.parse_args([]).menu_file is None
+      and dmenu.resolve_menu_file({}, '/home/u') == MENU_FILE and dmenu.resolve_menu_file({'DELIVERY_MENU_FILE': '/y.yaml'}, '/home/u') == '/y.yaml')
+if os.name == 'posix':
+    import tempfile
+    import time as _time
+    with tempfile.TemporaryDirectory() as tmp:
+        polite = os.path.join(tmp, 'polite.py')
+        stubborn = os.path.join(tmp, 'stubborn.py')
+        with open(polite, 'w') as f:
+            f.write('import os, signal, sys, time\nsignal.signal(signal.SIGINT, lambda *a: (print("got int", os.getcwd()), sys.exit(5)))\n'
+                    'print("ready", sys.argv[1:], flush=True)\nwhile True: time.sleep(0.05)\n')
+        with open(stubborn, 'w') as f:
+            f.write('import signal, time\nsignal.signal(signal.SIGINT, signal.SIG_IGN)\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)\n'
+                    'while True: time.sleep(0.05)\n')
+        out = os.path.join(tmp, 'o.out')
+
+        def wait_code(runner, seconds=10.0):
+            end = _time.time() + seconds
+            while _time.time() < end:
+                if runner.poll() is not None:
+                    return runner.poll()
+                _time.sleep(0.05)
+            return None
+
+        runner = dmenu.CustomRunner()
+        check('runner: no program started = NO_CODE and signals are refused', runner.poll() == mc.NO_CODE and runner.signal('INT') is False)
+        runner.start(['python3', polite, 'a', '3'], out)
+        check('runner: running = None', runner.poll() is None)
+        _time.sleep(0.5)
+        check('runner: SIGINT reaches the program, its exit code comes back', runner.signal('INT') is True and wait_code(runner) == 5, runner.poll())
+        with open(out) as f:
+            text = f.read()
+        check('runner: output goes to the file, the folder of the program is the working folder, args kept',
+              "ready ['a', '3']" in text and 'got int ' + os.path.realpath(tmp) in text, text)
+        check('runner: a finished program cannot be signalled again', runner.signal('INT') is False)
+        runner.start(['python3', stubborn], out)
+        _time.sleep(0.5)
+        runner.signal('INT')
+        runner.signal('TERM')
+        _time.sleep(0.5)
+        check('runner: a program that ignores SIGINT and SIGTERM is still running', runner.poll() is None)
+        runner.signal('KILL')
+        check('runner: SIGKILL ends it (exit code -9)', wait_code(runner) == -9, runner.poll())
+else:
+    print('SKIP runner tests: they need process groups (Linux / macOS)')
 
 print(f'\n{count} checks, {fails} failure(s)')
 sys.exit(1 if fails else 0)

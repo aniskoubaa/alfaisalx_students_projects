@@ -24,8 +24,14 @@ Needs the ROS environment (source /etc/turtlebot4/setup.bash). Stop it with Ctrl
 running mission and the navigation stack are NOT stopped: they were started in their own session and carry on (once it
 has loaded, the mission owns the screen and the buttons; a restarted menu notices it with pgrep and stays silent).
 
+Own entries: a YAML file (default ~/robot_code/menu/menu.yaml, env DELIVERY_MENU_FILE, or --menu-file) can hide some
+built-in entries and add entries that run a program under ~/robot_code (menu_config.py checks it, menu_core.py runs it).
+The file is read again whenever the menu returns to the top menu. Check a file first:
+    python3 menu_config.py --check FILE
+
 Files: ~/robot_code/logs/delivery/menu.log (time stamp, every press and state change), menu_<date>_<time>.out (output of
-start_stack.sh and the mission of one trip). Route folder: env DELIVERY_ROUTE_DIR, default ~/robot_code/routes/current
+start_stack.sh and the mission of one trip), menu_custom_<date>_<time>.out (output of an own entry).
+Route folder: env DELIVERY_ROUTE_DIR, default ~/robot_code/routes/current
 (must hold route.yaml, written by tools/plan_route.py).
 
 Tested on the real robot since 2026-11-06; delivery/README.md section 9 lists what was and was not tested.
@@ -40,6 +46,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import delivery_core as core  # noqa: E402
+import menu_config  # noqa: E402
 import menu_core as mc  # noqa: E402
 from ros_buttons import ButtonPoller  # noqa: E402
 
@@ -61,6 +68,10 @@ def parse_args(argv=None):
                    help='draw the menu and log what would happen; no goal, no service call, no process is started')
     p.add_argument('--route-dir', default=None,
                    help=f'folder with route.yaml (default: env DELIVERY_ROUTE_DIR, else {mc.DEFAULT_ROUTE_DIR})')
+    p.add_argument('--menu-file', default=None,
+                   help=f'YAML file with own entries (default: env DELIVERY_MENU_FILE, else '
+                        f'{menu_config.DEFAULT_MENU_FILE}; '
+                        'a missing file means the standard menu)')
     p.add_argument('--log-dir', default=DEFAULT_LOG_DIR,
                    help=f'menu.log and the trip output files (default {DEFAULT_LOG_DIR})')
     return p.parse_args(argv)
@@ -68,6 +79,42 @@ def parse_args(argv=None):
 
 def resolve_route_dir(environ, home=None):
     return mc.route_dir_from(environ, home or os.path.expanduser('~'))
+
+
+def resolve_menu_file(environ, home=None):
+    return menu_config.menu_file_from(environ, home or os.path.expanduser('~'))
+
+
+class CustomRunner:
+    """One own program (menu entry from the menu file) as a child process in its own session, so it survives a
+    restart of
+    this program, and signals go to its whole process group (like Ctrl+C in a terminal). No ROS here: tested offline."""
+    SIGNALS = {'INT': signal.SIGINT, 'TERM': signal.SIGTERM, 'KILL': getattr(signal, 'SIGKILL', signal.SIGTERM)}
+
+    def __init__(self):
+        self.proc = None
+
+    def start(self, cmd, out_path):
+        out = open(os.path.expanduser(out_path), 'ab')
+        try:
+            self.proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT,
+                                         cwd=os.path.dirname(os.path.abspath(cmd[1])), env=clean_env(),
+                                         start_new_session=True)
+        finally:
+            out.close()
+
+    def poll(self):
+        """None while it runs, else the exit code (negative = ended by a signal), NO_CODE when none was started."""
+        return mc.NO_CODE if self.proc is None else self.proc.poll()
+
+    def signal(self, name):
+        if self.proc is None or self.proc.poll() is not None:
+            return False
+        try:
+            os.killpg(self.proc.pid, self.SIGNALS[name])
+        except (ProcessLookupError, PermissionError, OSError):
+            return False
+        return True
 
 
 def pgrep_regex(pattern):
@@ -154,6 +201,7 @@ class RosMenuIO(mc.MenuIO):
         self.is_docked = self.wheels = None
         self.goal = None
         self.stack_proc = self.mission_proc = None
+        self.runner = CustomRunner()
         self.pgrep_at = {}
         self.pgrep_value = {}
         self.button_poller = ButtonPoller('delivery_menu_buttons', self._on_buttons)   # about 95 Hz: polled, not spun
@@ -295,6 +343,34 @@ class RosMenuIO(mc.MenuIO):
         self.mission_proc.send_signal(signal.SIGINT)
         return True
 
+    # ---- menu file and own programs
+    def path_stamp(self, path):
+        try:
+            st = os.stat(os.path.expanduser(path))
+        except OSError:
+            return None
+        return (st.st_mtime_ns, st.st_size)
+
+    def real_path(self, path):
+        path = os.path.expanduser(path)
+        return os.path.realpath(path) if os.path.exists(path) else None
+
+    def custom_start(self, cmd, out_path):
+        if self.dry_run:
+            self.log('DRY RUN would run: ' + ' '.join(cmd))
+            return
+        self.log('running: ' + ' '.join(cmd))
+        self.runner.start(cmd, out_path)
+
+    def custom_poll(self):
+        return mc.NO_CODE if self.dry_run else self.runner.poll()
+
+    def custom_signal(self, name):
+        if self.dry_run:
+            self.log(f'DRY RUN would send the own program SIG{name}')
+            return True
+        return self.runner.signal(name)
+
     def mission_poll(self):
         if self.dry_run:
             return mc.NO_CODE
@@ -370,6 +446,7 @@ def on_signal(signum, frame):
 def main(argv=None):
     args = parse_args(argv)
     route_dir = args.route_dir or resolve_route_dir(os.environ)
+    menu_file = args.menu_file or resolve_menu_file(os.environ)
     log_dir = os.path.expanduser(args.log_dir)
     signal.signal(signal.SIGINT, on_signal)
     signal.signal(signal.SIGTERM, on_signal)
@@ -379,9 +456,9 @@ def main(argv=None):
         print(f'SETUP FAILED: ROS 2 / TurtleBot 4 packages not found ({e}). Run this on the robot with the ROS '
               'environment loaded (source /etc/turtlebot4/setup.bash)', file=sys.stderr)
         return core.EXIT_REFUSED
-    menu = mc.Menu(io, route_dir, log_dir)
+    menu = mc.Menu(io, route_dir, log_dir, menu_file=menu_file, home=os.path.expanduser('~'))
     try:
-        io.log(f'delivery_menu started{" (DRY RUN)" if args.dry_run else ""}, pid {os.getpid()}')
+        io.log(f'delivery_menu started{" (DRY RUN)" if args.dry_run else ""}, pid {os.getpid()}, menu file {menu_file}')
         menu.run(lambda: stop_signal is not None)
         io.log(f'leaving on {stop_signal}; a running mission and the navigation stack are left alone')
     finally:

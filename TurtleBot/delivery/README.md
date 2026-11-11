@@ -77,6 +77,8 @@ All paths are relative to this folder (`TurtleBot/delivery/`).
 | [menu_core.py](menu_core.py) | Pure logic of the front-panel menu with no ROS: the entries, the button rules, the screen texts. Tested offline. Does not move anything. *Added 2026-11-06.* |
 | [delivery_menu.py](delivery_menu.py) | **On the robot, moves it.** The front-panel menu program (ROS). Draws the menu on the display, reads the buttons, and runs the entries: it starts `delivery_mission.py` for a trip, and runs Dock, Undock, EStop and Wall Follow itself. Runs as the `delivery-menu` service. *Added 2026-11-06.* |
 | [ros_buttons.py](ros_buttons.py) | Reads `/hmi/buttons` by polling every 0.1 s, instead of waking up about 95 times a second. Used by the menu and by the mission. Moves nothing. *Added 2026-11-06.* |
+| [menu_config.py](menu_config.py) | Reads and checks the menu file (`~/robot_code/menu/menu.yaml`): hides built-in entries and adds your own programs; standard library plus PyYAML, no ROS. `--check FILE` runs on any computer. Does not move anything. *Added 2026-11-12, not deployed or tried on the robot.* |
+| [menu.example.yaml](menu.example.yaml) | Example menu file (hides the two Wall Follow entries, adds a harmless and a moving program). Copy it and edit it. *Added 2026-11-12.* |
 | [robot/delivery-menu.service](robot/delivery-menu.service) | The systemd user service file that starts `delivery_menu.py` at boot (no sudo). *Added 2026-11-06.* |
 | [robot/install_menu.sh](robot/install_menu.sh) | **On the robot.** Installs, checks (`--status`) or removes (`--uninstall`) the menu service; `--dry-run` prints the commands and changes nothing. Moves nothing itself. *Added 2026-11-06.* |
 | [robot/press_buttons.py](robot/press_buttons.py) | **On the robot.** Test tool: presses the front-panel buttons from software and prints what the screen shows. Button 1 can start a trip, so it can make the robot move: use it only with a person next to the robot. *Added 2026-11-06.* |
@@ -92,6 +94,7 @@ All paths are relative to this folder (`TurtleBot/delivery/`).
 | [../tests/offline/test_delivery_config.py](../tests/offline/test_delivery_config.py) | Offline test: Nav2 config differs from upstream only in the intended keys, launch file, and every shell script (`bash -n` and `--dry-run` with fakes). |
 | [../tests/offline/test_delivery_sim.py](../tests/offline/test_delivery_sim.py) | Offline test of the simulator's pure parts (wall follower, map checks, run analysis). No ROS. |
 | [../tests/offline/test_delivery_deploy.py](../tests/offline/test_delivery_deploy.py) | Offline test of `tools/deploy.py` (packing, manifest, command sequence). |
+| [../tests/offline/test_delivery_menu_config.py](../tests/offline/test_delivery_menu_config.py) | Offline test of the menu file reader and checker (`menu_config.py`): keys, limits, locked rules, `after` placement, errors. 69 checks, added 2026-11-12. |
 
 ---
 
@@ -577,6 +580,92 @@ It is a systemd user service (`~/.config/systemd/user/delivery-menu.service`), n
 
 **Known weakness, fixed 2026-11-06.** The first version read `/hmi/buttons` at about 95 Hz and used 33 % of a core when idle. `ros_buttons.py` polls every 0.1 s instead, and the menu left the top of the CPU list (under 14 %, not measured exactly). The mission uses it too.
 
+#### Your own menu entries (added 2026-11-12)
+
+**NOT VERIFIED on the real robot (2026-11-12): not deployed.** The code and the offline tests are done; nothing below has been tried on the robot yet.
+
+**What it is for.** A YAML file changes the front-panel menu without editing code: hide `Undock`, `Wall Follow Left`, `Wall Follow Right` or `Help`, and add your own programs (a `.py` or `.sh` under `~/robot_code`) as menu entries. Later the file can be edited from TurtleBot Studio (a page for that is planned, not part of this section). Code: [menu_config.py](menu_config.py) (reads and checks the file) and [menu_core.py](menu_core.py) (the menu logic, state `custom`); example: [menu.example.yaml](menu.example.yaml).
+
+**Where the file lives.** `~/robot_code/menu/menu.yaml` on the robot. It is outside the deployed `~/robot_code/delivery` folder, so a deploy never overwrites it. The environment variable `DELIVERY_MENU_FILE` on the menu service, or `--menu-file` on `delivery_menu.py`, replaces the path. When you copy a new file to the robot, write it under a temporary name and `mv` it into place, so the menu never reads half a file. Create `~/robot_code/menu/` if it is missing.
+
+**The keys.** Top level: `version` (optional, must be 1), `hide`, `entries` (at most 8). Any other key is an error, so a typo cannot pass.
+
+| Key | Where | Meaning |
+|---|---|---|
+| `hide` | top level | List of built-in entries to hide. Only `undock`, `wall_left`, `wall_right`, `help` are allowed |
+| `id` | entry, required | `a-z`, `0-9`, `_`; starts with a letter; at most 24 characters; unique; not a built-in id |
+| `label` | entry, required | 1 to 17 printable ASCII characters; unique; not a built-in label. **17, not 18:** the display has 18 characters per line and the first is the `>` cursor |
+| `program` | entry, required | A `.py` (run with `python3`) or `.sh` (run with `bash`) under `~/robot_code`. Accepted: `~/robot_code/x/y.py`, `x/y.py` (relative to `~/robot_code`), or the full path under the robot user's home. Anything that leaves `~/robot_code` is an error |
+| `args` | entry, optional | List of at most 10 texts or numbers (each at most 200 characters), passed as given, no shell |
+| `confirm` | entry, optional | Default `false`. `true` asks `1 = Yes / 2 = No` first |
+| `moves` | entry, optional | Default `false`. `true` means the program drives the robot; it always asks first (forces `confirm: true`) |
+| `undocks` | entry, optional | Default `false`. `true` means a moving program that undocks the robot itself (implies `moves: true`) |
+| `timeout` | entry, optional | Whole seconds, default 300, 1 to 3600. At the timeout the program is stopped |
+| `after` | entry, optional | Default: the end of the list. The entry goes right below the named entry: a built-in id (`trip dock undock estop wall_left wall_right power help`) or another own entry's id. A hidden built-in still marks the place. Nothing can go above the trip entry (`after: trip` makes it second). Loops are errors |
+
+**Example** (the same as `menu.example.yaml`):
+
+```yaml
+version: 1
+hide: [wall_left, wall_right]
+entries:
+  - id: hello
+    label: Hello demo
+    program: ~/robot_code/programs/hello.py
+    after: dock
+  - id: square
+    label: Drive a square
+    program: ~/robot_code/programs/square.py
+    args: ["--side", 0.5]
+    moves: true
+    timeout: 120
+    after: hello
+```
+
+**Locked rules (the file cannot change them).**
+- The trip entry (`Go to food court` / `Back to the lab`) is always first. It cannot be hidden, renamed or moved.
+- Dock, EStop and Power are always present.
+- The built-in names and order are fixed; own entries cannot reuse a built-in id or label.
+- Only `undock`, `wall_left`, `wall_right` and `help` can be hidden.
+- Any error rejects the whole file, never part of it, and the robot shows today's standard menu. A missing file gives the standard menu and is only logged. An invalid file gives the standard menu plus a short note on the screen at start (`Menu file error ... Standard menu`) and a log entry.
+
+**How changes are picked up.** No restart. The menu compares the file's modification time and size every time it returns to the top menu (after a note, a result, Back, a finished program, and when the cursor falls back to the top after idling). While a program or a trip runs, nothing is re-read.
+
+**What happens when an own entry runs.**
+1. Select. It is refused with a note when `~/STOP` exists, when a delivery is running, when the program file is missing, or when its real path (symlinks resolved) is outside `~/robot_code`. A moving program is also refused while the robot is docked (`Undock first`) unless the entry has `undocks: true`, and while the dock status is unknown.
+2. If `confirm` or `moves` is set, the screen asks `1 = Yes / 2 = No`; a moving program also shows `Robot will move`.
+3. The program runs as a child in its own session. Its output goes to `~/robot_code/logs/delivery/menu_custom_<date>_<time>.out`. The screen shows the entry's label and `2 = Stop`. Button 2 sends SIGINT once to the program's process group; if it is still running 15 s later it gets SIGTERM, and 10 s after that SIGKILL. The same sequence runs at the timeout and when `~/STOP` appears.
+4. The result screen shows the label, `Finished`, `Failed`, `Stopped` or `Timed out`, and `Exit code N`. The menu returns after 30 s or on any button press.
+
+**Decisions and limits.**
+- If the menu service restarts while an own program runs, the new menu does not adopt it (a restarted menu does adopt a running trip, but not an own program). The program keeps running without a screen or Stop button until it ends or you stop it by hand [to verify on the robot].
+- Own programs are not given the display or the buttons: the menu keeps both. A program that publishes to `/hmi/display/message` or reads `/hmi/buttons` would fight the menu.
+- No shell is used and `args` are passed exactly as written.
+- At most 8 own entries; a moving program is your responsibility: keep a person next to the robot and controller B ready.
+
+**How to test.**
+
+```bash
+python3 TurtleBot/delivery/menu_config.py --check menu.yaml    # any computer, needs PyYAML; prints OK and the menu, or INVALID and each problem; exit 0 or 1
+python TurtleBot/tests/offline/test_delivery_menu_config.py    # 69 checks, no robot
+python TurtleBot/tests/offline/test_delivery_menu.py           # 229 checks, no robot
+python3 delivery_menu.py --dry-run                             # on the robot, from ~/robot_code/delivery
+```
+
+`menu_config.py --check` also takes `--json` and `--home /home/ubuntu` (home of the robot user, used to accept a full program path). The offline tests passed on 2026-11-12 and say nothing about the real robot.
+
+**To try it on the robot (not done yet), in this order.**
+1. Deploy the delivery folder with `tools/deploy.py` (section 4); the service restarts itself when no mission runs.
+2. Copy your file to `~/robot_code/menu/menu.yaml` (write a temporary name, then `mv`).
+3. On the robot, run `python3 ~/robot_code/delivery/menu_config.py --check ~/robot_code/menu/menu.yaml` and read `~/robot_code/logs/delivery/menu.log` while you test.
+4. First test a harmless program (no `moves`): select it, watch the result screen, look at the `.out` file.
+5. Then a moving program, with a person next to the robot and controller B ready.
+6. Test Stop (button 2) during start-up of a program and a press of the physical buttons on the own entries.
+7. Test that a deliberately wrong file gives the standard menu and the note on the screen.
+8. Record the result in [MAINTENANCE.md](../MAINTENANCE.md) and in a dated step log in `General Tasks/`.
+
+**NOT VERIFIED on the real robot (2026-11-12): not deployed.**
+
 ---
 
 ## 10. Phase 3: demo checklist
@@ -675,6 +764,7 @@ python TurtleBot/tests/offline/test_plan_route.py
 python TurtleBot/tests/offline/test_delivery_config.py
 python TurtleBot/tests/offline/test_delivery_sim.py
 python TurtleBot/tests/offline/test_delivery_deploy.py
+python TurtleBot/tests/offline/test_delivery_menu_config.py
 ```
 
 `python TurtleBot/delivery/tools/verify_all.py` runs all of them and more in one go (section 14).
@@ -686,6 +776,7 @@ python TurtleBot/tests/offline/test_delivery_deploy.py
 | `test_delivery_config.py` | Nav2 config against upstream (only intended keys differ), filters, speed caps, launch file, shell scripts (`bash -n`, LF endings, `--dry-run`, refusals with fake `ros2`) |
 | `test_delivery_sim.py` | The simulator's pure parts: wall follower, map checks, run analysis, the scripts' guards (no ROS). On Windows it uses Git Bash, not the `bash.exe` of WSL in `System32` |
 | `test_delivery_deploy.py` | `tools/deploy.py` with fake `ssh` and `scp`: manifest, command order, refusal while a mission runs, rollback, status |
+| `test_delivery_menu_config.py` | Menu file reader (`menu_config.py`): allowed keys, label and id rules, program path rules, limits, locked rules, `after` placement, error messages (69 checks, 2026-11-12) |
 
 Each prints PASS or FAIL lines and exits non-zero on failure. The GitHub Actions workflow runs the first three on every push [to verify whether it also runs the two new ones]. Passing them says nothing about the real robot.
 
