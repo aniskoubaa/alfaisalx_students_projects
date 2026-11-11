@@ -8,6 +8,7 @@ import {
   Map as MapIcon,
   Play,
   Radar,
+  Route as RouteIcon,
   ScrollText,
   Settings,
   Terminal,
@@ -45,6 +46,14 @@ export const ROUTES: RouteDef[] = [
     icon: MapIcon,
     ready: true,
     blurb: 'Build a map of a place, save it under a name and manage the saved maps.',
+  },
+  {
+    path: '/routes',
+    label: 'Routes',
+    icon: RouteIcon,
+    ready: true,
+    blurb:
+      'See the delivery routes on the robot, choose the current one and upload a planned route.',
   },
   { path: '/programs', label: 'Programs', icon: Play, ready: true },
   { path: '/code', label: 'Code', icon: Code, ready: true },

@@ -306,6 +306,30 @@ export interface MapEntry {
     data: number | null;
   };
 }
+export interface RouteEntry {
+  name: string;
+  valid: boolean;
+  missing: string[];
+  mtime: number;
+  waypoints?: { outbound: number; inbound: number };
+}
+export interface RoutesList {
+  routes: RouteEntry[];
+  current: string | null;
+  current_ok?: boolean;
+  dir?: string;
+}
+export interface TripStatusAnswer {
+  menu_running: boolean;
+  mission_running: boolean;
+  stack_running: boolean;
+  log_path?: string;
+  lines: string[];
+}
+export interface RouteUploadAnswer {
+  name: string;
+  route?: RouteEntry;
+}
 export interface TeleopEvent {
   ev: 'teleop';
   armed: boolean;
@@ -583,6 +607,9 @@ export interface BridgeArgs {
   map_preview: { name: string; max_px?: number };
   map_rename: { name: string; new_name: string };
   map_delete: { name: string; confirm: true };
+  routes_list: Record<string, never>;
+  route_set_current: { name: string; confirm: true };
+  trip_status: { lines?: number };
 }
 export type BridgeCmd = keyof BridgeArgs;
 
@@ -627,4 +654,7 @@ export interface BridgeAnswers {
   };
   map_rename: { name: string };
   map_delete: { deleted: string[] };
+  routes_list: RoutesList;
+  route_set_current: { current: string };
+  trip_status: TripStatusAnswer;
 }

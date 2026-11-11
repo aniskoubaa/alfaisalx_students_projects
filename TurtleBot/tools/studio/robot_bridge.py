@@ -1063,6 +1063,109 @@ def tail_lines(text, n=20):
     return [ln.rstrip()[:300] for ln in str(text or "").splitlines() if ln.strip()][-n:]
 
 
+ROUTE_REQUIRED = ("route.yaml", "map.yaml", "keepout_mask.yaml", "speed_mask.yaml")
+ROUTE_MENU_PATTERN, ROUTE_MISSION_PATTERN = "delivery_menu.py", "delivery_mission.py"
+ROUTE_STACK_PATTERNS = ("delivery_stack.launch.py", "localization.launch.py", "nav2.launch.py")
+ROUTE_FAKE_CURRENT = ".current_fake"      # fake robot only: the target of `current` where symbolic links are not possible
+
+
+def route_missing(files):
+    """The required route files (ROUTE_REQUIRED order) that are not in `files` (an iterable of file names)."""
+    have = set(files or ())
+    return [f for f in ROUTE_REQUIRED if f not in have]
+
+
+def count_waypoints(text):
+    """{outbound:int, inbound:int}: the list items ("- {...}") under the top-level keys outbound: and inbound: of a
+    route.yaml, by a plain line scan (no YAML parser on the robot side)."""
+    counts = {"outbound": 0, "inbound": 0}
+    section = None
+    for raw in str(text or "").splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        if not raw[0].isspace() and not raw.startswith("-"):
+            m = re.match(r"([A-Za-z_][A-Za-z0-9_]*)\s*:", raw)
+            section = m.group(1) if m and m.group(1) in counts else None
+            continue
+        if section and raw.lstrip().startswith("- {"):
+            counts[section] += 1
+    return counts
+
+
+def _is_real_dir(path):
+    return os.path.isdir(path) and not os.path.islink(path)
+
+
+def read_current(routes_dir):
+    """(name or None, ok): where routes/current points. ok means the target is an existing route folder. On a robot
+    `current` is a symbolic link; the fake robot may keep the name in routes/.current_fake instead."""
+    cur = os.path.join(routes_dir, "current")
+    name = None
+    if os.path.islink(cur):
+        try:
+            name = os.path.basename(os.readlink(cur).rstrip("/\\"))
+        except OSError:
+            name = None
+    elif not os.path.exists(cur):
+        txt = read_text(os.path.join(routes_dir, ROUTE_FAKE_CURRENT), 200)
+        name = (txt or "").strip() or None
+    if not name:
+        return None, False
+    return name, valid_map_name(name) and _is_real_dir(os.path.join(routes_dir, name))
+
+
+def write_current(routes_dir, name, fake=False):
+    """Make routes/current point to `name` (a folder name inside routes_dir, relative link). Real robot: a new link is
+    made beside the old one and renamed over it (os.replace, atomic, the same effect as `ln -sfn`). Refuses (ValueError)
+    when `current` is a real directory: it is never deleted. Fake robot where links are not possible: the name goes
+    into routes/.current_fake."""
+    cur = os.path.join(routes_dir, "current")
+    if _is_real_dir(cur):
+        raise ValueError("routes/current is a real folder, not a link; it was left as it is")
+    fake_file = os.path.join(routes_dir, ROUTE_FAKE_CURRENT)
+    tmp = os.path.join(routes_dir, ".current.tmp-%d" % os.getpid())
+    try:
+        if os.path.lexists(tmp):
+            os.remove(tmp)
+        os.symlink(name, tmp)
+    except (OSError, NotImplementedError, AttributeError):
+        if not fake:
+            raise
+        if os.path.islink(cur):
+            os.remove(cur)
+        with open(fake_file + ".tmp", "w", encoding="utf-8") as f:
+            f.write(name + "\n")
+        os.replace(fake_file + ".tmp", fake_file)
+        return
+    try:
+        os.replace(tmp, cur)
+    except OSError:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
+    if fake and os.path.exists(fake_file):
+        try:
+            os.remove(fake_file)
+        except OSError:
+            pass
+
+
+def tail_text_lines(path, n=40, max_bytes=65536):
+    """The last n lines of a text file (empty lines left out), each cut at 300 characters; [] when it cannot be read."""
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(max(0, size - max_bytes))
+            data = f.read()
+    except OSError:
+        return []
+    lines = [ln.rstrip()[:300] for ln in data.decode("utf-8", "replace").splitlines() if ln.strip()]
+    return lines[-n:] if n > 0 else []
+
+
 class Writer:
     """All stdout output goes through one queue and one writer thread, so ROS callbacks never block on a slow pipe.
     Droppable events (status, msg) are dropped when the queue is long; replies are never dropped."""
@@ -2585,6 +2688,136 @@ class MapLibrary:
         return True
 
 
+class FakeTripProbe(ProcessProbe):
+    """Fake robot: the menu runs, a trip only when the hidden fake_trip command says so, no navigation stack."""
+
+    def __init__(self):
+        self.mission = False
+
+    def running(self, pattern):
+        if pattern == ROUTE_MENU_PATTERN:
+            return True
+        if pattern == ROUTE_MISSION_PATTERN:
+            return bool(self.mission)
+        return False
+
+
+class RouteLibrary:
+    """The routes folder (~/robot_code/routes/<name>/ and the link `current`) and the read-only trip status from the menu
+    log. Every path is checked to stay inside the routes folder."""
+
+    def __init__(self, home, fake, probe):
+        self.home, self.fake, self.probe = home, fake, probe
+        self.dir = os.path.join(home, "robot_code", "routes")
+        self.log_path = os.path.join(home, "robot_code", "logs", "delivery", "menu.log")
+
+    def _folder(self, name):
+        if not valid_map_name(name):
+            raise ServiceError("Bad route name. Use 1 to 48 letters, digits, _ or -, starting with a letter or digit.")
+        p = safe_join(self.dir, name)
+        if p is None or os.path.dirname(p) != os.path.realpath(self.dir) or not os.path.isdir(p):
+            raise ServiceError("There is no route folder named %s." % name)
+        return p
+
+    def list(self):
+        routes = []
+        try:
+            entries = sorted(os.listdir(self.dir))
+        except OSError:
+            entries = []
+        for n in entries:
+            p = os.path.join(self.dir, n)
+            if n == "current" or n.startswith(".") or not _is_real_dir(p):
+                continue
+            try:
+                files = os.listdir(p)
+            except OSError:
+                files = []
+            missing = route_missing(files)
+            try:
+                mtime = os.path.getmtime(p)
+            except OSError:
+                mtime = None
+            e = {"name": n, "valid": not missing, "missing": missing, "mtime": mtime}
+            txt = read_text(os.path.join(p, "route.yaml"), 256 * 1024)
+            if txt is not None:
+                e["waypoints"] = count_waypoints(txt)
+            routes.append(e)
+        cur, ok = read_current(self.dir)
+        return {"routes": routes, "current": cur, "current_ok": ok, "dir": self.dir}
+
+    def trip_running(self):
+        """(mission running, name of a running navigation launch or None)."""
+        stack = next((pat for pat in ROUTE_STACK_PATTERNS if self.probe.running(pat)), None)
+        return bool(self.probe.running(ROUTE_MISSION_PATTERN)), stack
+
+    def set_current(self, name, confirm):
+        if confirm is not True:
+            raise ServiceError("Changing the route needs confirm:true.")
+        p = self._folder(name)
+        missing = route_missing(os.listdir(p))
+        if missing:
+            raise ServiceError("Route %s is not valid, missing: %s." % (name, ", ".join(missing)))
+        mission, stack = self.trip_running()
+        if mission:
+            raise ServiceError("A trip is running; change the route after it ends.")
+        if stack:
+            raise ServiceError("The navigation stack is running (%s); stop it before changing the route." % stack)
+        try:
+            write_current(self.dir, name, self.fake)
+        except (ValueError, OSError) as e:
+            raise ServiceError("Cannot change the route: %s" % e)
+        return {"current": name}
+
+    def trip_status(self, lines=40):
+        return {"menu_running": bool(self.probe.running(ROUTE_MENU_PATTERN)),
+                "mission_running": bool(self.probe.running(ROUTE_MISSION_PATTERN)),
+                "stack_running": any(self.probe.running(pat) for pat in ROUTE_STACK_PATTERNS),
+                "log_path": self.log_path, "lines": tail_text_lines(self.log_path, lines)}
+
+    def seed_fake(self):
+        """Fake robot: when the routes folder does not exist, make routes home and route1, `current` -> home and a sample
+        menu log. Returns True when it seeded."""
+        if os.path.exists(self.dir):
+            return False
+        g = FakeMapGrid()
+        g.reveal_all()
+        pgm = g.pgm_bytes()
+        origin = (g.RES, g.origin[0], g.origin[1])
+        yaml_map = ("image: map.pgm\nmode: trinary\nresolution: %s\norigin: [%.3f, %.3f, 0.0]\nnegate: 0\n"
+                    "occupied_thresh: 0.65\nfree_thresh: 0.25\n" % origin)
+        mask = "image: map.pgm\nmode: scale\nresolution: %s\norigin: [%.3f, %.3f, 0.0]\n" % origin
+        routes = {
+            "home": ("dock_pose: {x: 0.050, y: 0.156, yaw: -31.6}\n",
+                     [(-0.550, 0.540, 157.5), (-0.884, 0.673, 164.4)], [(-1.243, 0.714, -2.1)]),
+            "route1": ("dock_pose: {x: 0.000, y: 0.000, yaw: 0.0}\n",
+                       [(0.800, 0.000, 0.0), (1.600, 0.400, 20.0), (2.200, 0.400, 90.0)],
+                       [(1.600, 0.400, 200.0), (0.600, 0.100, 180.0)]),
+        }
+
+        def items(pts):
+            return "".join("  - {x: %.3f, y: %.3f, yaw: %.1f}\n" % p for p in pts)
+
+        for name, (dock, out, back) in routes.items():
+            d = os.path.join(self.dir, name)
+            os.makedirs(d)
+            route = ("version: 1\nframe_id: map\nmap: \"map.yaml\"\n" + dock + "outbound:\n" + items(out) + "inbound:\n" +
+                     items(back) + "settings:\n  max_speed: 0.2\n")
+            for fname, data in (("route.yaml", route.encode("ascii")), ("map.yaml", yaml_map.encode("ascii")),
+                                ("keepout_mask.yaml", mask.encode("ascii")), ("speed_mask.yaml", mask.encode("ascii")),
+                                ("map.pgm", pgm)):
+                with open(os.path.join(d, fname), "wb") as f:
+                    f.write(data)
+        write_current(self.dir, "home", True)
+        os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
+        with open(self.log_path, "w", encoding="utf-8") as f:
+            f.write("2026-11-12 01:40:07 delivery_menu started, pid 1218\n"
+                    "2026-11-12 01:40:07 route home, 2 outbound and 1 inbound waypoints\n"
+                    "2026-11-12 01:40:08 waiting for a button press\n"
+                    "2026-11-12 01:52:31 button: Deliver pressed, no trip started (fake robot)\n")
+        return True
+
+
 class Bridge:
     def __init__(self, ros, writer, home, fake):
         self.ros, self.writer, self.home, self.fake = ros, writer, home, fake
@@ -2627,6 +2860,16 @@ class Bridge:
         self.mapping = MappingService(self.runner, self.probe, self.maps_dir, self.emit,
                                       disarm=lambda why: self.teleop_disarm(why))
         self.maps = MapLibrary(self.maps_dir, self.mapping.busy_name)
+        if fake:
+            self.trip_probe = FakeTripProbe()
+            self.routes = RouteLibrary(home, True, self.trip_probe)
+            try:
+                self.routes.seed_fake()
+            except OSError as e:
+                log("cannot seed the sample routes:", e)
+        else:
+            self.trip_probe = None
+            self.routes = RouteLibrary(home, False, self.probe)
         if fake:
             try:
                 self.maps.seed_demo()
@@ -3451,6 +3694,29 @@ class Bridge:
 
     def h_map_delete(self, c):
         return self._svc(self.maps.delete, c.get("name"), c.get("confirm"))
+
+    def h_routes_list(self, c):
+        return self.routes.list()
+
+    def h_route_set_current(self, c):
+        return self._svc(self.routes.set_current, c.get("name"), c.get("confirm"))
+
+    def h_trip_status(self, c):
+        try:
+            n = clamp_int(c.get("lines"), 1, 200, 40)
+        except ValueError:
+            raise BridgeError("lines must be a number")
+        return self.routes.trip_status(n)
+
+    def h_fake_trip(self, c):
+        """Fake robot only (tests): mark a trip (delivery_mission.py) as running or not."""
+        if not self.fake:
+            raise BridgeError("only available in fake mode")
+        v = c.get("running")
+        if not isinstance(v, bool):
+            raise BridgeError("running must be true or false")
+        self.trip_probe.mission = v
+        return {"running": v}
 
     def _zero(self, repeats=1):
         for i in range(repeats):

@@ -1,0 +1,56 @@
+/* ---------- Routes (2.1) ---------- */
+.routes {
+  display: grid;
+  gap: var(--sp-2);
+  align-content: start;
+}
+.routes-grid {
+  display: grid;
+  gap: var(--sp-2);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-items: start;
+}
+.route-table th[scope='row'] {
+  text-align: left;
+}
+.route-current-line {
+  margin: 0 0 var(--sp-1);
+}
+.route-why {
+  display: block;
+  margin-top: 2px;
+}
+.route-pick {
+  display: grid;
+  gap: 4px;
+  margin: var(--sp-1) 0;
+}
+.route-found {
+  display: grid;
+  gap: 4px;
+  margin-bottom: var(--sp-1);
+}
+.route-found p {
+  margin: 0;
+}
+.route-upload-form {
+  display: grid;
+  gap: var(--sp-1);
+  justify-items: start;
+}
+.trip-words {
+  margin: 0 0 var(--sp-1);
+  padding-left: 1.2em;
+}
+.trip-log {
+  max-height: 220px;
+  margin: 0;
+  padding: var(--sp-1);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: var(--fs-12, 12px);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

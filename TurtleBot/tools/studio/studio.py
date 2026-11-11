@@ -1660,6 +1660,43 @@ def valid_map_name(name):
     return isinstance(name, str) and bool(MAP_NAME_RE.fullmatch(name))  # fullmatch: '$' would accept a trailing newline
 
 
+ROUTE_UPLOAD_MAX = 32 * 1024 * 1024
+ROUTE_REQUIRED = ('route.yaml', 'map.yaml', 'keepout_mask.yaml', 'speed_mask.yaml')
+
+
+def validate_route_upload(name, files):
+    """(True, [(rel, bytes), ...]) for a route folder upload the robot may receive, else (False, error text)."""
+    if not valid_map_name(name):
+        return False, 'bad route name (letters, digits, - and _, at most 48 characters)'
+    if not isinstance(files, list) or not files:
+        return False, 'no files to upload'
+    if len(files) > 64:
+        return False, 'too many files (at most 64)'
+    out, seen, total = [], set(), 0
+    for f in files:
+        if not isinstance(f, dict) or not isinstance(f.get('path'), str) or not isinstance(f.get('data_b64'), str):
+            return False, 'each file needs a path and data_b64'
+        rel = f['path']
+        if (not rel or len(rel) > 100 or '/' in rel or '\\' in rel or '..' in rel or rel.startswith('.')
+                or not rel.isprintable()):
+            return False, 'bad file name: %r' % rel[:60]
+        if rel in seen:
+            return False, 'duplicate file: ' + rel
+        seen.add(rel)
+        try:
+            data = base64.b64decode(f['data_b64'], validate=True)
+        except (ValueError, TypeError):
+            return False, 'bad base64 in ' + rel
+        total += len(data)
+        if total > ROUTE_UPLOAD_MAX:
+            return False, 'upload too large (at most %d MB)' % (ROUTE_UPLOAD_MAX // (1024 * 1024))
+        out.append((rel, data))
+    missing = [r for r in ROUTE_REQUIRED if r not in seen]
+    if missing:
+        return False, 'missing: ' + ', '.join(missing)
+    return True, out
+
+
 def png_gray(width, height, pixels):
     """8-bit greyscale PNG (colour type 0, filter 0 on every row) of width x height pixel bytes, row 0 = top."""
     if not (isinstance(width, int) and isinstance(height, int) and width > 0 and height > 0):
@@ -2192,6 +2229,10 @@ class Studio:
         # STUDIO_BRIDGE_HOME: the fake robot keeps maps, routes and logs in the fake home, where the fake tar helper looks
         env = dict(os.environ, HOME=self.fake_home, USERPROFILE=self.fake_home, STUDIO_BRIDGE_HOME=self.fake_home,
                    PYTHONDONTWRITEBYTECODE='1')
+        checker = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'delivery',
+                                                'menu_config.py'))
+        if 'STUDIO_MENU_CHECKER' not in env and os.path.isfile(checker):
+            env['STUDIO_MENU_CHECKER'] = checker
         self.bridge.start(fake_bridge_argv(self.bridge_script), 'fake', 'custom', env=env)
         return self._await_hello('fake', 'custom')
 
@@ -3182,6 +3223,34 @@ class Studio:
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
+    def route_upload(self, req):
+        """Copy a route folder (files as base64) to ~/robot_code/routes/<name> on the robot; never overwrites a route."""
+        name = req.get('name')
+        ok, info = validate_route_upload(name, req.get('files'))
+        if not ok:
+            return {'ok': False, 'error': info}
+        try:
+            r = self.bridge.request({'cmd': 'routes_list'}, 15)
+            if not r.get('ok'):
+                return {'ok': False, 'error': str(r.get('error') or 'the robot refused')}
+            if any(isinstance(x, dict) and x.get('name') == name for x in r.get('routes') or []):
+                return {'ok': False, 'error': 'a route named %s already exists on the robot' % name, 'exists': True}
+            tmp = tempfile.mkdtemp(prefix='studio_route_')
+            try:
+                rels = []
+                for rel, data in info:
+                    with open(os.path.join(tmp, rel), 'wb') as f:
+                        f.write(data)
+                    rels.append(rel)
+                self._upload(tmp, '~/robot_code/routes/' + name, rels)
+            finally:
+                shutil.rmtree(tmp, ignore_errors=True)
+            r = self.bridge.request({'cmd': 'routes_list'}, 15)
+            entry = next((x for x in (r.get('routes') or []) if isinstance(x, dict) and x.get('name') == name), None)                 if r.get('ok') else None
+            return {'ok': True, 'name': name, 'route': entry}
+        except (BridgeError, OSError) as e:
+            return {'ok': False, 'error': str(e)}
+
     def on_status(self, ev):
         """Record metrics and raise alerts, then remember the robot's Wi-Fi address per SSID (client mode only)."""
         try:
@@ -3883,7 +3952,8 @@ def make_handler(app):
                 return self._deny('bad token')
             try:
                 n = int(self.headers.get('Content-Length') or 0)
-                if n > 1_000_000:
+                limit = ROUTE_UPLOAD_MAX + 1_000_000 if u.path == '/api/routes/upload' else 1_000_000
+                if n > limit:
                     return self._json({'ok': False, 'error': 'request too large'}, 413)
                 raw = self.rfile.read(n) if n else b'{}'
                 req = json.loads(raw.decode('utf-8') or '{}')
@@ -3896,6 +3966,7 @@ def make_handler(app):
                 '/api/connect': lambda: app.connect(req.get('host')),
                 '/api/disconnect': app.disconnect,
                 '/api/bridge': lambda: app.forward(req),
+                '/api/routes/upload': lambda: app.route_upload(req),
                 '/api/estop': app.estop,
                 '/api/sync': lambda: app.sync(req),
                 '/api/settings': lambda: app.post_settings(req),
