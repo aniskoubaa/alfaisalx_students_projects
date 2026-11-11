@@ -116,3 +116,6 @@ The tool only talks to a device that presents the lab robot's host key, so it wi
 The robot login is user `ubuntu`, password `turtlebot4`. Full instructions, including key login and VS Code, are in [HOW-TO-CONNECT.md](HOW-TO-CONNECT.md).
 
 **Safety:** `drive_test.py`, `motion_test.sh` and `motion_shapes.py` move the robot. Clear about 1 m around it before running them and stay nearby. Read [examples/README.md](examples/README.md) first.
+
+
+**Campus delivery (TB-29), planning documents (2026-11-12):** [docs/PARTS-LIST.md](docs/PARTS-LIST.md) (what the project still needs, with Saudi shop links and SAR prices) and [docs/SPOKEN-MESSAGES.md](docs/SPOKEN-MESSAGES.md) (plan for English and Arabic spoken lines at the food court and the lab; not tested on the robot).
