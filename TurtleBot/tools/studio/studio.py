@@ -46,7 +46,7 @@ import zlib
 import http.client
 
 sys.dont_write_bytecode = True
-VERSION = '2.0'
+VERSION = '2.1'
 FROZEN = bool(getattr(sys, 'frozen', False))  # PyInstaller one-file build
 HERE = getattr(sys, '_MEIPASS', None) if FROZEN else None
 HERE = HERE or os.path.dirname(os.path.abspath(__file__))

@@ -8,6 +8,8 @@ Student guides (version 2.0):
 - [Everyday use](docs/EVERYDAY-USE.md): start, connect, run a program, edit code, quit.
 - [Live view and driving](docs/LIVE-AND-DRIVING.md): the lidar map, driving by hand and its safety rules, charts, events, robot logs.
 - [Find the robot](docs/FIND-THE-ROBOT.md): when the robot's address has changed.
+- [Maps and routes](docs/MAPS-AND-ROUTES.md) (2.1): map a place from Studio, manage saved maps, upload a route, change the current route.
+- [Robot menu](docs/ROBOT-MENU.md) (2.1): hide and add entries on the robot's front-panel menu.
 - [Troubleshooting](docs/TROUBLESHOOTING.md): what you see and what to do.
 
 ## Quick start
@@ -38,6 +40,91 @@ From version 1.2 Studio is also built as a single file per system, so no Python 
    - **Linux:** make it executable first: `chmod +x TurtleBotStudio`, then run `./TurtleBotStudio`.
 
 Running from source (`python studio.py`, steps above) still works and does the same.
+
+## What's new in 2.1
+
+Version 2.1 (2026-11-12) adds three screens: **Maps** (map a place from Studio and manage the saved maps), **Routes** (route folders, the current route, trip status) and **Robot menu** (edit the robot's front-panel menu). Status: tested offline, in the simulated robot (`--fake`) and with automated browser tests. **Nothing new has run on the real robot yet: every real-robot behaviour of the Maps, Routes and Robot menu screens is NOT VERIFIED**; the checks are listed under [Not verified yet](#not-verified-yet). A 2.1 Windows installer is not built yet because NSIS is not installed on the build machine, so [TurtleBot/Download](../../Download/README.md) still holds the 2.0 installer. A single-file 2.1 app was built with `python packaging/build.py --smoke` into `packaging/dist` (git-ignored). Design: [docs/DESIGN-MAPPING.md](docs/DESIGN-MAPPING.md). Student guides: [Maps and routes](docs/MAPS-AND-ROUTES.md) and [Robot menu](docs/ROBOT-MENU.md).
+
+### Architecture of 2.1
+
+- Robot bridge (`robot_bridge.py`, still one file, streamed to the robot at connect time), in layers: pure helpers (names, map YAML, PGM read and downsample, grid encode, pose composition, route checks, link read and write); adapters (`StackRunner` runs the delivery scripts, `ProcessProbe` uses `pgrep -f`, `MapSource` reads `/map` and `/pose`; each has a fake for `--fake`); services (`MappingService` state machine, `MapLibrary`, `RouteLibrary`); handlers (`h_*`, thin: check arguments, call a service).
+- Desktop (`studio.py`): pure helpers (map payload decode, cells to grey, PNG encoder, upload validation) and a `MapStore` that keeps the latest live map as a PNG and the last `mapping` event, replayed to a page opened later.
+- Interface (`ui/`): feature modules `features/mapping`, `features/routes` and `features/menu` (pure `model.ts`, a store, components, typed API calls); the screens `screens/maps`, `screens/routes` and `screens/menu` only compose them.
+- Still one bridge and one ROS participant (TB-25). `/map` and `/pose` are subscriptions on the existing node, created the first time `map_on` arrives. The delivery scripts start their own ROS processes, the same as the manual procedure, so driving is blocked while they run. Details: [docs/DESIGN-MAPPING.md](docs/DESIGN-MAPPING.md).
+
+### New features
+
+| Area | What it does |
+|---|---|
+| Maps | Left menu entry after Live. A state badge (Not mapping, Starting mapping…, Mapping, Saving the map…, Stopping…, Error) and the buttons **Start mapping**, **Save map**, **Stop mapping**, **Clear error**, each enabled only when the state allows it. The live occupancy grid with the robot, the lidar overlay, zoom and follow. The existing drive panel. A saved-maps table with preview, rename, download (zip) and delete. Student guide: [Maps and routes](docs/MAPS-AND-ROUTES.md) |
+| Routes | List of route folders with **Ready** or incomplete status, waypoints, and where `current` points. **Use this route** with a confirmation naming the old and the new route. **Upload a route** from a folder made by `delivery/tools/plan_route.py` (four required files, name must be new, 32 MB limit). **Trip status**: menu, trip and navigation running, and the last lines of `menu.log`. Read only; trips start from the robot's front panel |
+| Robot menu | Edits `~/robot_code/menu/menu.yaml`: hide built-in entries that are not locked, add up to 8 own entries, preview of the robot's screen, **Check with the robot**, **Save to the robot**, **Reload from the robot**. Student guide: [Robot menu](docs/ROBOT-MENU.md) |
+| Fake robot | The simulated robot has a growing map: a 0.05 m grid ray-cast from the fake pose while it is mapping, so the map grows even without driving. Saving writes a real PGM, a YAML and placeholder graph and data files. Routes `home` and `route1` and a sample menu log are seeded. It says nothing about the real robot |
+
+### Safety design
+
+From [docs/DESIGN-MAPPING.md](docs/DESIGN-MAPPING.md) section 6:
+
+1. Nothing in the mapping feature moves the wheels. Studio never undocks or docks by itself. Driving while mapping is the 2.0 teleop with every 2.0 rule.
+2. Driving is disarmed when start, save or stop begins, and arming is refused while the state is `starting`, `saving` or `stopping` (new ROS processes can stall the base for up to about 12 s, TB-25).
+3. Leaving the Maps screen disarms, as leaving Live does.
+4. Saving never overwrites without `overwrite:true`, which the interface sends only after a second confirmation. Delete needs `confirm:true` and a danger dialog. Rename never overwrites.
+5. Every name is checked against `^[A-Za-z0-9][A-Za-z0-9_-]{0,47}$`, and every path is joined and checked to stay inside the maps or routes folder.
+6. Stopping with unsaved mapping asks first.
+7. Changing `current` is refused while a trip or the navigation stack runs, and needs a confirmation that names the old and the new route.
+8. Upload refuses existing names, nested paths, missing files and bodies over 32 MB.
+9. One stack at a time: start is refused while a navigation launch runs.
+
+The menu adds these rules:
+
+10. The robot's own checker (`delivery/menu_config.py`) is the single source of truth. Studio never parses the menu itself on the robot side and refuses to save when the checker is missing, when the text is over 16000 characters, or when the checker says it is not valid.
+11. Saving is atomic: the new file is written as `menu.yaml.tmp` and renamed over `menu.yaml`, and the old file is kept as `menu.yaml.bak`.
+12. Nothing moves when a menu is saved. Locked entries (trip, Dock, EStop, Power) cannot be hidden, renamed or moved.
+
+### New bridge commands and endpoints
+
+Bridge commands (replies are `{ok:true, ...}` or `{ok:false, error, ...}`):
+
+| Command | What it does |
+|---|---|
+| `mapping_status` | Returns the mapping state, last error, last saved map, `unsaved`, `scripts_ok`, `other_stack` |
+| `mapping_start` | Refused unless `idle` (also `other_stack`, `scripts_missing`). Disarms driving, runs `start_stack.sh map` |
+| `mapping_save {name, overwrite?}` | Only in `mapping`. Existing name without `overwrite:true` gives `exists:true`. Runs `save_map.sh` |
+| `mapping_stop` | Allowed in `mapping` and `error`. Runs `stop_stack.sh` |
+| `mapping_reset` | Leaves `error`: the state is derived again from the processes |
+| `map_on {hz, max_cells}` and `map_off` | Start and stop `map` events (zlib and base64 cells) and the map pose in `pose` events |
+| `maps_list`, `map_preview`, `map_rename`, `map_delete {confirm:true}` | The map library |
+| `routes_list`, `route_set_current {name, confirm:true}`, `trip_status` | Route folders, the `current` link, the menu log and process state |
+| `menu_get`, `menu_check {text}`, `menu_put {text, confirm:true}` | Read the menu file, check a text with the robot's checker, save it atomically |
+
+Events: `mapping` (on every state change, with a `result` after an operation) and `map` (a new grid). Desktop endpoints:
+
+| Endpoint | Content |
+|---|---|
+| `GET /api/mapping` | Last mapping state seen |
+| `GET /api/map/live.png` | Latest live map as a grey PNG, metadata in the `X-Map-Meta` header |
+| `GET /api/maps/preview.png?name=&max=` | A saved map's preview |
+| `GET /api/maps/download?name=` | A zip of the map's files |
+| `POST /api/routes/upload` | Upload a planned route folder (32 MB limit on this path only) |
+
+### Tests
+
+| Test | What it checks | How to run |
+|---|---|---|
+| `tests/offline/test_studio_mapping.py` | Bridge: names, YAML, PGM, grid encode, pose composition, the state machine with a scripted runner, the map library, the fake bridge as a subprocess | `python TurtleBot/tests/offline/test_studio_mapping.py` from the repository root |
+| `tests/offline/test_studio_mapping_desktop.py` | Desktop: PNG encoder, `map` event to PNG, `/api/map/live.png`, preview, download, `/api/mapping` | `python TurtleBot/tests/offline/test_studio_mapping_desktop.py` |
+| `tests/offline/test_studio_routes.py` | Routes: list, current, refusals, upload checks, trip status | `python TurtleBot/tests/offline/test_studio_routes.py` |
+| `tests/offline/test_studio_routes_unit.py` | Pure route helpers | `python TurtleBot/tests/offline/test_studio_routes_unit.py` |
+| `tests/offline/test_studio_menu.py` | Menu commands against the checker | `python TurtleBot/tests/offline/test_studio_menu.py` |
+| `tests/offline/test_studio_menu_unit.py` | Pure menu helpers | `python TurtleBot/tests/offline/test_studio_menu_unit.py` |
+| `tests/offline/test_studio_e2e_maps.py` | Playwright against `studio.py --fake`: the Maps screen | `python TurtleBot/tests/offline/test_studio_e2e_maps.py` |
+| `tests/offline/test_studio_e2e_routes.py` | Playwright: the Routes screen | `python TurtleBot/tests/offline/test_studio_e2e_routes.py` |
+| `tests/offline/test_studio_e2e_menu.py` | Playwright: the Robot menu screen | `python TurtleBot/tests/offline/test_studio_e2e_menu.py` |
+| Vitest | Interface: model functions, stores, components of mapping, routes and menu | `npm test` in `ui/` |
+
+The end-to-end tests skip with exit 0 when Playwright is not installed. All of these ran only offline and in the simulated robot.
+
+Counts at the time of the build (2026-11-12), all with 0 failures: vitest 437 tests in 23 files, mapping 214, mapping desktop 83, routes 48, routes unit 44, menu 24, menu unit 46, end to end Maps 39, Routes 25, Robot menu 29; existing suites: end to end 138, v2 backend 235, bridge 115, desktop 140, templates 171, setup 135, upgrades 106, window 69.
 
 ## What's new in 2.0
 
@@ -263,6 +350,8 @@ Run these from `TurtleBot/tools/studio/`. On macOS and Linux build the same way 
 
 From 1.3, `python packaging/build.py --smoke --installer` also builds the Windows installer `packaging/dist/TurtleBotStudio-Setup-<version>.exe` from `packaging/installer.nsi`. It needs NSIS 3 (`makensis`): on PATH, in `Program Files (x86)\NSIS`, or in the electron-builder cache. The smoke test also checks the single-instance start and a clean quit. The workflow installs NSIS with `choco install nsis -y` on Windows and uploads the setup file, the macOS zip, and the Linux binary with `install-linux.sh`.
 
+Update 2026-11-12: version 2.1 was built with `python packaging/build.py --smoke` only (no `--installer`, because NSIS is not installed on the build machine). `--installer` needs NSIS 3.
+
 ### Building the interface (2.0)
 
 The interface source is in `ui/`. You need Node 22 only for this step. Students do not need it, because `web/v2/` is committed.
@@ -381,6 +470,25 @@ Added for 2.0 (2026-10-30). All of these ran only in tests and in the simulated 
 - **The macOS and Linux builds, and the CI run.** The workflow now also builds the interface and checks `web/v2`; no run seen yet. `web/v2/` and `ui/` must be committed before the CI check can pass.
 - Safari and Firefox (the end-to-end test uses Chromium-based browsers only) and tablet width (768 px).
 - The robot checklist for these items is the file "TurtleBot Studio robot test checklist 2026-10-25" (section "Studio 2.0 additions"), kept by the lab maintainer outside the repository.
+
+### Studio 2.1, read-only check on the real robot (2026-11-12, about 03:00, home Wi-Fi, robot docked, nothing started or changed)
+
+Studio 2.1 from source connected to the real robot and answered correctly: `mapping_status` idle with the scripts found; `maps_list` showed `home` and `home_v1` with the right sizes and files; the preview of `home` came back as a PNG; `routes_list` showed `home` (valid, 4 outbound and 3 inbound waypoints, as in its route.yaml) with `current -> home`; `trip_status` found the running menu (real pgrep detection) and the last menu.log lines; `menu_get` reported no menu file and the checker missing (not deployed yet). After disconnecting no bridge process was left and nothing on the robot had changed. Mapping, saving, stopping, map streams, route changes, uploads and menu saves were NOT run on the real robot.
+
+### Studio 2.1 (added 2026-11-12)
+
+Everything in 2.1 ran only in tests and in the simulated robot. Not verified on the real robot:
+
+- `start_stack.sh map`, `save_map.sh` and `stop_stack.sh` run from the bridge (processes, output, timing, the 2 s probe that notices a mapping started or ended outside Studio).
+- The `/map` and `/pose` subscriptions with the real slam_toolbox: data decode, QoS (reliable, transient local), CPU cost, and whether creating the subscriptions stalls the base (TB-25).
+- The map pose composition (slam_toolbox pose moved forward by the odometry) and the lidar overlay on the real map.
+- The tar download of real maps (the real `.posegraph` and `.data` files are several MB).
+- The `current` link replace with a real symbolic link: only the fake fallback ran, on Windows.
+- `pgrep` detection of the menu, the mission and the navigation and mapping stacks.
+- The route upload over real ssh.
+- The menu checker on the robot. `menu_config.py` must be deployed with `delivery/tools/deploy.py` first. Until then Studio refuses to save a menu, by design.
+- The whole Robot menu flow: save, `menu.yaml.bak`, and the robot picking up the new menu.
+- No 2.1 Windows installer exists yet (NSIS missing), so installing 2.1 is untested.
 
 ## Known gaps
 

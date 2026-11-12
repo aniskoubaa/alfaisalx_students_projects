@@ -652,7 +652,7 @@ check('limit_value caps and defaults', st.limit_value(5, 0.15, 0.02, 0.3) == 0.3
 # ================================================================ Studio in-process: on_status, teleop_off, quit
 cfgd = os.path.join(OUT, 'inproc_cfg')
 app = st.Studio(st.parse_args(['--fake', '--config-dir', cfgd, '--fake-home', os.path.join(cfgd, 'home')]))
-check('Studio 2.0: VERSION and settings defaults', st.VERSION == '2.0' and app.settings['ui'] == 'v2' and app.settings['teleop_linear'] == 0.15
+check('Studio 2.0: VERSION and settings defaults', st.VERSION == '2.1' and app.settings['ui'] == 'v2' and app.settings['teleop_linear'] == 0.15
       and app.settings['teleop_angular'] == 0.6)
 app.on_status(status(battery={'percent': 12}))
 check('on_status feeds history and alerts', app.history.query(15)['series']['battery_pct'][-1] == 12 and 'battery_low' in [x['code'] for x in app.alerts.since(0)[0]])
@@ -852,7 +852,7 @@ try:
     call('POST', '/api/settings', {'ui': 'v2'})
     check('with ui=v2 GET / serves the new page again', b'v2 marker' in call_raw('GET', '/')[1])
     gs = call('GET', '/api/settings')
-    check('settings carry version 2.0, ui and the teleop limits', gs['version'] == '2.0' and gs['ui'] == 'v2' and gs['teleop_linear'] == 0.15 and gs['teleop_angular'] == 0.6)
+    check('settings carry version 2.1, ui and the teleop limits', gs['version'] == '2.1' and gs['ui'] == 'v2' and gs['teleop_linear'] == 0.15 and gs['teleop_angular'] == 0.6)
 
     # ---- teleop_limits
     r = call('GET', '/api/teleop_limits')
@@ -974,7 +974,7 @@ for fn in (os.path.join(STUDIO_DIR, 'studio.py'), BRIDGE):
         check('LF line endings: ' + os.path.basename(fn), b'\r' not in f.read())
 with open(os.path.join(STUDIO_DIR, 'version.json'), encoding='utf-8') as f:
     vj = json.load(f)
-check('version.json is 2.0 and matches studio.VERSION', vj['version'] == '2.0' == st.VERSION)
+check('version.json is 2.1 and matches studio.VERSION', vj['version'] == '2.1' == st.VERSION)
 with open(os.path.join(STUDIO_DIR, 'packaging', 'studio.spec'), encoding='utf-8') as f:
     spec_txt = f.read()
 check("packaging/studio.spec bundles everything under web/ (including web/v2)", "tree('web')" in spec_txt)
