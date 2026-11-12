@@ -1,0 +1,164 @@
+/* ---------- Robot menu (2.1) ---------- */
+.menu-page {
+  display: grid;
+  gap: var(--sp-2);
+  align-content: start;
+}
+.menu-grid {
+  display: grid;
+  gap: var(--sp-2);
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  align-items: start;
+}
+.menu-col {
+  display: grid;
+  gap: var(--sp-2);
+  align-content: start;
+  min-width: 0;
+}
+.menu-lead {
+  margin: 0;
+}
+.menu-builtins,
+.menu-own,
+.menu-hidden-list,
+.menu-problems,
+.menu-warnings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-1);
+}
+.menu-builtin {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.menu-builtin-name {
+  flex: 1 1 140px;
+  font-weight: 500;
+}
+.menu-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-13);
+  cursor: pointer;
+}
+.menu-switch input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--signal);
+}
+.menu-own-item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+  padding: var(--sp-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  background: var(--surface-2);
+}
+.menu-own-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.menu-own-actions {
+  display: flex;
+  gap: var(--sp-1);
+  align-items: flex-start;
+}
+.menu-editor {
+  display: grid;
+  gap: var(--sp-1);
+}
+.menu-flags {
+  display: grid;
+  gap: var(--sp-0);
+}
+.menu-args {
+  resize: vertical;
+}
+.menu-actions {
+  display: flex;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+}
+.menu-problems li {
+  padding: 6px 10px;
+  border: 1px solid var(--red);
+  border-radius: var(--r-ctl);
+  background: var(--red-soft);
+  color: var(--ink);
+  font-size: var(--fs-13);
+}
+.menu-warnings li {
+  padding: 6px 10px;
+  border: 1px solid var(--amber);
+  border-radius: var(--r-ctl);
+  background: var(--amber-soft);
+  color: var(--amber-text);
+  font-size: var(--fs-13);
+}
+.menu-check-result {
+  display: grid;
+  gap: var(--sp-1);
+}
+.menu-file summary {
+  cursor: pointer;
+  font-size: var(--fs-13);
+}
+.menu-yaml {
+  width: 100%;
+  resize: vertical;
+  margin-top: var(--sp-1);
+}
+.menu-screen {
+  list-style: none;
+  margin: 0;
+  padding: var(--sp-1) var(--sp-2);
+  display: grid;
+  gap: 2px;
+  width: max-content;
+  max-width: 100%;
+  background: #0d1a12;
+  color: #9be8ae;
+  border: 2px solid var(--line-strong);
+  border-radius: var(--r-ctl);
+  font-family: var(--font-mono);
+  font-size: var(--fs-14);
+}
+.menu-screen-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: 20px;
+}
+.menu-screen-text {
+  white-space: pre;
+  min-width: 18ch;
+}
+.menu-screen-lock {
+  opacity: 0.7;
+}
+.menu-screen-note {
+  margin: var(--sp-1) 0 0;
+}
+.menu-sub {
+  margin: var(--sp-1) 0 var(--sp-0);
+  font-size: var(--fs-13);
+}
+.menu-steps {
+  margin: 0;
+  padding-left: var(--sp-3);
+  display: grid;
+  gap: var(--sp-1);
+  font-size: var(--fs-13);
+}

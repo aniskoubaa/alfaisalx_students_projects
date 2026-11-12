@@ -323,8 +323,13 @@ def steps(page, ctx, browser):
         check('wizard: all six steps complete in fake mode', len(d.get_by_text('Done', exact=True).all()) >= 5)
         d.get_by_role('button', name='Connect', exact=True).click()
         expect(page.get_by_role('status').first).to_contain_text('Connected', timeout=15000)
-        if dialog().count():
-            close_dialog()
+        page.wait_for_timeout(800)
+        if dialog().count():      # the wizard may close by itself right after connecting
+            try:
+                dialog().get_by_role('button', name='Close', exact=True).last.click(timeout=2000)
+            except PwError:
+                pass
+        expect(dialog()).to_have_count(0, timeout=5000)
         check('wizard: Connect connects to the fake robot', True)
         check('wizard: setup_done is saved', api('GET', '/api/settings').get('setup_done') is True)
         clean('wizard')

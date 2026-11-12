@@ -330,6 +330,43 @@ export interface RouteUploadAnswer {
   name: string;
   route?: RouteEntry;
 }
+/** The robot's menu checker output (delivery/menu_config.py --json). */
+export interface MenuCheckEntry {
+  id: string;
+  label: string;
+  /** Relative to ~/robot_code. */
+  program: string;
+  args: string[];
+  confirm: boolean;
+  moves: boolean;
+  undocks: boolean;
+  timeout: number;
+  after: string;
+}
+export interface MenuCheck {
+  ok: boolean;
+  errors: string[];
+  warnings: string[];
+  hide: string[];
+  /** Menu keys top to bottom, hidden ones left out. */
+  layout: string[];
+  labels: Record<string, string>;
+  custom: Record<string, MenuCheckEntry>;
+}
+export interface MenuGetAnswer {
+  path: string;
+  exists: boolean;
+  text: string;
+  check: MenuCheck | null;
+  checker_ok: boolean;
+}
+export interface MenuCheckAnswer {
+  check: MenuCheck;
+}
+export interface MenuPutAnswer {
+  path: string;
+  check: MenuCheck;
+}
 export interface TeleopEvent {
   ev: 'teleop';
   armed: boolean;
@@ -610,6 +647,9 @@ export interface BridgeArgs {
   routes_list: Record<string, never>;
   route_set_current: { name: string; confirm: true };
   trip_status: { lines?: number };
+  menu_get: Record<string, never>;
+  menu_check: { text: string };
+  menu_put: { text: string; confirm: true };
 }
 export type BridgeCmd = keyof BridgeArgs;
 
@@ -657,4 +697,7 @@ export interface BridgeAnswers {
   routes_list: RoutesList;
   route_set_current: { current: string };
   trip_status: TripStatusAnswer;
+  menu_get: MenuGetAnswer;
+  menu_check: MenuCheckAnswer;
+  menu_put: MenuPutAnswer;
 }

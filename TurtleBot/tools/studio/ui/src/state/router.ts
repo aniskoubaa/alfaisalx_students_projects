@@ -5,6 +5,7 @@ import {
   Code,
   FolderSync,
   LayoutDashboard,
+  ListOrdered,
   Map as MapIcon,
   Play,
   Radar,
@@ -54,6 +55,14 @@ export const ROUTES: RouteDef[] = [
     ready: true,
     blurb:
       'See the delivery routes on the robot, choose the current one and upload a planned route.',
+  },
+  {
+    path: '/menu',
+    label: 'Robot menu',
+    icon: ListOrdered,
+    ready: true,
+    blurb:
+      "Hide some of the robot's built-in menu entries and add your own programs to its screen.",
   },
   { path: '/programs', label: 'Programs', icon: Play, ready: true },
   { path: '/code', label: 'Code', icon: Code, ready: true },

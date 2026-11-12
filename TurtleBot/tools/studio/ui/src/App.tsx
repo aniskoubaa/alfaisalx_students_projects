@@ -20,6 +20,7 @@ import { Overview } from './screens/Overview';
 import { Programs } from './screens/Programs';
 import { Live } from './screens/live/Live';
 import { Maps } from './screens/maps/Maps';
+import { Menu } from './screens/menu/Menu';
 import { Routes } from './screens/routes/Routes';
 import { Logs } from './screens/logs/Logs';
 import { Settings } from './screens/settings/Settings';
@@ -47,6 +48,8 @@ function Screen() {
       return <Maps />;
     case '/routes':
       return <Routes />;
+    case '/menu':
+      return <Menu />;
     case '/charts':
       return (
         <Suspense
