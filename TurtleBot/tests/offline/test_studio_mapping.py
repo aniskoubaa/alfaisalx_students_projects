@@ -12,6 +12,7 @@ import importlib.util
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -422,6 +423,17 @@ os.environ['STUDIO_DELIVERY_DIR'] = os.path.join(home, 'elsewhere')
 check('real runner: STUDIO_DELIVERY_DIR overrides the folder', rb.RealStackRunner(home).delivery == os.path.join(home, 'elsewhere'))
 del os.environ['STUDIO_DELIVERY_DIR']
 check('real probe: a pattern nothing runs is false', rb.RealProcessProbe().running('zz_no_such_launch_%d.py' % os.getpid()) is False)
+# a launch file only counts when ros2 launch runs it, never a shell or log command that mentions its name
+_launcher = ('/usr/bin/python3 /opt/ros/jazzy/bin/ros2 launch /home/ubuntu/robot_code/delivery/launch/'
+             'delivery_stack.launch.py map:=/home/ubuntu/robot_code/routes/current/map.yaml')
+_slam = '/usr/bin/python3 /opt/ros/jazzy/bin/ros2 launch turtlebot4_navigation slam.launch.py sync:=false'
+for _pat, _cmd in (('delivery_stack.launch.py', _launcher), ('slam.launch.py', _slam)):
+    check('probe regex: the real launcher of %s matches' % _pat, re.search(rb.probe_regex(_pat), _cmd) is not None)
+for _cmd in ('bash -c pgrep -f delivery_stack.launch.py', 'grep delivery_stack.launch.py /tmp/x.log',
+             "bash -c pgrep -af 'ros2 launch .*delivery_stack\\.launch\\.py'", 'tail -f delivery_stack.launch.py.log'):
+    check('probe regex: a command that only mentions the name does not match: %s' % _cmd,
+          re.search(rb.probe_regex('delivery_stack.launch.py'), _cmd) is None)
+check('probe regex: other patterns are unchanged', rb.probe_regex('delivery_menu.py') == 'delivery_menu.py')
 
 # ================================================================ MapLibrary on a temp folder
 mdir = mkdir('lib_')

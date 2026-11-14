@@ -168,7 +168,7 @@ missing, as a robot without the deployed delivery package would.
 | `GET /api/mapping` | last `MappingInfo` seen (or `{state:"unknown"}`) |
 | `GET /api/map/live.png` | latest live map as an 8-bit grey PNG (free 254, occupied 0, unknown 205, in between scaled); header `X-Map-Meta` with the JSON metadata; 404 when none |
 | `GET /api/maps/preview.png?name=&max=` | the saved map's preview as PNG (asks the bridge for `map_preview`) |
-| `GET /api/maps/download?name=` | a zip of the map's files (`Content-Disposition: attachment`), fetched with the existing tar-over-ssh download |
+| `GET /api/maps/download?name=` | a zip of the map's files (`Content-Disposition: attachment`), fetched with the existing tar-over-ssh download (Correction 2026-11-14: the download is a zip, as the first part of this row says; a tar in an earlier version of this text was wrong. A zip of about 36 KB was fetched on the real robot) |
 | `POST /api/routes/upload {name, files:[{path, data_b64}]}` | uploads a planned route folder (item 3). Body limit 32 MB on this path only. Flat folder only, the four files above required, the name must be new. Since 2026-11-14 the files go into the hidden `routes/.upload-<name>` first and are renamed into place by `route_upload_finish`, so a broken upload never leaves a half folder under the real name |
 
 `map` events from the bridge are not passed to the browser with their data: the desktop decodes them into the PNG and
@@ -188,6 +188,10 @@ publishes `{ev:"map", seq, t, width, height, resolution, origin, stride}` withou
 - The interface treats a lower map sequence number as a new bridge or a new mapping run (start a new picture), and
   always asks before Stop while mapping (in red when the map was never saved).
 - `menu_check` and `menu_put` get a 25 s desktop request timeout (the checker may take up to 20 s).
+
+### Probe rule for launch files (2026-11-14)
+
+On the real robot `pgrep -f <launch file name>` also matched other processes whose command line only mentioned the name, so `mapping_start` was once refused with "A navigation stack is running" although none was. `probe_regex()` in `robot_bridge.py` now makes a `*.launch.py` pattern count only as `ros2 launch .*<name>`; other patterns are unchanged. Offline checks are in `tests/offline/test_studio_mapping.py`. The second mapping run on the real robot used the fixed rule and passed.
 
 ## 6. Safety rules
 

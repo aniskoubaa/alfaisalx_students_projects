@@ -2372,9 +2372,18 @@ class ProcessProbe:
         raise NotImplementedError
 
 
+def probe_regex(pattern):
+    """The pgrep -f regex for a pattern. A launch file (*.launch.py) only counts when `ros2 launch` runs it: a plain
+    name would also match any shell or log command that mentions it (seen on the robot on 2026-11-14, when a shell
+    command of another login made mapping_start refuse with "a navigation stack is running" for one probe)."""
+    if pattern.endswith(".launch.py"):
+        return r"ros2 launch .*" + re.escape(pattern)
+    return pattern
+
+
 class RealProcessProbe(ProcessProbe):
     def running(self, pattern):
-        return bool((run_cmd(["pgrep", "-f", pattern], timeout=3.0) or "").split())
+        return bool((run_cmd(["pgrep", "-f", probe_regex(pattern)], timeout=3.0) or "").split())
 
 
 class FakeProcessProbe(ProcessProbe):

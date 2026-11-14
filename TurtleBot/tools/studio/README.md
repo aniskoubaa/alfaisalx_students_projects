@@ -43,7 +43,7 @@ Running from source (`python studio.py`, steps above) still works and does the s
 
 ## What's new in 2.1
 
-Version 2.1 (2026-11-12) adds three screens: **Maps** (map a place from Studio and manage the saved maps), **Routes** (route folders, the current route, trip status) and **Robot menu** (edit the robot's front-panel menu). Status: tested offline, in the simulated robot (`--fake`) and with automated browser tests. **Nothing new has run on the real robot yet: every real-robot behaviour of the Maps, Routes and Robot menu screens is NOT VERIFIED**; the checks are listed under [Not verified yet](#not-verified-yet). A 2.1 Windows installer is not built yet because NSIS is not installed on the build machine, so [TurtleBot/Download](../../Download/README.md) still holds the 2.0 installer. A single-file 2.1 app was built with `python packaging/build.py --smoke` into `packaging/dist` (git-ignored). Design: [docs/DESIGN-MAPPING.md](docs/DESIGN-MAPPING.md). Student guides: [Maps and routes](docs/MAPS-AND-ROUTES.md) and [Robot menu](docs/ROBOT-MENU.md).
+Version 2.1 (2026-11-12) adds three screens: **Maps** (map a place from Studio and manage the saved maps), **Routes** (route folders, the current route, trip status) and **Robot menu** (edit the robot's front-panel menu). Status: tested offline, in the simulated robot (`--fake`) and with automated browser tests. **Nothing new has run on the real robot yet: every real-robot behaviour of the Maps, Routes and Robot menu screens is NOT VERIFIED**; the checks are listed under [Not verified yet](#not-verified-yet). A 2.1 Windows installer is not built yet because NSIS is not installed on the build machine, so [TurtleBot/Download](../../Download/README.md) still holds the 2.0 installer. (Update 2026-11-14: NSIS 3.13 is now installed and `TurtleBotStudio-Setup-2.1.exe` (8.9 MB, SHA-256 `7896C62D8DC6F2344FA918B12D0D8BE41BAFCE90D73691E7A29BE3667E121F11`) is published in TurtleBot/Download; the 2.0 installer was removed from that folder by the publish step and stays in git history. The installer itself has not been run: it was built and passed `python packaging/build.py --smoke --installer --publish`, SMOKE OK. Also on 2026-11-14 part of the Maps, Routes and Robot menu behaviour ran on the real robot, see [Tested on the robot 2026-11-14 (2.1)](#tested-on-the-robot-2026-11-14-21); the sentence about the real robot above is the state of 2026-11-12.) A single-file 2.1 app was built with `python packaging/build.py --smoke` into `packaging/dist` (git-ignored). Design: [docs/DESIGN-MAPPING.md](docs/DESIGN-MAPPING.md). Student guides: [Maps and routes](docs/MAPS-AND-ROUTES.md) and [Robot menu](docs/ROBOT-MENU.md).
 
 ### Architecture of 2.1
 
@@ -427,6 +427,22 @@ Known gaps seen, not fixed:
 
 Update 2026-10-24 (1.2): the narrow-window dialog overflow is fixed (dialogs now fit narrow windows). The other gaps remain, see [Known gaps](#known-gaps).
 
+## Tested on the robot 2026-11-14 (2.1)
+
+Real-robot test of Studio 2.1, 22:22 to 22:32 (UTC+3). Robot docked the whole time and never driven. Home Wi-Fi, `ubuntu@192.168.100.31`. Studio ran from source (`studio.py --no-browser --host-override`). The steps were driven through Studio's own API (`/api/connect`, `/api/bridge`, `/api/map/live.png`, `/api/maps/preview.png`, `/api/maps/download`), not by clicking in the browser.
+
+Passed:
+
+- Connect; `mapping_status` idle with the scripts found; `maps_list` (`home`, `home_v1`); `routes_list` (current `home`); `trip_status` (menu running, no mission, no navigation stack).
+- `menu_get` (checker found, file valid); `menu_check` rejects a 25-character label ("the longest is 17"); `menu_put` of the same text (written atomically, `menu.yaml.bak` kept); `route_set_current` to the same route `home` (a real atomic link replace).
+- Mapping, run twice, both passed: `mapping_start` went from starting to mapping in 6 to 10 s; the live map PNG came from `/api/map/live.png` (about 560 to 600 bytes, a tiny map because the robot is on the dock); `mapping_save` of `studio_check_20261114` returned to mapping with `last_saved` set (about 18 s); `mapping_stop` reached idle in 4 s; the map preview PNG; the map download (a zip of about 36 KB); `map_rename`; `map_delete` was refused without confirm, then removed all four files with confirm. The test map is gone; only `home` and `home_v1` remain.
+
+Bug found and fixed. In the first run `mapping_start` was refused once with "A navigation stack is running (delivery_stack.launch.py)" although none was running (`trip_status` said false one second earlier and nothing was found afterwards). Cause: the process check used `pgrep -f <launch file name>`, which also matches any other process whose command line only mentions the name (for example another login's shell or log command). Fix in `robot_bridge.py`: new `probe_regex()`; a `*.launch.py` pattern now counts only as `ros2 launch .*<name>`, other patterns are unchanged. New checks in `tests/offline/test_studio_mapping.py`: the real launcher matches; shell, grep, tail and pgrep command lines that mention the name do not. The second mapping run on the robot used the fixed check and passed.
+
+Side effect: `start_stack.sh map` (called by Studio's mapping start) stops the OAK-D camera container until the next reboot, as documented for `start_stack.sh`.
+
+Still not verified: mapping while driving (a real map of a room or the campus, with a person next to the robot and the controller), the Routes upload over real ssh, saving a changed menu file and then the menu on the robot's screen, the 2.1 installer on a clean computer, and the macOS and Linux builds.
+
 ## Not verified yet
 
 Updated 2026-10-24, evening: the items "Add to the robot", "Connections over Wi-Fi", "Code tab in a real browser", "Undock and Dock and motion programs through Studio" and "motion templates on the real robot" were verified in the session above and are no longer open (earlier text kept below where still true). Motion was checked only for `spin_in_place` and `drive_circle`.
@@ -488,13 +504,14 @@ Everything in 2.1 ran only in tests and in the simulated robot. Not verified on 
 - `start_stack.sh map`, `save_map.sh` and `stop_stack.sh` run from the bridge (processes, output, timing, the 2 s probe that notices a mapping started or ended outside Studio).
 - The `/map` and `/pose` data with the real slam_toolbox: data decode, CPU cost, and the map pose source "slam" (creating the subscriptions on the real robot was checked on 2026-11-14, without SLAM). Whether slam_toolbox on this robot publishes `/pose` is not checked: without it the robot is drawn at its odometry pose. The odometry used to move the slam pose forward is the one at the moment the pose arrives, not at the scan time (a few centimetres off while driving).
 - The map pose composition (slam_toolbox pose moved forward by the odometry) and the lidar overlay on the real map.
-- The tar download of real maps (the real `.posegraph` and `.data` files are several MB).
+- The tar download of real maps (the real `.posegraph` and `.data` files are several MB). (Update 2026-11-14: the download is a zip, not a tar; a zip of about 36 KB for a tiny docked map was fetched on the real robot. A large map from driving is not verified.)
 - The `current` link replace with a real symbolic link: only the fake fallback ran, on Windows.
 - `pgrep` detection of the menu, the mission and the navigation and mapping stacks.
 - The route upload over real ssh.
 - The menu checker on the robot ran through Studio on 2026-11-14 (read-only, `menu_get`). Saving a menu from Studio on the robot is not verified.
 - The whole Robot menu flow: save, `menu.yaml.bak`, and the robot picking up the new menu.
-- No 2.1 Windows installer exists yet (NSIS missing), so installing 2.1 is untested.
+- No 2.1 Windows installer exists yet (NSIS missing), so installing 2.1 is untested. (Update 2026-11-14: the installer is built, but running it, on a clean computer, is still untested.)
+- Update 2026-11-14: `start_stack.sh map`, `save_map.sh` and `stop_stack.sh` from the bridge, the live map PNG, map preview, zip download, rename, delete, `menu_check`, `menu_put` (same text) and the `current` link replace (same route) passed on the real robot, docked; see [Tested on the robot 2026-11-14 (2.1)](#tested-on-the-robot-2026-11-14-21). Still open: mapping while driving, the route upload over ssh, saving a changed menu, the robot's screen picking it up, the installer on a clean computer, macOS and Linux.
 
 ## Known gaps
 

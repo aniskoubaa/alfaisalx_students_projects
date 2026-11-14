@@ -4,17 +4,19 @@ TurtleBot Studio is the app for the lab's TurtleBot 4. It finds the robot, shows
 
 ## Windows 10 and 11
 
-**[Download TurtleBot Studio for Windows](https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.0.exe)**
+**[Download TurtleBot Studio for Windows](https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.1.exe)**
 
 | | |
 |---|---|
-| File | [TurtleBotStudio-Setup-2.0.exe](TurtleBotStudio-Setup-2.0.exe) |
-| Version | <!-- studio-version -->2.0<!-- /studio-version --> |
-| Size | <!-- studio-size -->8.8 MB<!-- /studio-size --> |
-| SHA-256 | <!-- studio-sha256 -->79C7A9891482D66628E369777717810AFC754B8CC7ED21AA50B1B811D3A0F464<!-- /studio-sha256 --> |
+| File | [TurtleBotStudio-Setup-2.1.exe](TurtleBotStudio-Setup-2.1.exe) |
+| Version | <!-- studio-version -->2.1<!-- /studio-version --> |
+| Size | <!-- studio-size -->8.9 MB<!-- /studio-size --> |
+| SHA-256 | <!-- studio-sha256 -->7896C62D8DC6F2344FA918B12D0D8BE41BAFCE90D73691E7A29BE3667E121F11<!-- /studio-sha256 --> |
 | Needs | Windows 10 or 11. No administrator rights |
 
-> **Version 2.1 (2026-11-12)** adds the Maps, Routes and Robot menu screens. Its Windows installer is not built yet, so the file above is still version 2.0. To use 2.1 now, run it with Python: [INSTALL.md, option B](../tools/studio/INSTALL.md#option-b-run-it-with-python).
+> **Version 2.1** adds the Maps, Routes and Robot menu screens. The installer above is version 2.1 (built 2026-11-14). It replaces the 2.0 installer (2026-10-30), which is still in the repository history. What has and has not been tested on the robot: [Studio README, "Tested on the robot 2026-11-14 (2.1)"](../tools/studio/README.md).
+>
+> *Earlier text, superseded 2026-11-14:* "Its Windows installer is not built yet, so the file above is still version 2.0. To use 2.1 now, run it with Python: INSTALL.md, option B."
 
 How to install:
 

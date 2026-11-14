@@ -313,6 +313,12 @@ Update 2026-11-06 (later, the robot LEFT its dock; robot time, UTC+3; TB-29 real
 
 Note 2026-11-06: nothing in the change register changed. The delivery software lives in `~/robot_code` as numbered releases (`~/robot_code/delivery-releases/<time>-<git commit>`) with the symlink `~/robot_code/delivery` pointing at the live one; only files there changed. Undo: `python TurtleBot/delivery/tools/deploy.py rollback` on your computer (key `~/.ssh/turtlebot4_ed25519`, the robot's address; see [delivery/README.md, section 4](delivery/README.md)) goes back to the previous release, and the old releases and simulator run folders can be deleted by hand. The robot's own ROS bringup, network and system settings were not touched.
 
+Update 2026-11-14 (late evening, UTC+3; robot docked, never driven, home Wi-Fi, TurtleBot Studio 2.1 test through its API):
+
+| When | Action | Run by | Result |
+|---|---|---|---|
+| 22:22 to 22:32 | Studio 2.1 test: `start_stack.sh map` and `stop_stack.sh` run twice from Studio (SLAM started and stopped on the dock), `save_map.sh` for a test map `studio_check_20261114` (later deleted), `menu_put` of the same text (rewrites `~/robot_code/menu/menu.yaml`, creates `menu.yaml.bak`), `route_set_current` to the same route `home` | TB-27 and TB-29 work | No reboot, no change to the robot's configuration. The OAK-D camera container stays stopped until the next reboot (as for every stack start). Only `home` and `home_v1` remain in the maps folder. No change-register row: nothing installed or configured changed |
+
 ### Removing the clock fix by hand
 
 Use this only if `~/undo-clock` is missing. It does the same as `undo-clock.sh`:

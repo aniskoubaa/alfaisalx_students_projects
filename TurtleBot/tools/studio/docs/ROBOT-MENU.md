@@ -87,3 +87,5 @@ The page shows this notice when the robot has no `menu_config.py`. Studio then r
 | The robot still shows the old menu after saving | Return to the top menu on the robot (button 2, Back). The new file is read then |
 
 Everything on this page is **NOT VERIFIED** on the real robot. After you try it, tell the lab maintainer what you saw.
+
+Note 2026-11-14: the statement above that everything on this page is not verified is partly out of date. On the real robot (through Studio's API, robot docked) Studio read the menu file, the checker found it and reported it valid, `menu_check` rejected a 25-character label ("the longest is 17"), and `menu_put` saved the same text (written atomically, `menu.yaml.bak` kept). **Not verified:** saving a changed menu and the robot's screen then showing it, and a broken menu file on the robot. Details: [Studio README](../README.md#tested-on-the-robot-2026-11-14-21).
