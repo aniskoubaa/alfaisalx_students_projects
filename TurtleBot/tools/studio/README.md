@@ -124,7 +124,7 @@ Events: `mapping` (on every state change, with a `result` after an operation) an
 
 The end-to-end tests skip with exit 0 when Playwright is not installed. All of these ran only offline and in the simulated robot.
 
-Counts at the time of the build (2026-11-12), all with 0 failures: vitest 437 tests in 23 files, mapping 214, mapping desktop 83, routes 48, routes unit 44, menu 24, menu unit 46, end to end Maps 39, Routes 25, Robot menu 29; existing suites: end to end 138, v2 backend 235, bridge 115, desktop 140, templates 171, setup 135, upgrades 106, window 69.
+Counts at the time of the build (2026-11-12), all with 0 failures: vitest 437 tests in 23 files, mapping 214, mapping desktop 83, routes 48, routes unit 44, menu 24, menu unit 46, end to end Maps 39, Routes 25, Robot menu 29; existing suites: end to end 138, v2 backend 235, bridge 115, desktop 140, templates 171, setup 135, upgrades 106, window 69. *Updated 2026-11-14 after the review fixes:* vitest 445, mapping 247, mapping desktop 84, routes 62, routes unit 89, menu 24, menu unit 46, end to end Maps 40, Routes 25, Robot menu 29; the existing suites unchanged and passing.
 
 ## What's new in 2.0
 
@@ -475,18 +475,24 @@ Added for 2.0 (2026-10-30). All of these ran only in tests and in the simulated 
 
 Studio 2.1 from source connected to the real robot and answered correctly: `mapping_status` idle with the scripts found; `maps_list` showed `home` and `home_v1` with the right sizes and files; the preview of `home` came back as a PNG; `routes_list` showed `home` (valid, 4 outbound and 3 inbound waypoints, as in its route.yaml) with `current -> home`; `trip_status` found the running menu (real pgrep detection) and the last menu.log lines; `menu_get` reported no menu file and the checker missing (not deployed yet). After disconnecting no bridge process was left and nothing on the robot had changed. Mapping, saving, stopping, map streams, route changes, uploads and menu saves were NOT run on the real robot.
 
+### Studio 2.1, second read-only check on the real robot (2026-11-14, about 15:50, home Wi-Fi, robot docked, nothing started or changed)
+
+With no SLAM running: `pose_on` and `map_on` on the real robot created the `/map` and `/pose` subscriptions on the bridge's one ROS node with no error (real rclpy, Python 3.12, Jazzy); pose events carried the map pose with `source: "odom"` as designed; no map events came (nothing publishes `/map` without SLAM). `menu_get` ran the menu checker deployed on 2026-11-14 through the bridge: `checker_ok` true and the robot's current menu file valid. No bridge process was left afterwards.
+
+Offline on 2026-11-14 the bridge's script runner ran the real `save_map.sh` (four files written, an existing map refused without `--force`, `--force` overwrites) and the real `stop_stack.sh` (nothing running: exit 0) with stand-ins for `ros2` and `pgrep`, using Git Bash on Windows. That checks the runner and the scripts' exit codes and messages, not ROS.
+
 ### Studio 2.1 (added 2026-11-12)
 
 Everything in 2.1 ran only in tests and in the simulated robot. Not verified on the real robot:
 
 - `start_stack.sh map`, `save_map.sh` and `stop_stack.sh` run from the bridge (processes, output, timing, the 2 s probe that notices a mapping started or ended outside Studio).
-- The `/map` and `/pose` subscriptions with the real slam_toolbox: data decode, QoS (reliable, transient local), CPU cost, and whether creating the subscriptions stalls the base (TB-25).
+- The `/map` and `/pose` data with the real slam_toolbox: data decode, CPU cost, and the map pose source "slam" (creating the subscriptions on the real robot was checked on 2026-11-14, without SLAM). Whether slam_toolbox on this robot publishes `/pose` is not checked: without it the robot is drawn at its odometry pose. The odometry used to move the slam pose forward is the one at the moment the pose arrives, not at the scan time (a few centimetres off while driving).
 - The map pose composition (slam_toolbox pose moved forward by the odometry) and the lidar overlay on the real map.
 - The tar download of real maps (the real `.posegraph` and `.data` files are several MB).
 - The `current` link replace with a real symbolic link: only the fake fallback ran, on Windows.
 - `pgrep` detection of the menu, the mission and the navigation and mapping stacks.
 - The route upload over real ssh.
-- The menu checker on the robot. `menu_config.py` must be deployed with `delivery/tools/deploy.py` first. Until then Studio refuses to save a menu, by design.
+- The menu checker on the robot ran through Studio on 2026-11-14 (read-only, `menu_get`). Saving a menu from Studio on the robot is not verified.
 - The whole Robot menu flow: save, `menu.yaml.bak`, and the robot picking up the new menu.
 - No 2.1 Windows installer exists yet (NSIS missing), so installing 2.1 is untested.
 
@@ -497,6 +503,9 @@ Everything in 2.1 ran only in tests and in the simulated robot. Not verified on 
 - The installer and the app are not code-signed, so Windows SmartScreen and macOS Gatekeeper warn on the first start.
 - E-STOP during a move is untested.
 - The **Remove** Wi-Fi flow has not run for real.
+- (2.1, added 2026-11-14) Maps and route folders whose names do not follow the name rule (letters, digits, `-`, `_`, up to 48 characters) are not listed on the Maps screen, and such a route cannot be made current from Studio. Rename them on the robot.
+- (2.1, added 2026-11-14) "Saved ... ago" uses the robot's clock against this computer's clock; a wrong robot clock shows a wrong age.
+- (2.1, added 2026-11-14) The map canvas draws no trail of the robot's path (the Live screen has one).
 
 ## Technical details
 

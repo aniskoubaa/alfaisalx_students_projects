@@ -180,6 +180,76 @@ if callable(vu):
     check('validate_route_upload refuses bad base64', ok is False)
     ok, info = vu('campus1', good + [dict(good[0])])
     check('validate_route_upload refuses duplicate files', ok is False)
+    ok, info = vu('current', good)
+    check('validate_route_upload refuses the reserved name current', ok is False and 'reserved' in str(info), str(info)[:120])
+
+    # Studio.route_upload with a stub bridge and a stub _upload (atomic upload and cleanup on failure)
+    class StubBridge:
+        def __init__(self, finish, exists=False):
+            self.finish, self.exists, self.calls = finish, exists, []
+
+        def request(self, cmd, timeout=15):
+            self.calls.append((cmd.get('cmd'), cmd.get('name'), timeout))
+            if cmd.get('cmd') == 'route_upload_cleanup':
+                return {'ok': True, 'exists': self.exists}
+            return self.finish(cmd)
+
+    uapp = st.Studio(st.parse_args(['--fake', '--no-browser', '--config-dir', os.path.join(OUT, 'cfg_unit'),
+                                    '--fake-home', os.path.join(OUT, 'home_unit')]))
+    seen_dirs = []
+
+    def stub_upload_ok(local_dir, remote_dir, rels):
+        seen_dirs.append((local_dir, remote_dir, sorted(rels)))
+
+    def stub_upload_fail(local_dir, remote_dir, rels):
+        seen_dirs.append((local_dir, remote_dir, sorted(rels)))
+        raise st.BridgeError('upload failed: simulated')
+
+    req = {'name': 'unit1', 'files': good}
+    uapp.bridge = StubBridge(lambda c: {'ok': True, 'route': {'name': c['name'], 'valid': True}})
+    uapp._upload = stub_upload_ok
+    r = uapp.route_upload(req)
+    check('route_upload (stub): success returns ok, name, route', r.get('ok') is True and r.get('name') == 'unit1'
+          and (r.get('route') or {}).get('name') == 'unit1', str(r))
+    check('route_upload (stub): uploads to the hidden .upload-<name> folder',
+          seen_dirs[-1][1] == '~/robot_code/routes/.upload-unit1' and seen_dirs[-1][2] == sorted(REQUIRED), str(seen_dirs[-1]))
+    check('route_upload (stub): order is cleanup, then finish', [c[:2] for c in uapp.bridge.calls]
+          == [('route_upload_cleanup', 'unit1'), ('route_upload_finish', 'unit1')], str(uapp.bridge.calls))
+    check('route_upload (stub): the local temp folder is removed', not os.path.exists(seen_dirs[-1][0]))
+    r = uapp.route_upload({'name': 'current', 'files': good})
+    check('route_upload (stub): the name current is refused without any bridge call', r.get('ok') is False
+          and 'reserved' in str(r.get('error')) and len(uapp.bridge.calls) == 2, str(r))
+
+    uapp.bridge = StubBridge(lambda c: {'ok': True}, exists=True)
+    n_before = len(seen_dirs)
+    r = uapp.route_upload(req)
+    check('route_upload (stub): an existing route is refused with exists and nothing is uploaded',
+          r.get('ok') is False and r.get('exists') is True and r.get('error') == 'A route named unit1 already exists on the robot.'
+          and len(seen_dirs) == n_before, str(r))
+
+    uapp.bridge = StubBridge(lambda c: {'ok': True})
+    uapp._upload = stub_upload_fail
+    r = uapp.route_upload(req)
+    check('route_upload (stub): a failed upload returns the error and runs cleanup afterwards',
+          r.get('ok') is False and 'simulated' in str(r.get('error'))
+          and [c[0] for c in uapp.bridge.calls] == ['route_upload_cleanup', 'route_upload_cleanup'], str((r, uapp.bridge.calls)))
+    check('route_upload (stub): the local temp folder is gone after a failed upload', not os.path.exists(seen_dirs[-1][0]))
+
+    uapp._upload = stub_upload_ok
+    uapp.bridge = StubBridge(lambda c: {'ok': False, 'error': 'refused', 'exists': True})
+    r = uapp.route_upload(req)
+    check('route_upload (stub): a refused finish returns the error, cleans up, and removes the temp folder',
+          r.get('ok') is False and r.get('exists') is True and [c[0] for c in uapp.bridge.calls]
+          == ['route_upload_cleanup', 'route_upload_finish', 'route_upload_cleanup'] and not os.path.exists(seen_dirs[-1][0]),
+          str((r, uapp.bridge.calls)))
+
+    # forward(): menu_check and menu_put wait 25 s, other commands keep 15 s
+    uapp.bridge = StubBridge(lambda c: {'ok': True})
+    for cname in ('menu_check', 'menu_put', 'routes_list'):
+        uapp.forward({'cmd': cname})
+    tmo = {c[0]: c[2] for c in uapp.bridge.calls}
+    check('forward: menu_check and menu_put use a 25 s timeout, others 15 s',
+          tmo.get('menu_check') == 25 and tmo.get('menu_put') == 25 and tmo.get('routes_list') == 15, str(tmo))
 
 # ================================================================ HTTP: real studio.py --fake
 WEB = os.path.join(OUT, 'web_copy')
@@ -245,6 +315,12 @@ try:
     check('routes_list shows the uploaded route as valid', entry(j, 'uploaded1').get('valid') is True, str(names(j)))
     s, j = upload('uploaded1', files)
     check('upload to an existing name is refused', j.get('ok') is False and j.get('exists') is True, str(j)[:160])
+    robot_routes = os.path.join(FAKE_HOME, 'robot_code', 'routes')
+    check('after a successful upload no .upload-* folder remains', not [d for d in os.listdir(robot_routes) if d.startswith('.upload-')],
+          str(os.listdir(robot_routes)))
+    s, j = upload('current', files)
+    check('HTTP upload named current is refused', j.get('ok') is False and 'reserved' in str(j.get('error', '')), str(j)[:160])
+    check('after a refused upload no .upload-* folder remains', not [d for d in os.listdir(robot_routes) if d.startswith('.upload-')])
     s, j = upload('uploaded2', files[1:])
     check('upload without route.yaml is refused and names it', j.get('ok') is False and 'route.yaml' in str(j.get('error', '')), str(j)[:160])
     check('a refused upload writes nothing', not os.path.exists(os.path.join(FAKE_HOME, 'robot_code', 'routes', 'uploaded2')))

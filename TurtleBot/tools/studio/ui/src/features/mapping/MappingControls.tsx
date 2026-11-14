@@ -43,8 +43,8 @@ export function MappingControls() {
   };
 
   const onStop = () => {
-    if (info?.unsaved) setStopAsk(true);
-    else void run('stop', stopMapping, 'Could not stop mapping.');
+    if (info?.state === 'error') void run('stop', stopMapping, 'Could not stop mapping.');
+    else setStopAsk(true);
   };
 
   const disabledReason = (a: { enabled: boolean; reason: string }) =>
@@ -125,9 +125,13 @@ export function MappingControls() {
       <ConfirmDialog
         open={stopAsk}
         title="Stop mapping?"
-        tone="danger"
-        body="This map is not saved. Stop and lose it?"
-        confirmLabel="Stop and lose the map"
+        tone={info?.unsaved ? 'danger' : 'primary'}
+        body={
+          info?.unsaved
+            ? 'This map is not saved. Stop and lose it?'
+            : `Anything mapped since the last save${info?.last_saved ? ` (${info.last_saved.name})` : ''} is lost. Save again first if you want to keep it.`
+        }
+        confirmLabel={info?.unsaved ? 'Stop and lose the map' : 'Stop mapping'}
         cancelLabel="Keep mapping"
         onCancel={() => setStopAsk(false)}
         onConfirm={() => {

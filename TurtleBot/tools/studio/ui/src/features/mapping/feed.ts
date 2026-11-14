@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { notify } from '../../state/feedback';
 import { onStudioEvent } from '../../state/runtime';
 import { useStudio } from '../../state/store';
@@ -39,12 +39,22 @@ export function useMappingFeed(): void {
           notify(t.kind, t.text);
         }
       }),
+      // A new bridge process counts its map sequence from 0 again: forget the old numbers so
+      // the next map is accepted.
+      onStudioEvent('hello', () => useMapping.getState().clearMap()),
       onStudioEvent('map', (ev) => useMapping.getState().onMapEvent(ev)),
       onStudioEvent('pose', (ev) => useMapping.getState().onPose(ev)),
       onStudioEvent('scan', (ev) => useMapping.getState().onScan(ev)),
     ];
     return () => off.forEach((f) => f());
   }, []);
+
+  // The same reason when the link comes back without a new hello having been seen.
+  const wasConnected = useRef(connected);
+  useEffect(() => {
+    if (connected && !wasConnected.current) useMapping.getState().clearMap();
+    wasConnected.current = connected;
+  }, [connected]);
 
   useEffect(() => {
     let alive = true;

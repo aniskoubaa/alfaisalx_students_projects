@@ -8,6 +8,7 @@ import {
   checkUploadFiles,
   existsMessage,
   formatSize,
+  isHiddenName,
   suggestRouteName,
   validRouteName,
 } from './model';
@@ -47,7 +48,10 @@ export function UploadRoute({ connected = true }: { connected?: boolean }) {
 
   const send = async () => {
     if (!canUpload || !check) return;
-    const top = files.filter((f) => (f.webkitRelativePath || f.name).split('/').length <= 2);
+    const top = files.filter((f) => {
+      const parts = (f.webkitRelativePath || f.name).split('/');
+      return parts.length <= 2 && !isHiddenName(parts[parts.length - 1] ?? f.name);
+    });
     setBusy(true);
     setError(null);
     const r = await uploadRoute(name, top);
@@ -102,6 +106,9 @@ export function UploadRoute({ connected = true }: { connected?: boolean }) {
             <p className="dim small">
               Ignored, because they are inside subfolders: {check.nested.join(', ')}.
             </p>
+          ) : null}
+          {check.ignored.length > 0 ? (
+            <p className="dim small">Ignored hidden files: {check.ignored.join(', ')}.</p>
           ) : null}
           {check.tooBig ? (
             <p className="mapping-error" role="alert">

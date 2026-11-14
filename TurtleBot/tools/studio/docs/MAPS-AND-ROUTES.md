@@ -51,7 +51,7 @@ The procedure is the one in the [delivery README, section 6](../../../delivery/R
    - Drive slowly. A person who walks through the map leaves marks on it.
 9. Press **Save map**. Type a name (letters, digits, hyphens and underscores, up to 48 characters, no spaces; Studio suggests one with the date and time) and press **Save map** in the dialog. The state shows **Saving the map…** and then **Mapping** again. The line "Last saved map" shows the name. If the name exists, Studio asks "Replace the map?" Choose **Replace map** only when you mean to overwrite.
 10. Dock the robot (**Overview**, **Dock**, or the controller).
-11. Press **Stop mapping**. If the map is not saved, Studio asks "This map is not saved. Stop and lose it?" Choose **Keep mapping** and save first, unless you really want to throw it away. The state shows **Stopping…** and then **Not mapping**.
+11. Press **Stop mapping**. Studio always asks first. If the map was never saved it asks "This map is not saved. Stop and lose it?" (in red). If it was saved, it asks "Stop mapping?" and reminds you that anything mapped since the last save is lost. Choose **Keep mapping** and save again first, unless you really want to throw that part away. The state shows **Stopping…** and then **Not mapping**.
 
 You can save several times in one session, with different names, for example before and after a risky stretch.
 
@@ -85,8 +85,8 @@ Studio does not plan routes. You make the route folder on your computer with `de
 ## Put a route on the robot
 
 1. Open **Routes** in the left menu.
-2. In **Upload a route**, press **Choose a route folder** and pick the planned folder. Studio says how many files it found and whether all four route files are there. Files inside subfolders are ignored. The files must be under 32 MB together.
-3. Check the name in **Name on the robot** (letters, digits, hyphens and underscores). Studio suggests one from the folder name. The name must be new: an existing name is refused, so choose another.
+2. In **Upload a route**, press **Choose a route folder** and pick the planned folder. Studio says how many files it found and whether all four route files are there. Files inside subfolders and hidden files (names starting with a dot, such as `.DS_Store`) are ignored. The files must be under 32 MB together.
+3. Check the name in **Name on the robot** (letters, digits, hyphens and underscores). Studio suggests one from the folder name. The name must be new: an existing name is refused, so choose another. `current` is reserved (it is the link the menu reads) and cannot be used.
 4. Press **Upload**. Nothing moves. The route appears in **Routes on the robot**. The status says **Ready** or "Incomplete: missing ...".
 
 ## Change the current route

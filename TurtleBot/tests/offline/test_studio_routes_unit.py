@@ -206,6 +206,104 @@ check('seed_fake: home has 2 outbound and 1 inbound', r['routes'][0]['waypoints'
 check('seed_fake: map.pgm is a P5 file', open(os.path.join(fl.dir, 'home', 'map.pgm'), 'rb').read(2) == b'P5')
 check('seed_fake: menu log lines', len(fl.trip_status()['lines']) >= 3)
 
+# ---- reserved names and the atomic upload commands (review fixes 2026-11-14)
+e = err(lib.set_current, 'current', True)
+check('set_current: "current" is a reserved name', e == 'current is a reserved name', str(e))
+e = err(lib.set_current, '.upload-good', True)
+check('set_current: a dot name is reserved', e is not None and 'reserved' in e, str(e))
+check('_folder: "current" is refused even when routes/current exists', err(lib._folder, 'current') == 'current is a reserved name')
+if LINKS:
+    lib.set_current('good', True)
+    check('set_current "current": the link still points to good, not to itself', err(lib.set_current, 'current', True) is not None and lib.list()['current'] == 'good')
+else:
+    skip('set_current "current" with a real link', 'no symbolic links here')
+
+uhome = tempfile.mkdtemp(dir=OUT)
+ulib = rb.RouteLibrary(uhome, True, Probe())
+udir = ulib.dir
+os.makedirs(os.path.join(udir, 'taken'))
+for bad in ('current', '../x', '..', '', None, 'a/b', '.hidden', '.upload-x', 'a b', 5):
+    check('upload_cleanup: bad name %r refused' % (bad,), err(ulib.upload_cleanup, bad) is not None)
+    check('upload_finish: bad name %r refused' % (bad,), err(ulib.upload_finish, bad) is not None)
+check('upload_cleanup/finish: "current" says it is reserved', err(ulib.upload_cleanup, 'current') == 'current is a reserved name'
+      and err(ulib.upload_finish, 'current') == 'current is a reserved name')
+# cleanup
+check('upload_cleanup: nothing there, taken does not exist', ulib.upload_cleanup('fresh') == {'exists': False})
+check('upload_cleanup: reports that routes/taken exists', ulib.upload_cleanup('taken') == {'exists': True})
+os.makedirs(os.path.join(udir, '.upload-fresh', 'sub'))
+open(os.path.join(udir, '.upload-fresh', 'route.yaml'), 'w').write('x')
+check('upload_cleanup: removes a leftover hidden folder', ulib.upload_cleanup('fresh') == {'exists': False} and not os.path.exists(os.path.join(udir, '.upload-fresh')))
+check('upload_cleanup: the real route is untouched', os.path.isdir(os.path.join(udir, 'taken')))
+open(os.path.join(udir, '.upload-file'), 'w').write('x')
+check('upload_cleanup: a plain file of that name is refused and left', err(ulib.upload_cleanup, 'file') is not None and os.path.isfile(os.path.join(udir, '.upload-file')))
+if LINKS:
+    keep = tempfile.mkdtemp(dir=OUT)
+    open(os.path.join(keep, 'precious.txt'), 'w').write('x')
+    os.symlink(keep, os.path.join(udir, '.upload-lnk'))
+    r = ulib.upload_cleanup('lnk')
+    check('upload_cleanup: a link is removed, its target is not followed', r == {'exists': False} and not os.path.lexists(os.path.join(udir, '.upload-lnk'))
+          and os.path.isfile(os.path.join(keep, 'precious.txt')), str(r))
+else:
+    skip('upload_cleanup with a link', 'no symbolic links here')
+# finish
+e = err(ulib.upload_finish, 'fresh')
+check('upload_finish: missing upload folder refused', e is not None and 'upload' in e, str(e))
+os.makedirs(os.path.join(udir, '.upload-taken'))
+try:
+    ulib.upload_finish('taken')
+    ex = None
+except rb.ServiceError as exc:
+    ex = exc
+check('upload_finish: an existing target is refused with "exists" and exists:true', ex is not None and 'exists' in str(ex) and ex.extra.get('exists') is True, str(ex))
+check('upload_finish: the refusal changed nothing', os.path.isdir(os.path.join(udir, '.upload-taken')) and os.path.isdir(os.path.join(udir, 'taken')))
+open(os.path.join(udir, '.upload-file2'), 'w').write('x')
+check('upload_finish: an upload "folder" that is a file is refused', err(ulib.upload_finish, 'file2') is not None and not os.path.exists(os.path.join(udir, 'file2')))
+d = os.path.join(udir, '.upload-newroute')
+os.makedirs(d)
+for fname in rb.ROUTE_REQUIRED:
+    open(os.path.join(d, fname), 'w').write(EXAMPLE if fname == 'route.yaml' else 'x: 1\n')
+r = ulib.upload_finish('newroute')
+check('upload_finish: renames the folder and returns the list entry', set(r) == {'route'} and r['route']['name'] == 'newroute' and r['route']['valid'] is True
+      and r['route']['waypoints'] == {'outbound': 2, 'inbound': 1} and os.path.isdir(os.path.join(udir, 'newroute'))
+      and not os.path.exists(os.path.join(udir, '.upload-newroute')), str(r))
+check('upload_finish: the new route is in the list, the hidden folder is not', 'newroute' in [x['name'] for x in ulib.list()['routes']]
+      and not any(x['name'].startswith('.') for x in ulib.list()['routes']))
+check('upload_cleanup after finish: reports exists true', ulib.upload_cleanup('newroute') == {'exists': True})
+check('upload_finish: a second finish is refused (exists)', err(ulib.upload_finish, 'newroute') is not None)
+
+# the same through the bridge handlers
+import json as _json
+from types import SimpleNamespace as _NS
+
+
+class _W:
+    def __init__(self):
+        self.evs = []
+
+    def emit(self, obj, droppable=False, key=None):
+        self.evs.append(obj)
+
+
+_ros = rb.FakeRos()
+_br = rb.Bridge(_ros, _W(), tempfile.mkdtemp(dir=OUT), True)
+_br.stop.set()
+check('bridge: h_route_upload_cleanup returns ok fields', _br.h_route_upload_cleanup({'name': 'home'}) == {'exists': True})
+try:
+    _br.h_route_upload_finish({'name': 'home'})
+    be = None
+except rb.BridgeError as exc:
+    be = exc
+check('bridge: h_route_upload_finish on an existing route is a BridgeError with exists:true', be is not None and 'exists' in str(be) and be.extra.get('exists') is True, str(be))
+for bad in ('current', '../x', None):
+    for fn in (_br.h_route_upload_cleanup, _br.h_route_upload_finish):
+        try:
+            fn({'name': bad})
+            refused = False
+        except rb.BridgeError:
+            refused = True
+        check('bridge: %s %r refused' % (fn.__name__, bad), refused)
+_ros.shutdown()
+
 shutil.rmtree(OUT, ignore_errors=True)
 print('\n%d failure(s)' % fails)
 sys.exit(fails)

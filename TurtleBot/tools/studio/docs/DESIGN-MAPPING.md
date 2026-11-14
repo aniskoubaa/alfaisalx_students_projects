@@ -139,7 +139,11 @@ moved forward by the odometry since then; `source:"odom"` means no map pose is k
 | `route_set_current {name, confirm:true}` | `{current}`; refused without confirm, for an invalid folder, and while a trip or the navigation stack runs. Real robot: a new link is made beside the old one and renamed over it (same effect as `ln -sfn`, atomic) |
 | `trip_status {lines 1-200 (40)}` | `{menu_running, mission_running, stack_running, log_path, lines:[text]}` read-only |
 
-A route folder is valid when it has `route.yaml`, `map.yaml`, `keepout_mask.yaml` and `speed_mask.yaml`.
+| `route_upload_cleanup {name}` | `{exists}`; removes a leftover hidden folder `routes/.upload-<name>` (added 2026-11-14) |
+| `route_upload_finish {name}` | `{route}`; renames `routes/.upload-<name>` to `routes/<name>`, refused (`exists:true`) when that name exists (added 2026-11-14) |
+
+A route folder is valid when it has `route.yaml`, `map.yaml`, `keepout_mask.yaml` and `speed_mask.yaml`. The name
+`current` (the link) and names starting with `.` are reserved and refused everywhere (added 2026-11-14).
 
 ### Robot menu file (backlog item 4)
 
@@ -165,11 +169,25 @@ missing, as a robot without the deployed delivery package would.
 | `GET /api/map/live.png` | latest live map as an 8-bit grey PNG (free 254, occupied 0, unknown 205, in between scaled); header `X-Map-Meta` with the JSON metadata; 404 when none |
 | `GET /api/maps/preview.png?name=&max=` | the saved map's preview as PNG (asks the bridge for `map_preview`) |
 | `GET /api/maps/download?name=` | a zip of the map's files (`Content-Disposition: attachment`), fetched with the existing tar-over-ssh download |
-| `POST /api/routes/upload {name, files:[{path, data_b64}]}` | uploads a planned route folder (item 3). Body limit 32 MB on this path only. Flat folder only, the four files above required, the name must be new |
+| `POST /api/routes/upload {name, files:[{path, data_b64}]}` | uploads a planned route folder (item 3). Body limit 32 MB on this path only. Flat folder only, the four files above required, the name must be new. Since 2026-11-14 the files go into the hidden `routes/.upload-<name>` first and are renamed into place by `route_upload_finish`, so a broken upload never leaves a half folder under the real name |
 
 `map` events from the bridge are not passed to the browser with their data: the desktop decodes them into the PNG and
 publishes `{ev:"map", seq, t, width, height, resolution, origin, stride}` without `data`; the page then fetches
 `/api/map/live.png`. `mapping` events are passed on unchanged and remembered.
+
+### Changes after the review (2026-11-14)
+
+- Script output goes to a temporary file, not a pipe to the bridge, so `stop_stack.sh` and `save_map.sh` finish even
+  when the ssh link drops or Studio closes during them.
+- Map events are queued with a replace rule: at most one map event waits in the bridge's output queue; a newer one
+  replaces it, so replies (including the e-stop reply) never wait behind old maps.
+- The last map and slam pose are cleared when mapping starts and when it becomes idle, so an old session's map is
+  never shown as live.
+- A save counts only when the map YAML was rewritten (its time stamp moved forward).
+- One broken file in the maps folder no longer hides the whole library.
+- The interface treats a lower map sequence number as a new bridge or a new mapping run (start a new picture), and
+  always asks before Stop while mapping (in red when the map was never saved).
+- `menu_check` and `menu_put` get a 25 s desktop request timeout (the checker may take up to 20 s).
 
 ## 6. Safety rules
 
@@ -181,7 +199,8 @@ publishes `{ev:"map", seq, t, width, height, resolution, origin, stride}` withou
 4. Saving never overwrites without `overwrite:true`, which the interface sends only after a second confirmation.
    Delete needs `confirm:true` and a danger dialog. Rename never overwrites.
 5. Every name is checked against the pattern; every path is joined and checked to stay inside the maps or routes folder.
-6. Stopping with unsaved mapping asks first ("This map is not saved. Stop and lose it?").
+6. Stopping with unsaved mapping asks first ("This map is not saved. Stop and lose it?"). Since 2026-11-14 Stop always asks
+   while mapping, because the map may have grown after the last save.
 7. Changing `current` is refused while a trip or the navigation stack runs, and needs a confirmation that names the old
    and the new route.
 8. Upload refuses existing names, nested paths, missing files and bodies over 32 MB.

@@ -139,7 +139,11 @@ export const useMapping = create<MappingStore>()((set, get) => ({
   onMapEvent: (ev) => {
     const meta = toMapMeta(ev);
     if (!meta) return;
-    if (meta.seq <= get().latestSeq) return;
+    const latest = get().latestSeq;
+    if (meta.seq === latest) return;
+    // Within one bridge process the numbers only go up. A lower number means a new bridge (a reconnect, even one
+    // that happened while this screen was closed) or a new mapping run: start a new picture instead of ignoring it.
+    if (meta.seq < latest) get().clearMap();
     set({ latestSeq: meta.seq, meta });
     void requestFetch(meta);
   },

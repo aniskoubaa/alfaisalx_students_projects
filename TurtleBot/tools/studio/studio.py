@@ -1668,6 +1668,8 @@ def validate_route_upload(name, files):
     """(True, [(rel, bytes), ...]) for a route folder upload the robot may receive, else (False, error text)."""
     if not valid_map_name(name):
         return False, 'bad route name (letters, digits, - and _, at most 48 characters)'
+    if name == 'current':
+        return False, 'current is a reserved name'
     if not isinstance(files, list) or not files:
         return False, 'no files to upload'
     if len(files) > 64:
@@ -2482,7 +2484,8 @@ class Studio:
             # never send motion unless this very bridge process was armed (no resend after a reconnect)
             return {'ok': False, 'error': 'Manual driving is not armed.', 'armed': False}
         try:
-            r = self.bridge.request(cmd, 8 if name == 'estop' else 2 if name == 'teleop' else 15)
+            r = self.bridge.request(cmd, 8 if name == 'estop' else 2 if name == 'teleop'
+                                else 25 if name in ('menu_check', 'menu_put') else 15)
         except BridgeError as e:
             return {'ok': False, 'error': str(e)}
         if name.startswith('mapping_') and isinstance(r, dict) and r.get('ok'):
@@ -2698,6 +2701,8 @@ class Studio:
         try:
             try:
                 writer(p.stdin)
+            except BrokenPipeError:     # the far end quit early: its exit code and stderr say why
+                pass
             finally:
                 try:
                     p.stdin.close()
@@ -3184,7 +3189,7 @@ class Studio:
             return (409 if str(e) == 'not connected' else 502), {'ok': False, 'error': str(e)}, None
         if not r.get('ok'):
             err = str(r.get('error') or 'the robot refused')
-            return (404 if re.search(r'no such|not found|missing', err, re.I) else 502), {'ok': False, 'error': err}, None
+            return (404 if re.search(r'no such|not found|missing|no map named', err, re.I) else 502), {'ok': False, 'error': err}, None
         try:
             meta, gray = decode_map_payload(r)
             return 200, png_gray(meta['width'], meta['height'], gray), 'image/png'
@@ -3224,32 +3229,51 @@ class Studio:
             shutil.rmtree(tmp, ignore_errors=True)
 
     def route_upload(self, req):
-        """Copy a route folder (files as base64) to ~/robot_code/routes/<name> on the robot; never overwrites a route."""
+        """Copy a route folder (files as base64) to ~/robot_code/routes/<name> on the robot, atomically.
+
+        The files go to a hidden .upload-<name> folder first and the robot renames it into place, so a failed
+        upload never leaves a half route; an existing route is never overwritten."""
         name = req.get('name')
         ok, info = validate_route_upload(name, req.get('files'))
         if not ok:
             return {'ok': False, 'error': info}
+        started, tmp = False, None
         try:
-            r = self.bridge.request({'cmd': 'routes_list'}, 15)
+            r = self.bridge.request({'cmd': 'route_upload_cleanup', 'name': name}, 15)
             if not r.get('ok'):
                 return {'ok': False, 'error': str(r.get('error') or 'the robot refused')}
-            if any(isinstance(x, dict) and x.get('name') == name for x in r.get('routes') or []):
-                return {'ok': False, 'error': 'a route named %s already exists on the robot' % name, 'exists': True}
+            if r.get('exists'):
+                return {'ok': False, 'error': 'A route named %s already exists on the robot.' % name, 'exists': True}
             tmp = tempfile.mkdtemp(prefix='studio_route_')
-            try:
-                rels = []
-                for rel, data in info:
-                    with open(os.path.join(tmp, rel), 'wb') as f:
-                        f.write(data)
-                    rels.append(rel)
-                self._upload(tmp, '~/robot_code/routes/' + name, rels)
-            finally:
-                shutil.rmtree(tmp, ignore_errors=True)
-            r = self.bridge.request({'cmd': 'routes_list'}, 15)
-            entry = next((x for x in (r.get('routes') or []) if isinstance(x, dict) and x.get('name') == name), None)                 if r.get('ok') else None
-            return {'ok': True, 'name': name, 'route': entry}
+            rels = []
+            for rel, data in info:
+                with open(os.path.join(tmp, rel), 'wb') as f:
+                    f.write(data)
+                rels.append(rel)
+            started = True
+            self._upload(tmp, '~/robot_code/routes/.upload-' + name, rels)
+            r = self.bridge.request({'cmd': 'route_upload_finish', 'name': name}, 15)
+            if not r.get('ok'):
+                res = {'ok': False, 'error': str(r.get('error') or 'the robot refused')}
+                if r.get('exists'):
+                    res['exists'] = True
+                self._route_upload_cleanup(name)
+                return res
+            return {'ok': True, 'name': name, 'route': r.get('route')}
         except (BridgeError, OSError) as e:
+            if started:
+                self._route_upload_cleanup(name)
             return {'ok': False, 'error': str(e)}
+        finally:
+            if tmp:
+                shutil.rmtree(tmp, ignore_errors=True)
+
+    def _route_upload_cleanup(self, name):
+        """Best effort: remove a leftover hidden upload folder on the robot."""
+        try:
+            self.bridge.request({'cmd': 'route_upload_cleanup', 'name': name}, 15)
+        except Exception:
+            pass
 
     def on_status(self, ev):
         """Record metrics and raise alerts, then remember the robot's Wi-Fi address per SSID (client mode only)."""

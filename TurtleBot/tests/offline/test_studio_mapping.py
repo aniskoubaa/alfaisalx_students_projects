@@ -357,6 +357,11 @@ check('runner exception -> error state, not a dead thread', wait_for(lambda: svc
 
 # ================================================================ real runner and probe (no robot)
 home = mkdir('home_')
+# a real bash: on Windows the bash.exe found first is the WSL launcher, so use Git Bash through STUDIO_BASH
+GIT_BASH = os.path.join(os.environ.get('ProgramFiles', 'C:\\Program Files'), 'Git', 'bin', 'bash.exe')
+BASH = shutil.which('bash') if os.name == 'posix' else (GIT_BASH if os.path.isfile(GIT_BASH) else None)
+if BASH and os.name != 'posix':
+    os.environ['STUDIO_BASH'] = BASH
 rr = rb.RealStackRunner(home)
 check('real runner: delivery folder is ~/robot_code/delivery', rr.delivery == os.path.join(home, 'robot_code', 'delivery'))
 check('real runner: scripts missing are named', rr.scripts_ok() is False and rr.missing_scripts() == list(rb.MAP_SCRIPTS))
@@ -364,7 +369,7 @@ os.makedirs(os.path.join(home, 'robot_code', 'delivery', 'robot'))
 for sname in rb.MAP_SCRIPTS:
     open(os.path.join(home, 'robot_code', 'delivery', 'robot', sname), 'w').write('echo "args: $@"; echo "dir: $(basename "$PWD")"\n')
 check('real runner: scripts found', rr.scripts_ok() is True)
-if os.name == 'posix' and shutil.which('bash'):
+if BASH:
     ok, out = rr.run('start_stack.sh', ['map', '--keep-camera'], 20)
     check('real runner: bash <script> args, cwd = home, output captured', ok and 'args: map --keep-camera' in out
           and ('dir: ' + os.path.basename(home)) in out, out)
@@ -375,8 +380,44 @@ if os.name == 'posix' and shutil.which('bash'):
     t0 = time.time()
     ok, out = rr.run('save_map.sh', ['x'], 0.5)
     check('real runner: timeout stops the script', ok is False and 'timed out' in out and time.time() - t0 < 10, out)
+    # the REAL delivery scripts save_map.sh and stop_stack.sh under the runner, with stand-ins for ros2 and pgrep
+    real_dir = os.path.normpath(os.path.join(HERE, '..', '..', 'delivery', 'robot'))
+    dhome = mkdir('dhome_')
+    os.makedirs(os.path.join(dhome, 'robot_code', 'delivery', 'robot'))
+    for sname in ('save_map.sh', 'stop_stack.sh'):
+        shutil.copy(os.path.join(real_dir, sname), os.path.join(dhome, 'robot_code', 'delivery', 'robot', sname))
+    stubs = mkdir('stubs_')
+    ROS2_STUB = """#!/bin/bash
+last="${@: -1}"
+prefix="$(echo "$last" | sed -E "s/.*'([^']*)'.*/\\1/")"
+case "$*" in
+  *save_map*) echo P5 > "$prefix.pgm"; echo "image: x.pgm" > "$prefix.yaml"; echo "response: result=0" ;;
+  *serialize_map*) echo g > "$prefix.posegraph"; echo d > "$prefix.data"; echo "response: result=0" ;;
+  *) echo "stub ros2: $*"; exit 1 ;;
+esac
+"""
+    with open(os.path.join(stubs, 'ros2'), 'w', newline='\n') as f:
+        f.write(ROS2_STUB)
+    with open(os.path.join(stubs, 'pgrep'), 'w', newline='\n') as f:
+        f.write('#!/bin/bash\nexit 1\n')
+    old_path = os.environ['PATH']
+    os.environ['PATH'] = stubs + os.pathsep + old_path
+    try:
+        drr = rb.RealStackRunner(dhome)
+        prefix = os.path.join(dhome, 'robot_code', 'maps', 'real1').replace(os.sep, '/')
+        ok, out = drr.run('save_map.sh', [prefix], 60)
+        check('real save_map.sh under the runner: exit 0 and the four files', ok and all(os.path.isfile(prefix + e) for e in rb.MAP_EXTS), out[-300:])
+        ok, out = drr.run('save_map.sh', [prefix], 60)
+        check('real save_map.sh: an existing map is refused without --force (exit not 0, says so)', ok is False and 'exists' in out, out[-200:])
+        ok, out = drr.run('save_map.sh', [prefix, '--force'], 60)
+        check('real save_map.sh: --force overwrites', ok is True, out[-200:])
+        ok, out = drr.run('stop_stack.sh', [], 60)
+        check('real stop_stack.sh with nothing running: exit 0, says not running', ok is True and 'not running' in out, out[-300:])
+    finally:
+        os.environ['PATH'] = old_path
 else:
-    print('SKIP real runner (needs a POSIX system with bash)')
+    print('SKIP real runner (no bash: needs a POSIX system, or Git Bash on Windows)')
+os.environ.pop('STUDIO_BASH', None)
 os.environ['STUDIO_DELIVERY_DIR'] = os.path.join(home, 'elsewhere')
 check('real runner: STUDIO_DELIVERY_DIR overrides the folder', rb.RealStackRunner(home).delivery == os.path.join(home, 'elsewhere'))
 del os.environ['STUDIO_DELIVERY_DIR']
@@ -545,7 +586,7 @@ class RecWriter:
         self.evs = []
         self.lock = threading.Lock()
 
-    def emit(self, obj, droppable=False):
+    def emit(self, obj, droppable=False, key=None):
         with self.lock:
             self.evs.append(obj)
 
@@ -773,6 +814,200 @@ r = b.send('mapping_stop')
 wait_for(lambda: b.evs('mapping')[-1]['state'] == 'idle', 6)
 check('e2e: a second session starts and stops again', b.evs('mapping')[-1]['state'] == 'idle')
 b.close()
+
+# ================================================================ review fixes (2026-11-14)
+# A: the script's output goes to a file, not a pipe (the script must survive the bridge dying)
+if BASH:
+    os.environ['STUDIO_BASH'] = BASH
+    ahome = mkdir('ahome_')
+    os.makedirs(os.path.join(ahome, 'robot_code', 'delivery', 'robot'))
+    arr = rb.RealStackRunner(ahome)
+    sdir = os.path.join(ahome, 'robot_code', 'delivery', 'robot')
+    with open(os.path.join(sdir, 'start_stack.sh'), 'w', newline='\n') as f:
+        f.write('if [ -p /dev/stdout ]; then echo STDOUT-IS-PIPE; else echo STDOUT-IS-FILE; fi\n'
+                'if [ -p /dev/stderr ]; then echo STDERR-IS-PIPE; else echo STDERR-IS-FILE; fi\n')
+    ok, out = arr.run('start_stack.sh', [], 20)
+    check('runner A: stdout is a file, not a pipe (no SIGPIPE when the bridge dies)', ok and 'STDOUT-IS-FILE' in out and 'STDERR-IS-FILE' in out
+          and 'PIPE' not in out.replace('-FILE', ''), out)
+    with open(os.path.join(sdir, 'save_map.sh'), 'w', newline='\n') as f:
+        f.write('i=0; while [ $i -lt 4000 ]; do echo "line $i padding padding padding padding padding"; i=$((i+1)); done; echo LAST-LINE\n')
+    ok, out = arr.run('save_map.sh', ['x'], 30)
+    check('runner A: only the last 64 KB of a long output is returned, with the last line', ok and len(out) <= 65536 + 8 and out.rstrip().endswith('LAST-LINE')
+          and 'line 3999' in out and 'line 0 ' not in out, str(len(out)))
+    with open(os.path.join(sdir, 'stop_stack.sh'), 'w', newline='\n') as f:
+        f.write('echo before; echo warn >&2; sleep 20\n')
+    t0 = time.time()
+    ok, out = arr.run('stop_stack.sh', [], 0.5)
+    check('runner A: timeout still reports ok false, the text so far and the timeout', ok is False and 'before' in out and 'timed out after' in out and time.time() - t0 < 10, out)
+    os.environ.pop('STUDIO_BASH', None)
+else:
+    print('SKIP runner A (no bash)')
+bad_runner = rb.RealStackRunner(mkdir('ahome2_'))
+bad_runner.bash = os.path.join(OUT, 'no_such_bash_here')
+ok, out = bad_runner.run('start_stack.sh', [], 5)
+check('runner A: a missing bash is (False, "cannot run ...")', ok is False and out.startswith('cannot run start_stack.sh'), out)
+
+# B: a new SLAM session must not show the previous session's map
+resets = []
+svcb, runnerb, probeb, eventsb, disarmsb = make_service()
+svcb.map_reset = lambda: resets.append(svcb.state)
+svcb.start()
+wait_for(lambda: svcb.status()['state'] == 'mapping', 3)
+check('map_reset B: called when the state becomes starting (and not when it becomes mapping)', resets == ['starting'], str(resets))
+svcb.save('keepme')
+wait_for(lambda: svcb.status()['state'] == 'mapping' and svcb.status()['last_saved'], 3)
+check('map_reset B: not called by saving', resets == ['starting'], str(resets))
+svcb.stop()
+wait_for(lambda: svcb.status()['state'] == 'idle', 3)
+check('map_reset B: called again when the state becomes idle', resets == ['starting', 'idle'], str(resets))
+svcb.map_reset = lambda: 1 / 0
+svcb.start()
+check('map_reset B: a failing hook does not break the state machine', wait_for(lambda: svcb.status()['state'] == 'mapping', 3))
+fr = rb.FakeRos()
+fr.map_grid.cast(0.0, 0.0, 0.0, 6.0)
+check('map_reset B: the fake has a map before the reset', fr.map_data() is not None)
+fr.map_reset()
+check('map_reset B: FakeRos.map_reset clears the map', fr.map_data() is None)
+fr.shutdown()
+rr_ = object.__new__(rb.RosReal)
+rr_._map, rr_._slam, rr_._cache = (b'raw', 1.0), ((1.0, 2.0, 0.5), (0.0, 0.0, 0.0), 1.0), {'map': (b'raw', 'decoded'), 'scan': (b's', 'x')}
+rr_.map_reset()
+check('map_reset B: RosReal.map_reset clears _map, _slam and the cached decode of the map only',
+      rr_._map is None and rr_._slam is None and 'map' not in rr_._cache and 'scan' in rr_._cache)
+check('map_reset B: RosBase.map_reset exists and does nothing', rb.RosBase().map_reset() is None)
+# the bridge hooks it up and re-arms the map stream
+bhome2 = mkdir('bridge_home_b_')
+wb = RecWriter()
+rosb = rb.FakeRos()
+rosb.docked = False
+brb = rb.Bridge(rosb, wb, bhome2, True)
+brb.mapping.probe_period = 60
+with brb.stream_lock:
+    brb.streams['map'] = dict(period=0.5, next=0.0, last_seq=7, max_cells=100000)
+rosb.map_grid.cast(0.0, 0.0, 0.0, 6.0)
+brb.h_mapping_start({})
+check('map_reset B: Bridge clears the map stream last_seq and the fake map when a session starts',
+      brb.streams['map']['last_seq'] is None and rosb.map_data() is None)
+wait_for(lambda: brb.mapping.status()['state'] == 'mapping', 6)
+with brb.stream_lock:
+    brb.streams['map']['last_seq'] = 7
+brb.h_mapping_stop({})
+wait_for(lambda: brb.mapping.status()['state'] == 'idle', 6)
+check('map_reset B: and again when the session ends', brb.streams['map']['last_seq'] is None and rosb.map_data() is None)
+brb.stop.set()
+rosb.shutdown()
+
+
+# C: Writer.emit(key=...) keeps at most one stale map line in the queue
+class BlockStream:
+    def __init__(self):
+        self.gate = threading.Event()
+        self.entered = threading.Event()
+        self.chunks = []
+
+    def write(self, data):
+        self.chunks.append(bytes(data))
+        self.entered.set()
+        self.gate.wait(5)
+
+    def flush(self):
+        pass
+
+
+bs = BlockStream()
+wr = rb.Writer(bs)
+wr.emit({'ev': 'first'})
+check('writer C: the first line reaches the blocked stream', bs.entered.wait(3))
+wr.emit({'ev': 'reply', 'id': 1})
+wr.emit({'ev': 'map', 'seq': 1}, key='map')
+wr.emit({'ev': 'reply', 'id': 2})
+wr.emit({'ev': 'map', 'seq': 2}, key='map')
+wr.emit({'ev': 'reply', 'id': 3})
+wr.emit({'ev': 'map', 'seq': 3}, key='map')
+with wr.cv:
+    queued = [json.loads(item[1]) for item in wr.q]
+check('writer C: while blocked the queue holds one map line (the newest) and every reply in order',
+      [q.get('seq') for q in queued if q['ev'] == 'map'] == [3] and [q['id'] for q in queued if q['ev'] == 'reply'] == [1, 2, 3], str(queued))
+check('writer C: the map line was replaced in place (after reply 1, before reply 2)', [q['ev'] for q in queued] == ['reply', 'map', 'reply', 'reply'], str(queued))
+bs.gate.set()
+wait_for(lambda: len(b''.join(bs.chunks).splitlines()) >= 5, 3)
+lines = [json.loads(x) for x in b''.join(bs.chunks).splitlines()]
+check('writer C: written in order, only the newest map', [x['ev'] for x in lines] == ['first', 'reply', 'map', 'reply', 'reply'] and lines[2]['seq'] == 3, str(lines))
+wr.emit({'ev': 'map', 'seq': 4}, key='map')
+check('writer C: a key that is no longer queued appends again', wait_for(lambda: len(b''.join(bs.chunks).splitlines()) >= 6, 3))
+wr.close()
+
+# D: one odd file must not fail the whole library
+ddir = mkdir('dmaps_')
+for n in ('good', 'odd'):
+    open(os.path.join(ddir, n + '.yaml'), 'w').write('image: %s.pgm\nresolution: 0.05\norigin: [0, 0, 0]\n' % n)
+    open(os.path.join(ddir, n + '.pgm'), 'wb').write(b'P5\n2 2\n255\n\x00\x00\x00\x00')
+dl = rb.MapLibrary(ddir)
+orig_path = dl._path
+
+
+def odd_path(name, ext=''):
+    if name == 'odd':
+        raise rb.ServiceError('The path is outside the maps folder.')
+    return orig_path(name, ext)
+
+
+dl._path = odd_path
+try:
+    dres = dl.list()
+except rb.ServiceError as e:
+    dres = str(e)
+check('library D: list() skips a map whose path check fails', isinstance(dres, list) and [e['name'] for e in dres] == ['good'], str(dres))
+check('library D: entry() of that map still raises ServiceError (callers can tell)', raises(dl.entry, 'odd') is not None)
+dl._path = orig_path
+check('library D: both maps are listed when the check passes', sorted(e['name'] for e in dl.list()) == ['good', 'odd'])
+sdir2 = mkdir('dlink_')
+outside = os.path.join(sdir2, 'outside.yaml')
+open(outside, 'w').write('image: x.pgm\nresolution: 0.05\n')
+try:
+    os.symlink(outside, os.path.join(ddir, 'linked.yaml'))
+    dsym = True
+except (OSError, NotImplementedError, AttributeError):
+    dsym = False
+if dsym:
+    try:
+        dres = dl.list()
+    except rb.ServiceError as e:
+        dres = str(e)
+    check('library D: a symlinked foo.yaml out of the folder is skipped, the library still lists', isinstance(dres, list)
+          and sorted(e['name'] for e in dres) == ['good', 'odd'], str(dres))
+else:
+    print('SKIP library D symlink test (no symlinks)')
+
+# E: a save that did not rewrite the existing YAML is a failure
+svce, runnere, probee, eventse, disarmse = make_service()
+svce.start()
+wait_for(lambda: svce.status()['state'] == 'mapping', 3)
+oldy = os.path.join(svce.maps_dir, 'again.yaml')
+open(oldy, 'w').write('image: x.pgm\nresolution: 0.05\norigin: [0, 0, 0]\n')
+os.utime(oldy, (time.time() - 500, time.time() - 500))
+runnere.hooks['save_map.sh'] = lambda args: (True, 'exit 0, wrote nothing')
+eventse.clear()
+svce.save('again', overwrite=True)
+check('save E: exit 0 without touching the old yaml fails with "the map file was not rewritten"', wait_for(lambda: states(eventse)[-1:] == ['mapping'], 3)
+      and eventse[-1]['result']['ok'] is False and 'the map file was not rewritten' in eventse[-1]['result']['error']
+      and svce.status()['last_saved'] is None and svce.status()['unsaved'] is True, str(eventse[-1]))
+check('save E: the failure is shown in last_error', svce.status()['last_error'] == 'the map file was not rewritten', str(svce.status()['last_error']))
+
+
+def really_save(args):
+    open(args[0] + '.yaml', 'w').write('image: x.pgm\nresolution: 0.05\norigin: [0, 0, 0]\n')
+    return True, 'saved'
+
+
+runnere.hooks['save_map.sh'] = really_save
+eventse.clear()
+svce.save('again', overwrite=True)
+check('save E: a real rewrite of the old yaml succeeds', wait_for(lambda: states(eventse)[-1:] == ['mapping'], 3) and eventse[-1]['result']['ok'] is True
+      and svce.status()['last_saved']['name'] == 'again', str(eventse[-1]))
+check('save E: yaml_rewritten helper', rb.yaml_rewritten(None, (5, 1)) is True and rb.yaml_rewritten((5, 1), None) is False
+      and rb.yaml_rewritten((5, 1), (5, 1)) is False and rb.yaml_rewritten((5, 1), (6, 1)) is True)
+svce.close()
 
 shutil.rmtree(OUT, ignore_errors=True)
 print('\n%d failure(s)' % fails)

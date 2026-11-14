@@ -78,6 +78,9 @@ export function confirmText(oldName: string | null | undefined, newName: string)
 
 export const ROUTE_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,47}$/;
 
+/** The robot keeps a `current` entry beside the route folders. */
+export const RESERVED_ROUTE_NAME = 'current';
+
 export type NameCheck = { ok: true } | { ok: false; message: string };
 
 export function validRouteName(name: string): NameCheck {
@@ -90,6 +93,12 @@ export function validRouteName(name: string): NameCheck {
       ok: false,
       message: 'Use only letters, digits, hyphens (-) and underscores (_). No spaces.',
     };
+  if (name === RESERVED_ROUTE_NAME) {
+    return {
+      ok: false,
+      message: 'current is a reserved name on the robot. Choose another name.',
+    };
+  }
   return { ok: true };
 }
 
@@ -101,7 +110,8 @@ export function suggestRouteName(folder: string): string {
     .replace(/^[^A-Za-z0-9]+/, '')
     .slice(0, 48)
     .replace(/[-_]+$/, '');
-  return s || 'route';
+  const out = s || 'route';
+  return out === RESERVED_ROUTE_NAME ? `${out}_copy` : out;
 }
 
 export function existsMessage(name: string): string {
@@ -127,10 +137,17 @@ export interface UploadCheck {
   missing: string[];
   /** Paths of files inside subfolders; they are ignored. */
   nested: string[];
+  /** Hidden files (name starts with a dot) directly inside the folder; never sent. */
+  ignored: string[];
   /** The files that count are over the size limit together. */
   tooBig: boolean;
   /** Total bytes of the files that will be sent. */
   total: number;
+}
+
+/** Files such as .DS_Store or .gitkeep: the robot refuses them, so they are never sent. */
+export function isHiddenName(name: string): boolean {
+  return name.startsWith('.');
 }
 
 /**
@@ -140,6 +157,7 @@ export interface UploadCheck {
 export function checkUploadFiles(files: ArrayLike<PickedFile>): UploadCheck {
   const found: string[] = [];
   const nested: string[] = [];
+  const ignored: string[] = [];
   let folder = '';
   let total = 0;
   for (let i = 0; i < files.length; i++) {
@@ -147,8 +165,12 @@ export function checkUploadFiles(files: ArrayLike<PickedFile>): UploadCheck {
     const parts = (f.webkitRelativePath || f.name).split('/');
     if (parts.length >= 2 && !folder) folder = parts[0] ?? '';
     if (parts.length <= 2) {
-      found.push(parts[parts.length - 1] ?? f.name);
-      total += f.size;
+      const base = parts[parts.length - 1] ?? f.name;
+      if (isHiddenName(base)) ignored.push(base);
+      else {
+        found.push(base);
+        total += f.size;
+      }
     } else {
       nested.push(parts.slice(1).join('/'));
     }
@@ -161,6 +183,7 @@ export function checkUploadFiles(files: ArrayLike<PickedFile>): UploadCheck {
     found,
     missing,
     nested,
+    ignored,
     tooBig,
     total,
   };

@@ -441,9 +441,13 @@ def steps(page, ctx, browser):
     with section('Maps: stop mapping'):
         page.wait_for_timeout(1200)
         page.get_by_role('button', name='Stop mapping').click()
-        if dialog().count():
-            check('Stop: unsaved mapping asks first', 'not saved' in dialog().inner_text())
-            dialog().get_by_role('button', name=re.compile('^Stop')).last.click()
+        d = dialog()
+        expect(d).to_be_visible()
+        txt = d.inner_text()
+        check('Stop: always asks while mapping; after a save it names the last save', 'Stop mapping?' in txt and 'e2e_map' in txt
+              and 'since the last save' in txt, txt[:200])
+        shot('maps-stop-confirm')
+        d.get_by_role('button', name=re.compile('^Stop')).last.click()
         expect(page.get_by_test_id('mapping-state')).to_contain_text('Not mapping', timeout=15000)
         check('Stop: the state goes back to Not mapping', True)
         clean('Maps stop')

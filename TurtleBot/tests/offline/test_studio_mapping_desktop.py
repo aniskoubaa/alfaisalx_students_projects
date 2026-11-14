@@ -217,6 +217,18 @@ check('map_preview_png / map_download_zip: bad names are 400, no bridge is 409',
       app.map_preview_png('../x', 512)[0] == 400 and app.map_download_zip('a b')[0] == 400
       and app.map_preview_png('demo', 512)[0] == 409 and app.map_download_zip('demo')[0] == 409)
 
+
+class _MissingMapBridge:
+    def request(self, cmd, timeout=15):
+        return {'ok': False, 'error': 'There is no map named %s.' % cmd.get('name')}
+
+
+_real_bridge = app.bridge
+app.bridge = _MissingMapBridge()
+check('map_preview_png: the bridge text "There is no map named X" gives 404',
+      app.map_preview_png('ghost', 512)[0] == 404, str(app.map_preview_png('ghost', 512)[:2]))
+app.bridge = _real_bridge
+
 # ================================================================ HTTP: real studio.py --fake
 WEB = os.path.join(OUT, 'web_copy')
 shutil.copytree(os.path.join(STUDIO_DIR, 'web'), WEB, ignore=shutil.ignore_patterns('v2'))

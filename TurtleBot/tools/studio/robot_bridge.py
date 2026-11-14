@@ -1168,18 +1168,21 @@ def tail_text_lines(path, n=40, max_bytes=65536):
 
 class Writer:
     """All stdout output goes through one queue and one writer thread, so ROS callbacks never block on a slow pipe.
-    Droppable events (status, msg) are dropped when the queue is long; replies are never dropped."""
+    Droppable events (status, msg) are dropped when the queue is long; replies are never dropped. An event with a key
+    (the map, hundreds of KB) replaces a queued line with the same key that has not been written yet, so a slow link
+    never holds more than one stale map and replies do not wait behind old ones."""
 
     def __init__(self, stream, on_broken=None, max_droppable=400):
         self.stream, self.on_broken, self.max_droppable = stream, on_broken, max_droppable
-        self.q = collections.deque()
+        self.q = collections.deque()            # [key or None, line]
         self.cv = threading.Condition()
         self.closed = False
         self.dropped = 0
+        self.replaced = 0
         self.thread = threading.Thread(target=self._run, name="writer", daemon=True)
         self.thread.start()
 
-    def emit(self, obj, droppable=False):
+    def emit(self, obj, droppable=False, key=None):
         try:
             line = (json.dumps(clean_json(obj), separators=(",", ":")) + "\n").encode("ascii")
         except Exception as e:
@@ -1190,7 +1193,13 @@ class Writer:
             if droppable and len(self.q) >= self.max_droppable:
                 self.dropped += 1
                 return
-            self.q.append(line)
+            if key is not None:
+                for item in self.q:
+                    if item[0] == key:
+                        item[1] = line
+                        self.replaced += 1
+                        return
+            self.q.append([key, line])
             self.cv.notify()
 
     def _run(self):
@@ -1200,7 +1209,7 @@ class Writer:
                     self.cv.wait()
                 if not self.q:
                     return
-                data = b"".join(self.q)
+                data = b"".join(item[1] for item in self.q)
                 self.q.clear()
             try:
                 self.stream.write(data)
@@ -1296,6 +1305,9 @@ class RosBase:
     def map_pose(self):
         """Robot pose in the map frame as {x, y, yaw, source: "slam" or "odom"} or None."""
         return None
+
+    def map_reset(self):
+        """Forget the last map and SLAM pose (a new mapping session starts or the old one ended)."""
 
 
 class RosReal(RosBase):
@@ -1601,6 +1613,15 @@ class RosReal(RosBase):
                 raise RosError("cannot subscribe to /map and /pose: %s: %s" % (type(e).__name__, e))
             self._own_subs.update(["/map", "/pose"])
             self._map_subs = True
+
+    def map_reset(self):
+        """A new SLAM session must not show the previous one: drop the map, the SLAM pose and the decoded copy."""
+        self._map = None
+        self._slam = None
+        try:
+            self._cache.pop("map", None)
+        except Exception:
+            pass
 
     def _cb_map(self, data):
         self._map = (data, time.monotonic())
@@ -2061,6 +2082,9 @@ class FakeRos(RosBase):
         p = self.pose_data()
         return {"x": p["x"], "y": p["y"], "yaw": p["yaw"], "source": "slam"}
 
+    def map_reset(self):
+        self.map_grid.reset()
+
     def shutdown(self):
         self.map_grid.end()
         for k in list(self.watch_threads):
@@ -2223,11 +2247,13 @@ class StackRunner:
 
 class RealStackRunner(StackRunner):
     """bash <delivery>/robot/<script> args, cwd = home, output captured. Delivery folder: ~/robot_code/delivery, or the
-    environment variable STUDIO_DELIVERY_DIR."""
+    environment variable STUDIO_DELIVERY_DIR. STUDIO_BASH names another bash (tests on Windows use Git Bash, because
+    the bash.exe found first there is the WSL launcher)."""
 
     def __init__(self, home):
         self.home = home
         self.delivery = os.environ.get("STUDIO_DELIVERY_DIR") or os.path.join(home, "robot_code", "delivery")
+        self.bash = os.environ.get("STUDIO_BASH") or "bash"
 
     def script_path(self, script):
         return os.path.join(self.delivery, "robot", script)
@@ -2239,29 +2265,56 @@ class RealStackRunner(StackRunner):
         return not self.missing_scripts()
 
     def run(self, script, args, timeout):
-        argv = ["bash", self.script_path(script)] + [str(a) for a in args]
+        """Run the script with its output in a temporary FILE, not a pipe: when the bridge (the ssh link) dies in the
+        middle of stop_stack.sh or save_map.sh, the script's next echo must not get SIGPIPE and die half way. On posix
+        the script has its own session, so no SIGHUP reaches it either. Returns (exit code 0, last 64 KB of output)."""
+        argv = [self.bash, self.script_path(script)] + [str(a) for a in args]
         kw = {"start_new_session": True} if os.name == "posix" else {}
         try:
-            p = subprocess.Popen(argv, cwd=self.home, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT, **kw)
+            out_f = tempfile.TemporaryFile()
         except OSError as e:
             return False, "cannot run %s: %s" % (script, e)
         try:
-            out, _ = p.communicate(timeout=timeout)
-        except subprocess.TimeoutExpired:
             try:
-                if os.name == "posix":
-                    os.killpg(p.pid, signal.SIGTERM)
-                else:
-                    p.kill()
+                p = subprocess.Popen(argv, cwd=self.home, stdin=subprocess.DEVNULL, stdout=out_f,
+                                     stderr=subprocess.STDOUT, **kw)
+            except OSError as e:
+                return False, "cannot run %s: %s" % (script, e)
+            timed_out = False
+            try:
+                p.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                try:
+                    if os.name == "posix":
+                        os.killpg(p.pid, signal.SIGTERM)
+                    else:
+                        p.kill()
+                except OSError:
+                    pass
+                try:
+                    p.wait(timeout=5)
+                except Exception:
+                    pass
+            text = self._read_tail(out_f)
+            if timed_out:
+                return False, text + "\n%s timed out after %d s" % (script, timeout)
+            return p.returncode == 0, text
+        finally:
+            try:
+                out_f.close()
             except OSError:
                 pass
-            try:
-                out, _ = p.communicate(timeout=5)
-            except Exception:
-                out = b""
-            return False, out.decode("utf-8", "replace") + "\n%s timed out after %d s" % (script, timeout)
-        return p.returncode == 0, out.decode("utf-8", "replace")
+
+    @staticmethod
+    def _read_tail(f, max_bytes=65536):
+        try:
+            f.flush()
+            size = f.seek(0, os.SEEK_END)
+            f.seek(max(0, size - max_bytes))
+            return f.read().decode("utf-8", "replace")
+        except (OSError, ValueError):
+            return ""
 
 
 class FakeStackRunner(StackRunner):
@@ -2332,6 +2385,25 @@ class FakeProcessProbe(ProcessProbe):
         return pattern == SLAM_PATTERN and bool(self.runner.slam_running)
 
 
+def yaml_stamp(path):
+    """(mtime_ns, size) of a file, or None when it does not exist. Taken before a save to see if it was rewritten."""
+    try:
+        st = os.stat(path)
+        return (st.st_mtime_ns, st.st_size)
+    except OSError:
+        return None
+
+
+def yaml_rewritten(before, after):
+    """True when the file written by a save is new: it did not exist before, or its modification time moved forward.
+    `before` is the stamp (or None, absent) taken before the script ran."""
+    if after is None:
+        return False
+    if before is None:
+        return True
+    return after[0] > before[0]
+
+
 class MappingService:
     """Mapping state machine (DESIGN-MAPPING.md section 4): idle, starting, mapping, saving, stopping, error.
     start, save and stop reply at once and finish in their own thread; a probe (every probe_period s) finds a SLAM that
@@ -2339,9 +2411,10 @@ class MappingService:
 
     def __init__(self, runner, probe, maps_dir, emit, disarm=None, probe_period=2.0, start_timeout=START_TIMEOUT_S,
                  save_timeout=SAVE_TIMEOUT_S, stop_timeout=STOP_TIMEOUT_S, seen_wait=15.0, gone_wait=10.0,
-                 clock=time.time):
+                 clock=time.time, map_reset=None):
         self.runner, self.probe, self.maps_dir, self.emit, self.disarm = runner, probe, maps_dir, emit, disarm
         self.probe_period, self.clock = probe_period, clock
+        self.map_reset = map_reset              # called when a session starts or has ended: forget the old map
         self.start_timeout, self.save_timeout, self.stop_timeout = start_timeout, save_timeout, stop_timeout
         self.seen_wait, self.gone_wait = seen_wait, gone_wait
         self.lock = threading.Lock()
@@ -2387,6 +2460,11 @@ class MappingService:
         self.gen += 1
         for k, v in fields.items():
             setattr(self, k, v)
+        if state in ("starting", "idle") and self.map_reset:
+            try:
+                self.map_reset()
+            except Exception as e:
+                log("mapping map_reset:", repr(e))
         self._emit(result)
 
     def _disarm(self, why):
@@ -2492,18 +2570,23 @@ class MappingService:
                 raise ServiceError("Saving needs a running mapping session (state: %s)." % self.state)
             if os.path.exists(prefix + ".yaml") and not overwrite:
                 raise ServiceError("A map named %s already exists." % name, exists=True)
+            before = yaml_stamp(prefix + ".yaml")
             self._go("saving", saving_name=name)
             info = self._info()
         self._disarm("mapping is saving")
-        threading.Thread(target=self._run_save, args=(name, prefix, bool(overwrite)), name="mapsave", daemon=True).start()
+        threading.Thread(target=self._run_save, args=(name, prefix, bool(overwrite), before), name="mapsave",
+                         daemon=True).start()
         return info
 
-    def _run_save(self, name, prefix, overwrite):
+    def _run_save(self, name, prefix, overwrite, before=None):
         ok, out = self._script("save_map.sh", [prefix] + (["--force"] if overwrite else []), self.save_timeout)
         tail = tail_lines(out)
         if ok and not os.path.isfile(prefix + ".yaml"):
             ok = False
             tail.append("the script finished but %s.yaml was not written" % name)
+        elif ok and before is not None and not yaml_rewritten(before, yaml_stamp(prefix + ".yaml")):
+            ok = False
+            tail.append("the map file was not rewritten")
         with self.lock:
             if ok:
                 self._go("mapping", {"op": "save", "ok": True, "name": name, "output_tail": tail},
@@ -2603,7 +2686,14 @@ class MapLibrary:
                 "origin": meta["origin"] if meta else None, "mtime": round(mtime, 3), "bytes": total, "files": files}
 
     def list(self):
-        out = [self.entry(n) for n in self.names()]
+        """Every map of the folder. A map with a file that fails the path check (a link out of the folder) is left out
+        and logged: one odd file must not fail the whole library."""
+        out = []
+        for n in self.names():
+            try:
+                out.append(self.entry(n))
+            except ServiceError as e:
+                log("map library: skipping %s: %s" % (n, e))
         out.sort(key=lambda e: (-e["mtime"], e["name"]))
         return out
 
@@ -2711,13 +2801,38 @@ class RouteLibrary:
         self.dir = os.path.join(home, "robot_code", "routes")
         self.log_path = os.path.join(home, "robot_code", "logs", "delivery", "menu.log")
 
-    def _folder(self, name):
+    @staticmethod
+    def _check_name(name):
+        """A usable route name: valid, not `current` (the link) and not hidden (.upload-<name> folders are hidden)."""
+        if isinstance(name, str) and (name == "current" or name.startswith(".")):
+            raise ServiceError("%s is a reserved name" % name)
         if not valid_map_name(name):
             raise ServiceError("Bad route name. Use 1 to 48 letters, digits, _ or -, starting with a letter or digit.")
+
+    def _folder(self, name):
+        self._check_name(name)
         p = safe_join(self.dir, name)
         if p is None or os.path.dirname(p) != os.path.realpath(self.dir) or not os.path.isdir(p):
             raise ServiceError("There is no route folder named %s." % name)
         return p
+
+    @staticmethod
+    def _entry(n, p, files=None):
+        if files is None:
+            try:
+                files = os.listdir(p)
+            except OSError:
+                files = []
+        missing = route_missing(files)
+        try:
+            mtime = os.path.getmtime(p)
+        except OSError:
+            mtime = None
+        e = {"name": n, "valid": not missing, "missing": missing, "mtime": mtime}
+        txt = read_text(os.path.join(p, "route.yaml"), 256 * 1024)
+        if txt is not None:
+            e["waypoints"] = count_waypoints(txt)
+        return e
 
     def list(self):
         routes = []
@@ -2729,20 +2844,7 @@ class RouteLibrary:
             p = os.path.join(self.dir, n)
             if n == "current" or n.startswith(".") or not _is_real_dir(p):
                 continue
-            try:
-                files = os.listdir(p)
-            except OSError:
-                files = []
-            missing = route_missing(files)
-            try:
-                mtime = os.path.getmtime(p)
-            except OSError:
-                mtime = None
-            e = {"name": n, "valid": not missing, "missing": missing, "mtime": mtime}
-            txt = read_text(os.path.join(p, "route.yaml"), 256 * 1024)
-            if txt is not None:
-                e["waypoints"] = count_waypoints(txt)
-            routes.append(e)
+            routes.append(self._entry(n, p))
         cur, ok = read_current(self.dir)
         return {"routes": routes, "current": cur, "current_ok": ok, "dir": self.dir}
 
@@ -2768,6 +2870,42 @@ class RouteLibrary:
         except (ValueError, OSError) as e:
             raise ServiceError("Cannot change the route: %s" % e)
         return {"current": name}
+
+    def _upload_paths(self, name):
+        """(target routes/<name>, upload folder routes/.upload-<name>), both directly inside the routes folder."""
+        self._check_name(name)
+        base = os.path.realpath(self.dir)
+        target, up = os.path.join(base, name), os.path.join(base, ".upload-" + name)
+        if os.path.dirname(target) != base or os.path.dirname(up) != base:
+            raise ServiceError("The path is outside the routes folder.")
+        return target, up
+
+    def upload_cleanup(self, name):
+        """Remove a leftover routes/.upload-<name> (an upload that was cut off). A link is removed, never followed."""
+        target, up = self._upload_paths(name)
+        try:
+            if os.path.islink(up):
+                os.remove(up)
+            elif os.path.isdir(up):
+                shutil.rmtree(up)
+            elif os.path.lexists(up):
+                raise ServiceError(".upload-%s is not a folder; it was left as it is." % name)
+        except OSError as e:
+            raise ServiceError("Cannot remove the old upload folder: %s" % e)
+        return {"exists": os.path.lexists(target)}
+
+    def upload_finish(self, name):
+        """Make the finished upload routes/.upload-<name> the route <name> with one rename (atomic)."""
+        target, up = self._upload_paths(name)
+        if os.path.lexists(target):
+            raise ServiceError("A route named %s already exists." % name, exists=True)
+        if os.path.islink(up) or not os.path.isdir(up):
+            raise ServiceError("There is no upload folder for %s; upload it again." % name)
+        try:
+            os.rename(up, target)
+        except OSError as e:
+            raise ServiceError("Cannot finish the upload: %s" % e)
+        return {"route": self._entry(name, target)}
 
     def trip_status(self, lines=40):
         return {"menu_running": bool(self.probe.running(ROUTE_MENU_PATTERN)),
@@ -3005,7 +3143,7 @@ class Bridge:
             self.runner = RealStackRunner(home)
             self.probe = RealProcessProbe()
         self.mapping = MappingService(self.runner, self.probe, self.maps_dir, self.emit,
-                                      disarm=lambda why: self.teleop_disarm(why))
+                                      disarm=lambda why: self.teleop_disarm(why), map_reset=self._map_reset)
         self.maps = MapLibrary(self.maps_dir, self.mapping.busy_name)
         if fake:
             self.trip_probe = FakeTripProbe()
@@ -3025,8 +3163,19 @@ class Bridge:
                 log("cannot seed the sample map:", e)
 
     # ---- infrastructure
-    def emit(self, obj, droppable=False):
-        self.writer.emit(obj, droppable)
+    def emit(self, obj, droppable=False, key=None):
+        if key is None:
+            self.writer.emit(obj, droppable)
+        else:
+            self.writer.emit(obj, droppable, key)
+
+    def _map_reset(self):
+        """A mapping session starts or ended: forget the old map and let the next new map be sent."""
+        self.ros.map_reset()
+        with self.stream_lock:
+            v = self.streams.get("map")
+            if v is not None:
+                v["last_seq"] = None
 
     def start_threads(self):
         try:
@@ -3735,7 +3884,7 @@ class Bridge:
                 v["last_seq"] = md["seq"]
                 self.map_seq += 1
                 self.emit(build_map_event(self.map_seq, now, md["width"], md["height"], md["resolution"], md["origin"],
-                                          md["cells"], v["max_cells"]))
+                                          md["cells"], v["max_cells"]), key="map")
             else:
                 po = self.ros.pose_data()
                 if not po or po["age_s"] > 2.0:
@@ -3848,6 +3997,12 @@ class Bridge:
 
     def h_route_set_current(self, c):
         return self._svc(self.routes.set_current, c.get("name"), c.get("confirm"))
+
+    def h_route_upload_cleanup(self, c):
+        return self._svc(self.routes.upload_cleanup, c.get("name"))
+
+    def h_route_upload_finish(self, c):
+        return self._svc(self.routes.upload_finish, c.get("name"))
 
     def h_trip_status(self, c):
         try:

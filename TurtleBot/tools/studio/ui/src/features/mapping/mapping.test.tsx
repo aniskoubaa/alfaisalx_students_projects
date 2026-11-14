@@ -9,7 +9,8 @@ import { ROUTES, parseHash, routeFor } from '../../state/router';
 import { useStudio } from '../../state/store';
 import { Maps } from '../../screens/maps/Maps';
 import { connectedStatus, installApi, resetStores } from '../../test/helpers';
-import { resultText } from './feed';
+import { handleEvent, onStudioEvent } from '../../state/runtime';
+import { resultText, useMappingFeed } from './feed';
 import { MapCanvas } from './MapCanvas';
 import { MapLibrary } from './MapLibrary';
 import { MappingControls } from './MappingControls';
@@ -166,15 +167,18 @@ describe('mapping store', () => {
       expect(useMapping.getState().image?.known).toBe(7);
     });
 
-    it('ignores events that are not newer', async () => {
+    it('ignores a repeated number; a lower number (new bridge) starts a new picture', async () => {
       const { gates, seen } = setup();
       const s = useMapping.getState();
       s.onMapEvent(mapEv(5));
       await release(gates, 0);
       await waitFor(() => expect(useMapping.getState().image).not.toBeNull());
       s.onMapEvent(mapEv(5));
-      s.onMapEvent(mapEv(4));
       expect(seen).toHaveLength(1);
+      s.onMapEvent(mapEv(4));
+      expect(useMapping.getState().image).toBeNull();
+      expect(useMapping.getState().latestSeq).toBe(4);
+      expect(seen).toHaveLength(2);
     });
 
     it('drops a bad event and shows a fetch failure in words', async () => {
@@ -199,6 +203,66 @@ describe('mapping store', () => {
       expect(useMapping.getState().image).toBeNull();
       expect(useMapping.getState().latestSeq).toBe(-1);
       expect(close).toHaveBeenCalled();
+    });
+  });
+
+  describe('after a reconnect', () => {
+    const arm = () => {
+      const metas = [300, 1];
+      let n = 0;
+      const fetchImpl = (async () => {
+        const seq = metas[n++] ?? 1;
+        return new Response('png', {
+          status: 200,
+          headers: { 'X-Map-Meta': JSON.stringify({ ...mapEv(seq), ev: undefined }) },
+        });
+      }) as typeof fetch;
+      setApi(new StudioClient({ token: 'tok', fetchImpl }));
+      setMapDecoder(async () => ({ source: fakeSource(), known: 7, close: vi.fn() }));
+    };
+
+    it('a hello from a new bridge makes seq 1 acceptable again', async () => {
+      arm();
+      useMapping.getState().onMapEvent(mapEv(300));
+      await waitFor(() => expect(useMapping.getState().image?.seq).toBe(300));
+      const off = onStudioEvent('hello', () => undefined);
+      const Probe = () => {
+        useMappingFeed();
+        return null;
+      };
+      render(<Probe />);
+      handleEvent({ ev: 'hello' });
+      off();
+      expect(useMapping.getState().latestSeq).toBe(-1);
+      useMapping.getState().onMapEvent(mapEv(1));
+      await waitFor(() => expect(useMapping.getState().image?.seq).toBe(1));
+    });
+
+    it('a lower number without a hello (screen closed during the reconnect) starts a new picture', async () => {
+      arm();
+      useMapping.getState().onMapEvent(mapEv(300));
+      await waitFor(() => expect(useMapping.getState().image?.seq).toBe(300));
+      useMapping.getState().onMapEvent(mapEv(1));
+      expect(useMapping.getState().latestSeq).toBe(1);
+      await waitFor(() => expect(useMapping.getState().image?.seq).toBe(1));
+    });
+
+    it('the same number twice is fetched once', () => {
+      useMapping.setState({ latestSeq: 5 });
+      const before = useMapping.getState().meta;
+      useMapping.getState().onMapEvent(mapEv(5));
+      expect(useMapping.getState().meta).toBe(before);
+    });
+
+    it('coming back to connected clears the old sequence numbers', async () => {
+      const Probe = () => {
+        useMappingFeed();
+        return null;
+      };
+      render(<Probe />);
+      useMapping.setState({ latestSeq: 300 });
+      act(() => handleEvent({ ev: 'conn', state: 'connected' } as never));
+      await waitFor(() => expect(useMapping.getState().latestSeq).toBe(-1));
     });
   });
 
@@ -291,11 +355,38 @@ describe('MappingControls', () => {
     await waitFor(() => expect(useMapping.getState().info?.state).toBe('idle'));
   });
 
-  it('stops at once when the map is saved', async () => {
+  it('asks with a normal confirm when the map is saved, naming the last save', async () => {
     const m = installApi((c) =>
       c.body.cmd === 'mapping_stop' ? { ok: true, ...info('stopping') } : { ok: true },
     );
-    useMapping.getState().setInfo(info('mapping', { unsaved: false }));
+    useMapping
+      .getState()
+      .setInfo(
+        info('mapping', { unsaved: false, last_saved: { name: 'hall', t: Date.now() / 1000 } }),
+      );
+    withUi(<MappingControls />);
+    await userEvent.click(screen.getByRole('button', { name: 'Stop mapping' }));
+    const dlg = await screen.findByRole('dialog');
+    expect(dlg).not.toHaveClass('dialog-danger');
+    expect(
+      within(dlg).getByText(
+        'Anything mapped since the last save (hall) is lost. Save again first if you want to keep it.',
+      ),
+    ).toBeInTheDocument();
+    expect(bridgeCalls(m.calls, 'mapping_stop')).toHaveLength(0);
+    await userEvent.click(within(dlg).getByRole('button', { name: 'Keep mapping' }));
+    expect(bridgeCalls(m.calls, 'mapping_stop')).toHaveLength(0);
+    await userEvent.click(screen.getByRole('button', { name: 'Stop mapping' }));
+    const dlg2 = await screen.findByRole('dialog');
+    await userEvent.click(within(dlg2).getByRole('button', { name: 'Stop mapping' }));
+    await waitFor(() => expect(bridgeCalls(m.calls, 'mapping_stop')).toHaveLength(1));
+  });
+
+  it('stops without a dialog in the error state', async () => {
+    const m = installApi((c) =>
+      c.body.cmd === 'mapping_stop' ? { ok: true, ...info('idle') } : { ok: true },
+    );
+    useMapping.getState().setInfo(info('error', { last_error: 'x' }));
     withUi(<MappingControls />);
     await userEvent.click(screen.getByRole('button', { name: 'Stop mapping' }));
     await waitFor(() => expect(bridgeCalls(m.calls, 'mapping_stop')).toHaveLength(1));

@@ -156,6 +156,25 @@ describe('route model', () => {
     expect(validRouteName('../x').ok).toBe(false);
   });
 
+  it('refuses the reserved name current', () => {
+    const r = validRouteName('current');
+    expect(r.ok).toBe(false);
+    expect(!r.ok && r.message).toBe(
+      'current is a reserved name on the robot. Choose another name.',
+    );
+    expect(validRouteName('current2').ok).toBe(true);
+    expect(suggestRouteName('current')).toBe('current_copy');
+    expect(validRouteName(suggestRouteName('current')).ok).toBe(true);
+  });
+
+  it('ignores hidden files in a chosen folder', () => {
+    const c = checkUploadFiles([...folder('plan'), pick('plan/.DS_Store'), pick('plan/.gitkeep')]);
+    expect(c.ok).toBe(true);
+    expect(c.ignored).toEqual(['.DS_Store', '.gitkeep']);
+    expect(c.found).toHaveLength(4);
+    expect(c.found).not.toContain('.DS_Store');
+  });
+
   it('suggests a valid name from a folder name', () => {
     expect(suggestRouteName('My route (v2)')).toBe('My-route-v2');
     expect(suggestRouteName('..hidden')).toBe('hidden');
@@ -350,6 +369,28 @@ describe('UploadRoute', () => {
       screen.getByText(/Ignored, because they are inside subfolders: old\/route\.yaml/),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Upload' })).toBeEnabled();
+  });
+
+  it('never sends hidden files and lists them as ignored', async () => {
+    const { calls: cs } = installApi((c) => {
+      if (c.path === '/api/routes/upload') return { ok: true, name: 'plan' };
+      if (c.body.cmd === 'routes_list') return { ok: true, ...list() };
+      return { ok: true };
+    });
+    withUi(<UploadRoute />);
+    const u = await choose([...folder('plan'), pick('plan/.DS_Store'), pick('plan/.gitkeep')]);
+    expect(screen.getByText('Ignored hidden files: .DS_Store, .gitkeep.')).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Upload' }));
+    await waitFor(() => expect(cs.some((c) => c.path === '/api/routes/upload')).toBe(true));
+    const body = cs.find((c) => c.path === '/api/routes/upload')?.body as {
+      files: Array<{ path: string }>;
+    };
+    expect(body.files.map((f) => f.path)).toEqual([
+      'route.yaml',
+      'map.yaml',
+      'keepout_mask.yaml',
+      'speed_mask.yaml',
+    ]);
   });
 
   it('validates the name', async () => {

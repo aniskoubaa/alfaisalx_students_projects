@@ -38,6 +38,13 @@ export async function uploadRoute(
 ): Promise<ApiResult<RouteUploadAnswer>> {
   const out: Array<{ path: string; data_b64: string }> = [];
   for (const f of files) {
+    // Hidden files (.DS_Store, .gitkeep) make the robot refuse the whole upload.
+    if (
+      uploadPath(f)
+        .split('/')
+        .some((seg) => seg.startsWith('.'))
+    )
+      continue;
     out.push({ path: uploadPath(f), data_b64: toBase64(new Uint8Array(await f.arrayBuffer())) });
   }
   return api().post<RouteUploadAnswer>(
