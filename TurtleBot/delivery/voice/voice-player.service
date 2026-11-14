@@ -1,0 +1,14 @@
+[Unit]
+Description=Delivery robot voice player (plays prerecorded clips for the mission events, no ROS)
+
+[Service]
+Type=simple
+# Plain Python, no ROS: the ROS setup file is not sourced on purpose. The phrase file and the clips are in ~/robot_code/voice/.
+ExecStart=/usr/bin/python3 %h/robot_code/delivery/voice/voice_player.py --config %h/robot_code/voice/phrases.yaml
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=5
+# The player has no children besides a clip that is playing; stopping it never touches a running mission.
+
+[Install]
+WantedBy=default.target

@@ -31,7 +31,8 @@ TURTLEBOT = os.path.dirname(DELIVERY)
 ROOT = os.path.dirname(TURTLEBOT)                                   # repository root
 OFFLINE = os.path.join(TURTLEBOT, 'tests', 'offline')
 CI_TESTS = ('test_pure', 'test_sim_runs', 'test_timing', 'test_studio_bridge', 'test_studio_desktop',
-            'test_studio_templates', 'test_delivery_mission', 'test_plan_route', 'test_delivery_config')
+            'test_studio_templates', 'test_delivery_mission', 'test_plan_route', 'test_delivery_config',
+            'test_delivery_voice')
 TEST_TIMEOUT = 900
 PASS, FAIL, SKIP = 'PASS', 'FAIL', 'SKIP'
 

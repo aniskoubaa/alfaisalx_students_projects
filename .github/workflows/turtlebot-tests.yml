@@ -60,6 +60,12 @@ jobs:
         run: |
           python -m pip install numpy
           python TurtleBot/tests/offline/test_delivery_sim.py
+      - name: Delivery front-panel menu and menu file
+        run: |
+          python TurtleBot/tests/offline/test_delivery_menu.py
+          python TurtleBot/tests/offline/test_delivery_menu_config.py
+      - name: Delivery voice player (no ROS)
+        run: python TurtleBot/tests/offline/test_delivery_voice.py
       - name: TurtleBot Studio web files
         run: |
           node --check TurtleBot/tools/studio/web/app.js

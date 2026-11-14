@@ -96,8 +96,14 @@ All paths are relative to this folder (`TurtleBot/delivery/`).
 | [../tests/offline/test_delivery_deploy.py](../tests/offline/test_delivery_deploy.py) | Offline test of `tools/deploy.py` (packing, manifest, command sequence). |
 | [../tests/offline/test_delivery_menu_config.py](../tests/offline/test_delivery_menu_config.py) | Offline test of the menu file reader and checker (`menu_config.py`): keys, limits, locked rules, `after` placement, errors. 69 checks, added 2026-11-12. |
 | [../tests/offline/test_delivery_menu.py](../tests/offline/test_delivery_menu.py) | Offline test of the front-panel menu logic (`menu_core.py`, `delivery_menu.py`): 229 checks offline, 236 on Linux with real processes. Added to this table 2026-11-14; the test itself is older |
+| [voice/](voice/README.md) | Optional voice player (added 2026-11-14). `voice/voice_player.py` follows the mission's event file and plays prerecorded English and Arabic clips with `aplay` or `ffplay`; no ROS, so no extra ROS participant (TB-25). `voice/phrases.example.yaml` is the phrase list and event rules, `voice/make_clips.py` makes the clips or placeholder beeps on a computer, `voice/voice-player.service` is a systemd user unit (not installed). The file `~/robot_code/voice/SILENT` mutes it. **NOT VERIFIED on the robot.** |
+| [../tests/offline/test_delivery_voice.py](../tests/offline/test_delivery_voice.py) | Offline test of the voice player: 66 checks on Windows, 67 on Linux (the extra one is a real SIGTERM test, run in WSL Ubuntu on 2026-11-14). In CI (`.github/workflows/turtlebot-tests.yml`) and in `verify_all.py`. |
 
 ---
+
+### Spoken messages (optional)
+
+*Added 2026-11-14.* The robot has no speaker yet, so by default it says nothing. A separate player in [voice/](voice/README.md) can play short English and Arabic clips at each moment of a trip (arrival, food here, thank you, help). It only reads the event file, never touches the mission, and creates no ROS node. To see what it would play on any computer (Windows, macOS, Linux), no sound needed: `python voice/voice_player.py --config voice/phrases.example.yaml --log-dir <folder with a delivery_*.jsonl> --from-start --dry-run --once`. **NOT VERIFIED on the robot:** it has never run there, no USB speaker is installed ([PARTS-LIST.md](../docs/PARTS-LIST.md)), the Arabic lines need a native speaker's review, and the systemd user service is not installed. Design: [SPOKEN-MESSAGES.md](../docs/SPOKEN-MESSAGES.md).
 
 ## 4. Connecting and copying the folder to the robot
 

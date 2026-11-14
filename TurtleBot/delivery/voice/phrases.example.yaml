@@ -1,0 +1,51 @@
+# Phrase list and event rules of the voice player (TurtleBot/delivery/voice/voice_player.py).
+# Copy to ~/robot_code/voice/phrases.yaml on the robot; clip file names are relative to this file (or to clips_dir).
+# Texts are from TurtleBot/docs/SPOKEN-MESSAGES.md, section 4. Arabic lines are DRAFTS for a native speaker to correct.
+
+# Sound device for aplay -D (the Pi's own jack is usually plughw:0,0; check with aplay -l). Leave it out to use the default
+# device. ffplay, the fallback player, has no device option.
+# device: plughw:0,0
+repeat_gap_s: 8        # the same phrase is not spoken again within this many seconds
+languages: [en, ar]    # order of play for one phrase; a language without a clip is skipped
+# clips_dir: clips     # optional; default is the folder of this file
+
+phrases:
+  going_food:
+    en: {text: "Going to the food court.", file: clips/en/going_food.wav}
+    ar: {text: "ذاهب إلى ساحة الطعام.", file: clips/ar/going_food.wav, draft: true}
+  ask_food:
+    en: {text: "I am here for the food. Please put it in the box, then press button 1.", file: clips/en/ask_food.wav}
+    ar: {text: "أنا هنا لاستلام الطعام. ضع الطعام في الصندوق ثم اضغط الزر الأول.", file: clips/ar/ask_food.wav, draft: true}
+  thanks_food:
+    en: {text: "Thank you.", file: clips/en/thanks_food.wav}
+    ar: {text: "شكراً لك.", file: clips/ar/thanks_food.wav, draft: true}
+  food_here:
+    en: {text: "Your food is here. Please take it, then press button 1.", file: clips/en/food_here.wav}
+    ar: {text: "طلبك وصل. تفضل بأخذه ثم اضغط الزر الأول.", file: clips/ar/food_here.wav, draft: true}
+  thanks_handoff:
+    en: {text: "Thank you. Going to the dock.", file: clips/en/thanks_handoff.wav}
+    ar: {text: "شكراً لك. سأعود إلى المحطة.", file: clips/ar/thanks_handoff.wav, draft: true}
+  help:
+    en: {text: "I need help.", file: clips/en/help.wav}
+    ar: {text: "أحتاج إلى مساعدة.", file: clips/ar/help.wav, draft: true}
+
+# Rules: the first matching rule wins. Keys: event, and optionally detail_equals, detail_startswith, detail_contains.
+# Events are those of delivery_core.py: show (the display text, lines joined with " | "), chime (start, arrive, thanks,
+# attention, alarm) and alarm. The rules use the show texts, because a chime kind alone does not say which moment it is
+# ("thanks" happens twice, "arrive" twice, "start" on both trips).
+rules:
+  - {event: show, detail_startswith: "Going to food court", phrase: going_food}
+  - {event: show, detail_startswith: "Food placed?", phrase: ask_food}
+  - {event: show, detail_equals: "Thank you!", phrase: thanks_food}
+  - {event: show, detail_startswith: "Your food is here", phrase: food_here}
+  - {event: show, detail_startswith: "Thank you! | Docking", phrase: thanks_handoff}
+  # The mission raises the alarm with the event "alarm" (the alarm chime is played directly, without a "chime" event), so
+  # the rule is on "alarm". The "chime alarm" rule is kept in case a later version logs the chime too.
+  - {event: alarm, phrase: help}
+  - {event: chime, detail_equals: alarm, phrase: help}
+
+# Phrases with no matching event yet:
+#  - The plan (section 4) says "ask_food" is spoken once more after 60 s if nothing was pressed. The mission writes no
+#    event for that (the text is shown once), so the player cannot know. It needs a new event or a timer in the player.
+#  - The spoken "Going to the dock" is tied to "Thank you! | Docking" (the handover); a home trip that docks without a
+#    handover has no line.
