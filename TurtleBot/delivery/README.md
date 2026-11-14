@@ -95,6 +95,7 @@ All paths are relative to this folder (`TurtleBot/delivery/`).
 | [../tests/offline/test_delivery_sim.py](../tests/offline/test_delivery_sim.py) | Offline test of the simulator's pure parts (wall follower, map checks, run analysis). No ROS. |
 | [../tests/offline/test_delivery_deploy.py](../tests/offline/test_delivery_deploy.py) | Offline test of `tools/deploy.py` (packing, manifest, command sequence). |
 | [../tests/offline/test_delivery_menu_config.py](../tests/offline/test_delivery_menu_config.py) | Offline test of the menu file reader and checker (`menu_config.py`): keys, limits, locked rules, `after` placement, errors. 69 checks, added 2026-11-12. |
+| [../tests/offline/test_delivery_menu.py](../tests/offline/test_delivery_menu.py) | Offline test of the front-panel menu logic (`menu_core.py`, `delivery_menu.py`): 229 checks offline, 236 on Linux with real processes. Added to this table 2026-11-14; the test itself is older |
 
 ---
 
@@ -582,7 +583,9 @@ It is a systemd user service (`~/.config/systemd/user/delivery-menu.service`), n
 
 #### Your own menu entries (added 2026-11-12)
 
-**NOT VERIFIED on the real robot (2026-11-12): not deployed.** The code and the offline tests are done; nothing below has been tried on the robot yet.
+**NOT VERIFIED on the real robot (2026-11-12): not deployed.** *(Update 2026-11-14: deployed, see the next paragraph.)*
+
+*Update 2026-11-14:* the package (release `20261114T124530Z-7388942`) and a menu file with one entry, `Hello demo` (`~/robot_code/programs/hello.py`, a 20 s countdown that never moves), are now on the robot. Check it with `python3 ~/robot_code/delivery/menu_config.py --check ~/robot_code/menu/menu.yaml` (prints OK and the menu order, exit 0) and read `~/robot_code/logs/delivery/menu.log`. Selecting Hello demo on the screen, Stop during an own program and a broken-file test are still **not tested** on the robot. Record: [MAINTENANCE.md, R25](../MAINTENANCE.md). The code and the offline tests are done; nothing below has been tried on the robot yet.
 
 **What it is for.** A YAML file changes the front-panel menu without editing code: hide `Undock`, `Wall Follow Left`, `Wall Follow Right` or `Help`, and add your own programs (a `.py` or `.sh` under `~/robot_code`) as menu entries. Later the file can be edited from TurtleBot Studio (a page for that is planned, not part of this section). Code: [menu_config.py](menu_config.py) (reads and checks the file) and [menu_core.py](menu_core.py) (the menu logic, state `custom`); example: [menu.example.yaml](menu.example.yaml).
 
@@ -765,6 +768,7 @@ python TurtleBot/tests/offline/test_delivery_config.py
 python TurtleBot/tests/offline/test_delivery_sim.py
 python TurtleBot/tests/offline/test_delivery_deploy.py
 python TurtleBot/tests/offline/test_delivery_menu_config.py
+python TurtleBot/tests/offline/test_delivery_menu.py
 ```
 
 `python TurtleBot/delivery/tools/verify_all.py` runs all of them and more in one go (section 14).
@@ -777,6 +781,7 @@ python TurtleBot/tests/offline/test_delivery_menu_config.py
 | `test_delivery_sim.py` | The simulator's pure parts: wall follower, map checks, run analysis, the scripts' guards (no ROS). On Windows it uses Git Bash, not the `bash.exe` of WSL in `System32` |
 | `test_delivery_deploy.py` | `tools/deploy.py` with fake `ssh` and `scp`: manifest, command order, refusal while a mission runs, rollback, status |
 | `test_delivery_menu_config.py` | Menu file reader (`menu_config.py`): allowed keys, label and id rules, program path rules, limits, locked rules, `after` placement, error messages (69 checks, 2026-11-12) |
+| `test_delivery_menu.py` | Front-panel menu logic (`menu_core.py`, `delivery_menu.py`): 229 checks offline, 236 on Linux with real processes. Added to this table 2026-11-14; the test itself is older |
 
 Each prints PASS or FAIL lines and exits non-zero on failure. The GitHub Actions workflow runs the first three on every push [to verify whether it also runs the two new ones]. Passing them says nothing about the real robot.
 

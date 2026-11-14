@@ -91,7 +91,7 @@ Why this fits the constraints:
 - **No ROS.** The player is plain Python (standard library) plus `aplay`. It makes no ROS node, so it cannot stall the base (TB-25), and it can start before or after the mission.
 - **No change to the mission.** The mission is untouched; the player only reads the event file. If the player crashes, the delivery continues.
 - **Same event source as the chimes**, so speech and chimes stay in step. The chimes stay as they are.
-- The player and the menu's mission start use the same log folder only if the menu starts the mission with the default `--log-dir`; **this was not checked**, so the player should take the folder as an option.
+- The player and the menu's mission start use the same log folder only if the menu starts the mission with the default `--log-dir`; **this was not checked**, so the player should take the folder as an option. *(Update 2026-11-14: checked on one menu-started trip, the event file is in the default folder; keeping the folder option is still sensible.)*
 
 Who starts it is open: a line in `robot/start_stack.sh` (the stack is started once per run, [section 9](../delivery/README.md#9-phase-2-supervised-runs)), or a service. A service changes the robot's configuration and would need a row in the [MAINTENANCE.md change register](../MAINTENANCE.md) with verify and undo steps. The menu files belong to the menu work, so they are not touched by this plan.
 
@@ -120,5 +120,5 @@ Pass criteria: no extra load visible in `top` at the 1-second level, no new gap 
 - Piper's speed and memory on the Pi 4 next to Nav2 (estimates only).
 - How the Arabic Piper voice sounds, and whether the Arabic lines are correct (drafted, not reviewed by a native speaker).
 - The licences of the voice data. Do not publish the clips outside the lab before they are checked.
-- Whether the menu's mission start writes its event file to the default log folder.
+- Whether the menu's mission start writes its event file to the default log folder. *Answered 2026-11-14: yes. The trip started from the front-panel menu on 2026-11-06 at 17:41 wrote `~/robot_code/logs/delivery_20261106_174117.jsonl` (and `.log`) in the default log folder. Checked on that one run only.*
 - Whether `aplay` is installed and which sound devices Ubuntu 24.04 on this Pi lists for the chosen adapter.
