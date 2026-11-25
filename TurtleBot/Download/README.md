@@ -28,6 +28,8 @@ You now have **TurtleBot Studio** on your desktop and in the Start menu. The Sta
 
 Next: [connect to the robot for the first time](../tools/studio/docs/FIRST-CONNECTION.md).
 
+Short on time in the lab? The [Studio quick guide for a lab demo](../docs/STUDIO-LAB-DEMO.md) goes from install to mapping and a delivery demo on one page ([interactive version](../docs/studio-lab-demo.html)).
+
 ## macOS and Linux
 
 There is no ready-made file for macOS and Linux in this folder yet. Use the Python version: [INSTALL.md, option B](../tools/studio/INSTALL.md#option-b-run-it-with-python). It is the same app.
