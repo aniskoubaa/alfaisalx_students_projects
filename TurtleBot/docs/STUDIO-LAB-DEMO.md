@@ -19,7 +19,7 @@ Detailed guides: [Download](../Download/README.md) | [First connection](../tools
 
 ## 1. Install Studio
 
-1. Download the installer: [Download page](../Download/README.md), or directly from GitHub: <https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.1.exe> (Windows 10 and 11, 8.9 MB, no administrator rights).
+1. Download the installer: [Download page](../Download/README.md), or directly from GitHub: <https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.1.1.exe> (Windows 10 and 11, 8.9 MB, no administrator rights).
 2. Open the file. Windows may say "Windows protected your PC" because the app is not signed by a company. Click **More info**, then **Run anyway**.
 3. Click **Next**, **Install**, **Finish**. Studio opens. You get a desktop shortcut and Start menu entries: **TurtleBot Studio**, and **TurtleBot Studio (simulated robot)**, a practice copy with a pretend robot where nothing real moves.
 

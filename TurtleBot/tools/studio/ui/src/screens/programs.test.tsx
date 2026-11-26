@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { App } from '../App';
@@ -15,9 +15,21 @@ const catalog = {
     summary: 'Drives a shape on the floor.',
     moves: true,
     needs_undock: true,
-    args: [{ name: '--side', help: 'side length in metres' }],
-    examples: [{ args: 'square --side 0.3 --yes', what: 'drives a 30 cm square' }],
+    args: [
+      { name: 'shape', help: 'square, triangle or rotate' },
+      { name: '--side', help: 'side length in metres' },
+    ],
+    examples: [
+      { args: 'square --side 0.3 --yes', what: 'drives a 30 cm square' },
+      { args: 'square --dry-run', what: 'prints the plan, nothing moves' },
+    ],
     stop: 'Press E-STOP.',
+  },
+  'list_runner.sh': {
+    title: 'List runner',
+    summary: 'Runs a list.',
+    args: [{ name: 'list_file', help: 'optional: a text file' }],
+    examples: [{ args: '', what: 'runs the built-in list' }],
   },
   'motion_common.py': { title: 'Shared code', summary: 'Helper.', category: 'helper' },
 };
@@ -28,13 +40,23 @@ function setup() {
   connectedStatus();
   const s = useStudio.getState();
   s.setCatalog(catalog, []);
-  s.setFiles([{ name: 'motion_common.py' }, { name: 'motion_shapes.py' }, { name: 'my_spin.py' }]);
+  s.setFiles([
+    { name: 'motion_common.py' },
+    { name: 'motion_shapes.py' },
+    { name: 'my_spin.py' },
+    { name: 'list_runner.sh' },
+  ]);
   return installApi((c) => {
     if (c.body.cmd === 'run') return { ok: true, run_id: 'r1', pid: 11 };
     if (c.body.cmd === 'ls')
       return {
         ok: true,
-        files: [{ name: 'motion_common.py' }, { name: 'motion_shapes.py' }, { name: 'my_spin.py' }],
+        files: [
+          { name: 'motion_common.py' },
+          { name: 'motion_shapes.py' },
+          { name: 'my_spin.py' },
+          { name: 'list_runner.sh' },
+        ],
       };
     if (c.body.cmd === 'describe') return { ok: true, programs: [] };
     if (c.path === '/api/settings') return { ok: true, settings: { motion_files: ['my_spin.py'] } };
@@ -75,6 +97,55 @@ describe('Programs screen', () => {
     expect(screen.getByLabelText('Arguments for motion_shapes.py')).toHaveValue(
       'square --side 0.3 --yes',
     );
+  });
+
+  it('does not run a program that needs an argument when the box is empty', async () => {
+    const m = setup();
+    view();
+    const box = screen.getByLabelText('Arguments for motion_shapes.py');
+    expect(box).toHaveAttribute('placeholder', 'needs: shape (see examples below)');
+    await userEvent.click(screen.getByRole('button', { name: 'Run motion_shapes.py' }));
+    expect(m.calls.some((c) => c.body.cmd === 'run')).toBe(false);
+    expect(box).toHaveValue('square --dry-run');
+    const card = screen.getByRole('article', { name: 'Drive shapes' });
+    expect(within(card).getByRole('status')).toHaveTextContent(
+      /motion_shapes\.py needs shape first.*dry run: nothing moves/,
+    );
+    await userEvent.type(box, ' --yes');
+    expect(screen.queryByText(/needs shape first/)).toBeNull();
+  });
+
+  it('treats a box with only spaces as empty', async () => {
+    const m = setup();
+    view();
+    const box = screen.getByLabelText('Arguments for motion_shapes.py');
+    await userEvent.type(box, '   ');
+    await userEvent.click(screen.getByRole('button', { name: 'Run motion_shapes.py' }));
+    expect(m.calls.some((c) => c.body.cmd === 'run')).toBe(false);
+    expect(box).toHaveValue('square --dry-run');
+  });
+
+  it('runs exactly as before when the box has text', async () => {
+    const m = setup();
+    view();
+    await userEvent.type(screen.getByLabelText('Arguments for motion_shapes.py'), 'rotate');
+    await userEvent.click(screen.getByRole('button', { name: 'Run motion_shapes.py' }));
+    await userEvent.click(await screen.findByRole('checkbox', { name: /clear/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Start moving' }));
+    await waitFor(() => expect(m.calls.some((c) => c.body.cmd === 'run')).toBe(true));
+    expect(m.calls.find((c) => c.body.cmd === 'run')?.body).toMatchObject({ args: ['rotate'] });
+  });
+
+  it('runs a program with only optional arguments when the box is empty', async () => {
+    const m = setup();
+    view();
+    const box = screen.getByLabelText('Arguments for list_runner.sh');
+    expect(box).toHaveAttribute('placeholder', 'arguments (optional)');
+    await userEvent.click(screen.getByRole('button', { name: 'Run list_runner.sh' }));
+    await waitFor(() => expect(m.calls.some((c) => c.body.cmd === 'run')).toBe(true));
+    expect(
+      within(screen.getByRole('article', { name: 'List runner' })).getByRole('status'),
+    ).toBeEmptyDOMElement();
   });
 
   it('asks before a moving program runs, then shows its run', async () => {

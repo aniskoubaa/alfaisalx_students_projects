@@ -22,6 +22,7 @@ Starting your own program: see the templates in [../tools/studio/templates/](../
 10. [Sensor programs that do not move the robot](#sensor-programs-that-do-not-move-the-robot): sensor_report, lidar_snapshot, scan_plot_html, lightring_status
 11. [More motion programs](#more-motion-programs): more_shapes, wall_approach, keep_distance, campaign
 12. [health_check.py: read-only health checklist](#health_checkpy-read-only-health-checklist)
+13. [One program per shape](#one-program-per-shape): shape_circle, shape_square, shape_rectangle, shape_triangle, shape_hexagon, shape_star, shape_figure_eight, shape_spiral, shape_zigzag, shape_spin
 
 ## The examples
 
@@ -189,6 +190,7 @@ python3 motion_shapes.py triangle --dry-run
 python3 motion_shapes.py rotate --dry-run
 python3 motion_shapes.py back_and_forth --dry-run
 python3 motion_shapes.py figure_eight --dry-run
+python3 motion_shapes.py rectangle --side 0.4 --width 0.25 --dry-run
 ```
 
 Drop `--dry-run` (and add `--yes` when detached) for the real run. Options:
@@ -196,6 +198,7 @@ Drop `--dry-run` (and add `--yes` when detached) for the real run. Options:
 | Option | Meaning |
 |---|---|
 | `--side 0.3` | Side or leg length in m (default 0.40, max 1.0). Not used by `rotate` and `figure_eight`. |
+| `--width 0.25` | `rectangle` only: the short side in m (default 0.25, max 1.0); `--side` is then the long side. |
 | `--speed 0.08` | Forward speed in m/s (default 0.10). Anything above 0.15 is lowered to 0.15, with a note in the output. |
 | `--turn-speed 0.4` | Turn speed in rad/s (default 0.5). Anything above 1.0 is lowered to 1.0. |
 | `--no-lidar` | Do not use the lidar: **no obstacle stop.** Prints a warning. Only for when the lidar is broken, with extra care. |
@@ -416,6 +419,38 @@ tail -f $(ls -t ~/robot_code/logs/campaign_*.log | head -1)
 ```
 
 A list file has one command per line, for example `more_shapes.py star --side 0.3`; blank lines and `#` comments are ignored. To stop: `touch ~/STOP` (the running program stops the robot, and the campaign stops), or `pkill -TERM -f campaign.sh`.
+
+## One program per shape
+
+Ten small programs, one per shape, so you pick "the circle program" (for example in the **Programs** screen of [TurtleBot Studio](../tools/studio/README.md)) instead of typing a shape name. Each one is a thin wrapper: it only chooses the shape and hands its options to `motion_shapes.py` or `more_shapes.py`, so every safety layer is the one described above: dry run, refuses to start on the dock, steady `/odom` first, lidar obstacle stop at 0.25 m, bump/cliff, stall, timeouts, the 1.2 m fence of `more_shapes.py`, Ctrl+C / `touch ~/STOP`, zero velocity at the end. Speed stays capped at 0.15 m/s and 1.0 rad/s.
+
+They **move the robot**: undock it first, clear the floor, stay next to it. All of them need `motion_shapes.py`, `more_shapes.py` and `motion_common.py` in the same folder (`scp *.py *.sh ubuntu@turtlebot4.local:robot_code/` copies everything).
+
+| Program | What it drives | Default size | Clear floor needed | Example |
+|---|---|---|---|---|
+| `shape_circle.py` | One full circle to the left | radius 0.25 m (`--radius` 0.15 to 0.45) | about 1 m all round (the circle is 0.5 m across) | `python3 shape_circle.py --dry-run` |
+| `shape_square.py` | Square, left turns of 90° | side 0.40 m (`--side`, max 1.0) | about 1 m all round | `python3 shape_square.py --side 0.30 --dry-run` |
+| `shape_rectangle.py` | Rectangle, left turns of 90° | 0.40 m by 0.25 m (`--length`, `--width`, each max 1.0) | about 1 m all round | `python3 shape_rectangle.py --length 0.5 --width 0.3 --dry-run` |
+| `shape_triangle.py` | Equilateral triangle, left turns of 120° | side 0.40 m (`--side`, max 1.0) | about 1 m all round | `python3 shape_triangle.py --dry-run` |
+| `shape_hexagon.py` | Regular hexagon (6 sides) | side 0.30 m (`--side`, max 0.60) | about 1 m all round | `python3 shape_hexagon.py --side 0.25 --dry-run` |
+| `shape_star.py` | Five-point star | line 0.30 m (`--side`, max 0.60) | about 1 m all round | `python3 shape_star.py --dry-run` |
+| `shape_figure_eight.py` | Figure eight: a left and a right circle | two circles of 0.20 m radius (fixed) | about 1 m all round (the eight is 0.8 m across) | `python3 shape_figure_eight.py --dry-run` |
+| `shape_spiral.py` | Square spiral outwards | step 0.10 m, longest leg 0.50 m (`--step`, `--max-leg`) | about 1 m all round | `python3 shape_spiral.py --max-leg 0.4 --dry-run` |
+| `shape_zigzag.py` | Slalom zigzag along a line | 4 legs of 0.25 m (`--legs`, `--side`) | about 1.5 m straight ahead, 1 m to each side (it ends 0.87 m ahead) | `python3 shape_zigzag.py --legs 4 --dry-run` |
+| `shape_spin.py` | One full turn on the spot | 360° at 0.5 rad/s (`--turn-speed`) | about 0.5 m all round | `python3 shape_spin.py --dry-run` |
+
+Every one also takes `--speed`, `--turn-speed`, `--no-lidar` (no obstacle stop, only with a broken lidar), `--dry-run` and `--yes`, with the same defaults and caps as the base programs, and prints which shape it drives. `--help` lists the options. Dry run first, then drop `--dry-run`:
+
+```bash
+python3 shape_circle.py --dry-run
+python3 shape_circle.py
+```
+
+In a terminal the program asks "is the area clear?" before it moves; type `yes`. Detached (no terminal) it refuses unless you add `--yes`.
+
+**From TurtleBot Studio** the arguments box can stay empty. Studio asks you to confirm before it starts any program that moves the robot, and then sets the environment variable `STUDIO_MOTION_CONFIRMED=1` for that one program (the robot-side bridge removes the variable first and sets it only for a confirmed moving run). The shape programs treat it as the answer to "is the area clear?" only when there is no terminal to ask on; in a terminal it is ignored and the question is still asked. Everything else stays on, including the dry run: use `--dry-run` in the arguments box to check first.
+
+`motion_shapes.py` also gained a `rectangle` shape (`python3 motion_shapes.py rectangle --side 0.4 --width 0.25 --dry-run`: `--side` is the long side, `--width` the short one, both up to 1.0 m like the square).
 
 ## health_check.py: read-only health checklist
 

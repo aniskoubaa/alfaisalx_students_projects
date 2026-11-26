@@ -378,6 +378,23 @@ check('motion run without confirmed is refused', r and r['ok'] is False and r['e
 r = b.send('run', path='drive_test.py', motion=True, confirmed=True)
 b.wait_ev(lambda e: e.get('ev') == 'run_exit' and e.get('run_id') == (r or {}).get('run_id'))
 check('motion run with confirmed starts', r and r['ok'])
+# Studio's confirmation reaches the program as STUDIO_MOTION_CONFIRMED=1, and only for a confirmed motion run
+with open(os.path.join(code, 'env_probe.py'), 'w') as f:
+    f.write('import os\nprint("MARK=" + os.environ.get("STUDIO_MOTION_CONFIRMED", "unset"), flush=True)\n')
+
+
+def run_probe(**kw):
+    r = b.send('run', path='env_probe.py', **kw)
+    rid = (r or {}).get('run_id')
+    e = b.wait_ev(lambda e: e.get('ev') == 'run_output' and e.get('run_id') == rid and any('MARK=' in l for l in e['lines']))
+    b.wait_ev(lambda e: e.get('ev') == 'run_exit' and e.get('run_id') == rid)
+    return ''.join(l for l in (e or {}).get('lines', []) if 'MARK=' in l).strip()
+
+
+check('run: a plain (non-motion) run does not get the Studio confirmation marker', run_probe() == 'MARK=unset')
+check('run: a confirmed motion run gets STUDIO_MOTION_CONFIRMED=1', run_probe(motion=True, confirmed=True) == 'MARK=1')
+check('bridge constant matches motion_common.STUDIO_MARKER',
+      rb.MOTION_CONFIRMED_ENV == 'STUDIO_MOTION_CONFIRMED')
 r = b.send('runs')
 check('runs: lists earlier runs with alive flag', r and r['ok'] and len(r['runs']) >= 2 and all('alive' in x for x in r['runs']))
 

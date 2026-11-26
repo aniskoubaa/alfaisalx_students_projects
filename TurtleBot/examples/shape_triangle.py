@@ -1,0 +1,57 @@
+"""Triangle program: drive an equilateral triangle with the TurtleBot 4.
+
+THIS PROGRAM MOVES THE ROBOT. Undock it, clear about 1 m of floor all round (more for a long --side), and stay next to it.
+Speed is capped at 0.15 m/s and 1.0 rad/s whatever you ask for.
+
+What it drives: an equilateral triangle, 3 sides of --side metres (default 0.40 m, max 1.0 m), turning left 120 degrees
+at each corner.
+It is a thin wrapper: it only chooses the shape and passes the options on to motion_shapes.py, so every safety
+layer is that program's: start-up checks (/odom, /dock_status, lidar, hazards), refuses to start on the dock,
+waits for steady /odom, stops for an obstacle closer than 0.25 m in front, for a bump or cliff, a stall,
+stale odometry or lidar and a timeout, and always ends with zero velocity.
+
+Needs motion_shapes.py, more_shapes.py and motion_common.py in the same folder. Run it on the robot
+(dry run first: checks everything, prints the plan, never moves):
+    python3 shape_triangle.py --dry-run
+    python3 shape_triangle.py --side 0.30
+Started from TurtleBot Studio you do not need --yes: Studio asks you to confirm and then tells the program so
+(STUDIO_MOTION_CONFIRMED=1, honoured only when there is no terminal). On the robot, in a terminal, the program
+asks "is the area clear?" itself. Detached (no terminal) it needs --yes.
+
+How to stop it: Ctrl+C, the Studio Stop button, or  touch ~/STOP  (then rm ~/STOP), or  pkill -INT -f shape_triangle.py
+Exit codes: 0 done, 1 aborted by a safety check, 2 setup failure / refused, 130 stopped by you.
+"""
+import sys
+
+import motion_common as mc
+import motion_shapes as base
+
+PROG = 'shape_triangle.py'
+SHAPE = 'triangle'
+SIDE = base.SIDE_LENGTH
+
+
+def parse_args(argv=None):
+    p = mc.shape_parser(__doc__, PROG)
+    p.add_argument('--side', type=float, default=SIDE,
+                   help=f'side length in m (default {SIDE}, max {base.MAX_SIDE_LENGTH})')
+    return p.parse_args(argv)
+
+
+def underlying_argv(args):
+    """The argv for motion_shapes.py main (pure, no ROS)."""
+    return ['triangle', '--side', repr(args.side)] + mc.common_argv(args)
+
+
+def plan(argv=None):
+    """The timed segment plan this program would drive (pure, no ROS)."""
+    return base.build_plan(base.parse_args(underlying_argv(parse_args(argv))))[0]
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    return mc.run_shape(base, underlying_argv(args), PROG, f'a triangle with {args.side:g} m sides (motion_shapes.py triangle)')
+
+
+if __name__ == '__main__':
+    sys.exit(main())

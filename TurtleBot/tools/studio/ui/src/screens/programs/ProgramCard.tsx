@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Play } from 'lucide-react';
 import type { CatalogEntry, ProgramDescription, RemoteFile } from '../../api';
+import { missingArgsMessage, requiredArgNames, safeExample } from '../../lib/requiredArgs';
 import { isBuiltinMotion, isHelperProgram, isMotionProgram } from '../../lib/motion';
 import { useAsyncAction } from '../../lib/useAsync';
 import { runProgram, saveSettings } from '../../state/actions';
@@ -138,7 +140,10 @@ export function ProgramCard({ file }: { file: RemoteFile }) {
   const moves = isMotionProgram(name, catalog, descAll, extra ?? []);
   const helper = isHelperProgram(name, catalog);
   const builtin = isBuiltinMotion(name, catalog);
+  const required = helper ? [] : requiredArgNames(entry);
+  const [notice, setNotice] = useState('');
   const run = useAsyncAction(async () => {
+    setNotice('');
     const started = await runProgram(name, useArgs.getState().args[name] ?? '');
     // On narrow screens the output sits below the list: bring it into view.
     if (started) document.getElementById('run-output')?.scrollIntoView({ block: 'nearest' });
@@ -177,13 +182,27 @@ export function ProgramCard({ file }: { file: RemoteFile }) {
         className="prog-run"
         onSubmit={(e) => {
           e.preventDefault();
-          if (connected && !helper) void run.run();
+          if (!connected || helper) return;
+          if (required.length && !value.trim()) {
+            const example = safeExample(entry);
+            if (example) setArgs(name, example);
+            setNotice(missingArgsMessage(name, required, !!example));
+            return;
+          }
+          void run.run();
         }}
       >
         <Input
           value={value}
-          onChange={(e) => setArgs(name, e.target.value)}
-          placeholder="arguments (optional)"
+          onChange={(e) => {
+            setNotice('');
+            setArgs(name, e.target.value);
+          }}
+          placeholder={
+            required.length
+              ? `needs: ${required.join(', ')} (see examples below)`
+              : 'arguments (optional)'
+          }
           aria-label={`Arguments for ${name}`}
           className="mono"
         />
@@ -198,6 +217,9 @@ export function ProgramCard({ file }: { file: RemoteFile }) {
           Run
         </Button>
       </form>
+      <p className="prog-notice" role="status">
+        {notice}
+      </p>
       {!builtin && !helper ? (
         <Checkbox
           className="prog-mark"
@@ -210,7 +232,14 @@ export function ProgramCard({ file }: { file: RemoteFile }) {
       ) : null}
       <details className="prog-more">
         <summary>What does it do?</summary>
-        <Details entry={entry} desc={desc} onExample={(a) => setArgs(name, a)} />
+        <Details
+          entry={entry}
+          desc={desc}
+          onExample={(a) => {
+            setNotice('');
+            setArgs(name, a);
+          }}
+        />
       </details>
     </article>
   );

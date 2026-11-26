@@ -279,7 +279,9 @@ def catalog_tests():
         opts = {n for n in names if n.startswith('--')}
         if f.endswith('.py'):
             real = set(re.findall(r"add_argument\(\s*'(--[a-z-]+)'", text))
-            if opts != real:
+            if 'mc.shape_parser(' in text:       # shape_*.py: the shared options come from motion_common.shape_parser
+                real |= set(re.findall(r"add_argument\(\s*'(--[a-z-]+)'", open(os.path.join(EXAMPLES, 'motion_common.py'), encoding='utf-8').read()))
+            if opts != real and f != 'motion_common.py':   # the helper only holds shape_parser's shared options
                 bad.append(f'{f}: catalog options {sorted(opts)} != argparse {sorted(real)}')
             for n in names:
                 if not n.startswith('--') and not (f"add_argument('{n}'" in text or n in text):

@@ -400,5 +400,168 @@ check('steady odom: node up 25 s and the last 5 s clean -> ready at once', w.rea
 w = feed(stream(0.0, 40.0), started=0.0, settle_after=45.0)
 check('steady odom: custom settle_after is honoured (not ready at 40 s with 45 s settle)', not w.ready(40.0))
 
+# ---- one program per shape (shape_*.py): thin wrappers, plans, rectangle limits, Studio confirmation marker
+import importlib.util  # noqa: E402
+
+EXAMPLES = os.path.join(HERE, '..', '..', 'examples')
+W = {n: __import__(n) for n in ('shape_circle', 'shape_square', 'shape_rectangle', 'shape_triangle', 'shape_hexagon',
+                                'shape_star', 'shape_figure_eight', 'shape_spiral', 'shape_zigzag', 'shape_spin')}
+check('ten shape programs', len(W) == 10 and all(m.PROG == n + '.py' for n, m in W.items()))
+
+
+def kinds(segs):
+    return [s['kind'] for s in segs]
+
+
+def ds(segs):
+    return [round(s['distance'], 6) for s in segs if s['kind'] == 'straight']
+
+
+def ang(segs):
+    return [round(math.degrees(s['angle']), 6) for s in segs if s['kind'] in ('turn', 'arc')]
+
+
+def same_plan(a, b):
+    """Same segments (kind, distance, angle, radius); a is timed (wrapper), b is not."""
+    keys = ('kind', 'distance', 'angle', 'radius')
+    return len(a) == len(b) and all(all(x.get(k) == y.get(k) for k in keys) for x, y in zip(a, b))
+
+
+# default plans equal what the base programs build for the same shape (so the wrappers add no motion logic)
+p = W['shape_circle'].plan([])
+check('circle: one full left arc of 0.25 m', kinds(p) == ['arc'] and abs(p[0]['radius'] - 0.25) < 1e-9
+      and abs(p[0]['angle'] - 2 * math.pi) < 1e-9)
+check('circle: --radius 0.3', abs(W['shape_circle'].plan(['--radius', '0.3'])[0]['radius'] - 0.3) < 1e-9)
+check('circle: radius above 0.45 is capped, below 0.15 raised',
+      abs(W['shape_circle'].plan(['--radius', '2'])[0]['radius'] - 0.45) < 1e-9
+      and abs(W['shape_circle'].plan(['--radius', '0.01'])[0]['radius'] - 0.15) < 1e-9)
+p = W['shape_square'].plan([])
+check('square: 4 x (0.40 m, left 90)', ds(p) == [0.4] * 4 and ang(p) == [90.0] * 4 and kinds(p) == ['straight', 'turn'] * 4)
+check('square == motion_shapes plan', same_plan(p, ms.plan_segments('square', 0.4, ms.CIRCLE_RADIUS)))
+check('square: side capped at 1.0 m', ds(W['shape_square'].plan(['--side', '5'])) == [1.0] * 4)
+p = W['shape_triangle'].plan([])
+check('triangle: 3 x (0.40 m, left 120)', ds(p) == [0.4] * 3 and ang(p) == [120.0] * 3)
+check('triangle == motion_shapes plan', same_plan(p, ms.plan_segments('triangle', 0.4, ms.CIRCLE_RADIUS)))
+p = W['shape_hexagon'].plan([])
+check('hexagon: 6 x (0.30 m, left 60)', ds(p) == [0.3] * 6 and ang(p) == [60.0] * 6)
+check('hexagon == more_shapes polygon 6', same_plan(p, mo.plan_more('polygon', 0.3, 6)))
+check('hexagon: --side capped at 0.60 m', ds(W['shape_hexagon'].plan(['--side', '2'])) == [0.6] * 6)
+p = W['shape_star'].plan([])
+check('star: 5 x (0.30 m, left 144)', ds(p) == [0.3] * 5 and ang(p) == [144.0] * 5 and same_plan(p, mo.plan_more('star', 0.3)))
+p = W['shape_figure_eight'].plan([])
+check('figure eight: left then right circle of 0.20 m', kinds(p) == ['arc', 'arc'] and ang(p) == [360.0, -360.0]
+      and all(abs(s['radius'] - 0.2) < 1e-9 for s in p))
+p = W['shape_spin'].plan([])
+check('spin: one 360 degree turn on the spot', kinds(p) == ['turn'] and ang(p) == [360.0])
+p = W['shape_spiral'].plan([])
+check('spiral: legs 0.1 0.1 0.2 0.2 ... 0.5 0.5, left 90', ds(p) == [0.1, 0.1, 0.2, 0.2, 0.3, 0.3, 0.4, 0.4, 0.5, 0.5]
+      and set(ang(p)) == {90.0} and same_plan(p, mo.plan_more('square_spiral')))
+check('spiral: --max-leg above 0.5 is capped', max(ds(W['shape_spiral'].plan(['--max-leg', '2']))) <= 0.5 + 1e-9)
+p = W['shape_zigzag'].plan([])
+check('zigzag: 4 legs of 0.25 m, back to the start heading',
+      ds(p) == [0.25] * 4 and same_plan(p, mo.plan_more('zigzag', side=0.25, legs=4)) and abs(sum(ang(p))) < 1e-9)
+check('zigzag: --legs 6 --side 0.2', ds(W['shape_zigzag'].plan(['--legs', '6', '--side', '0.2'])) == [0.2] * 6)
+check('zigzag: legs above 8 capped', len(ds(W['shape_zigzag'].plan(['--legs', '99']))) == 8)
+
+# rectangle: shape in motion_shapes, same limits as the square
+R = W['shape_rectangle']
+p = R.plan([])
+check('rectangle: default 0.40 x 0.25, left 90 at each corner', ds(p) == [0.4, 0.25, 0.4, 0.25] and ang(p) == [90.0] * 4
+      and kinds(p) == ['straight', 'turn'] * 4)
+check('rectangle == motion_shapes plan', same_plan(p, ms.plan_segments('rectangle', 0.4, ms.CIRCLE_RADIUS, 0.25)))
+check('rectangle: closed (ends at the start, 360 degrees)', mo.is_closed(p) and abs(mo.simulate_plan(p)[2] - 2 * math.pi) < 1e-9)
+check('rectangle: --length 0.6 --width 0.3', ds(R.plan(['--length', '0.6', '--width', '0.3'])) == [0.6, 0.3, 0.6, 0.3])
+check('rectangle: both sides capped at 1.0 m like the square', ds(R.plan(['--length', '3', '--width', '2'])) == [1.0, 1.0, 1.0, 1.0])
+check('rectangle: both sides raised to 0.05 m minimum', ds(R.plan(['--length', '0', '--width', '-1'])) == [0.05] * 4)
+segs, notes = ms.build_plan(ms.parse_args(R.underlying_argv(R.parse_args(['--length', '3', '--width', '2']))))
+check('rectangle: caps are reported as notes', len(notes) == 2 and all('above the cap' in n for n in notes), str(notes))
+check('rectangle: known to the base program, planned end is the start',
+      'rectangle' in ms.SHAPES and all(abs(v) < 1e-9 for v in ms.planned_end_pose(p)[:2]))
+check('rectangle: first segment needs length + 0.25 m clear (front_needed)',
+      abs(mo.front_needed(p) - (0.4 + ms.OBSTACLE_STOP_DISTANCE)) < 1e-9)
+check('motion_shapes square/triangle unchanged by the rectangle change',
+      ds(ms.plan_segments('square', 0.4, 0.2)) == [0.4] * 4 and ds(ms.plan_segments('triangle', 0.3, 0.2)) == [0.3] * 3)
+
+# caps and the common options
+for n, m in W.items():
+    if m.base is ms:     # motion_shapes.build_plan returns timed segments; the more_shapes ones are timed in its main (sim scenarios check the caps)
+        capped = m.plan(['--speed', '9', '--turn-speed', '9'])
+        check(f'{n}: --speed 9 / --turn-speed 9 are capped (0.15 m/s, 1.0 rad/s)',
+              all(s['v'] <= 0.15 + 1e-9 and s['w'] <= 1.0 + 1e-9 for s in capped))
+    a = m.parse_args([])
+    check(f'{n}: needs no positional argument; defaults 0.10 m/s, 0.5 rad/s, no --yes, no --dry-run, lidar on',
+          a.speed == 0.1 and a.turn_speed == 0.5 and not a.yes and not a.dry_run and not a.no_lidar)
+    u = m.underlying_argv(m.parse_args(['--dry-run', '--no-lidar']))
+    check(f'{n}: --dry-run and --no-lidar are passed on, --yes is not added',
+          '--dry-run' in u and '--no-lidar' in u and '--yes' not in u)
+    check(f'{n}: --yes is passed on only when given', '--yes' in m.underlying_argv(m.parse_args(['--yes'])))
+    check(f'{n}: docstring says it moves the robot, how to stop and the dry run',
+          'MOVES THE ROBOT' in m.__doc__ and f'python3 {n}.py --dry-run' in m.__doc__ and '~/STOP' in m.__doc__
+          and 'motion_common.py' in m.__doc__)
+    text = open(os.path.join(EXAMPLES, n + '.py'), 'rb').read()
+    check(f'{n}: LF line endings, no motion code of its own (no publisher, no cmd_vel)',
+          b'\r' not in text and b'create_publisher' not in text and b'TwistStamped' not in text and b'cmd_vel' not in text)
+try:
+    W['shape_circle'].parse_args(['--bogus'])
+    check('unknown option is refused', False)
+except SystemExit as e:
+    check('unknown option is refused (argparse exit 2)', e.code == 2)
+
+# Studio confirmation marker (STUDIO_MOTION_CONFIRMED): only "1", only without a terminal
+check('marker constant is STUDIO_MOTION_CONFIRMED', mc.STUDIO_MARKER == 'STUDIO_MOTION_CONFIRMED')
+_spec = importlib.util.spec_from_file_location('rb_for_marker', os.path.join(HERE, '..', '..', 'tools', 'studio', 'robot_bridge.py'))
+_rb = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_rb)
+check('robot_bridge.MOTION_CONFIRMED_ENV == motion_common.STUDIO_MARKER', _rb.MOTION_CONFIRMED_ENV == mc.STUDIO_MARKER)
+check('marker "1" without a terminal is accepted', mc.studio_confirmed({mc.STUDIO_MARKER: '1'}, False))
+check('marker "1" in a terminal is ignored (the question is still asked)', not mc.studio_confirmed({mc.STUDIO_MARKER: '1'}, True))
+check('no marker / "0" / "yes" / "" / "true" are not accepted',
+      not any(mc.studio_confirmed(e, False) for e in ({}, {mc.STUDIO_MARKER: '0'}, {mc.STUDIO_MARKER: 'yes'},
+                                                       {mc.STUDIO_MARKER: ''}, {mc.STUDIO_MARKER: 'true'})))
+
+
+class FakeBase:
+    def __init__(self):
+        self.calls = []
+
+    def main(self, argv):
+        self.calls.append(list(argv))
+        return 0
+
+
+def run_with(argv, env, tty):
+    fb = FakeBase()
+    code = mc.run_shape(fb, argv, 'shape_x.py', 'a test shape', env, tty)
+    return code, fb.calls[0]
+
+
+check('run_shape: Studio marker, no terminal -> --yes added',
+      run_with(['circle'], {mc.STUDIO_MARKER: '1'}, False)[1] == ['circle', '--yes'])
+check('run_shape: no marker -> argv unchanged (the base program asks or refuses)', run_with(['circle'], {}, False)[1] == ['circle'])
+check('run_shape: marker in a terminal -> argv unchanged', run_with(['circle'], {mc.STUDIO_MARKER: '1'}, True)[1] == ['circle'])
+check('run_shape: dry run never gets --yes',
+      run_with(['circle', '--dry-run'], {mc.STUDIO_MARKER: '1'}, False)[1] == ['circle', '--dry-run'])
+check('run_shape: explicit --yes is not doubled',
+      run_with(['circle', '--yes'], {mc.STUDIO_MARKER: '1'}, False)[1] == ['circle', '--yes'])
+check('run_shape returns the base exit code', run_with(['circle'], {}, False)[0] == 0)
+
+_cat = json.load(open(os.path.join(HERE, '..', '..', 'tools', 'studio', 'programs.json'), encoding='utf-8'))['programs']
+bad = []
+for n in W:
+    e = _cat.get(n + '.py')
+    if not isinstance(e, dict):
+        bad.append(n + ': no entry')
+        continue
+    if not (e['moves'] and e['needs_undock'] and not e['safe_on_dock'] and e['category'] == 'motion'):
+        bad.append(n + ': flags')
+    if not (any('--dry-run' in x['args'] for x in e['examples']) and any('--dry-run' not in x['args'] for x in e['examples'])):
+        bad.append(n + ': examples need a dry run and a real one')
+    if not any('Needs motion_shapes.py, more_shapes.py and motion_common.py in the same folder' in x for x in e['notes']):
+        bad.append(n + ': needs-files note')
+    if not any('of clear floor' in x for x in e['notes']):
+        bad.append(n + ': clear floor note')
+check('catalog: every shape_*.py entry moves, needs undock, not safe on dock, dry-run + real example, files and floor notes',
+      not bad, '; '.join(bad))
+
 print(f'\n{fails} failure(s); generated files are in {OUT}')
 sys.exit(1 if fails else 0)

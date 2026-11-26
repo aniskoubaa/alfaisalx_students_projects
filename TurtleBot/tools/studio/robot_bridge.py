@@ -727,6 +727,7 @@ def collect_wifi(run=run_cmd, reader=read_text):
 
 
 # ---- v1.2: join any Wi-Fi network (S-c)
+MOTION_CONFIRMED_ENV = "STUDIO_MOTION_CONFIRMED"   # see h_run and motion_common.studio_confirmed (examples)
 WIFI_STATUS_PATH = os.environ.get("STUDIO_WIFI_STATUS") or "/run/turtlebot-studio-wifi.json"
 NONCE_RE = re.compile(r"[0-9a-f]{32}")
 SECRET_KEEP = 6          # secret records (states only, never the password) kept for wifi_join_status
@@ -3551,6 +3552,12 @@ class Bridge:
         name = os.path.basename(full)
         log_path = self._unique_log(name)
         env = dict(os.environ, PYTHONUNBUFFERED="1")
+        # Studio asked the person to confirm this moving program (a `confirmed` motion run is the only way to get here
+        # with motion set), so tell the program: the one-program-per-shape wrappers then skip their terminal "area clear?"
+        # question, which cannot be answered here (stdin is closed). Never inherited: removed first, set only now.
+        env.pop(MOTION_CONFIRMED_ENV, None)
+        if motion:
+            env[MOTION_CONFIRMED_ENV] = "1"
         kw = {}
         if os.name == "posix":
             kw["start_new_session"] = True

@@ -39,12 +39,12 @@ This page is the short version for students. The full details are in the [techni
 
 | System | What to download | What it is |
 |---|---|---|
-| Windows (recommended) | The installer `TurtleBotStudio-Setup-2.1.exe` | Installs for your user only, no administrator rights. Adds a Start menu entry and a desktop shortcut. Studio opens in its own window, with no console window |
+| Windows (recommended) | The installer `TurtleBotStudio-Setup-2.1.1.exe` | Installs for your user only, no administrator rights. Adds a Start menu entry and a desktop shortcut. Studio opens in its own window, with no console window |
 | Windows (no install) | The single file `TurtleBotStudio.exe` | Run it from any folder |
 | macOS | The zip with the `TurtleBotStudio` app | Unzip and open the `.app` |
 | Linux | The `TurtleBotStudio` binary and `install-linux.sh` | The script copies the binary to `~/.local/bin` and adds a menu entry. It prints how to undo it |
 
-Windows installer: double-click `TurtleBotStudio-Setup-2.1.exe`, follow the pages, and leave **Launch TurtleBot Studio** ticked on the last page. To uninstall, use **Settings, Apps** and remove **TurtleBot Studio**. Uninstalling keeps your settings folder (see [Reset or remove Studio](#reset-or-remove-studio)), so your login key and robot list stay. (Note 2026-11-14: the installer file was `TurtleBotStudio-Setup-2.0.exe` before 2.1; it is no longer in the Download folder. The 2.1 installer was built and passed the build's smoke test, but it has not been run on a clean computer yet.)
+Windows installer: double-click `TurtleBotStudio-Setup-2.1.1.exe`, follow the pages, and leave **Launch TurtleBot Studio** ticked on the last page. To uninstall, use **Settings, Apps** and remove **TurtleBot Studio**. Uninstalling keeps your settings folder (see [Reset or remove Studio](#reset-or-remove-studio)), so your login key and robot list stay. (Note 2026-11-14: the installer file was `TurtleBotStudio-Setup-2.0.exe` before 2.1; it is no longer in the Download folder. The 2.1 installer was built and passed the build's smoke test, but it has not been run on a clean computer yet. Update 2026-11-26: the current file is `TurtleBotStudio-Setup-2.1.1.exe`; the 2.1 installer was removed from the Download folder by the publish step and stays in git history.)
 
 GitHub keeps these files for 90 days. If there is no run, or no artifacts, ask the lab maintainer or use option B.
 

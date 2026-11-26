@@ -102,6 +102,13 @@
 .prog-run .input {
   flex: 1;
 }
+.prog-notice {
+  margin: 0;
+  max-width: 70ch;
+}
+.prog-notice:empty {
+  display: none;
+}
 .prog-mark {
   color: var(--muted);
 }

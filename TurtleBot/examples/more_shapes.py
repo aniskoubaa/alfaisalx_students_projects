@@ -188,7 +188,7 @@ def drive_plan(node, segs, target, label):
     return target
 
 
-def parse_args():
+def parse_args(argv=None):
     p = argparse.ArgumentParser(description='Drive more shapes with the TurtleBot 4. MOVES THE ROBOT.')
     p.add_argument('shape', choices=SHAPES)
     p.add_argument('--sides', type=int, default=POLYGON_SIDES, help=f'polygon sides ({MIN_SIDES}..{MAX_SIDES})')
@@ -207,7 +207,7 @@ def parse_args():
     p.add_argument('--no-lidar', action='store_true', help='do not use the lidar (NO obstacle stop)')
     p.add_argument('--dry-run', action='store_true', help='run all checks and print the plan, never move')
     p.add_argument('--yes', action='store_true', help='skip the "area clear?" question (needed when detached)')
-    return p.parse_args()
+    return p.parse_args(argv)
 
 
 def build_plan(args):
@@ -239,8 +239,8 @@ def build_plan(args):
     return shape, segs, loops, notes
 
 
-def main():
-    args = parse_args()
+def main(argv=None):
+    args = parse_args(argv)
     speed, m1 = ms.clamp_setting('--speed', args.speed, ms.MIN_LINEAR_SPEED, ms.MAX_LINEAR_SPEED, 'm/s')
     turn_speed, m2 = ms.clamp_setting('--turn-speed', args.turn_speed, ms.MIN_ANGULAR_SPEED,
                                       ms.MAX_ANGULAR_SPEED, 'rad/s')

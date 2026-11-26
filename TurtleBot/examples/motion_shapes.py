@@ -1,4 +1,4 @@
-"""Drive a shape (square, rotate, back_and_forth, triangle, figure_eight) using odometry, with safety checks.
+"""Drive a shape (square, rectangle, rotate, back_and_forth, triangle, figure_eight) using odometry, with safety checks.
 
 THIS PROGRAM MOVES THE ROBOT. Before running it: undock the robot, clear about 1 m of floor around it,
 and stay next to it. Speed is capped at 0.15 m/s whatever you ask for.
@@ -11,6 +11,7 @@ show nothing closer than OBSTACLE_STOP_DISTANCE in front, otherwise the robot st
 Run it on the robot (dry run first: checks everything, prints the plan, never moves):
     python3 motion_shapes.py square --dry-run
     python3 motion_shapes.py square
+    python3 motion_shapes.py rectangle --side 0.4 --width 0.25 --dry-run   # long side --side, short side --width
 Detached, so a Wi-Fi drop does not kill it (needs --yes because there is nobody to answer the prompt):
     setsid nohup python3 ~/robot_code/motion_shapes.py square --yes > ~/robot_code/shapes.log 2>&1 &
     tail -f ~/robot_code/shapes.log
@@ -86,7 +87,9 @@ STOP_BURST = 0.5              # s, how long to keep sending zero velocity when s
 CONTROL_RATE = 20             # Hz, control loop rate
 STOP_FILE = os.path.expanduser('~/STOP')   # if this file exists, the robot stops
 
-SHAPES = ['square', 'rotate', 'back_and_forth', 'triangle', 'figure_eight']
+RECTANGLE_WIDTH = 0.25        # m, default short side of the rectangle (its long side is --side, default SIDE_LENGTH)
+
+SHAPES = ['square', 'rotate', 'back_and_forth', 'triangle', 'figure_eight', 'rectangle']
 
 # Set by the signal handler; checked every control cycle.
 stop_request = None
@@ -168,10 +171,17 @@ def arc_speeds(radius, speed, max_turn):
     return speed, w
 
 
-def plan_segments(shape, side, radius):
+def plan_segments(shape, side, radius, width=RECTANGLE_WIDTH):
     """List of segments for a shape. Kinds: straight (distance m), turn (angle rad, + is left),
-    arc (angle rad, + is a left circle, - a right circle; radius m)."""
+    arc (angle rad, + is a left circle, - a right circle; radius m).
+    rectangle: long side = side, short side = width (both drive left turns of 90 degrees)."""
     left90, left120, half = math.pi / 2, 2 * math.pi / 3, math.pi
+    if shape == 'rectangle':
+        segs = []
+        for _ in range(2):
+            segs += [{'kind': 'straight', 'distance': side}, {'kind': 'turn', 'angle': left90},
+                     {'kind': 'straight', 'distance': width}, {'kind': 'turn', 'angle': left90}]
+        return segs
     if shape == 'square':
         segs = []
         for _ in range(4):
@@ -542,11 +552,14 @@ def stop_robot(node):
         time.sleep(1.0 / CONTROL_RATE)
 
 
-def parse_args():
+def parse_args(argv=None):
     p = argparse.ArgumentParser(description='Drive a shape with the TurtleBot 4. MOVES THE ROBOT.')
     p.add_argument('shape', choices=SHAPES)
     p.add_argument('--side', type=float, default=SIDE_LENGTH,
-                   help=f'side / leg length in m (default {SIDE_LENGTH}, max {MAX_SIDE_LENGTH})')
+                   help=f'side / leg length in m (default {SIDE_LENGTH}, max {MAX_SIDE_LENGTH}); '
+                        'for rectangle: its long side')
+    p.add_argument('--width', type=float, default=RECTANGLE_WIDTH,
+                   help=f'rectangle only: short side in m (default {RECTANGLE_WIDTH}, max {MAX_SIDE_LENGTH})')
     p.add_argument('--speed', type=float, default=LINEAR_SPEED,
                    help=f'forward speed in m/s (default {LINEAR_SPEED}, capped at {MAX_LINEAR_SPEED})')
     p.add_argument('--turn-speed', type=float, default=ANGULAR_SPEED,
@@ -554,21 +567,31 @@ def parse_args():
     p.add_argument('--no-lidar', action='store_true', help='do not use the lidar (NO obstacle stop)')
     p.add_argument('--dry-run', action='store_true', help='run all checks and print the plan, never move')
     p.add_argument('--yes', action='store_true', help='skip the "area clear?" question (needed when detached)')
-    return p.parse_args()
+    return p.parse_args(argv)
 
 
-def main():
-    global motion_active
-    args = parse_args()
-
-    # Settings and plan.
+def build_plan(args):
+    """Settings limited to their caps and the timed segment plan: returns (segs, notes). Pure, no ROS."""
     side, msg1 = clamp_setting('--side', args.side, 0.05, MAX_SIDE_LENGTH, 'm')
     speed, msg2 = clamp_setting('--speed', args.speed, MIN_LINEAR_SPEED, MAX_LINEAR_SPEED, 'm/s')
     turn_speed, msg3 = clamp_setting('--turn-speed', args.turn_speed, MIN_ANGULAR_SPEED, MAX_ANGULAR_SPEED, 'rad/s')
-    for m in (msg1, msg2, msg3):
-        if m:
-            log(f'note: {m}')
-    segs = add_timing(plan_segments(args.shape, side, CIRCLE_RADIUS), speed, turn_speed)
+    notes = [msg1, msg2, msg3]
+    width = RECTANGLE_WIDTH
+    if args.shape == 'rectangle':
+        width, msg4 = clamp_setting('--width', args.width, 0.05, MAX_SIDE_LENGTH, 'm')
+        notes.append(msg4)
+    segs = add_timing(plan_segments(args.shape, side, CIRCLE_RADIUS, width), speed, turn_speed)
+    return segs, [m for m in notes if m]
+
+
+def main(argv=None):
+    global motion_active
+    args = parse_args(argv)
+
+    # Settings and plan.
+    segs, notes = build_plan(args)
+    for m in notes:
+        log(f'note: {m}')
     expected = sum(s['expected'] for s in segs) + PAUSE * len(segs)
     log(f'shape {args.shape}: {len(segs)} segments, about {expected:.0f} s in total')
     for i, s in enumerate(segs, 1):

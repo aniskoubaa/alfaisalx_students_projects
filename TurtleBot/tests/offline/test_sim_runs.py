@@ -19,6 +19,36 @@ SCENARIOS = [
     ('triangle', 'motion', ['triangle', '--yes'], {}, 0),
     ('figure_eight', 'motion', ['figure_eight', '--yes'], {}, 0),
     ('speed above cap is lowered', 'motion', ['square', '--yes', '--speed', '0.5'], {}, 0),
+    ('rectangle (motion_shapes)', 'motion', ['rectangle', '--yes'], {}, 0),
+    ('rectangle over the limit is capped to 1.0 m per side', 'motion', ['rectangle', '--side', '3', '--width', '3', '--yes'], {}, 0,
+     r'--side 3 m is above the cap, using 1 m[\s\S]*--width 3 m is above the cap, using 1 m'),
+    # one-program-per-shape wrappers (shape_*.py): thin wrappers over motion_shapes / more_shapes
+    ('shape_circle', 'shape', ['shape_circle', '--yes'], {}, 0, r'shape_circle\.py: drives one full circle of radius 0\.25 m'),
+    ('shape_square', 'shape', ['shape_square', '--yes'], {}, 0, r'shape_square\.py: drives a square with 0\.4 m sides'),
+    ('shape_rectangle', 'shape', ['shape_rectangle', '--yes'], {}, 0, r'a rectangle 0\.4 m x 0\.25 m'),
+    ('shape_triangle', 'shape', ['shape_triangle', '--yes'], {}, 0, r'shape_triangle\.py: drives a triangle'),
+    ('shape_hexagon', 'shape', ['shape_hexagon', '--yes'], {}, 0, r'shape_hexagon\.py: drives a hexagon'),
+    ('shape_star', 'shape', ['shape_star', '--yes'], {}, 0, r'shape_star\.py: drives a 5-point star'),
+    ('shape_figure_eight', 'shape', ['shape_figure_eight', '--yes'], {}, 0, r'shape_figure_eight\.py: drives a figure eight'),
+    ('shape_spiral', 'shape', ['shape_spiral', '--yes'], {}, 0, r'shape_spiral\.py: drives a square spiral'),
+    ('shape_zigzag', 'shape', ['shape_zigzag', '--yes'], {}, 0, r'shape_zigzag\.py: drives a zigzag'),
+    ('shape_spin', 'shape', ['shape_spin', '--yes'], {}, 0, r'shape_spin\.py: drives one full turn on the spot'),
+    ('shape_circle dry run', 'shape', ['shape_circle', '--dry-run'], {}, 0, r'dry run: all checks done[\s\S]*nonzero=0 '),
+    ('shape_rectangle dry run on the dock allowed', 'shape', ['shape_rectangle', '--dry-run'], {'SIM_DOCKED': '1'}, 0),
+    ('shape_square docked real run refused', 'shape', ['shape_square', '--yes'], {'SIM_DOCKED': '1'}, 2, r'robot is on the dock[\s\S]*nonzero=0 '),
+    ('shape_circle speed above cap is lowered', 'shape', ['shape_circle', '--yes', '--speed', '0.5', '--turn-speed', '5'], {}, 0, r'above the cap'),
+    ('shape_circle radius above the limit is capped', 'shape', ['shape_circle', '--yes', '--radius', '2'], {}, 0, r'--radius 2 m is above the cap'),
+    ('shape_square obstacle ahead aborts', 'shape', ['shape_square', '--yes'], {'SIM_OBJECT': '0.5,0.0'}, 1),
+    ('shape_circle: 2.5 s odom gap aborts', 'shape', ['shape_circle', '--yes'], {'SIM_ODOM_GAP': '25,2.5'}, 1),
+    # no terminal (the scenarios run with stdin closed, like Studio): no --yes and no Studio marker -> refuse; marker -> go
+    ('shape_circle without --yes and no terminal refuses (2), no velocity command', 'shape', ['shape_circle'], {}, 2,
+     r'no terminal to ask "is the area clear\?"[\s\S]*nonzero=0 '),
+    ('shape_circle started from Studio (marker) needs no --yes', 'shape', ['shape_circle'], {'STUDIO_MOTION_CONFIRMED': '1'}, 0,
+     r'started from TurtleBot Studio \(STUDIO_MOTION_CONFIRMED=1\)[\s\S]*done'),
+    ('shape_circle: any other marker value is not accepted', 'shape', ['shape_circle'], {'STUDIO_MOTION_CONFIRMED': 'yes'}, 2,
+     r'no terminal to ask'),
+    ('shape_rectangle from Studio, docked -> still refused (2)', 'shape', ['shape_rectangle'],
+     {'STUDIO_MOTION_CONFIRMED': '1', 'SIM_DOCKED': '1'}, 2, r'robot is on the dock'),
     ('0.8 s odom gap is held through', 'motion', ['square', '--yes'], {'SIM_ODOM_GAP': '25,0.8'}, 0),
     ('2.5 s odom gap aborts', 'motion', ['square', '--yes'], {'SIM_ODOM_GAP': '25,2.5'}, 1),
     ('docked real run refused', 'motion', ['square', '--yes'], {'SIM_DOCKED': '1'}, 2),
@@ -120,7 +150,7 @@ def main():
     for name, scen, args, env, expected, *pattern in SCENARIOS:
         e = dict(os.environ, PYTHONDONTWRITEBYTECODE='1', **env)
         r = subprocess.run([sys.executable, os.path.join(HERE, 'sim.py'), scen] + args,
-                           capture_output=True, text=True, env=e, timeout=300)
+                           capture_output=True, text=True, env=e, timeout=300, stdin=subprocess.DEVNULL)
         out = r.stdout + r.stderr
         m = re.search(r'SIM exit=(\S+)', out)
         code = r.returncode if m is None else (int(m.group(1)) if m.group(1).lstrip('-').isdigit() else r.returncode)

@@ -400,8 +400,14 @@ if __name__ == '__main__':
     scen = sys.argv[1]
     prog = {'shapes': 'more_shapes', 'wall': 'wall_approach', 'keep': 'keep_distance', 'report': 'sensor_report',
             'snapshot': 'lidar_snapshot', 'light': 'lightring_status', 'motion': 'motion_shapes',
-            'health': 'health_check'}[scen]
-    sys.argv = [prog + '.py'] + sys.argv[2:]
+            'health': 'health_check', 'shape': None}[scen]
+    if scen == 'shape':          # one-program-per-shape wrappers: sim.py shape shape_circle [args...]
+        prog = sys.argv[2].replace('.py', '')
+        import io
+        sys.stdin = io.StringIO('')    # no terminal, like a program started by Studio (os.devnull is a tty on Windows)
+        sys.argv = [prog + '.py'] + sys.argv[3:]
+    else:
+        sys.argv = [prog + '.py'] + sys.argv[2:]
     import motion_shapes as _ms
     _ms.STOP_FILE = os.path.join(tempfile.gettempdir(), 'turtlebot_sim_STOP')
     if os.path.exists(_ms.STOP_FILE):

@@ -57,13 +57,14 @@
       "doc": "../../examples/README.md#the-examples"
     },
     "motion_shapes.py": {
-      "title": "Drive shapes (square, triangle, rotate, back and forth, figure eight)",
+      "title": "Drive shapes (square, rectangle, triangle, rotate, back and forth, figure eight)",
       "summary": "Drives a shape on the floor using the wheel odometry, with obstacle, bump, stall and timeout stops. Always do a dry run first.",
       "moves": true, "needs_undock": true, "safe_on_dock": false,
       "category": "motion",
       "args": [
-        {"name": "shape", "help": "square, triangle, rotate, back_and_forth or figure_eight"},
-        {"name": "--side", "help": "side or leg length in metres (default 0.40, max 1.0)"},
+        {"name": "shape", "help": "square, rectangle, triangle, rotate, back_and_forth or figure_eight"},
+        {"name": "--side", "help": "side or leg length in metres (default 0.40, max 1.0); for rectangle the long side"},
+        {"name": "--width", "help": "rectangle only: short side in metres (default 0.25, max 1.0)"},
         {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
         {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
         {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop (only if the lidar is broken)"},
@@ -73,7 +74,8 @@
       "examples": [
         {"args": "square --dry-run", "what": "checks everything and prints the plan, never moves"},
         {"args": "square --side 0.3 --yes", "what": "drives a 30 cm square"},
-        {"args": "rotate --yes", "what": "one full turn on the spot"}
+        {"args": "rotate --yes", "what": "one full turn on the spot"},
+        {"args": "rectangle --side 0.4 --width 0.25 --yes", "what": "drives a 40 cm by 25 cm rectangle"}
       ],
       "stop": "Ctrl+C, the Stop button, the E-STOP, 'touch ~/STOP', or kill -INT. It also stops itself on a bump, an obstacle closer than 0.25 m ahead, stale odometry or lidar, a stall or a timeout.",
       "notes": ["Needs about 1 m of clear floor all round.", "It refuses to start while the robot is docked.", "Exit codes: 0 done, 1 safety stop, 2 setup failure, 130 stopped by you."],
@@ -108,6 +110,217 @@
       "stop": "Same as motion_shapes.py: Ctrl+C, the Stop button, the E-STOP, 'touch ~/STOP'. It also aborts if odometry puts the robot more than 1.2 m from its start, or after its total timeout.",
       "notes": ["Needs motion_shapes.py and motion_common.py in the same folder on the robot.", "The README says 'not yet tested on the robot' for this program.", "The default --side here is 0.30 m (in the code); motion_shapes.py uses 0.40 m."],
       "doc": "../../examples/README.md#more_shapespy"
+    },
+    "shape_circle.py": {
+      "title": "Circle (one full circle)",
+      "summary": "Drives one full circle to the left. The circle program: no shape name to type, the only option that matters is the radius.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "--radius", "help": "circle radius in metres (0.15 to 0.45, default 0.25)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop (only if the lidar is broken)"},
+        {"name": "--dry-run", "help": "run the checks and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (Studio asks you itself, so leave it out there; needed when started detached)"}
+      ],
+      "examples": [
+        {"args": "--dry-run", "what": "checks everything and prints the circle plan, never moves"},
+        {"args": "--radius 0.25", "what": "drives one full circle of 25 cm radius (Studio asks you to confirm first)"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP or 'touch ~/STOP'. It also stops itself on a bump, an obstacle closer than 0.25 m ahead, stale odometry or lidar, a stall or a timeout, or if odometry puts the robot more than 1.2 m from its start.",
+      "notes": ["Needs motion_shapes.py, more_shapes.py and motion_common.py in the same folder on the robot.", "Needs about 1 m of clear floor all round (the circle itself is 0.5 m across with the default radius, ahead and to the left).", "Studio asks you to confirm and passes that on to the program (STUDIO_MOTION_CONFIRMED), so the arguments box can stay empty; started by hand in a terminal the program asks 'is the area clear?' itself.", "It refuses to start while the robot is docked. Exit codes: 0 done, 1 safety stop, 2 setup failure, 130 stopped by you."],
+      "doc": "../../examples/README.md#one-program-per-shape"
+    },
+    "shape_square.py": {
+      "title": "Square",
+      "summary": "Drives a square, turning left at each corner, and ends where it started. The square program: no shape name to type.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "--side", "help": "side length in metres (default 0.40, max 1.0)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop (only if the lidar is broken)"},
+        {"name": "--dry-run", "help": "run the checks and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (Studio asks you itself, so leave it out there; needed when started detached)"}
+      ],
+      "examples": [
+        {"args": "--dry-run", "what": "checks everything and prints the square plan, never moves"},
+        {"args": "--side 0.30", "what": "drives a 30 cm square (Studio asks you to confirm first)"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP or 'touch ~/STOP'. It also stops itself on a bump, an obstacle closer than 0.25 m ahead, stale odometry or lidar, a stall or a timeout.",
+      "notes": ["Needs motion_shapes.py, more_shapes.py and motion_common.py in the same folder on the robot.", "Needs about 1 m of clear floor all round (more for a side longer than 0.4 m).", "Studio asks you to confirm and passes that on to the program (STUDIO_MOTION_CONFIRMED), so the arguments box can stay empty; started by hand in a terminal the program asks 'is the area clear?' itself.", "It refuses to start while the robot is docked. Exit codes: 0 done, 1 safety stop, 2 setup failure, 130 stopped by you."],
+      "doc": "../../examples/README.md#one-program-per-shape"
+    },
+    "shape_rectangle.py": {
+      "title": "Rectangle",
+      "summary": "Drives a rectangle (long side ahead, short side to the left) and ends where it started. Default 0.40 m by 0.25 m, each side up to 1.0 m like the square.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "--length", "help": "long side in metres, driven first (default 0.40, max 1.0)"},
+        {"name": "--width", "help": "short side in metres (default 0.25, max 1.0)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop (only if the lidar is broken)"},
+        {"name": "--dry-run", "help": "run the checks and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (Studio asks you itself, so leave it out there; needed when started detached)"}
+      ],
+      "examples": [
+        {"args": "--dry-run", "what": "checks everything and prints the rectangle plan, never moves"},
+        {"args": "--length 0.50 --width 0.30", "what": "drives a 50 cm by 30 cm rectangle (Studio asks you to confirm first)"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP or 'touch ~/STOP'. It also stops itself on a bump, an obstacle closer than 0.25 m ahead, stale odometry or lidar, a stall or a timeout.",
+      "notes": ["Needs motion_shapes.py, more_shapes.py and motion_common.py in the same folder on the robot.", "Needs about 1 m of clear floor all round (more for sides longer than 0.4 m).", "Studio asks you to confirm and passes that on to the program (STUDIO_MOTION_CONFIRMED), so the arguments box can stay empty; started by hand in a terminal the program asks 'is the area clear?' itself.", "It refuses to start while the robot is docked. Exit codes: 0 done, 1 safety stop, 2 setup failure, 130 stopped by you."],
+      "doc": "../../examples/README.md#one-program-per-shape"
+    },
+    "shape_triangle.py": {
+      "title": "Triangle",
+      "summary": "Drives an equilateral triangle, turning left 120 degrees at each corner, and ends where it started.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "--side", "help": "side length in metres (default 0.40, max 1.0)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop (only if the lidar is broken)"},
+        {"name": "--dry-run", "help": "run the checks and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (Studio asks you itself, so leave it out there; needed when started detached)"}
+      ],
+      "examples": [
+        {"args": "--dry-run", "what": "checks everything and prints the triangle plan, never moves"},
+        {"args": "--side 0.30", "what": "drives a triangle with 30 cm sides (Studio asks you to confirm first)"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP or 'touch ~/STOP'. It also stops itself on a bump, an obstacle closer than 0.25 m ahead, stale odometry or lidar, a stall or a timeout.",
+      "notes": ["Needs motion_shapes.py, more_shapes.py and motion_common.py in the same folder on the robot.", "Needs about 1 m of clear floor all round (more for a side longer than 0.4 m).", "Studio asks you to confirm and passes that on to the program (STUDIO_MOTION_CONFIRMED), so the arguments box can stay empty; started by hand in a terminal the program asks 'is the area clear?' itself.", "It refuses to start while the robot is docked. Exit codes: 0 done, 1 safety stop, 2 setup failure, 130 stopped by you."],
+      "doc": "../../examples/README.md#one-program-per-shape"
+    },
+    "shape_hexagon.py": {
+      "title": "Hexagon",
+      "summary": "Drives a regular hexagon (6 sides, turning left 60 degrees at each corner) and ends where it started.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "--side", "help": "side length in metres (default 0.30, max 0.60)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop (only if the lidar is broken)"},
+        {"name": "--dry-run", "help": "run the checks and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (Studio asks you itself, so leave it out there; needed when started detached)"}
+      ],
+      "examples": [
+        {"args": "--dry-run", "what": "checks everything and prints the hexagon plan, never moves"},
+        {"args": "--side 0.25", "what": "drives a hexagon with 25 cm sides (Studio asks you to confirm first)"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP or 'touch ~/STOP'. It also stops itself on a bump, an obstacle closer than 0.25 m ahead, stale odometry or lidar, a stall or a timeout, or if odometry puts the robot more than 1.2 m from its start.",
+      "notes": ["Needs motion_shapes.py, more_shapes.py and motion_common.py in the same folder on the robot.", "Needs about 1 m of clear floor all round.", "Studio asks you to confirm and passes that on to the program (STUDIO_MOTION_CONFIRMED), so the arguments box can stay empty; started by hand in a terminal the program asks 'is the area clear?' itself.", "It refuses to start while the robot is docked. Exit codes: 0 done, 1 safety stop, 2 setup failure, 130 stopped by you."],
+      "doc": "../../examples/README.md#one-program-per-shape"
+    },
+    "shape_star.py": {
+      "title": "Star (5 points)",
+      "summary": "Drives a 5-point star (forward, turn left 144 degrees, five times) and ends where it started.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "--side", "help": "length of each line in metres (default 0.30, max 0.60)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop (only if the lidar is broken)"},
+        {"name": "--dry-run", "help": "run the checks and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (Studio asks you itself, so leave it out there; needed when started detached)"}
+      ],
+      "examples": [
+        {"args": "--dry-run", "what": "checks everything and prints the star plan, never moves"},
+        {"args": "--side 0.25", "what": "drives a star with 25 cm lines (Studio asks you to confirm first)"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP or 'touch ~/STOP'. It also stops itself on a bump, an obstacle closer than 0.25 m ahead, stale odometry or lidar, a stall or a timeout, or if odometry puts the robot more than 1.2 m from its start.",
+      "notes": ["Needs motion_shapes.py, more_shapes.py and motion_common.py in the same folder on the robot.", "Needs about 1 m of clear floor all round.", "Studio asks you to confirm and passes that on to the program (STUDIO_MOTION_CONFIRMED), so the arguments box can stay empty; started by hand in a terminal the program asks 'is the area clear?' itself.", "It refuses to start while the robot is docked. Exit codes: 0 done, 1 safety stop, 2 setup failure, 130 stopped by you."],
+      "doc": "../../examples/README.md#one-program-per-shape"
+    },
+    "shape_figure_eight.py": {
+      "title": "Figure eight",
+      "summary": "Drives a figure eight made of two full circles of 20 cm radius, first to the left and then to the right. Fixed size.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop (only if the lidar is broken)"},
+        {"name": "--dry-run", "help": "run the checks and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (Studio asks you itself, so leave it out there; needed when started detached)"}
+      ],
+      "examples": [
+        {"args": "--dry-run", "what": "checks everything and prints the figure-eight plan, never moves"},
+        {"args": "--speed 0.08", "what": "drives the figure eight a little slower (Studio asks you to confirm first)"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP or 'touch ~/STOP'. It also stops itself on a bump, an obstacle closer than 0.25 m ahead, stale odometry or lidar, a stall or a timeout.",
+      "notes": ["Needs motion_shapes.py, more_shapes.py and motion_common.py in the same folder on the robot.", "Needs about 1 m of clear floor all round (the eight is 0.4 m ahead and behind the start and 0.8 m across).", "Studio asks you to confirm and passes that on to the program (STUDIO_MOTION_CONFIRMED), so the arguments box can stay empty; started by hand in a terminal the program asks 'is the area clear?' itself.", "It refuses to start while the robot is docked. Exit codes: 0 done, 1 safety stop, 2 setup failure, 130 stopped by you."],
+      "doc": "../../examples/README.md#one-program-per-shape"
+    },
+    "shape_spiral.py": {
+      "title": "Square spiral",
+      "summary": "Drives a square spiral outwards (legs growing by one step every two legs, up to a longest leg) and stops about 0.3 m from where it started.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "--step", "help": "how much each pair of legs grows, in metres (default 0.10)"},
+        {"name": "--max-leg", "help": "longest leg in metres (default 0.50, at most 0.5)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop (only if the lidar is broken)"},
+        {"name": "--dry-run", "help": "run the checks and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (Studio asks you itself, so leave it out there; needed when started detached)"}
+      ],
+      "examples": [
+        {"args": "--dry-run", "what": "checks everything and prints the spiral plan, never moves"},
+        {"args": "--step 0.10 --max-leg 0.40", "what": "drives a smaller spiral (Studio asks you to confirm first)"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP or 'touch ~/STOP'. It also stops itself on a bump, an obstacle closer than 0.25 m ahead, stale odometry or lidar, a stall or a timeout, or if odometry puts the robot more than 1.2 m from its start.",
+      "notes": ["Needs motion_shapes.py, more_shapes.py and motion_common.py in the same folder on the robot.", "Needs about 1 m of clear floor all round (the spiral reaches about 0.5 m from the start).", "Studio asks you to confirm and passes that on to the program (STUDIO_MOTION_CONFIRMED), so the arguments box can stay empty; started by hand in a terminal the program asks 'is the area clear?' itself.", "It refuses to start while the robot is docked. Exit codes: 0 done, 1 safety stop, 2 setup failure, 130 stopped by you."],
+      "doc": "../../examples/README.md#one-program-per-shape"
+    },
+    "shape_zigzag.py": {
+      "title": "Zigzag (slalom)",
+      "summary": "Drives a zigzag along a line: legs with alternating 60 degree left and right turns, then turns back to the start heading. It ends ahead of the start, not at it.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "--legs", "help": "number of legs (1 to 8, default 4)"},
+        {"name": "--side", "help": "length of each leg in metres (default 0.25, max 0.60)"},
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop (only if the lidar is broken)"},
+        {"name": "--dry-run", "help": "run the checks and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (Studio asks you itself, so leave it out there; needed when started detached)"}
+      ],
+      "examples": [
+        {"args": "--dry-run", "what": "checks everything and prints the zigzag plan, never moves"},
+        {"args": "--legs 4 --side 0.25", "what": "drives 4 legs of 25 cm (Studio asks you to confirm first)"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP or 'touch ~/STOP'. It also stops itself on a bump, an obstacle closer than 0.25 m ahead, stale odometry or lidar, a stall or a timeout, or if odometry puts the robot more than 1.2 m from its start.",
+      "notes": ["Needs motion_shapes.py, more_shapes.py and motion_common.py in the same folder on the robot.", "Needs about 1.5 m of clear floor straight ahead and 1 m to each side (it ends 0.87 m ahead with the defaults).", "Studio asks you to confirm and passes that on to the program (STUDIO_MOTION_CONFIRMED), so the arguments box can stay empty; started by hand in a terminal the program asks 'is the area clear?' itself.", "It refuses to start while the robot is docked. Exit codes: 0 done, 1 safety stop, 2 setup failure, 130 stopped by you."],
+      "doc": "../../examples/README.md#one-program-per-shape"
+    },
+    "shape_spin.py": {
+      "title": "Spin (one turn on the spot)",
+      "summary": "Turns the robot one full turn to the left on the spot. It does not drive away from where it stands.",
+      "moves": true, "needs_undock": true, "safe_on_dock": false,
+      "category": "motion",
+      "args": [
+        {"name": "--speed", "help": "forward speed in m/s (default 0.10, capped at 0.15)"},
+        {"name": "--turn-speed", "help": "turn speed in rad/s (default 0.5, capped at 1.0)"},
+        {"name": "--no-lidar", "help": "do not use the lidar: NO obstacle stop (only if the lidar is broken)"},
+        {"name": "--dry-run", "help": "run the checks and print the plan, never move"},
+        {"name": "--yes", "help": "skip the 'area clear?' question (Studio asks you itself, so leave it out there; needed when started detached)"}
+      ],
+      "examples": [
+        {"args": "--dry-run", "what": "checks everything and prints the plan, never moves"},
+        {"args": "--turn-speed 0.8", "what": "one full turn a little faster (Studio asks you to confirm first)"}
+      ],
+      "stop": "Ctrl+C, the Stop button, the E-STOP or 'touch ~/STOP'. It also stops itself on a bump, an obstacle closer than 0.25 m ahead, stale odometry or lidar, a stall or a timeout.",
+      "notes": ["Needs motion_shapes.py, more_shapes.py and motion_common.py in the same folder on the robot.", "Needs about 0.5 m of clear floor all round (it turns where it stands; keep 1 m free for safety).", "Studio asks you to confirm and passes that on to the program (STUDIO_MOTION_CONFIRMED), so the arguments box can stay empty; started by hand in a terminal the program asks 'is the area clear?' itself.", "It refuses to start while the robot is docked. Exit codes: 0 done, 1 safety stop, 2 setup failure, 130 stopped by you."],
+      "doc": "../../examples/README.md#one-program-per-shape"
     },
     "wall_approach.py": {
       "title": "Approach a wall to a set distance",
@@ -234,7 +447,7 @@
     },
     "motion_common.py": {
       "title": "Shared safety code (not a program)",
-      "summary": "A helper module used by more_shapes.py, wall_approach.py and keep_distance.py: start-up checks, total timeout and a 1.2 m fence. It is not run directly; keep it next to those programs.",
+      "summary": "A helper module used by more_shapes.py, wall_approach.py, keep_distance.py and the shape_*.py programs (one program per shape): start-up checks, total timeout and a 1.2 m fence. It is not run directly; keep it next to those programs.",
       "moves": false, "needs_undock": false, "safe_on_dock": true,
       "category": "helper",
       "args": [],

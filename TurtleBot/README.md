@@ -6,7 +6,7 @@ The lab's TurtleBot 4 robot: an app to control it, guides, example programs and 
 
 TurtleBot Studio is a desktop app. It finds the robot, shows what the robot sees, runs programs, lets you drive it and has an emergency stop. You do not need Python, ROS or a terminal.
 
-**[Download TurtleBot Studio for Windows](https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.1.exe)** (version <!-- studio-version -->2.1<!-- /studio-version -->, <!-- studio-size -->8.9 MB<!-- /studio-size -->). More about the download, and macOS and Linux: [Download/](Download/README.md).
+**[Download TurtleBot Studio for Windows](https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.1.1.exe)** (version <!-- studio-version -->2.1.1<!-- /studio-version -->, <!-- studio-size -->8.9 MB<!-- /studio-size -->). More about the download, and macOS and Linux: [Download/](Download/README.md).
 
 | Step | What to do |
 |---|---|

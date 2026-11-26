@@ -14,9 +14,14 @@ What it adds on top of motion_shapes.py:
     the base's BACKUP_LIMIT hazard (which motion_shapes ignores).
   - run_guarded(): the try / except / finally that always sends zero velocity at the end.
 
+  - shape_parser(), common_argv(), run_shape(), studio_confirmed(): the shared part of the one-program-per-shape
+    wrappers (shape_circle.py, shape_square.py, ...). They hold no motion logic: they pass their options on to
+    motion_shapes.main or more_shapes.main, so every safety layer is the one of those programs.
+
 Stop signals (Ctrl+C, SIGTERM, ~/STOP) are handled by motion_shapes.on_signal / check_safety, so the
 stop behaviour is identical to motion_shapes.py.
 """
+import argparse
 import math
 import os
 import signal
@@ -241,3 +246,55 @@ def run_guarded(node, dry_run, body):
         node.destroy_node()
         rclpy.try_shutdown()
     return code
+
+
+# ---------------------------------------------------------------- one-program-per-shape wrappers
+STUDIO_MARKER = 'STUDIO_MOTION_CONFIRMED'   # set to "1" by TurtleBot Studio's robot_bridge.py, only for a program
+                                            # that moves the robot and that the person confirmed in Studio's dialog
+
+
+def studio_confirmed(env=None, stdin_is_tty=None):
+    """True if Studio has already asked "is the area clear?" for this very run.
+
+    Counts only when there is no terminal to ask on (Studio starts programs with stdin closed): in a terminal the
+    normal question is still asked, even if the variable is set by mistake. --dry-run never needs it."""
+    env = os.environ if env is None else env
+    if stdin_is_tty is None:
+        stdin_is_tty = sys.stdin is not None and sys.stdin.isatty()
+    return env.get(STUDIO_MARKER) == '1' and not stdin_is_tty
+
+
+def shape_parser(doc, prog, no_lidar=True):
+    """argparse parser with the options every shape program shares (same defaults and caps as the base programs)."""
+    p = argparse.ArgumentParser(prog=prog, description=doc, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument('--speed', type=float, default=ms.LINEAR_SPEED,
+                   help=f'forward speed in m/s (default {ms.LINEAR_SPEED}, capped at {ms.MAX_LINEAR_SPEED})')
+    p.add_argument('--turn-speed', type=float, default=ms.ANGULAR_SPEED,
+                   help=f'turn speed in rad/s (default {ms.ANGULAR_SPEED}, capped at {ms.MAX_ANGULAR_SPEED})')
+    if no_lidar:
+        p.add_argument('--no-lidar', action='store_true', help='do not use the lidar (NO obstacle stop)')
+    p.add_argument('--dry-run', action='store_true', help='run all checks and print the plan, never move')
+    p.add_argument('--yes', action='store_true',
+                   help='skip the "area clear?" question (needed when there is no terminal; Studio asks you itself)')
+    return p
+
+
+def common_argv(args):
+    """The shared options of a parsed wrapper, as an argv list for motion_shapes.main / more_shapes.main."""
+    out = ['--speed', repr(args.speed), '--turn-speed', repr(args.turn_speed)]
+    for flag, attr in (('--no-lidar', 'no_lidar'), ('--dry-run', 'dry_run'), ('--yes', 'yes')):
+        if getattr(args, attr, False):
+            out.append(flag)
+    return out
+
+
+def run_shape(module, argv, prog, what, env=None, stdin_is_tty=None):
+    """Print which shape this is and run module.main(argv) (motion_shapes or more_shapes). Returns its exit code."""
+    argv = list(argv)
+    log(f'{prog}: drives {what}. THIS PROGRAM MOVES THE ROBOT.')
+    log(f'stop it with Ctrl+C, the Studio Stop button, "touch ~/STOP" or "pkill -INT -f {prog}"')
+    if '--yes' not in argv and '--dry-run' not in argv and studio_confirmed(env, stdin_is_tty):
+        argv.append('--yes')
+        log(f'started from TurtleBot Studio ({STUDIO_MARKER}=1): Studio already asked you to confirm, '
+            'so the terminal question is skipped. All other safety checks stay on.')
+    return module.main(argv)
