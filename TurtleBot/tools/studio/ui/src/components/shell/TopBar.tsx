@@ -80,7 +80,12 @@ export function ThemeMenu() {
   return (
     <DM.Root>
       <DM.Trigger asChild>
-        <button type="button" className="btn btn-ghost btn-icon" aria-label="Colour theme">
+        <button
+          type="button"
+          className="btn btn-ghost btn-icon"
+          aria-label="Colour theme"
+          title="Colour theme"
+        >
           <Current size={18} aria-hidden="true" />
         </button>
       </DM.Trigger>
@@ -115,6 +120,8 @@ export function TopBar() {
         onClick={() => setNavOpen(!navOpen)}
         aria-expanded={navOpen}
         aria-controls="sidebar"
+        title={navOpen ? 'Close menu' : 'Open menu'}
+        noTooltip
       />
       <div className="brand">
         <span className="brand-mark" aria-hidden="true">

@@ -4,31 +4,25 @@ How the lab's TurtleBot 4 setup fits together, at three levels: the whole system
 
 ## 1. Context: laptop, network, robot
 
-```
- Student laptop (Windows, macOS or Linux)
- +--------------------------------------+
- |  TurtleBot Studio (desktop app)      |
- |  or a terminal: ssh ubuntu@...       |
- +------------------+-------------------+
-                    |
-                    |  Wi-Fi ("Students" or the robot's own "Turtlebot4")
-                    |  or an Ethernet cable
-                    v
- TurtleBot 4 Standard
- +--------------------------------------------------------------+
- |  Raspberry Pi 4, Ubuntu 24.04 Server, ROS 2 Jazzy            |
- |    turtlebot4.service (bringup)                              |
- |    RPLIDAR (USB)      OAK-D camera      front display + buttons |
- |                         |                                    |
- |                         |  ROS 2 topics, services, actions   |
- |                         v                                    |
- |  iRobot Create 3 base (its own computer, own ROS application)|
- |    wheels, bumpers and cliff sensors, odometry (/odom),      |
- |    dock sensing, e-stop                                      |
- +-----------------------------+--------------------------------+
-                               | infrared
-                               v
-                           Charging dock
+```mermaid
+flowchart TB
+    subgraph laptop["Student laptop: Windows, macOS or Linux"]
+        studio["TurtleBot Studio<br/>or a terminal: ssh ubuntu@..."]
+    end
+    subgraph tb4["TurtleBot 4 Standard"]
+        subgraph pi["Raspberry Pi 4: Ubuntu 24.04 Server, ROS 2 Jazzy"]
+            bringup["turtlebot4.service (bringup)"]
+            lidar["RPLIDAR (USB)"]
+            cam["OAK-D camera"]
+            hmi["Front display + buttons"]
+        end
+        base["iRobot Create 3 base: its own computer<br/>wheels, bumpers, cliff sensors,<br/>odometry /odom, dock sensing, e-stop"]
+    end
+    dock["Charging dock"]
+
+    studio -- "Wi-Fi: Students or the robot's own Turtlebot4<br/>or an Ethernet cable" --> pi
+    pi -- "ROS 2 topics, services, actions" --> base
+    base -- "infrared" --> dock
 ```
 
 | Part | Role | Source |
@@ -42,31 +36,27 @@ Why it is built this way: the Pi and the base are two computers that talk over R
 
 ## 2. Software on the robot
 
-```
- Pi 4 (ROS 2 Jazzy, domain 0)
- +-----------------------------------------------------------------------------+
- |  turtlebot4.service  (bringup: lidar driver, display and buttons, OAK-D)     |
- |        ^   scan, hmi/buttons, hmi/display                                    |
- |        |                                                                     |
- |  Delivery package  (~/robot_code/delivery, deployed by tools/deploy.py)      |
- |    delivery-menu service (user systemd unit)                                 |
- |       delivery_menu.py   front-panel menu, starts trips                      |
- |          |  starts                                                           |
- |          v                                                                   |
- |    delivery_mission.py   undock, drive the route, wait for buttons, dock     |
- |          |  uses                                                             |
- |          v                                                                   |
- |    Navigation stack, ONE process: launch/delivery_stack.launch.py            |
- |       map server, AMCL, Nav2, keepout and speed masks                        |
- |    (map mode: slam_toolbox instead, for mapping)                             |
- |    robot/start_stack.sh  robot/stop_stack.sh  robot/save_map.sh              |
- |                                                                              |
- |  Studio robot bridge (robot_bridge.py)  ONE ROS node, streamed over ssh      |
- |    status, scan, pose, teleop, programs, e-stop, mapping, maps, routes, menu |
- +-------------------------------+---------------------------------------------+
-                                 |  ROS 2 (cmd_vel, odom, actions, services)
-                                 v
-                        Create 3 base (wheels, dock, /odom)
+```mermaid
+flowchart TB
+    subgraph pi["Pi 4: ROS 2 Jazzy, domain 0"]
+        bringup["turtlebot4.service<br/>lidar driver, display and buttons, OAK-D"]
+        subgraph deliv["Delivery package: ~/robot_code/delivery, deployed by tools/deploy.py"]
+            menu["delivery_menu.py<br/>front-panel menu, starts trips<br/>(delivery-menu user service)"]
+            mission["delivery_mission.py<br/>undock, drive the route,<br/>wait for buttons, dock"]
+            stack["Navigation stack, ONE process<br/>delivery_stack.launch.py: map server,<br/>AMCL, Nav2, keepout and speed masks<br/>(map mode: slam_toolbox instead)"]
+            scripts["robot/start_stack.sh, stop_stack.sh, save_map.sh"]
+        end
+        bridge["Studio robot bridge: robot_bridge.py<br/>ONE ROS node, streamed over ssh<br/>status, scan, pose, teleop, programs, e-stop,<br/>mapping, maps, routes, menu"]
+    end
+    base["Create 3 base<br/>wheels, dock, /odom"]
+
+    bringup -- "scan, hmi/buttons, hmi/display" --> menu
+    menu -- "starts" --> mission
+    mission -- "uses" --> stack
+    scripts -- "start and stop" --> stack
+    bridge -- "starts for mapping" --> scripts
+    stack -- "cmd_vel, actions" --> base
+    bridge -- "cmd_vel, odom, dock and e-stop services" --> base
 ```
 
 **Bringup.** `turtlebot4.service` starts the stock TurtleBot 4 software. The delivery scripts source `/etc/turtlebot4/setup.bash`.
@@ -91,27 +81,48 @@ Why it is built this way: the Pi and the base are two computers that talk over R
 
 Studio runs on the student's computer. Its layers, from [tools/studio/README.md](tools/studio/README.md#architecture) and [tools/studio/docs/DESIGN-MAPPING.md](tools/studio/docs/DESIGN-MAPPING.md) (section 2):
 
+```mermaid
+flowchart TB
+    ui["Interface: ui/, React and TypeScript, built to web/v2/<br/>screens, then features: pure model.ts, store, components, typed API calls"]
+    desk["Desktop app: studio.py, source in desktop/<br/>event bus, discovery, file copy over ssh, map store, HTTP server"]
+    br["Robot bridge: robot_bridge.py, source in bridge/, runs on the robot<br/>handlers (thin), then services (state machines, libraries), then adapters<br/>adapters: StackRunner, ProcessProbe, MapSource, each with a fake for --fake"]
+    rosx["ROS 2 on the Pi, delivery scripts, files under ~/robot_code"]
+
+    ui -- "HTTP JSON and Server-Sent Events<br/>127.0.0.1 only, token header, Host and Origin checks" --> desk
+    desk -- "one ssh connection<br/>JSON lines on stdin and stdout" --> br
+    br --> rosx
 ```
- Interface (ui/: React and TypeScript, built to web/v2/)
-   screens  ->  features (pure model.ts, store, components, typed API calls)
-        |  HTTP JSON and Server-Sent Events, 127.0.0.1 only,
-        |  token header, Host and Origin checks
-        v
- Desktop backend (studio.py)
-   bus, discovery, file sync over ssh, map store, HTTP server
-        |  one ssh connection, JSON lines on stdin and stdout
-        v
- Robot bridge (robot_bridge.py, runs on the robot)
-   handlers (thin)  ->  services (state machines, libraries)  ->  adapters
-   adapters: StackRunner, ProcessProbe, MapSource (each has a fake for --fake)
-        |
-        v
- ROS 2 on the Pi, delivery scripts, files under ~/robot_code
-```
+
+The full Studio design, with the flows for connecting, running a program, E-STOP, mapping and saving the menu, is
+in [tools/studio/docs/ARCHITECTURE.md](tools/studio/docs/ARCHITECTURE.md).
 
 With `--fake` the same desktop and interface talk to a simulated robot in a local process. Everything in the offline tests uses it. It says nothing about the real robot.
 
-## 4. Key constraints and why
+## 4. Workflow: from an empty room to a delivery
+
+What a student or lab member does, in order, and which part of the system does the work at each step.
+
+```mermaid
+flowchart LR
+    c["1. Connect<br/>Studio Home: Connect<br/>or Find my robot"] --> d["2. Drive and look<br/>Studio Drive screen:<br/>lidar, joystick, keyboard"]
+    d --> m["3. Make a map<br/>Studio Maps: start mapping,<br/>drive around, save"]
+    m --> r["4. Plan a route<br/>tools/plan_route.py on the laptop,<br/>upload in Studio Routes"]
+    r --> p["5. Write or pick programs<br/>Studio Code: new program<br/>from a template, run it"]
+    p --> u["6. Put it on the robot's menu<br/>Studio Robot menu:<br/>add your program"]
+    u --> t["7. Run from the robot<br/>front-panel buttons start a trip<br/>or your program, no laptop needed"]
+```
+
+| Step | What does the work | Read |
+|---|---|---|
+| 1 Connect | Studio desktop app opens one ssh connection and streams the bridge | [FIRST-CONNECTION.md](tools/studio/docs/FIRST-CONNECTION.md) |
+| 2 Drive | The bridge publishes speeds on `/cmd_vel`, capped at 0.30 m/s | [LIVE-AND-DRIVING.md](tools/studio/docs/LIVE-AND-DRIVING.md) |
+| 3 Map | The bridge runs `start_stack.sh map` (slam_toolbox) and `save_map.sh` | [MAPS-AND-ROUTES.md](tools/studio/docs/MAPS-AND-ROUTES.md) |
+| 4 Route | `plan_route.py` writes a route folder; Studio uploads it and sets the current link | [delivery/README.md](delivery/README.md) |
+| 5 Programs | Programs live in `~/robot_code`; moving ones need confirmation | [EVERYDAY-USE.md](tools/studio/docs/EVERYDAY-USE.md) |
+| 6 Menu | The robot's `menu_config.py` checks the file before it is saved | [ROBOT-MENU.md](tools/studio/docs/ROBOT-MENU.md) |
+| 7 Run | `delivery_menu.py` starts the trip or program and shows the result | [delivery/README.md](delivery/README.md) |
+
+## 5. Key constraints and why
 
 | Constraint | Why | Where it is recorded |
 |---|---|---|
@@ -134,7 +145,7 @@ With `--fake` the same desktop and interface talk to a simulated robot in a loca
 | Front-panel button 2 | Stop while a trip runs. Physical presses **NOT confirmed** on the new menu |
 | Create 3 `/e_stop` service | Works, but returns `success=False` with an empty message on this firmware, so judge by the wheels ([MAINTENANCE.md known issues](MAINTENANCE.md#known-issues)) |
 
-## 5. Where to read more
+## 6. Where to read more
 
 | Question | Document |
 |---|---|

@@ -915,10 +915,10 @@ describe('Robot menu screen', () => {
 });
 
 describe('router', () => {
-  it('has the Robot menu route right after Routes', () => {
+  it('has the Robot menu route right after Code', () => {
     const i = ROUTES.findIndex((r) => r.path === '/menu');
     expect(i).toBeGreaterThan(0);
-    expect(ROUTES[i - 1]?.path).toBe('/routes');
+    expect(ROUTES[i - 1]?.path).toBe('/code');
     expect(routeFor('/menu').label).toBe('Robot menu');
     expect(parseHash('#/menu')).toBe('/menu');
   });

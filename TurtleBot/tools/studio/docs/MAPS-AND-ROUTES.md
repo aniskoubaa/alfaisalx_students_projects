@@ -12,7 +12,7 @@ Guides: [First connection](FIRST-CONNECTION.md) | [Everyday use](EVERYDAY-USE.md
 2. The **E-STOP** button is at the top right of every screen. **Esc** or **Space** does the same (not while you type in a text box).
 3. Driving is switched off by Studio while mapping starts, while a map is being saved and while mapping stops. Starting a new robot program can stall the robot's wheels for several seconds, so Studio does not let you drive then. Wait for the state to say **Mapping** again.
 4. Leaving the **Maps** screen switches driving off.
-5. Nothing on the Maps or Routes screens moves the robot by itself. Studio never undocks or docks the robot for you here. You do that on **Overview** or with the controller.
+5. Nothing on the Maps or Routes screens moves the robot by itself. Studio never undocks or docks the robot for you here. You do that on **Home** (called Overview before Studio 2.2) or with the controller.
 6. Read the [safety checklist](../../../examples/README.md#safety-checklist-before-anything-moves) before the robot moves.
 
 ## What you need
@@ -40,9 +40,9 @@ The procedure is the one in the [delivery README, section 6](../../../delivery/R
 
    **Start mapping** stays grey when a navigation program is running on the robot ("A navigation program is running ... Stop it first") or when the scripts are missing.
 4. Wait for **Mapping**.
-5. Undock the robot: open **Overview**, press **Undock** and confirm. Check that the robot is clear of the dock. Then return to **Maps**. (Driving is not possible while docked.)
+5. Undock the robot: open **Home**, press **Undock** and confirm. Check that the robot is clear of the dock. Then return to **Maps**. (Driving is not possible while docked.)
 6. Drive. Two ways:
-   - The drive panel next to the map. Arm it with the confirmation, then use the stick or the W/A/S/D and arrow keys. The rules are the same as on **Live**: see [Live view and driving](LIVE-AND-DRIVING.md).
+   - The drive panel next to the map. Arm it with the confirmation, then use the stick or the W/A/S/D and arrow keys. The rules are the same as on **Drive** (called Live before 2.2): see [Live view and driving](LIVE-AND-DRIVING.md).
    - The robot's controller. For a long wall: **R2** follows the wall on the right, **L2** on the left. Each press runs for only about 10 seconds, so press again about every 10 seconds while you walk behind the robot. [to verify on this robot, see the delivery README]
 7. Watch the map. The blue disc is the robot, the orange dots are what the lidar sees now. Black cells are walls and obstacles, white cells are free space, grey is not mapped yet. Zoom with the buttons or the mouse wheel. **Following robot** keeps the robot in the centre. **Free view** leaves the map where you put it.
 8. Mapping advice, in short (details in the delivery README, section 6):
@@ -50,7 +50,7 @@ The procedure is the one in the [delivery README, section 6](../../../delivery/R
    - **Close the loop.** Drive back along the same wall to where you started, so the mapping program sees the start again. This makes the map more accurate.
    - Drive slowly. A person who walks through the map leaves marks on it.
 9. Press **Save map**. Type a name (letters, digits, hyphens and underscores, up to 48 characters, no spaces; Studio suggests one with the date and time) and press **Save map** in the dialog. The state shows **Saving the map…** and then **Mapping** again. The line "Last saved map" shows the name. If the name exists, Studio asks "Replace the map?" Choose **Replace map** only when you mean to overwrite.
-10. Dock the robot (**Overview**, **Dock**, or the controller).
+10. Dock the robot (**Home**, **Dock**, or the controller).
 11. Press **Stop mapping**. Studio always asks first. If the map was never saved it asks "This map is not saved. Stop and lose it?" (in red). If it was saved, it asks "Stop mapping?" and reminds you that anything mapped since the last save is lost. Choose **Keep mapping** and save again first, unless you really want to throw that part away. The state shows **Stopping…** and then **Not mapping**.
 
 You can save several times in one session, with different names, for example before and after a risky stretch.
@@ -108,7 +108,7 @@ The front-panel menu and the next trip use the route that **current** points to.
 | What you see | What to do |
 |---|---|
 | State **Error** and a "Last error" line | Read the text. Press **Clear error**: Studio asks the robot what is really running and shows **Mapping** or **Not mapping**. If the mapping program is still running and you want to end it, press **Stop mapping** |
-| The map does not grow | The lidar motor is normally off while the robot is docked. Undock the robot, or start the lidar on **Overview**. Then drive a little |
+| The map does not grow | The lidar motor is normally off while the robot is docked. Undock the robot, or start the lidar on **Home**. Then drive a little |
 | The save says the name exists | Choose another name, or accept "Replace map" if you want to overwrite |
 | "The mapping scripts are missing on the robot" | The delivery package is not on the robot. Copy it with `delivery/tools/deploy.py` ([delivery README, section 4](../../../delivery/README.md#4-connecting-and-copying-the-folder-to-the-robot)), then reconnect |
 | **Start mapping** is grey and names a navigation program | A navigation stack is running. Stop it (delivery README, section 9) and try again |
@@ -117,3 +117,5 @@ The front-panel menu and the next trip use the route that **current** points to.
 | Anything else | [Troubleshooting](TROUBLESHOOTING.md), or ask the lab maintainer |
 
 Note 2026-11-14 (real robot, docked, home Wi-Fi, driven through Studio's API and not by clicking in the browser): verified on the real robot are start mapping (6 to 10 s), the live map, save (about 18 s), stop (4 s), preview, download (a zip), rename, delete (refused without confirm), listing routes and trip status, and **Use this route** with the route that was already current (`home`). Mapping ran twice. The robot did not move, so the map was tiny. **Not verified:** mapping while driving, route upload, and **Use this route** with a different route. Starting mapping stops the robot's camera container until the next reboot (documented for `start_stack.sh`). Details: [Studio README](../README.md#tested-on-the-robot-2026-11-14-21).
+
+Studio 2.2: on **Home**, the button **Make a map** opens **Maps**. Both screens are in the **Use the robot** group. Overview is now Home and Live is now Drive.

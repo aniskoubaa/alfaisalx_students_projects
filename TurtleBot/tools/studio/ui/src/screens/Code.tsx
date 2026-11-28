@@ -3,12 +3,15 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import { OutputLog } from '../components/OutputLog';
 import { Badge, Button, EmptyState, Field, Input, Panel } from '../components/ui';
 import { useAsyncAction } from '../lib/useAsync';
+import { argsPlaceholder } from '../lib/requiredArgs';
 import { loadPrograms, openVscode, stopRun } from '../state/actions';
 import { useArgs } from '../state/args';
 import { isCodeDirty, useCode } from '../state/code';
 import { openFile, revertCode, saveAndRun, saveCode, setCodeText } from '../state/codeActions';
+import { runFromList } from '../state/runFlow';
 import { aliveRunsOf } from '../state/selectors';
 import { useStudio } from '../state/store';
+import { useUi } from '../state/ui';
 import { NewProgramDialog } from './code/NewProgramDialog';
 
 // CodeMirror is large, so it loads only when the Code screen opens.
@@ -43,7 +46,7 @@ function HowItWorks() {
           <strong>Always finish by publishing zeros.</strong> Otherwise the robot may keep rolling.
           The templates already do this for you.
         </li>
-        <li>The robot cannot drive while docked. Undock it first on the Overview screen.</li>
+        <li>The robot cannot drive while docked. Undock it first on the Home screen.</li>
         <li>
           Safety: the E-STOP button always works. In this editor Esc and Space just edit text, so
           use the button or <strong>Ctrl+Shift+E</strong>.
@@ -65,6 +68,11 @@ function HowItWorks() {
   );
 }
 
+/** On a narrow screen the output sits below the editor: bring it into view once a run starts. */
+function showOutput(): void {
+  document.getElementById('code-output')?.scrollIntoView?.({ block: 'nearest' });
+}
+
 function FilesPanel({ onNew }: { onNew: () => void }) {
   const files = useStudio((s) => s.files);
   const connected = useStudio((s) => s.conn.state === 'connected');
@@ -73,6 +81,18 @@ function FilesPanel({ onNew }: { onNew: () => void }) {
   const refresh = useAsyncAction(loadPrograms);
   const opening = useAsyncAction(async (name: string) => {
     await openFile(name);
+  });
+  const [notice, setNotice] = useState('');
+  const running = useAsyncAction(async (name: string) => {
+    if (name === open && dirty) {
+      // The editor holds changes the robot does not have yet: run what you see, so save first (as Save and run does).
+      if (await saveAndRun(useArgs.getState().args[name] ?? '')) showOutput();
+      setNotice('');
+      return;
+    }
+    const r = await runFromList(name);
+    setNotice(r.notice);
+    if (r.started) showOutput();
   });
   return (
     <Panel
@@ -108,7 +128,7 @@ function FilesPanel({ onNew }: { onNew: () => void }) {
       ) : (
         <ul className="file-list" aria-label="Files on the robot">
           {files.map((f) => (
-            <li key={f.name}>
+            <li key={f.name} className="file-row">
               <button
                 type="button"
                 className="file-item"
@@ -121,10 +141,22 @@ function FilesPanel({ onNew }: { onNew: () => void }) {
                   <span className="dirty-dot" role="img" aria-label="unsaved changes" />
                 ) : null}
               </button>
+              <Button
+                size="sm"
+                icon={<Play size={14} aria-hidden="true" />}
+                disabled={!connected || running.pending}
+                aria-label={`Run ${f.name}`}
+                onClick={() => void running.run(f.name)}
+              >
+                Run
+              </Button>
             </li>
           ))}
         </ul>
       )}
+      <p className="prog-notice" role="status">
+        {notice}
+      </p>
     </Panel>
   );
 }
@@ -140,10 +172,13 @@ function EditorPanel() {
   const runningHere = useStudio((s) => (name ? aliveRunsOf(s, name).length : 0));
   const args = useArgs((s) => (name ? (s.args[name] ?? '') : ''));
   const setArgs = useArgs((s) => s.setArgs);
+  const entry = useStudio((s) => (name ? s.catalog[name] : undefined));
+  const desc = useStudio((s) => (name ? s.desc[name] : undefined));
 
   const save = useAsyncAction(saveCode);
   const run = useAsyncAction(async () => {
-    await saveAndRun(useArgs.getState().args[useCode.getState().name ?? ''] ?? '');
+    const started = await saveAndRun(useArgs.getState().args[useCode.getState().name ?? ''] ?? '');
+    if (started) showOutput();
   });
   const revert = useAsyncAction(revertCode);
   const stop = useAsyncAction(async () => {
@@ -226,13 +261,14 @@ function EditorPanel() {
       </div>
       <Field
         label="Arguments for Save and run"
-        hint="Optional, for example --turns 1. Press Enter to save and run."
+        hint="Leave it empty if the program needs nothing. Press Enter to save and run."
       >
         {(p) => (
           <Input
             {...p}
             className="mono"
             disabled={!name}
+            placeholder={name ? argsPlaceholder(entry, desc) : 'Optional'}
             value={args}
             onChange={(e) => name && setArgs(name, e.target.value)}
             onKeyDown={(e) => {
@@ -249,6 +285,7 @@ function OutputPanel() {
   const run = useStudio((s) => (s.selectedRun ? s.runs[s.selectedRun] : undefined));
   return (
     <Panel
+      id="code-output"
       title="Output"
       actions={
         run ? (
@@ -276,9 +313,15 @@ function OutputPanel() {
 export function Code() {
   const connected = useStudio((s) => s.conn.state === 'connected');
   const [newOpen, setNewOpen] = useState(false);
+  const asked = useUi((s) => s.newProgramAsked);
+  const setAsked = useUi((s) => s.setNewProgramAsked);
   useEffect(() => {
     if (connected) void loadPrograms();
   }, [connected]);
+  // Leaving the screen with the dialog still open must not reopen it on the next visit.
+  useEffect(() => () => setAsked(false), [setAsked]);
+  // A button on another screen (Home, Programs) can ask for the New program dialog.
+  const dialogOpen = newOpen || asked;
 
   return (
     <div className="page">
@@ -287,7 +330,7 @@ export function Code() {
       {!connected ? (
         <Panel>
           <EmptyState compact title="Not connected">
-            Connect to the robot on the Overview screen to open and edit its programs.
+            Connect to the robot on the Home screen to open and edit its programs.
           </EmptyState>
         </Panel>
       ) : null}
@@ -298,7 +341,15 @@ export function Code() {
           <OutputPanel />
         </div>
       </div>
-      {newOpen ? <NewProgramDialog open onClose={() => setNewOpen(false)} /> : null}
+      {dialogOpen ? (
+        <NewProgramDialog
+          open
+          onClose={() => {
+            setNewOpen(false);
+            setAsked(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

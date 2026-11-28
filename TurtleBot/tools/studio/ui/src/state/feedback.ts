@@ -48,6 +48,8 @@ export interface ConfirmRequest {
   tone: DialogTone;
   /** When set, the confirm button stays disabled until this box is ticked. */
   requireCheck?: string;
+  /** Show "The robot is on its dock. Undock it first." while the dock status says docked. */
+  dockWarning?: boolean;
   resolve: (ok: boolean) => void;
 }
 export interface InfoRequest {
@@ -59,7 +61,13 @@ export interface InfoRequest {
   tone?: DialogTone;
   resolve: () => void;
 }
-export type DialogRequest = ConfirmRequest | InfoRequest;
+export type DialogRequest = (ConfirmRequest | InfoRequest) & {
+  /** Set when the dialog opens. Each dialog gets its own number, so a new dialog never reuses an old one's
+   * ticked box, even when it has the same title (for example undock right after a movement question). */
+  uid?: number;
+};
+
+let dialogSeq = 0;
 
 interface DialogState {
   stack: DialogRequest[];
@@ -74,6 +82,7 @@ export const useDialogs = create<DialogState>()((set, get) => ({
     const rest = get().stack.filter(
       (x) => !(d.kind === 'info' && x.kind === 'info' && d.key && x.key === d.key),
     );
+    d.uid = ++dialogSeq;
     set({ stack: rest.concat(d) });
   },
   close: (d) => set({ stack: get().stack.filter((x) => x !== d) }),
@@ -86,6 +95,7 @@ export function confirm(opts: {
   cancelLabel?: string;
   tone?: DialogTone;
   requireCheck?: string;
+  dockWarning?: boolean;
 }): Promise<boolean> {
   return new Promise((resolve) => {
     useDialogs.getState().open({
@@ -96,6 +106,7 @@ export function confirm(opts: {
       cancelLabel: opts.cancelLabel,
       tone: opts.tone ?? 'primary',
       requireCheck: opts.requireCheck,
+      dockWarning: opts.dockWarning,
       resolve,
     });
   });
@@ -114,13 +125,17 @@ export function inform(opts: {
 }
 
 /** The question every program that moves the robot must pass first. */
-export function confirmMotion(what: ReactNode): Promise<boolean> {
+export function confirmMotion(
+  what: ReactNode,
+  opts: { dockWarning?: boolean } = {},
+): Promise<boolean> {
   return confirm({
     title: 'Confirm robot movement',
     body: what,
     confirmLabel: 'Start moving',
     tone: 'caution',
     requireCheck: 'I am next to the robot and about 1 m around it is clear',
+    dockWarning: opts.dockWarning ?? true,
   });
 }
 

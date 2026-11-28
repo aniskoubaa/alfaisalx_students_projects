@@ -1,7 +1,7 @@
 import { PanelLeftClose, PanelLeftOpen, Power } from 'lucide-react';
 import { quitStudio } from '../../state/actions';
 import { useCode } from '../../state/code';
-import { GROUP_BREAKS, ROUTES, navigate, useRoute } from '../../state/router';
+import { NAV_GROUPS, ROUTES, navigate, useRoute } from '../../state/router';
 import { useUi } from '../../state/ui';
 import { Tooltip } from '../ui';
 
@@ -22,48 +22,58 @@ export function Sidebar() {
           .filter(Boolean)
           .join(' ')}
       >
-        <ul className="nav-list">
-          {ROUTES.filter((r) => r.nav !== false).map((r) => {
-            const Icon = r.icon;
-            const active =
-              r.path === route.path || (r.path === '/tools' && route.path === '/settings');
-            const link = (
-              <a
-                href={'#' + r.path}
-                className={'nav-item' + (active ? ' is-active' : '')}
-                aria-current={active ? 'page' : undefined}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate(r.path);
-                  setNavOpen(false);
-                }}
-              >
-                <Icon size={18} aria-hidden="true" />
-                <span className="nav-label">{r.label}</span>
-                {r.path === '/code' && codeDirty ? (
-                  <span className="nav-dot" role="img" aria-label="unsaved changes" />
-                ) : null}
-              </a>
-            );
-            return (
-              <li key={r.path} className={GROUP_BREAKS.has(r.path) ? 'nav-gap' : undefined}>
-                {collapsed ? (
-                  <Tooltip content={r.label} side="right">
-                    {link}
-                  </Tooltip>
-                ) : (
-                  link
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <div className="nav-list">
+          {NAV_GROUPS.map((g) => (
+            <section key={g.id} className="nav-group" aria-labelledby={'nav-h-' + g.id}>
+              <h2 className="nav-heading" id={'nav-h-' + g.id}>
+                {g.label}
+              </h2>
+              <ul className="nav-items">
+                {ROUTES.filter((r) => r.nav !== false && r.group === g.id).map((r) => {
+                  const Icon = r.icon;
+                  const active =
+                    r.path === route.path || (r.path === '/tools' && route.path === '/settings');
+                  const link = (
+                    <a
+                      href={'#' + r.path}
+                      className={'nav-item' + (active ? ' is-active' : '')}
+                      aria-current={active ? 'page' : undefined}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigate(r.path);
+                        setNavOpen(false);
+                      }}
+                    >
+                      <Icon size={18} aria-hidden="true" />
+                      <span className="nav-label">{r.label}</span>
+                      {r.path === '/code' && codeDirty ? (
+                        <span className="nav-dot" role="img" aria-label="unsaved changes" />
+                      ) : null}
+                    </a>
+                  );
+                  return (
+                    <li key={r.path}>
+                      {collapsed ? (
+                        <Tooltip content={r.label} side="right">
+                          {link}
+                        </Tooltip>
+                      ) : (
+                        link
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
         <div className="nav-foot">
           <button
             type="button"
             className="nav-item nav-button"
             onClick={() => void quitStudio()}
             aria-label="Quit Studio"
+            title="Quit Studio"
           >
             <Power size={18} aria-hidden="true" />
             <span className="nav-label">Quit Studio</span>
@@ -73,6 +83,7 @@ export function Sidebar() {
             className="nav-item nav-button nav-collapse"
             onClick={toggleNav}
             aria-label={collapsed ? 'Expand the menu' : 'Collapse the menu'}
+            title={collapsed ? 'Expand the menu' : 'Collapse the menu'}
             aria-pressed={collapsed}
           >
             {collapsed ? (

@@ -13,6 +13,7 @@ old one when a decision changes (mark the old one "Superseded by ADR-NNNN").
 | [0005](0005-robot-owned-menu-validation.md) | The robot's own checker is the only validator of the menu file | Accepted (2026-11-12) |
 | [0006](0006-atomic-writes-no-silent-overwrite.md) | Every write on the robot is atomic and never overwrites without an explicit request | Accepted (2026-11-14) |
 | [0007](0007-simulated-robot-behind-the-same-protocol.md) | A simulated robot speaks the same protocol, so every screen is testable offline | Accepted (2026-10-24, mapping 2026-11-12) |
+| [0008](0008-small-source-modules-joined-into-single-files.md) | The two single files are built from small source modules by `bundle.py` | Accepted (2026-11-28) |
 
 Format (one page each): **Status**, **Context**, **Decision**, **Consequences**, **Alternatives considered**. Copy
 [template.md](template.md) for a new record and give it the next number.

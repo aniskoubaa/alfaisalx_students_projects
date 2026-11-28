@@ -2,7 +2,9 @@ import * as RD from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { dockAction } from '../../state/actions';
 import { useDialogs } from '../../state/feedback';
+import { useStudio } from '../../state/store';
 import type { DialogRequest, DialogTone } from '../../state/feedback';
 import { Button } from './Button';
 import { Checkbox } from './Form';
@@ -72,6 +74,8 @@ export interface ConfirmDialogProps {
   /** The confirm button stays off until this box is ticked. */
   requireCheck?: string;
   pending?: boolean;
+  /** Shown under the text, above the check box. */
+  note?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -86,6 +90,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
     tone = 'primary',
     requireCheck,
     pending,
+    note,
     onConfirm,
     onCancel,
   } = props;
@@ -115,6 +120,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
       }
     >
       <div className="dialog-text">{body}</div>
+      {note}
       {requireCheck ? (
         <div className="dialog-check">
           <Checkbox
@@ -131,6 +137,20 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
   );
 }
 
+/** Shown in a movement question while the robot sits on its dock. */
+export function DockedNote({ onUndock }: { onUndock: () => void }) {
+  const docked = useStudio((s) => s.status?.dock?.is_docked === true);
+  if (!docked) return null;
+  return (
+    <div className="note note-warn dock-warning" role="alert">
+      <span>The robot is on its dock. Undock it first.</span>
+      <Button size="sm" variant="primary" onClick={onUndock}>
+        Undock
+      </Button>
+    </div>
+  );
+}
+
 /** Shows the dialogs asked for by confirm() and inform() in state/feedback. */
 export function DialogHost() {
   const stack = useDialogs((s) => s.stack);
@@ -144,7 +164,7 @@ export function DialogHost() {
     };
     return (
       <ConfirmDialog
-        key={stack.length + top.title}
+        key={top.uid ?? stack.length + top.title}
         open
         title={top.title}
         body={top.body}
@@ -152,6 +172,17 @@ export function DialogHost() {
         cancelLabel={top.cancelLabel}
         tone={top.tone}
         requireCheck={top.requireCheck}
+        note={
+          top.dockWarning ? (
+            <DockedNote
+              onUndock={() => {
+                // Answer "no" to the movement question, then start the undock on its own.
+                done(false);
+                void dockAction('undock');
+              }}
+            />
+          ) : undefined
+        }
         onConfirm={() => done(true)}
         onCancel={() => done(false)}
       />
@@ -163,7 +194,7 @@ export function DialogHost() {
   };
   return (
     <Dialog
-      key={stack.length + top.title}
+      key={top.uid ?? stack.length + top.title}
       open
       onOpenChange={(o) => {
         if (!o) finish();

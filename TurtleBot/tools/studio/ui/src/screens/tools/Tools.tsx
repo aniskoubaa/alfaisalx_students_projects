@@ -132,7 +132,7 @@ export function Tools() {
 
   return (
     <div className="page">
-      <h1 className="page-title">Tools</h1>
+      <h1 className="page-title">Settings and help</h1>
       <div className="grid">
         <ToolCard
           title="Terminal"

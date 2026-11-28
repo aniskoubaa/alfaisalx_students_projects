@@ -19,7 +19,7 @@ Detailed guides: [Download](../../Download/README.md) | [First connection](../..
 
 ## 1. Install Studio
 
-1. Download the installer: [Download page](../../Download/README.md), or directly from GitHub: <https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.1.1.exe> (Windows 10 and 11, 8.9 MB, no administrator rights).
+1. Download the installer: [Download page](../../Download/README.md), or directly from GitHub: <https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.2.0.exe> (Windows 10 and 11, 8.9 MB, no administrator rights).
 2. Open the file. Windows may say "Windows protected your PC" because the app is not signed by a company. Click **More info**, then **Run anyway**.
 3. Click **Next**, **Install**, **Finish**. Studio opens. You get a desktop shortcut and Start menu entries: **TurtleBot Studio**, and **TurtleBot Studio (simulated robot)**, a practice copy with a pretend robot where nothing real moves.
 
@@ -31,19 +31,19 @@ Not verified: the 2.1 installer on a clean computer.
 
 1. Switch the robot on. It joins the campus Wi-Fi **Students** by itself and shows its address on its screen (it starts with `10.87.`). The address comes from DHCP and can change, so read it from the screen each time. Example from 2026-11-25: `10.87.11.67`.
 2. Put your laptop on the **same network** (Students).
-3. Start Studio. On **Overview** press **Discover**, pick the robot, press **Connect**. If it is not listed, type the address from the robot's screen. More help: [Find the robot](../../tools/studio/docs/FIND-THE-ROBOT.md). The name `turtlebot4.local` sometimes fails on campus; use the address.
+3. Start Studio. On **Home** press **Connect** (or **Find my robot** if Studio does not know an address yet), pick the robot, press **Connect**. If it is not listed, type the address from the robot's screen. More help: [Find the robot](../../tools/studio/docs/FIND-THE-ROBOT.md). The name `turtlebot4.local` sometimes fails on campus; use the address.
 4. First time on a computer: Studio needs a login key for that computer. Follow the setup wizard once, as written in [First connection](../../tools/studio/docs/FIRST-CONNECTION.md). It uses the Ethernet cable for the one-time setup and asks for the robot's password in a terminal window. For the password, see [How to connect](../../HOW-TO-CONNECT.md) or ask the lab maintainer. Then unplug the cable.
 
 Verified 2026-11-25: the robot joined Students at boot, and a laptop on the same network reached it by Wi-Fi with no cable. Not verified: the one-time key setup over Wi-Fi without the cable (the guide uses the cable).
 
 ## 3. Tour of Studio's screens
 
-The menu is on the left. The top bar shows the connection, battery, Wi-Fi signal and the E-STOP. Screenshots in the guides come from the simulated robot, for example the [Overview screen](../../tools/studio/docs/img/v2-overview.png).
+Studio 2.2 renamed some screens: Overview is now Home, Live is Drive, Tools is Settings and help. The menu is on the left. The top bar shows the connection, battery, Wi-Fi signal and the E-STOP. Screenshots in the guides come from the simulated robot, for example the [Overview screen (now Home)](../../tools/studio/docs/img/v2-overview.png).
 
 | Screen | What it shows | Use it to |
 |---|---|---|
-| Overview | Battery, docked or not, lidar, Wi-Fi, CPU, temperature | Connect, **Undock**, **Dock**, start the lidar motor, run the health check |
-| Live | Lidar map, the robot's path | Drive by hand (arm first; 0.15 m/s default, 0.30 m/s max, stops 0.3 s after the last command) |
+| Home (was Overview before Studio 2.2) | Battery, docked or not, lidar, Wi-Fi, CPU, temperature | Connect, **Undock**, **Dock**, start the lidar motor, run the health check |
+| Drive (was Live) | Lidar map, the robot's path | Drive by hand (arm first; 0.15 m/s default, 0.30 m/s max, stops 0.3 s after the last command) |
 | Maps | A map being built; saved maps | **Start mapping**, **Save map**, **Stop mapping**; preview, rename, download, delete maps |
 | Routes | Routes on the robot, the current route, trip status | Upload a planned route folder, **Use this route** |
 | Robot menu | The entries on the robot's front panel | Hide built-in entries, add your own program entries, check and save |
@@ -54,7 +54,7 @@ The menu is on the left. The top bar shows the connection, battery, Wi-Fi signal
 | Logs | The robot's service log (read only) | Look for errors |
 | Wi-Fi | Where the computer and the robot are connected | Put the robot on another network |
 | Topics | ROS topics | Watch up to four live |
-| Tools | Terminal on the robot, setup wizard, diagnostics, Settings | Open a terminal on the robot, copy diagnostics |
+| Settings and help (was Tools) | Terminal on the robot, setup wizard, diagnostics, Settings | Open a terminal on the robot, copy diagnostics |
 
 Studio refuses to drive when the robot is docked, under e-stop, while a motion program runs, or with the battery below 10 %. Details: [Everyday use](../../tools/studio/docs/EVERYDAY-USE.md#3-the-layout), [Live view and driving](../../tools/studio/docs/LIVE-AND-DRIVING.md).
 
@@ -65,11 +65,11 @@ Detail: [Maps and routes](../../tools/studio/docs/MAPS-AND-ROUTES.md#map-a-place
 Needs: Studio connected; the delivery package on the robot (it is there; it is copied with `delivery/tools/deploy.py`); the robot docked at the start; no navigation program running (otherwise **Start mapping** is grey).
 
 1. Open **Maps**. Press **Start mapping**. Wait for the state **Mapping** (6 to 10 s on 2026-11-14).
-2. Undock: open **Overview**, press **Undock**, confirm. Check the robot is clear of the dock. Go back to **Maps**.
+2. Undock: open **Home**, press **Undock**, confirm. Check the robot is clear of the dock. Go back to **Maps**.
 3. Drive slowly with the drive panel (arm it first), or with the robot's controller. Keep the cable unplugged and a person beside the robot.
 4. Close the loop: drive back along the same wall to where you started. This makes the map more accurate.
 5. Press **Save map**, type a name (letters, digits, hyphens, underscores, no spaces), confirm. It takes about 18 s.
-6. Dock the robot (**Overview**, **Dock**, or the controller).
+6. Dock the robot (**Home**, **Dock**, or the controller).
 7. Press **Stop mapping** and answer the question (keep mapping if the map is not saved yet).
 
 Starting mapping stops the robot's camera container until the next reboot. This is a known side effect.
@@ -113,7 +113,7 @@ Not verified: route upload, and **Use this route** with a route other than the o
 A trip needs the navigation stack (Nav2 with the map and masks) running on the robot first. **Studio 2.1 cannot start it.** Studio can start mapping, and its **Routes** screen shows whether the navigation program is running (Trip status), but you start navigation from a terminal on the robot, as in [delivery README section 9](../../delivery/README.md#9-phase-2-supervised-runs).
 
 1. The robot must be **on the dock**, battery above 40 %.
-2. Open a terminal on the robot: in Studio open **Tools** and use the button that opens a terminal on the robot. Or, from a terminal on your computer, `ssh ubuntu@<address on the robot's screen>`; this needs the key from the first connection or the robot's password (see [How to connect](../../HOW-TO-CONNECT.md)).
+2. Open a terminal on the robot: in Studio open **Settings and help** and use the button that opens a terminal on the robot. Or, from a terminal on your computer, `ssh ubuntu@<address on the robot's screen>`; this needs the key from the first connection or the robot's password (see [How to connect](../../HOW-TO-CONNECT.md)).
 3. On the robot, check first, then start (replace `my_route` with the name you uploaded):
 
    ```bash
@@ -158,13 +158,13 @@ Verified at home (2026-11-06, a 1.1 m route): a whole delivery, Stop, Back to th
 | What you see | What to do |
 |---|---|
 | "Windows protected your PC" | **More info**, then **Run anyway** |
-| Discover finds nothing | Check both are on Students. Type the address from the robot's screen |
+| Find my robot (Discover) finds nothing | Check both are on Students. Type the address from the robot's screen |
 | `turtlebot4.local` fails | Use the address from the screen |
 | "key not set up" | Run the setup wizard once ([First connection](../../tools/studio/docs/FIRST-CONNECTION.md)) |
 | The robot offers its own Wi-Fi `Turtlebot4` | It could not find Students. Join `Turtlebot4` from your computer; the robot is at `10.42.0.1` |
 | **Start mapping** is grey | A navigation program is running, or the mapping scripts are missing. Stop it with `stop_stack.sh`, or copy the delivery package with `deploy.py` |
-| Driving is grey | The robot is docked, e-stopped, starting or saving a map, or the battery is under 10 %. Undock first on **Overview** |
-| The map does not grow | The lidar motor is off while docked. Undock or start the lidar on **Overview**, then drive a little |
+| Driving is grey | The robot is docked, e-stopped, starting or saving a map, or the battery is under 10 %. Undock first on **Home** |
+| The map does not grow | The lidar motor is off while docked. Undock or start the lidar on **Home**, then drive a little |
 | Upload says a file is missing | The route folder needs the four files directly inside it, not in a subfolder. Run the planner again |
 | **Use this route** is grey | The route is incomplete, already current, or a trip or navigation program is running |
 | Screen says `Not on the map` | Start the navigation program (step 7) and wait about 2 minutes |

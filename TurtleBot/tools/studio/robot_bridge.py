@@ -24,6 +24,7 @@ program needs confirmed=true, undock/dock need confirmed=true, and a ~/STOP file
 (own session), so they survive the bridge; logs in ~/robot_code/logs/. CPU: raw (undeserialised) subscriptions, the
 scan is evaluated only at the status period, nmcli/systemctl results are cached for 10 s.
 """
+# GENERATED FILE, do not edit. Source: tools/studio/bridge/*.py; rebuild with: python bundle.py
 import argparse
 import base64
 import collections
@@ -74,6 +75,12 @@ JOURNAL_UNITS = ("turtlebot4.service", "NetworkManager.service", "ssh.service", 
 JOURNAL_SINCE = ("10 min ago", "1 hour ago", "6 hours ago", "1 day ago", "boot")
 JOURNAL_LINE_MAX = 600
 HAZARD_NAMES = {0: "backup_limit", 1: "bump", 2: "cliff", 3: "stall", 4: "wheel_drop", 5: "object_proximity"}
+
+# ================================================================================================
+# bridge/pure_helpers.py
+# Small pure functions: logging, JSON cleaning, battery flags, angle maths, the scan front-minimum.
+# No ROS, no files, no network. Tested offline.
+# ================================================================================================
 
 
 def log(*a):
@@ -175,6 +182,13 @@ def scan_front_min(ranges, angle_min, angle_inc, yaw_off=SCAN_YAW_DEFAULT, range
         if (front is None or r < front) and abs(wrap_pi(angle_min + i * angle_inc + yaw_off)) <= half:
             front = r
     return (None if front is None else round(float(front), 3)), (None if low is None else round(float(low), 3))
+
+# ================================================================================================
+# bridge/stream_helpers.py
+# Pure helpers for the scan and pose streams, manual driving limits, the robot log (journal), the
+# parsers for /proc, nmcli and ip output, and the collectors that call them.
+# It does not talk to ROS or to the Bridge.
+# ================================================================================================
 
 
 # ---- Studio 2.0: scan / pose streams, teleop, journal (pure helpers, tested offline)
@@ -523,6 +537,12 @@ def collect_slow(run=run_cmd, reader=read_text):
     return {"net": collect_net(run, reader), "clock_synced": (ntp == "yes") if ntp else None,
             "ros_service": svc or "unknown", "throttled": thr}
 
+# ================================================================================================
+# bridge/path_describe.py
+# Path safety for the file browser, the program describer (first paragraph, docstring, usage) and the
+# Wi-Fi information collector. It never changes a file; it only reads and checks.
+# ================================================================================================
+
 
 # ---- v1.1: path safety, describe, wifi_info (pure helpers)
 NAME_RE = re.compile(r"[A-Za-z0-9_.\-/]+")
@@ -622,6 +642,40 @@ def extract_docstring(text, ext):
     return first_paragraph("\n".join(block))
 
 
+RUN_COMMAND_RE = re.compile(r"^(?:python3?|bash)\s+\S+\.(?:py|sh)\b\s*(.*)$")
+
+
+def extract_run_example(text, ext):
+    """The arguments of the first command under "Run it on the robot:" in the docstring (or the leading # block), or ''.
+
+    The templates write it as 'Run it on the robot:   python3 name.py --radius 0.3 --dry-run   (checks only)'. The
+    command may also be on the next line. Any program name counts, because a copy keeps the template's name in its
+    text. A note in brackets or after # is left out. Studio shows the result as the hint in the arguments box."""
+    doc = None
+    if ext == ".py":
+        try:
+            import ast
+            doc = ast.get_docstring(ast.parse(text))
+        except (SyntaxError, ValueError, MemoryError, RecursionError):
+            doc = None
+    if not doc:
+        doc = "\n".join(s.strip().lstrip("#").strip() for s in text.splitlines()[:60]
+                        if s.strip().startswith("#") and not s.strip().startswith("#!"))
+    lines = doc.splitlines()
+    for i, line in enumerate(lines):
+        m = re.search(r"run it on the robot\s*:(.*)$", line, re.I)
+        if not m:
+            continue
+        for candidate in [m.group(1)] + lines[i + 1:i + 3]:
+            command = re.sub(r"\s*\(.*\)\s*$", "", candidate.split("#")[0]).strip()
+            if not command:
+                continue
+            found = RUN_COMMAND_RE.match(command)
+            return found.group(1).strip() if found else ""
+        return ""
+    return ""
+
+
 def extract_usage(text, max_lines=12):
     """argparse-like lines: 'option strings: help text' for every add_argument( found."""
     out, lines = [], text.splitlines()
@@ -662,6 +716,7 @@ def describe_file(path):
     reasons = detect_moves(text, ext)
     return {"name": os.path.basename(path), "size": st.st_size, "mtime": round(st.st_mtime, 1),
             "docstring": extract_docstring(text, ext), "usage": extract_usage(text) if ext == ".py" else [],
+            "example": extract_run_example(text, ext),
             "moves_detected": bool(reasons), "moves_reasons": reasons}
 
 
@@ -724,6 +779,12 @@ def collect_wifi(run=run_cmd, reader=read_text):
                 seen[f[0]] = {"ssid": f[0], "signal": sig, "security": f[2] or "open", "chan": f[3]}
         res["scan"] = sorted(seen.values(), key=lambda e: -(e["signal"] or 0))[:40]
     return res
+
+# ================================================================================================
+# bridge/wifi_join.py
+# Everything needed to join another Wi-Fi network: the join status file, the abstract-socket listener
+# and WifiSecrets, which keeps a password in memory only. It does not store passwords on disk.
+# ================================================================================================
 
 
 # ---- v1.2: join any Wi-Fi network (S-c)
@@ -875,8 +936,13 @@ class WifiSecrets:
                 e["psk"] = None
                 e["stop"].set()
 
+# ================================================================================================
+# bridge/mapping_helpers.py
+# Pure helpers for maps and routes: map names, the map yaml and pgm files, the cell encoding sent to
+# the desktop, pose maths, and reading and writing the current-route file. No ROS.
+# ================================================================================================
 
-# ======================================================================= single locked writer
+
 # ======================================================================= mapping helpers (pure, Studio 2.1)
 MAP_NAME_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,47}")
 MAP_EXTS = (".pgm", ".yaml", ".posegraph", ".data")
@@ -1166,7 +1232,14 @@ def tail_text_lines(path, n=40, max_bytes=65536):
     lines = [ln.rstrip()[:300] for ln in data.decode("utf-8", "replace").splitlines() if ln.strip()]
     return lines[-n:] if n > 0 else []
 
+# ================================================================================================
+# bridge/ros_base.py
+# The single locked writer of stdout, the ROS error type and RosBase, the part of the ROS layer
+# that does not need rclpy. It does not create any ROS object.
+# ================================================================================================
 
+
+# ======================================================================= single locked writer
 class Writer:
     """All stdout output goes through one queue and one writer thread, so ROS callbacks never block on a slow pipe.
     Droppable events (status, msg) are dropped when the queue is long; replies are never dropped. An event with a key
@@ -1309,6 +1382,12 @@ class RosBase:
 
     def map_reset(self):
         """Forget the last map and SLAM pose (a new mapping session starts or the old one ended)."""
+
+# ================================================================================================
+# bridge/ros_real.py
+# RosReal: the real ROS 2 node. It subscribes to the robot topics, keeps the latest messages, publishes
+# velocity commands and calls services and actions. It needs rclpy and is not used in fake mode.
+# ================================================================================================
 
 
 class RosReal(RosBase):
@@ -1827,6 +1906,12 @@ class RosReal(RosBase):
                 log("cancel", n, e)
         return names
 
+# ================================================================================================
+# bridge/ros_fake.py
+# The fake robot used by demos and offline tests: a simulated room scan, a simulated map and FakeRos,
+# which answers like RosReal without any ROS. It never touches real hardware.
+# ================================================================================================
+
 
 FAKE_ROOM = (-3.0, 3.0, -2.0, 2.0)          # x0, x1, y0, y1 of the fake room (metres, odom frame)
 FAKE_DOOR_HALF = 0.3                         # the east wall has a gap |y| < 0.3: those beams get no return (null)
@@ -2182,6 +2267,12 @@ class FakeRos(RosBase):
             self.cancel_action(n)
         return names
 
+# ================================================================================================
+# bridge/run_state.py
+# Run: the record of one started program, and the state of the fake Wi-Fi used in demos and tests.
+# It starts nothing by itself.
+# ================================================================================================
+
 
 # ======================================================================= runs
 class Run:
@@ -2218,6 +2309,12 @@ def fake_wifi_state():
                        "powersave": "disable"},
                       {"name": FAKE_HOTSPOT, "ssid": "Turtlebot4", "mode": "ap", "autoconnect": True, "priority": 0,
                        "powersave": "default"}]}
+
+# ================================================================================================
+# bridge/stack_adapters.py
+# ServiceError and the adapters that start and stop the mapping stack and look for running processes,
+# each as a real version and a fake one for tests. Nothing here decides what to do; services call it.
+# ================================================================================================
 
 
 # ======================================================================= mapping: adapters and services (Studio 2.1)
@@ -2393,6 +2490,12 @@ class FakeProcessProbe(ProcessProbe):
 
     def running(self, pattern):
         return pattern == SLAM_PATTERN and bool(self.runner.slam_running)
+
+# ================================================================================================
+# bridge/mapping_service.py
+# MappingService: starts, saves and stops mapping, one state at a time, and keeps its status.
+# It does not list or rename saved maps (see map_library.py).
+# ================================================================================================
 
 
 def yaml_stamp(path):
@@ -2637,6 +2740,12 @@ class MappingService:
                 self._go("mapping" if slam else "idle", last_error=None, unsaved=slam)
             return self._info()
 
+# ================================================================================================
+# bridge/map_library.py
+# MapLibrary: lists, previews, renames and deletes the saved maps on the robot.
+# It does not run mapping (see mapping_service.py).
+# ================================================================================================
+
 
 class MapLibrary:
     """The maps folder: <name>.pgm, .yaml, .posegraph, .data. Every path is checked to stay inside the folder."""
@@ -2786,6 +2895,12 @@ class MapLibrary:
         g.reveal_all()
         g.save(os.path.join(self.dir, name))
         return True
+
+# ================================================================================================
+# bridge/route_library.py
+# RouteLibrary: lists routes, sets the current route and takes route uploads, plus a fake trip probe
+# for tests. It does not drive the robot.
+# ================================================================================================
 
 
 class FakeTripProbe(ProcessProbe):
@@ -2965,6 +3080,12 @@ class RouteLibrary:
                     "2026-11-12 01:52:31 button: Deliver pressed, no trip started (fake robot)\n")
         return True
 
+# ================================================================================================
+# bridge/menu_service.py
+# The front-panel menu: reading and writing the menu file and checking it with the menu checker.
+# It does not draw the screen on the robot.
+# ================================================================================================
+
 
 MENU_REL = "robot_code/menu/menu.yaml"
 MENU_MAX_CHARS = 16000
@@ -3112,121 +3233,14 @@ class MenuService:
             raise ServiceError("cannot save the menu file: %s" % e)
         return {"path": path, "check": ck}
 
+# ================================================================================================
+# bridge/commands_basic.py
+# Bridge commands that answer from state already in memory: ping, shutdown, status on/off, topics,
+# watching a topic, listing a folder and the lidar switch.
+# ================================================================================================
 
-class Bridge:
-    def __init__(self, ros, writer, home, fake):
-        self.ros, self.writer, self.home, self.fake = ros, writer, home, fake
-        self.stop = threading.Event()
-        self.runs = collections.OrderedDict()
-        self.runs_lock = threading.Lock()
-        self.run_counter = 0
-        self.watches = {}
-        self.watch_counter = 0
-        self.watch_lock = threading.Lock()
-        self.status_period = None
-        self.status_wake = threading.Event()
-        self.estop_on = None
-        self.estop_app = False
-        self.estop_t = 0.0
-        self.slow = {"net": {}, "clock_synced": None, "ros_service": "unknown", "throttled": None}
-        self.cpu_prev = None
-        self.logdir = os.path.join(home, "robot_code", "logs")
-        self.stop_file = os.path.join(home, "STOP")
-        self.t0 = time.monotonic()
-        self.secrets = WifiSecrets()
-        self.fw_lock = threading.Lock()
-        self.fw = fake_wifi_state()
-        # Studio 2.0: manual driving + streams
-        self.tele_lock = threading.Lock()
-        self.tele = {"armed": False, "last_cmd": 0.0, "last_move": 0.0, "zeroed": True, "seq": -1,
-                     "max_linear": TELEOP_MAX_LINEAR, "max_angular": TELEOP_MAX_ANGULAR, "armed_t": 0.0}
-        self.status_estop = None            # estop.on of the newest status (None = unknown)
-        self.streams = {"scan": None, "pose": None, "map": None}      # name -> {"period", "next", "max_points", "last_seq"} while on
-        self.stream_lock = threading.Lock()
-        self.map_seq = 0
-        # Studio 2.1: mapping (the delivery scripts, or timers in fake mode) and the map library
-        self.maps_dir = os.path.join(home, "robot_code", "maps")
-        if fake:
-            self.runner = FakeStackRunner(ros)
-            self.probe = FakeProcessProbe(self.runner)
-        else:
-            self.runner = RealStackRunner(home)
-            self.probe = RealProcessProbe()
-        self.mapping = MappingService(self.runner, self.probe, self.maps_dir, self.emit,
-                                      disarm=lambda why: self.teleop_disarm(why), map_reset=self._map_reset)
-        self.maps = MapLibrary(self.maps_dir, self.mapping.busy_name)
-        if fake:
-            self.trip_probe = FakeTripProbe()
-            self.routes = RouteLibrary(home, True, self.trip_probe)
-            try:
-                self.routes.seed_fake()
-            except OSError as e:
-                log("cannot seed the sample routes:", e)
-        else:
-            self.trip_probe = None
-            self.routes = RouteLibrary(home, False, self.probe)
-        self.menu = MenuService(home, MenuChecker(home))
-        if fake:
-            try:
-                self.maps.seed_demo()
-            except OSError as e:
-                log("cannot seed the sample map:", e)
 
-    # ---- infrastructure
-    def emit(self, obj, droppable=False, key=None):
-        if key is None:
-            self.writer.emit(obj, droppable)
-        else:
-            self.writer.emit(obj, droppable, key)
-
-    def _map_reset(self):
-        """A mapping session starts or ended: forget the old map and let the next new map be sent."""
-        self.ros.map_reset()
-        with self.stream_lock:
-            v = self.streams.get("map")
-            if v is not None:
-                v["last_seq"] = None
-
-    def start_threads(self):
-        try:
-            os.makedirs(self.logdir, exist_ok=True)
-        except OSError as e:
-            log("cannot create", self.logdir, e)
-        self.rediscover()
-        self.mapping.start_probe()
-        for fn, name in ((self._status_loop, "status"), (self._slow_loop, "slow"), (self._run_monitor, "runmon"),
-                         (self._teleop_loop, "teleop"), (self._stream_loop, "streams")):
-            threading.Thread(target=fn, name=name, daemon=True).start()
-
-    def reply(self, cid, ok, **kw):
-        d = {"ev": "reply", "id": cid, "ok": bool(ok)}
-        d.update(kw)
-        self.emit(d)
-
-    def handle(self, cmd):
-        """Run one command (called in its own thread so a slow command never blocks e-stop)."""
-        cid = cmd.get("id")
-        name = str(cmd.get("cmd", ""))
-        fn = getattr(self, "h_" + name, None) if re.fullmatch(r"[a-z_]+", name) else None
-        if fn is None:
-            self.reply(cid, False, error="unknown command: %s" % name[:40])
-            return
-        try:
-            res = fn(cmd) or {}
-            self.reply(cid, True, **res)
-        except BridgeError as e:
-            extra = dict(e.extra)
-            self.reply(cid, False, error=str(e), **extra)
-        except RosError as e:
-            self.reply(cid, False, error=str(e))
-        except Exception as e:
-            log("command", name, "failed:", repr(e))
-            self.reply(cid, False, error="internal error: %s: %s" % (type(e).__name__, e))
-
-    def need_ros(self):
-        if not self.ros.available:
-            raise BridgeError("ROS not available: %s" % (self.ros.error or "not started"))
-
+class BasicCommandsMixin:
     # ---- simple commands
     def h_ping(self, c):
         return {"pong": True}
@@ -3305,6 +3319,14 @@ class Bridge:
         msg = self.ros.lidar(on)
         return {"on": on, "message": msg, "fake": self.fake}
 
+# ================================================================================================
+# bridge/files_commands.py
+# Bridge commands for the file browser: resolve a path safely, describe a program, read and write a
+# file. All paths go through the path-safety helpers first.
+# ================================================================================================
+
+
+class FilesMixin:
     # ---- v1.1: path safety, files, describe, wifi
     def resolve_dir(self, d):
         """Directory argument -> real absolute path inside the home directory (not in ~/.ssh), else BridgeError."""
@@ -3407,6 +3429,14 @@ class Bridge:
             raise BridgeError("cannot write: %s" % e)
         return {"path": c.get("path"), "size": len(raw), "sha1": hashlib.sha1(raw).hexdigest(), "backup": backup}
 
+# ================================================================================================
+# bridge/wifi_commands.py
+# Bridge commands for Wi-Fi: information, the password hand-over, the join status, and the fake
+# Wi-Fi and fake battery used by demos and tests.
+# ================================================================================================
+
+
+class WifiMixin:
     def h_wifi_info(self, c):
         if self.fake:
             return self.fake_wifi_info()
@@ -3518,6 +3548,14 @@ class Bridge:
                 self.fw["join"] = {"state": "joined", "ssid": ssid, "ip": self.fw["ip"], "prev": prev, "t": int(time.time())}
         self.slow = dict(self.slow, net=self.fake_net())
 
+# ================================================================================================
+# bridge/programs_commands.py
+# Bridge commands that start, watch and stop programs on the robot (runs), including the monitor
+# thread and the output pump.
+# ================================================================================================
+
+
+class ProgramsMixin:
     # ---- runs
     def _unique_log(self, name):
         stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
@@ -3711,6 +3749,14 @@ class Bridge:
             r.exit_sent = True
             self.emit({"ev": "run_exit", "run_id": r.run_id, "code": r.code})
 
+# ================================================================================================
+# bridge/estop_commands.py
+# The emergency stop: stop everything that can move the robot, and release the stop afterwards.
+# Each step is a separate method so one failing step does not skip the others.
+# ================================================================================================
+
+
+class EstopMixin:
     # ---- e-stop
     def _parallel(self, funcs, deadline):
         res, threads = {}, {}
@@ -3828,7 +3874,13 @@ class Bridge:
         return {"steps": {"e_stop_service": svc, "stop_file": rm}, "fake": self.fake,
                 "all_ok": bool(svc.get("success")) and rm["ok"]}
 
+# ================================================================================================
+# bridge/streams_commands.py
+# Bridge commands that switch the scan, pose and map streams on and off, and the loop that sends them.
+# ================================================================================================
 
+
+class StreamsMixin:
     # ---- Studio 2.0: scan and pose streams (read the subscriptions that already exist; no new ROS objects)
     def _start_stream(self, name, hz, lo, hi, default_hz, **extra):
         try:
@@ -3923,6 +3975,14 @@ class Bridge:
                 log("stream:", repr(e))
             self.stop.wait(0.02)
 
+# ================================================================================================
+# bridge/teleop_commands.py
+# Manual driving from the desktop: the checks before driving, arming, the drive command and its
+# safety loop. It also holds the small state questions those checks ask (e-stop, battery).
+# ================================================================================================
+
+
+class TeleopMixin:
     # ---- Studio 2.0: manual driving (teleop)
     def estop_active(self):
         return self.estop_on is True or self.status_estop is True or os.path.exists(self.stop_file)
@@ -3963,91 +4023,6 @@ class Bridge:
             return "A motion program is running. Stop it first."
         return None
 
-    # ---- Studio 2.1: mapping and the map library (thin: check the arguments, call a service)
-    @staticmethod
-    def _svc(fn, *a, **kw):
-        try:
-            return fn(*a, **kw)
-        except ServiceError as e:
-            raise BridgeError(str(e), **e.extra)
-
-    def h_mapping_status(self, c):
-        return self.mapping.status()
-
-    def h_mapping_start(self, c):
-        kc = c.get("keep_camera", False)
-        if not isinstance(kc, bool):
-            raise BridgeError("keep_camera must be true or false")
-        return self._svc(self.mapping.start, kc)
-
-    def h_mapping_save(self, c):
-        ow = c.get("overwrite", False)
-        if not isinstance(ow, bool):
-            raise BridgeError("overwrite must be true or false")
-        return self._svc(self.mapping.save, c.get("name"), ow)
-
-    def h_mapping_stop(self, c):
-        return self._svc(self.mapping.stop)
-
-    def h_mapping_reset(self, c):
-        return self.mapping.reset()
-
-    def h_maps_list(self, c):
-        return {"maps": self.maps.list(), "dir": self.maps_dir}
-
-    def h_map_preview(self, c):
-        try:
-            mp = clamp_int(c.get("max_px"), 64, 1024, 512)
-        except ValueError:
-            raise BridgeError("max_px must be a number")
-        return self._svc(self.maps.preview, c.get("name"), mp)
-
-    def h_map_rename(self, c):
-        return self._svc(self.maps.rename, c.get("name"), c.get("new_name"))
-
-    def h_map_delete(self, c):
-        return self._svc(self.maps.delete, c.get("name"), c.get("confirm"))
-
-    def h_routes_list(self, c):
-        return self.routes.list()
-
-    def h_route_set_current(self, c):
-        return self._svc(self.routes.set_current, c.get("name"), c.get("confirm"))
-
-    def h_route_upload_cleanup(self, c):
-        return self._svc(self.routes.upload_cleanup, c.get("name"))
-
-    def h_route_upload_finish(self, c):
-        return self._svc(self.routes.upload_finish, c.get("name"))
-
-    def h_trip_status(self, c):
-        try:
-            n = clamp_int(c.get("lines"), 1, 200, 40)
-        except ValueError:
-            raise BridgeError("lines must be a number")
-        return self.routes.trip_status(n)
-
-    def h_menu_get(self, c):
-        return self._svc(self.menu.get)
-
-    def h_menu_check(self, c):
-        text = c.get("text")
-        if not isinstance(text, str):
-            raise BridgeError("text is required and must be a string")
-        return self._svc(self.menu.check, text)
-
-    def h_menu_put(self, c):
-        return self._svc(self.menu.put, c.get("text"), c.get("confirm"))
-
-    def h_fake_trip(self, c):
-        """Fake robot only (tests): mark a trip (delivery_mission.py) as running or not."""
-        if not self.fake:
-            raise BridgeError("only available in fake mode")
-        v = c.get("running")
-        if not isinstance(v, bool):
-            raise BridgeError("running must be true or false")
-        self.trip_probe.mission = v
-        return {"running": v}
 
     def _zero(self, repeats=1):
         for i in range(repeats):
@@ -4158,6 +4133,107 @@ class Bridge:
                 log("teleop watchdog: zero velocity sent")
             self.stop.wait(0.02)
 
+# ================================================================================================
+# bridge/service_commands.py
+# Thin Bridge commands for mapping, the map library, routes, trips and the menu. Each one checks its
+# arguments and calls a service; the real work is in the service modules.
+# ================================================================================================
+
+
+class ServiceHandlersMixin:
+    # ---- Studio 2.1: mapping and the map library (thin: check the arguments, call a service)
+    @staticmethod
+    def _svc(fn, *a, **kw):
+        try:
+            return fn(*a, **kw)
+        except ServiceError as e:
+            raise BridgeError(str(e), **e.extra)
+
+    def h_mapping_status(self, c):
+        return self.mapping.status()
+
+    def h_mapping_start(self, c):
+        kc = c.get("keep_camera", False)
+        if not isinstance(kc, bool):
+            raise BridgeError("keep_camera must be true or false")
+        return self._svc(self.mapping.start, kc)
+
+    def h_mapping_save(self, c):
+        ow = c.get("overwrite", False)
+        if not isinstance(ow, bool):
+            raise BridgeError("overwrite must be true or false")
+        return self._svc(self.mapping.save, c.get("name"), ow)
+
+    def h_mapping_stop(self, c):
+        return self._svc(self.mapping.stop)
+
+    def h_mapping_reset(self, c):
+        return self.mapping.reset()
+
+    def h_maps_list(self, c):
+        return {"maps": self.maps.list(), "dir": self.maps_dir}
+
+    def h_map_preview(self, c):
+        try:
+            mp = clamp_int(c.get("max_px"), 64, 1024, 512)
+        except ValueError:
+            raise BridgeError("max_px must be a number")
+        return self._svc(self.maps.preview, c.get("name"), mp)
+
+    def h_map_rename(self, c):
+        return self._svc(self.maps.rename, c.get("name"), c.get("new_name"))
+
+    def h_map_delete(self, c):
+        return self._svc(self.maps.delete, c.get("name"), c.get("confirm"))
+
+    def h_routes_list(self, c):
+        return self.routes.list()
+
+    def h_route_set_current(self, c):
+        return self._svc(self.routes.set_current, c.get("name"), c.get("confirm"))
+
+    def h_route_upload_cleanup(self, c):
+        return self._svc(self.routes.upload_cleanup, c.get("name"))
+
+    def h_route_upload_finish(self, c):
+        return self._svc(self.routes.upload_finish, c.get("name"))
+
+    def h_trip_status(self, c):
+        try:
+            n = clamp_int(c.get("lines"), 1, 200, 40)
+        except ValueError:
+            raise BridgeError("lines must be a number")
+        return self.routes.trip_status(n)
+
+    def h_menu_get(self, c):
+        return self._svc(self.menu.get)
+
+    def h_menu_check(self, c):
+        text = c.get("text")
+        if not isinstance(text, str):
+            raise BridgeError("text is required and must be a string")
+        return self._svc(self.menu.check, text)
+
+    def h_menu_put(self, c):
+        return self._svc(self.menu.put, c.get("text"), c.get("confirm"))
+
+    def h_fake_trip(self, c):
+        """Fake robot only (tests): mark a trip (delivery_mission.py) as running or not."""
+        if not self.fake:
+            raise BridgeError("only available in fake mode")
+        v = c.get("running")
+        if not isinstance(v, bool):
+            raise BridgeError("running must be true or false")
+        self.trip_probe.mission = v
+        return {"running": v}
+
+# ================================================================================================
+# bridge/system_commands.py
+# Bridge commands for the robot log (journal) and for the dock, undock and cancel-action buttons.
+# ================================================================================================
+
+
+class SystemMixin:
     # ---- Studio 2.0: robot log (journal)
     def h_journal(self, c):
         unit = c.get("unit") or JOURNAL_UNITS[0]
@@ -4222,6 +4298,13 @@ class Bridge:
         name = str(c.get("name", ""))
         return {"canceled": bool(self.ros.cancel_action(name))}
 
+# ================================================================================================
+# bridge/telemetry_commands.py
+# The health check and the periodic status and slow-status loops that report to the desktop.
+# ================================================================================================
+
+
+class TelemetryMixin:
     # ---- health
     def h_health(self, c):
         checks = []
@@ -4342,6 +4425,133 @@ class Bridge:
                 except Exception as e:
                     log("slow refresh:", repr(e))
             self.stop.wait(SLOW_EVERY)
+
+# ================================================================================================
+# bridge/bridge_core.py
+# The Bridge class: it keeps the shared state, sends events, dispatches commands to the handlers and
+# starts the threads. The handlers themselves live in the *_commands.py modules, as mixin classes.
+# ================================================================================================
+
+
+class Bridge(BasicCommandsMixin, FilesMixin, WifiMixin, ProgramsMixin, EstopMixin, StreamsMixin, TeleopMixin, ServiceHandlersMixin, SystemMixin, TelemetryMixin):
+    def __init__(self, ros, writer, home, fake):
+        self.ros, self.writer, self.home, self.fake = ros, writer, home, fake
+        self.stop = threading.Event()
+        self.runs = collections.OrderedDict()
+        self.runs_lock = threading.Lock()
+        self.run_counter = 0
+        self.watches = {}
+        self.watch_counter = 0
+        self.watch_lock = threading.Lock()
+        self.status_period = None
+        self.status_wake = threading.Event()
+        self.estop_on = None
+        self.estop_app = False
+        self.estop_t = 0.0
+        self.slow = {"net": {}, "clock_synced": None, "ros_service": "unknown", "throttled": None}
+        self.cpu_prev = None
+        self.logdir = os.path.join(home, "robot_code", "logs")
+        self.stop_file = os.path.join(home, "STOP")
+        self.t0 = time.monotonic()
+        self.secrets = WifiSecrets()
+        self.fw_lock = threading.Lock()
+        self.fw = fake_wifi_state()
+        # Studio 2.0: manual driving + streams
+        self.tele_lock = threading.Lock()
+        self.tele = {"armed": False, "last_cmd": 0.0, "last_move": 0.0, "zeroed": True, "seq": -1,
+                     "max_linear": TELEOP_MAX_LINEAR, "max_angular": TELEOP_MAX_ANGULAR, "armed_t": 0.0}
+        self.status_estop = None            # estop.on of the newest status (None = unknown)
+        self.streams = {"scan": None, "pose": None, "map": None}      # name -> {"period", "next", "max_points", "last_seq"} while on
+        self.stream_lock = threading.Lock()
+        self.map_seq = 0
+        # Studio 2.1: mapping (the delivery scripts, or timers in fake mode) and the map library
+        self.maps_dir = os.path.join(home, "robot_code", "maps")
+        if fake:
+            self.runner = FakeStackRunner(ros)
+            self.probe = FakeProcessProbe(self.runner)
+        else:
+            self.runner = RealStackRunner(home)
+            self.probe = RealProcessProbe()
+        self.mapping = MappingService(self.runner, self.probe, self.maps_dir, self.emit,
+                                      disarm=lambda why: self.teleop_disarm(why), map_reset=self._map_reset)
+        self.maps = MapLibrary(self.maps_dir, self.mapping.busy_name)
+        if fake:
+            self.trip_probe = FakeTripProbe()
+            self.routes = RouteLibrary(home, True, self.trip_probe)
+            try:
+                self.routes.seed_fake()
+            except OSError as e:
+                log("cannot seed the sample routes:", e)
+        else:
+            self.trip_probe = None
+            self.routes = RouteLibrary(home, False, self.probe)
+        self.menu = MenuService(home, MenuChecker(home))
+        if fake:
+            try:
+                self.maps.seed_demo()
+            except OSError as e:
+                log("cannot seed the sample map:", e)
+
+    # ---- infrastructure
+    def emit(self, obj, droppable=False, key=None):
+        if key is None:
+            self.writer.emit(obj, droppable)
+        else:
+            self.writer.emit(obj, droppable, key)
+
+    def _map_reset(self):
+        """A mapping session starts or ended: forget the old map and let the next new map be sent."""
+        self.ros.map_reset()
+        with self.stream_lock:
+            v = self.streams.get("map")
+            if v is not None:
+                v["last_seq"] = None
+
+    def start_threads(self):
+        try:
+            os.makedirs(self.logdir, exist_ok=True)
+        except OSError as e:
+            log("cannot create", self.logdir, e)
+        self.rediscover()
+        self.mapping.start_probe()
+        for fn, name in ((self._status_loop, "status"), (self._slow_loop, "slow"), (self._run_monitor, "runmon"),
+                         (self._teleop_loop, "teleop"), (self._stream_loop, "streams")):
+            threading.Thread(target=fn, name=name, daemon=True).start()
+
+    def reply(self, cid, ok, **kw):
+        d = {"ev": "reply", "id": cid, "ok": bool(ok)}
+        d.update(kw)
+        self.emit(d)
+
+    def handle(self, cmd):
+        """Run one command (called in its own thread so a slow command never blocks e-stop)."""
+        cid = cmd.get("id")
+        name = str(cmd.get("cmd", ""))
+        fn = getattr(self, "h_" + name, None) if re.fullmatch(r"[a-z_]+", name) else None
+        if fn is None:
+            self.reply(cid, False, error="unknown command: %s" % name[:40])
+            return
+        try:
+            res = fn(cmd) or {}
+            self.reply(cid, True, **res)
+        except BridgeError as e:
+            extra = dict(e.extra)
+            self.reply(cid, False, error=str(e), **extra)
+        except RosError as e:
+            self.reply(cid, False, error=str(e))
+        except Exception as e:
+            log("command", name, "failed:", repr(e))
+            self.reply(cid, False, error="internal error: %s: %s" % (type(e).__name__, e))
+
+    def need_ros(self):
+        if not self.ros.available:
+            raise BridgeError("ROS not available: %s" % (self.ros.error or "not started"))
+
+# ================================================================================================
+# bridge/main.py
+# BridgeError, the hello message and main(): reads the mode from the environment, builds the Bridge and
+# runs the command loop.
+# ================================================================================================
 
 
 class BridgeError(Exception):

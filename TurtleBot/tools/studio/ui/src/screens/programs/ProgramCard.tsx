@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Play } from 'lucide-react';
+import { Pencil, Play } from 'lucide-react';
 import type { CatalogEntry, ProgramDescription, RemoteFile } from '../../api';
-import { missingArgsMessage, requiredArgNames, safeExample } from '../../lib/requiredArgs';
+import { argsPlaceholder, requiredArgNames } from '../../lib/requiredArgs';
 import { isBuiltinMotion, isHelperProgram, isMotionProgram } from '../../lib/motion';
 import { useAsyncAction } from '../../lib/useAsync';
-import { runProgram, saveSettings } from '../../state/actions';
+import { saveSettings } from '../../state/actions';
 import { useArgs } from '../../state/args';
+import { editProgram } from '../../state/codeActions';
+import { runFromList } from '../../state/runFlow';
 import { useStudio } from '../../state/store';
 import { Badge, Button, Checkbox, Input, Table } from '../../components/ui';
 
@@ -144,10 +146,12 @@ export function ProgramCard({ file }: { file: RemoteFile }) {
   const [notice, setNotice] = useState('');
   const run = useAsyncAction(async () => {
     setNotice('');
-    const started = await runProgram(name, useArgs.getState().args[name] ?? '');
+    const r = await runFromList(name);
+    setNotice(r.notice);
     // On narrow screens the output sits below the list: bring it into view.
-    if (started) document.getElementById('run-output')?.scrollIntoView({ block: 'nearest' });
+    if (r.started) document.getElementById('run-output')?.scrollIntoView?.({ block: 'nearest' });
   });
+  const edit = useAsyncAction(() => editProgram(name));
   const mark = useAsyncAction(async (on: boolean) => {
     const set = new Set(extra ?? []);
     if (on) set.add(name);
@@ -183,12 +187,6 @@ export function ProgramCard({ file }: { file: RemoteFile }) {
         onSubmit={(e) => {
           e.preventDefault();
           if (!connected || helper) return;
-          if (required.length && !value.trim()) {
-            const example = safeExample(entry);
-            if (example) setArgs(name, example);
-            setNotice(missingArgsMessage(name, required, !!example));
-            return;
-          }
           void run.run();
         }}
       >
@@ -201,7 +199,7 @@ export function ProgramCard({ file }: { file: RemoteFile }) {
           placeholder={
             required.length
               ? `needs: ${required.join(', ')} (see examples below)`
-              : 'arguments (optional)'
+              : argsPlaceholder(entry, desc)
           }
           aria-label={`Arguments for ${name}`}
           className="mono"
@@ -215,6 +213,15 @@ export function ProgramCard({ file }: { file: RemoteFile }) {
           aria-label={`Run ${name}`}
         >
           Run
+        </Button>
+        <Button
+          icon={<Pencil size={14} aria-hidden="true" />}
+          loading={edit.pending}
+          disabled={!connected}
+          aria-label={`Edit code of ${name}`}
+          onClick={() => void edit.run()}
+        >
+          Edit code
         </Button>
       </form>
       <p className="prog-notice" role="status">

@@ -1,9 +1,11 @@
-import { OctagonX, RefreshCw } from 'lucide-react';
+import { FilePlus, FolderSync, OctagonX, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { OutputLog } from '../components/OutputLog';
 import { Badge, Button, Checkbox, EmptyState, Panel, Table } from '../components/ui';
 import { useAsyncAction } from '../lib/useAsync';
 import { loadPrograms, stopAllRuns, stopRun } from '../state/actions';
+import { startNewProgram } from '../state/codeActions';
+import { navigate } from '../state/router';
 import { anyRunAlive, remoteDir } from '../state/selectors';
 import { useStudio } from '../state/store';
 import { ProgramCard } from './programs/ProgramCard';
@@ -170,10 +172,29 @@ export function Programs() {
               <EmptyState
                 compact
                 title={connected ? 'No programs in this folder' : 'Not connected'}
+                action={
+                  connected ? (
+                    <div className="row">
+                      <Button
+                        variant="primary"
+                        icon={<FilePlus size={16} aria-hidden="true" />}
+                        onClick={() => startNewProgram()}
+                      >
+                        New program
+                      </Button>
+                      <Button
+                        icon={<FolderSync size={16} aria-hidden="true" />}
+                        onClick={() => navigate('/files')}
+                      >
+                        Copy a folder
+                      </Button>
+                    </div>
+                  ) : undefined
+                }
               >
                 {connected
-                  ? 'Add a .py or .sh file to the robot folder, or make one in the Code screen.'
-                  : 'Connect to the robot on the Overview screen to list its programs.'}
+                  ? 'Make a new program here, or copy a folder of programs to the robot.'
+                  : 'Connect to the robot on the Home screen to list its programs.'}
               </EmptyState>
             ) : (
               <div className="prog-list">

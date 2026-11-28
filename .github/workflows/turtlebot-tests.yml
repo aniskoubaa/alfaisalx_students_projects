@@ -55,6 +55,8 @@ jobs:
             if bash -n "$f"; then echo "ok $f"; else echo "SYNTAX ERROR $f"; fail=1; fi
           done < <(find TurtleBot -name '*.sh' -not -path '*/node_modules/*' | sort)
           exit $fail
+      - name: studio.py and robot_bridge.py match their source modules (ADR 0008)
+        run: python TurtleBot/tools/studio/bundle.py --check
       - name: TurtleBot Studio web files (node --check)
         run: |
           node --check TurtleBot/tools/studio/web/app.js

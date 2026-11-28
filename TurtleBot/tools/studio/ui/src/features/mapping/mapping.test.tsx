@@ -773,9 +773,9 @@ describe('Maps screen', () => {
 });
 
 describe('router and words', () => {
-  it('has a Maps route right after Live', () => {
+  it('has a Maps route right after Programs', () => {
     const paths = ROUTES.map((r) => r.path);
-    expect(paths.indexOf('/maps')).toBe(paths.indexOf('/live') + 1);
+    expect(paths.indexOf('/maps')).toBe(paths.indexOf('/programs') + 1);
     expect(routeFor('/maps').label).toBe('Maps');
     expect(parseHash('#/maps')).toBe('/maps');
     expect(ROUTES.find((r) => r.path === '/maps')?.ready).toBe(true);

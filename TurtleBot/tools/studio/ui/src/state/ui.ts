@@ -38,6 +38,9 @@ interface UiState {
   navCollapsed: boolean;
   navOpen: boolean;
   eventsOpen: boolean;
+  /** Set by a button on another screen; the Code screen opens the New program dialog and clears it. */
+  newProgramAsked: boolean;
+  setNewProgramAsked(v: boolean): void;
   setTheme(t: ThemeChoice): void;
   toggleNav(): void;
   setNavOpen(v: boolean): void;
@@ -49,6 +52,8 @@ export const useUi = create<UiState>()((set, get) => ({
   navCollapsed: readStore(NAV_KEY) === '1',
   navOpen: false,
   eventsOpen: false,
+  newProgramAsked: false,
+  setNewProgramAsked: (newProgramAsked) => set({ newProgramAsked }),
   setTheme: (theme) => {
     writeStore(THEME_KEY, theme);
     applyTheme(theme);

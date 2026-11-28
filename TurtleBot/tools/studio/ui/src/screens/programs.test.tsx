@@ -140,7 +140,7 @@ describe('Programs screen', () => {
     const m = setup();
     view();
     const box = screen.getByLabelText('Arguments for list_runner.sh');
-    expect(box).toHaveAttribute('placeholder', 'arguments (optional)');
+    expect(box).toHaveAttribute('placeholder', 'Optional');
     await userEvent.click(screen.getByRole('button', { name: 'Run list_runner.sh' }));
     await waitFor(() => expect(m.calls.some((c) => c.body.cmd === 'run')).toBe(true));
     expect(

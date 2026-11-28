@@ -359,7 +359,8 @@ def steps(page, ctx, browser):
         check('Overview: compact card, address field hidden while connected', page.get_by_label('Robot address (optional)').count() == 0)
         page.get_by_role('button', name='Change robot').click()
         expect(page.get_by_label('Robot address (optional)')).to_be_visible()
-        for n in ('Discover', 'Search the whole network', 'Setup wizard'):
+        page.get_by_text('Other ways to connect', exact=True).click()
+        for n in ('Connect', 'Discover', 'Search the whole network', 'Setup wizard'):
             check('Change robot shows ' + n, page.get_by_role('button', name=n, exact=True).count() == 1)
         page.get_by_role('button', name='Change robot').click()
         expect(page.get_by_label('Robot address (optional)')).to_have_count(0)
@@ -551,7 +552,7 @@ def steps(page, ctx, browser):
             close_dialog()
         # undock from the Overview
         go('overview')
-        page.get_by_role('button', name='Undock').click()
+        page.get_by_role('button', name='Undock').first.click()
         dialog().get_by_label(re.compile('I am next to the robot')).check()
         dialog().get_by_role('button', name='Start moving').click()
         check('Overview: Undock works in fake mode', STREAM.wait(lambda s: s['dock']['is_docked'] is False, 25))

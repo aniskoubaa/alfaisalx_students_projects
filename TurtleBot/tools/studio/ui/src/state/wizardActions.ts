@@ -26,7 +26,7 @@ export async function skipWizard(): Promise<void> {
   if (ok) {
     notify(
       'info',
-      'Setup skipped. You can open the wizard again from the Overview or Tools screen.',
+      'Setup skipped. You can open the wizard again from the Home or Settings and help screen.',
     );
   }
 }

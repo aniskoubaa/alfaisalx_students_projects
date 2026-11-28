@@ -71,6 +71,7 @@ export function ConnectionPanel() {
   const [typed, setTyped] = useState<string | null>(null);
   const [changeOpen, setChangeOpen] = useState(false);
   const address = typed ?? lastHost ?? '';
+  const addressKnown = address.trim() !== '';
 
   const view = connView(conn, hello, sse);
   const hint = conn.state === 'error' ? connHint(conn) : null;
@@ -229,34 +230,54 @@ export function ConnectionPanel() {
               )}
             </Field>
             <div className="row row-end">
-              <Button
-                type="submit"
-                variant="primary"
-                loading={doConnect.pending}
-                disabled={linkBusy}
-              >
-                Connect
-              </Button>
-              <Button loading={doDiscover.pending} onClick={() => void doDiscover.run()}>
-                Discover
-              </Button>
-              <Button onClick={() => openWizard()}>Setup wizard</Button>
+              {addressKnown ? (
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={doConnect.pending}
+                  disabled={linkBusy}
+                >
+                  Connect
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  loading={doDiscover.pending}
+                  disabled={linkBusy}
+                  onClick={() => void doDiscover.run()}
+                >
+                  Find my robot
+                </Button>
+              )}
             </div>
           </form>
 
-          <div className="row deep-row">
-            <Button
-              icon={<Search size={16} aria-hidden="true" />}
-              loading={deep.running || doDeep.pending}
-              onClick={() => void doDeep.run()}
-            >
-              Search the whole network
-            </Button>
-            <span className="dim small grow">
-              Checks every address on this computer&apos;s network for your robot, about 15 seconds.
-              Or read the address on the robot&apos;s screen and type it.
-            </span>
-          </div>
+          <details className="other-ways">
+            <summary>Other ways to connect</summary>
+            <div className="other-ways-body">
+              <div className="row">
+                {addressKnown ? (
+                  <Button loading={doDiscover.pending} onClick={() => void doDiscover.run()}>
+                    Discover
+                  </Button>
+                ) : null}
+                <Button onClick={() => openWizard()}>Setup wizard</Button>
+              </div>
+              <div className="row deep-row">
+                <Button
+                  icon={<Search size={16} aria-hidden="true" />}
+                  loading={deep.running || doDeep.pending}
+                  onClick={() => void doDeep.run()}
+                >
+                  Search the whole network
+                </Button>
+                <span className="dim small grow">
+                  Checks every address on this computer&apos;s network for your robot, about 15
+                  seconds. Or read the address on the robot&apos;s screen and type it.
+                </span>
+              </div>
+            </div>
+          </details>
 
           {deep.running ? (
             <div className="progress-wrap" role="status" aria-live="polite">
@@ -305,7 +326,7 @@ export function ConnectionPanel() {
             </Table>
           ) : (
             <p className="dim small cand-empty">
-              No robots listed yet. Press Discover to look on the cable and Wi-Fi.
+              No robots listed yet. Press {addressKnown ? 'Discover under Other ways to connect' : 'Find my robot'} to look on the cable and Wi-Fi.
             </p>
           )}
         </div>

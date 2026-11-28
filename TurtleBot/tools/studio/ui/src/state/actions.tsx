@@ -192,6 +192,7 @@ export async function dockAction(cmd: 'undock' | 'dock'): Promise<void> {
     <p>
       <strong>{label}</strong>. The robot will move by itself. Is the area clear?
     </p>,
+    { dockWarning: false },
   );
   if (!ok) return;
   const r = report(await api().bridge(cmd, { confirmed: true }), label);

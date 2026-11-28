@@ -132,7 +132,7 @@ export function DrivePanel() {
               </div>
             ) : null}
             {docked === true && connected ? (
-              <p className="small dim">The robot is on its dock. Undock it first (Overview).</p>
+              <p className="small dim">The robot is on its dock. Undock it first (Home).</p>
             ) : null}
             <Speeds />
             <Button

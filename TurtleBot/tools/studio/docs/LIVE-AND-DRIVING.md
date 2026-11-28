@@ -1,6 +1,8 @@
 # Live view, driving, charts, events and logs
 
-How to use the screens added in Studio 2.0: **Live** (map and driving), **Charts**, the **Events** drawer and **Logs**.
+How to use the screens added in Studio 2.0: **Live** (map and driving; called **Drive** since 2.2), **Charts**, the **Events** drawer and **Logs**.
+
+> Studio 2.2: **Live** is now called **Drive** in the menu, and **Overview** is now **Home**. Where this guide says Live or Overview, use the new name. The robot-status cards are under "Robot status" on **Home**, and the **Drive the robot** button on **Home** opens **Drive**.
 
 Guides: [First connection](FIRST-CONNECTION.md) | [Everyday use](EVERYDAY-USE.md) | [Live view and driving](LIVE-AND-DRIVING.md) | [Find the robot](FIND-THE-ROBOT.md) | [Troubleshooting](TROUBLESHOOTING.md)
 
@@ -43,8 +45,8 @@ Notes:
 
 - "North" is a fixed direction on the map (the robot's odometry frame), not the real compass.
 - The map and the trail show odometry. They drift over time and are not a saved map of the room.
-- While the robot is docked, the lidar motor is normally off. The map then says "No lidar data" and that the lidar is off while docked. This is normal. Undock the robot, or press **Start lidar motor** on **Overview**, to see points.
-- If points stop arriving for more than 1 second the dots dim and the message appears. Check the lidar on **Overview**.
+- While the robot is docked, the lidar motor is normally off. The map then says "No lidar data" and that the lidar is off while docked. This is normal. Undock the robot, or press **Start lidar motor** on **Home**, to see points.
+- If points stop arriving for more than 1 second the dots dim and the message appears. Check the lidar on **Home**.
 - Studio asks the robot for the scan and the pose only while Live is open, visible and connected. It turns them off when you leave Live.
 - The numbers in the readouts (nearest obstacle, position) come from the robot. Whether the real room matches the rings is [to verify] on the real robot.
 
@@ -53,8 +55,8 @@ Notes:
 ### Before you arm
 
 1. Stand next to the robot, with about 1 m of clear floor around it.
-2. Undock the robot (**Overview**, **Undock**, confirm). The robot cannot be armed while docked.
-3. Open **Live**.
+2. Undock the robot (**Home**, **Undock**, confirm). The robot cannot be armed while docked.
+3. Open **Drive** (or press **Drive the robot** on **Home**).
 
 ### Arm
 
@@ -85,7 +87,7 @@ Notes:
 | Top forward speed | 0.15 m/s | 0.30 m/s |
 | Turn rate | 0.60 rad/s | 1.20 rad/s |
 
-- Move the **Top speed** and **Turn rate** sliders in the **Drive** panel, or set the numbers in **Tools, Settings, Driving limits**. The lowest values are 0.02 m/s and 0.10 rad/s.
+- Move the **Top speed** and **Turn rate** sliders in the **Drive** panel, or set the numbers in **Settings and help, Settings, Driving limits**. The lowest values are 0.02 m/s and 0.10 rad/s.
 - Studio and the robot both enforce the highest values. Typing a larger number only gives you the highest value.
 - The lab's own rule for programs is 0.15 m/s. The sliders go higher. Stay at the default unless you have a reason and the lab maintainer agrees.
 
@@ -95,7 +97,7 @@ Studio shows the reason in plain words.
 
 | Message | What to do |
 |---|---|
-| The robot is docked. Undock first. | Undock it from **Overview** |
+| The robot is docked. Undock first. | Undock it from **Home** |
 | The e-stop is on. Release it first. | Press **Release e-stop** (top banner) only when it is safe |
 | A motion program is running. Stop it first. | Stop it in **Programs**, or press **Stop all** |
 | Battery below 10 %. Charge the robot before driving. | Dock and charge the robot |

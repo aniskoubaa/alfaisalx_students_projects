@@ -11,7 +11,9 @@ Guides: [First connection](FIRST-CONNECTION.md) | [Everyday use](EVERYDAY-USE.md
 1. Plug an Ethernet cable between your computer and the robot.
 2. Start Studio and follow the setup wizard. Type the robot password in the terminal window the wizard opens (once per computer).
 3. While the cable is still plugged in, open **Wi-Fi** in the left menu, press **Join a Wi-Fi network** and put the robot on the network you will use.
-4. Unplug the cable. From now on: **Discover**, then **Connect**.
+4. Unplug the cable. From now on: **Connect** (or **Find my robot** if Studio does not know an address yet).
+
+> Studio 2.2: the buttons on the connect card changed. See the note at the end of this guide.
 
 ## Why the cable
 
@@ -36,7 +38,7 @@ You need:
 
 ### 2. Start Studio and run the setup wizard
 
-1. Start Studio ([INSTALL.md](../INSTALL.md#2-start-it)). The wizard opens by itself the first time. If it does not, press **Setup wizard** on **Overview** (under **Change robot** when you are connected) or open **Tools** and press **Open the setup wizard**.
+1. Start Studio ([INSTALL.md](../INSTALL.md#2-start-it)). The wizard opens by itself the first time. If it does not, press **Setup wizard** on **Home** (under **Other ways to connect**, click it to open; in 2.1 and earlier it was under **Change robot** on **Overview**) or open **Settings and help** (called **Tools** before 2.2) and press **Open the setup wizard**.
 2. Go through the six steps:
 
 | Step | What you do |
@@ -82,7 +84,7 @@ The Wi-Fi password goes to the robot once, over the existing ssh link. Studio do
 
 1. Join your computer to the same Wi-Fi network as the robot.
 2. Unplug the cable.
-3. In Studio press **Discover**, pick the robot and press **Connect**.
+3. In Studio press **Connect** (or **Find my robot**, then pick the robot and press **Connect**).
 
 If the robot is not found, see [Find the robot](FIND-THE-ROBOT.md).
 
@@ -103,9 +105,13 @@ Another computer needs its own first connection. To start over on this computer,
 
 | Situation | What to do |
 |---|---|
-| Normal day | Start Studio, **Discover**, **Connect**. No cable, no password |
-| The robot's address changed | Read the address on the robot's screen and type it, or press **Search the whole network**. See [Find the robot](FIND-THE-ROBOT.md) |
+| Normal day | Start Studio and press **Connect** (or **Find my robot**). No cable, no password |
+| The robot's address changed | Read the address on the robot's screen and type it, or press **Search the whole network** (under **Other ways to connect** on **Home**). See [Find the robot](FIND-THE-ROBOT.md) |
 | No known Wi-Fi in range | The robot starts its own hotspot `Turtlebot4` (robot at `10.42.0.1`). Join it from your computer |
 | Something fails | [Troubleshooting](TROUBLESHOOTING.md) |
 
 Next: [Everyday use](EVERYDAY-USE.md).
+
+## Studio 2.2: new names on the connect card
+
+Studio 2.2 renamed some screens. **Overview** is now **Home**, **Live** is **Drive** and **Tools** is **Settings and help**. Before you connect, **Home** shows one main button: **Connect** when Studio knows an address, otherwise **Find my robot** (this is the old Discover). **Setup wizard** and **Search the whole network** are under **Other ways to connect**. Click that line to open it. **Discover** is also there when an address is known. Steps above that say Discover, Overview or Tools mean these.

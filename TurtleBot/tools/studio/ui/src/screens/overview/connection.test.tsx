@@ -36,7 +36,7 @@ describe('connection card', () => {
   it('shows the full card while disconnected', () => {
     wrap();
     expect(screen.getByLabelText('Robot address (optional)')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Discover' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Find my robot' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Change robot' })).toBeNull();
   });
 
@@ -49,13 +49,14 @@ describe('connection card', () => {
     expect(screen.getByText('Connected since')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Robot address (optional)')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Discover' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Find my robot' })).toBeNull();
     const change = screen.getByRole('button', { name: 'Change robot' });
     expect(change).toHaveAttribute('aria-expanded', 'false');
     await userEvent.click(change);
     expect(change).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByLabelText('Robot address (optional)')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Discover' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Find my robot' })).toBeInTheDocument();
+    expect(screen.getByText('Other ways to connect')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Search the whole network' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Setup wizard' })).toBeInTheDocument();
   });

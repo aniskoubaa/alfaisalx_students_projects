@@ -12,6 +12,7 @@ The app never stores, asks for, logs or sends a password. Password login happens
 that ssh itself opened (setup_key). Every ssh call checks the robot against a pinned host key.
 See README.md for the architecture and the security model.
 """
+# GENERATED FILE, do not edit. Source: tools/studio/desktop/*.py; rebuild with: python bundle.py
 import argparse
 import base64
 import collections
@@ -46,7 +47,7 @@ import zlib
 import http.client
 
 sys.dont_write_bytecode = True
-VERSION = '2.1.1'
+VERSION = '2.2.0'
 FROZEN = bool(getattr(sys, 'frozen', False))  # PyInstaller one-file build
 HERE = getattr(sys, '_MEIPASS', None) if FROZEN else None
 HERE = HERE or os.path.dirname(os.path.abspath(__file__))
@@ -118,7 +119,11 @@ ALERT_PER_TEXT_CODES = frozenset({'program_started', 'program_exited', 'program_
 ALERT_SEVERITIES = ('info', 'warn', 'critical')
 EVENTS_MAX_BYTES = 1_000_000    # events.jsonl rotates to events.jsonl.old at this size
 
-# ============================================================================ pure helpers
+# ================================================================================================
+# desktop/helpers.py
+# Small pure helpers: config folder, host checks, ssh/scp command lines, host keys, error texts.
+# No network or disk access beyond reading paths.
+# ================================================================================================
 
 
 def config_dir():
@@ -270,6 +275,12 @@ def map_ssh_error(text, code=None):
         return 'key_missing', 'key file not found'
     lines = [x.strip() for x in t.strip().splitlines() if x.strip()]
     return 'other', (lines[-1] if lines else 'connection ended (exit %s)' % code)
+
+# ================================================================================================
+# desktop/network_parse.py
+# Pure parsers for the laptop and robot neighbour tables, IPv4 interfaces and the address list
+# that "Search the whole network" probes. They only turn command output into data.
+# ================================================================================================
 
 
 def norm_mac(mac):
@@ -482,6 +493,12 @@ def order_deep(cands):
         return (0 if c.get('identity') == 'confirmed' else 1 if c.get('pi') else 2, n)
     return sorted(cands, key=key)
 
+# ================================================================================================
+# desktop/notices.py
+# Short texts and timing shown to the user: route words, update notice, reconnect delays and
+# the redaction of secrets in diagnostics.
+# ================================================================================================
+
 
 ROUTE_WORDS = {'cable': 'Ethernet cable', 'wifi': 'Wi-Fi', 'hotspot': 'robot hotspot', 'custom': 'typed address'}
 
@@ -555,6 +572,12 @@ def redact(text, secrets=()):
     t = _RE_SECRET.sub(lambda m: m.group(1) + m.group(2) + REDACTED, t)
     t = _RE_TOKEN.sub(lambda m: m.group(1) + REDACTED, t)
     return t
+
+# ================================================================================================
+# desktop/sync_helpers.py
+# Pure parts of the ssh config block, file sync planning and tar streaming, plus small
+# executable and PowerShell helpers.
+# ================================================================================================
 
 
 def ssh_config_block(host, key, known_hosts, alias='turtlebot-studio', user=ROBOT_USER):
@@ -707,8 +730,13 @@ def hide_flags():
         return {'creationflags': subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP}
     return {'start_new_session': True}
 
+# ================================================================================================
+# desktop/window.py
+# Opens Studio's own window, keeps one Studio per user (instance file) and stops the built
+# app when its last page closes.
+# ================================================================================================
 
-# ============================================================================ v1.3 helpers: own window, single instance, exit when closed
+
 def say(*parts):
     """print() that never fails: the windowed (no console) build has sys.stdout = None or a closed pipe."""
     try:
@@ -878,8 +906,12 @@ class CloseWatcher:
             self.empty_since = now
         return now - self.empty_since >= self.grace
 
+# ================================================================================================
+# desktop/wifi_scripts.py
+# Script texts that run on the robot to save, join, fetch and remove a Wi-Fi network.
+# They are sent as text; nothing here runs on the laptop.
+# ================================================================================================
 
-# ============================================================================ v1.1 helpers: catalog, laptop network, Wi-Fi scripts
 
 PROTECTED_CONNECTIONS = ('netplan-wlan0-Turtlebot4', 'netplan-eth0', 'netplan-usb0')
 TEMPLATE_NAME_RE = re.compile(r'^[A-Za-z0-9_\-]{1,80}\.(py|sh)$')
@@ -1103,6 +1135,12 @@ sudo nmcli connection delete id "$name"
 echo "exit code: $?"
 wait_enter
 '''
+
+# ================================================================================================
+# desktop/laptop_network.py
+# Wi-Fi script helpers (names, arguments) and parsers for the laptop's own Wi-Fi and wired
+# network on Windows, macOS and Linux.
+# ================================================================================================
 
 
 def b64s(s):
@@ -1333,6 +1371,12 @@ def laptop_wired():
     except Exception:
         return []
 
+# ================================================================================================
+# desktop/programs.py
+# The program catalog (programs.json and templates) and the decision whether a run needs
+# the motion safety checks. ProgramsMixin serves them to the page.
+# ================================================================================================
+
 
 def list_templates(templates_dir):
     try:
@@ -1379,7 +1423,46 @@ def decide_motion(base, catalog_programs, user_files, described):
     return bool(reasons), reasons
 
 
-# ============================================================================ event bus
+class ProgramsMixin:
+    # ---------------------------------------------------------------- v1.1: catalog, templates, motion decision
+    def catalog(self):
+        return load_catalog(self.catalog_path, self.templates_dir)
+
+    def template_text(self, name):
+        if not TEMPLATE_NAME_RE.match(name or '') or name not in list_templates(self.templates_dir):
+            return None
+        try:
+            with open(os.path.join(self.templates_dir, name), 'rb') as f:
+                return f.read().decode('utf-8')
+        except (OSError, UnicodeDecodeError):
+            return None
+
+    def motion_for_run(self, cmd):
+        """Sets cmd['motion'] (never lowers an explicit True) and returns the reasons."""
+        path = str(cmd.get('path', ''))
+        base = os.path.basename(path)
+        cat = self.catalog()['programs']
+        reasons_known = decide_motion(base, cat, self.settings.get('motion_files'), None)
+        if reasons_known[0] or cmd.get('motion'):
+            cmd['motion'] = True
+            return reasons_known[1] or ['requested']
+        described = None
+        try:
+            r = self.bridge.request({'cmd': 'describe', 'dir': cmd.get('dir') or DEFAULT_REMOTE_DIR}, 10)
+            if r.get('ok'):
+                described = next((p for p in r.get('programs', []) if p.get('name') == path or p.get('name') == base), None)
+            else:
+                described = 'unavailable'
+        except BridgeError:
+            described = 'unavailable'
+        motion, reasons = decide_motion(base, cat, self.settings.get('motion_files'), described)
+        cmd['motion'] = bool(motion)
+        return reasons
+
+# ================================================================================================
+# desktop/events.py
+# The event bus that feeds the browser pages (server-sent events) and the 1 Hz metrics history.
+# ================================================================================================
 
 
 class Bus:
@@ -1490,6 +1573,11 @@ class History:
         with self.lock:
             rows = [r for r in self.rows if r[0] >= cut]
         return {'t': [round(t, 1) for t, _ in rows], 'series': {k: [smp.get(k) for _, smp in rows] for k in HISTORY_SERIES}}
+
+# ================================================================================================
+# desktop/alerts.py
+# Alert rules: turns status events into de-duplicated alerts, plus small value helpers.
+# ================================================================================================
 
 
 class AlertCenter:
@@ -1649,8 +1737,11 @@ def limit_value(v, default, lo, hi):
     n = finite_num(v)
     return default if n is None or n <= 0 else min(hi, max(lo, n))
 
+# ================================================================================================
+# desktop/mapping.py
+# Map storage and decoding: map names, route upload checks, PNG preview, MapStore.
+# ================================================================================================
 
-# ============================================================================ mapping (Studio 2.1)
 
 MAP_NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,47}$')
 MAP_MAX_SIDE = 8192
@@ -1804,8 +1895,11 @@ class MapStore:
         with self.lock:
             self.png = self.meta = self.info = None
 
-
-# ============================================================================ bridge process
+# ================================================================================================
+# desktop/bridge_process.py
+# The one long-lived ssh process that runs robot_bridge.py on the robot (class Bridge) and
+# its error type.
+# ================================================================================================
 
 
 class BridgeError(Exception):
@@ -1997,200 +2091,14 @@ class Bridge:
         self.connected = False
         self.proc = None
 
+# ================================================================================================
+# desktop/connection.py
+# Finding the robot and keeping the link: connect, disconnect, discovery, the whole-network
+# search and automatic reconnect.
+# ================================================================================================
 
-# ============================================================================ app
 
-
-class Studio:
-    def __init__(self, args):
-        self.args = args
-        self.fake = bool(args.fake)
-        self.cfg = args.config_dir or config_dir()
-        os.makedirs(self.cfg, exist_ok=True)
-        self.token = secrets.token_urlsafe(24)
-        self.heartbeat = getattr(args, 'heartbeat', 15.0)
-        self.port = None
-        self.bus = Bus()
-        self.maps = MapStore()
-        self.bridge = Bridge(self)
-        self.set_lock = threading.Lock()
-        self.settings = self._load_settings()
-        self.known_hosts = os.path.join(self.cfg, 'known_hosts')
-        # the fake robot's home: --fake-home, else STUDIO_BRIDGE_HOME (tests), else in the config folder. The fake bridge and
-        # the fake tar helper must use the same folder.
-        self.fake_home = args.fake_home or os.environ.get('STUDIO_BRIDGE_HOME') or os.path.join(self.cfg, 'fake_home')
-        self.bridge_script = args.bridge_script or os.path.join(HERE, 'robot_bridge.py')
-        self.catalog_path = getattr(args, 'catalog', None) or os.path.join(HERE, 'programs.json')
-        self.templates_dir = getattr(args, 'templates_dir', None) or os.path.join(HERE, 'templates')
-        self.log_path = os.path.join(self.cfg, 'studio.log')
-        try:
-            if os.path.getsize(self.log_path) > 1_000_000:
-                os.replace(self.log_path, self.log_path + '.old')
-        except OSError:
-            pass
-        self.write_known_hosts()
-        self.sync_lock = threading.Lock()
-        self._ssh_ver = None
-        self.wifi_jobs = collections.OrderedDict()  # nonce -> ssid of the Wi-Fi joins started from this process
-        self.closing = False
-        self.stop_cb = None             # v1.3: set by main(); stops the server (Quit Studio, exit when closed)
-        self.reconn = None              # v1.3: state of a running automatic reconnect, else None
-        self.reconn_lock = threading.Lock()
-        self.reconnect_delays = RECONNECT_DELAYS
-        self.reconnect_give_up = RECONNECT_GIVE_UP
-        self.last_cands = []            # newest discover result (diagnostics)
-        self.deep_lock = threading.Lock()
-        self.update_delay = getattr(args, 'update_delay', 5.0)
-        self.update = {'checked': None, 'latest': None, 'page': None, 'notes': '', 'error': None}
-        self.update_lock = threading.Lock()
-        self._update_logged = False
-        # 2.0
-        self.web_dir = getattr(args, 'web_dir', None) or WEB_DIR
-        self.history = History()
-        self.alerts = AlertCenter(os.path.join(self.cfg, 'events.jsonl'), self.bus.publish)
-        self.tele_armed = False         # what Studio believes (from the bridge's teleop events and replies)
-        self.tele_gen = None            # bridge generation the arm belongs to: motion is never sent to another process
-        self.conn_lost = False
-        self.run_names = {}
-        self.run_stopped = set()       # run ids the user stopped (a stopped program ends with a non-zero code: not an error)
-        self.estop_until = 0.0         # runs that end shortly after an e-stop or Stop all were stopped by it
-        self.bus.tap = self._tap
-
-    # ---------------------------------------------------------------- settings / logging
-    def _load_settings(self):
-        s = {'last_host': None, 'last_via': None, 'key_path': None, 'local_dir': None,
-             'remote_dir': DEFAULT_REMOTE_DIR, 'motion_files': [], 'trust_host_key': None, 'known_addresses': {},
-             'builtin_host_key': True, 'trusted_host_keys': [], 'setup_done': False,
-             'auto_reconnect': True, 'update_check': True, 'update_last': {}, 'update_dismissed': None,
-             'window_mode': DEFAULT_WINDOW_MODE, 'ui': 'v2', 'teleop_linear': TELEOP_DEFAULT_LINEAR,
-             'teleop_angular': TELEOP_DEFAULT_ANGULAR}
-        s.update(DEFAULT_SETTINGS)
-        d = {}
-        try:
-            with open(os.path.join(self.cfg, 'settings.json'), encoding='utf-8') as f:
-                d = json.load(f)
-            if not isinstance(d, dict):
-                d = {}
-            for k in s:
-                if k in d:
-                    s[k] = d[k]
-        except (OSError, ValueError):
-            d = {}
-        # keep the file's values only when they pass the same checks as POST /api/settings, else the default
-        if not (isinstance(s['robot_hostname'], str) and DNS_LABEL_RE.match(s['robot_hostname'])):
-            s['robot_hostname'] = DEFAULT_SETTINGS['robot_hostname']
-        if not (isinstance(s['robot_user'], str) and USER_RE.match(s['robot_user'])):
-            s['robot_user'] = DEFAULT_SETTINGS['robot_user']
-        if not valid_ssid(s['hotspot_ssid']):
-            s['hotspot_ssid'] = DEFAULT_SETTINGS['hotspot_ssid']
-        for k in ('hotspot_addr', 'cable_addr'):
-            if not (isinstance(s[k], str) and valid_host(s[k]) and '@' not in s[k]):
-                s[k] = DEFAULT_SETTINGS[k]
-        s['builtin_host_key'] = bool(s['builtin_host_key'])
-        s['auto_reconnect'] = bool(s['auto_reconnect'])
-        s['update_check'] = bool(s['update_check'])
-        s['window_mode'] = s['window_mode'] if s['window_mode'] in WINDOW_MODES else DEFAULT_WINDOW_MODE
-        s['ui'] = s['ui'] if s['ui'] in UI_CHOICES else 'v2'
-        s['teleop_linear'] = limit_value(s['teleop_linear'], TELEOP_DEFAULT_LINEAR, TELEOP_MIN_LINEAR, TELEOP_MAX_LINEAR)
-        s['teleop_angular'] = limit_value(s['teleop_angular'], TELEOP_DEFAULT_ANGULAR, TELEOP_MIN_ANGULAR, TELEOP_MAX_ANGULAR)
-        ul = s['update_last'] if isinstance(s['update_last'], dict) else {}
-        s['update_last'] = ({'t': float(ul['t']), 'latest': ul['latest']} if isinstance(ul.get('t'), (int, float))
-                            and isinstance(ul.get('latest'), str) and VERSION_RE.match(ul['latest']) else {})
-        ud = s['update_dismissed']
-        s['update_dismissed'] = ud if isinstance(ud, str) and VERSION_RE.match(ud) else None
-        tk = []
-        for e in (s['trusted_host_keys'] if isinstance(s['trusted_host_keys'], list) else []):
-            if isinstance(e, dict) and isinstance(e.get('key'), str) and KEY_LINE_RE.match(e['key']) \
-                    and e['key'] not in [x['key'] for x in tk]:
-                tk.append({'key': e['key'], 'label': str(e.get('label') or 'Robot')[:60], 'added': e.get('added')})
-        old = s.get('trust_host_key')  # one-slot setting of v1.0/1.1: migrate into the list
-        if isinstance(old, str) and KEY_LINE_RE.match(old.strip()):
-            old = ' '.join(old.split()[:2])
-            if old != LAB_HOST_KEY and old not in [x['key'] for x in tk]:
-                tk.append({'key': old, 'label': LEGACY_TRUST_LABEL, 'added': int(time.time())})
-        s['trust_host_key'] = None
-        s['trusted_host_keys'] = tk
-        # a config that already knows a robot has been set up before: no wizard for existing users
-        s['setup_done'] = bool(d['setup_done']) if 'setup_done' in d else bool(d.get('last_host'))
-        return s
-
-    def save_settings(self):
-        tmp = os.path.join(self.cfg, 'settings.json.tmp')
-        with open(tmp, 'w', encoding='utf-8') as f:
-            json.dump(self.settings, f, indent=2)
-        os.replace(tmp, os.path.join(self.cfg, 'settings.json'))
-
-    def user(self):
-        return self.settings.get('robot_user') or ROBOT_USER
-
-    def trusted_keys(self):
-        """Every key ssh may accept for the robot alias: the built-in one (unless switched off) + the user's own list."""
-        keys = [LAB_HOST_KEY] if self.settings.get('builtin_host_key', True) else []
-        for e in self.settings.get('trusted_host_keys') or []:
-            if e['key'] not in keys:
-                keys.append(e['key'])
-        return keys
-
-    def write_known_hosts(self):
-        want = ''.join('%s %s\n' % (PIN_ALIAS, k) for k in self.trusted_keys())
-        try:
-            with open(self.known_hosts, encoding='utf-8') as f:
-                if f.read() == want:
-                    return
-        except OSError:
-            pass
-        with open(self.known_hosts, 'w', encoding='utf-8', newline='\n') as f:
-            f.write(want)
-
-    def log(self, level, text):
-        self.bus.publish({'ev': 'log', 'level': level, 'text': text, 't': time.time()})
-        try:
-            with open(self.log_path, 'a', encoding='utf-8') as f:
-                f.write('%s %s %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S'), level, text))
-        except OSError:
-            pass
-
-    def conn(self, state, host=None, via=None, error=None, **extra):
-        if self.reconn is not None and state in ('connecting', 'error', 'disconnected'):
-            return  # an automatic reconnect is running: the banner shows it, not every failed try
-        ev = {'ev': 'conn', 'state': state, 'host': host, 'via': via, 'error': error}
-        ev.update(extra)
-        self.bus.publish(ev)
-
-    # ---------------------------------------------------------------- keys / executables
-    def default_key(self):
-        std = os.path.expanduser('~/.ssh/turtlebot4_ed25519')
-        return std if os.path.isfile(std) else os.path.join(self.cfg, 'id_ed25519')
-
-    def key_path(self, create=True):
-        k = self.settings.get('key_path') or self.default_key()
-        k = os.path.expanduser(k)
-        if create and not os.path.isfile(k):
-            if k != os.path.join(self.cfg, 'id_ed25519') and self.settings.get('key_path'):
-                raise BridgeError('key file not found: ' + k)
-            kg = find_exe('ssh-keygen')
-            if not kg:
-                raise BridgeError('ssh-keygen not found (install the OpenSSH client)')
-            r = subprocess.run([kg, '-t', 'ed25519', '-N', '', '-f', k, '-C', 'turtlebot-studio'],
-                               capture_output=True, text=True, timeout=30, **({'creationflags': subprocess.CREATE_NO_WINDOW} if IS_WIN else {}))
-            if r.returncode != 0:
-                raise BridgeError('ssh-keygen failed: ' + (r.stderr or r.stdout).strip()[-200:])
-            self.log('info', 'created a new ssh key for this app: ' + k)
-        return k
-
-    def public_key_line(self):
-        k = self.key_path()
-        try:
-            with open(k + '.pub', encoding='utf-8') as f:
-                line = f.read().strip()
-        except OSError:
-            kg = find_exe('ssh-keygen')
-            r = subprocess.run([kg, '-y', '-f', k], capture_output=True, text=True, timeout=15, **hide_flags()) if kg else None
-            line = (r.stdout.strip() if r and r.returncode == 0 else '')
-        if not PUB_LINE_RE.match(line):
-            raise BridgeError('public key file missing or not understood: ' + k + '.pub')
-        return line
-
+class ConnectionMixin:
     # ---------------------------------------------------------------- connect
     def connect(self, host=None, auto=False):
         if not auto:
@@ -2468,6 +2376,13 @@ class Studio:
         p.kill()
         return {'ok': True}
 
+# ================================================================================================
+# desktop/forwarding.py
+# Sends page commands on to the bridge: teleop limits and the emergency stop.
+# ================================================================================================
+
+
+class ForwardingMixin:
     # ---------------------------------------------------------------- bridge forwarding
     def forward(self, req):
         cmd = dict(req)
@@ -2551,6 +2466,50 @@ class Studio:
         return {'ok': True, 'linear': self.settings['teleop_linear'], 'angular': self.settings['teleop_angular'],
                 'max_linear': TELEOP_MAX_LINEAR, 'max_angular': TELEOP_MAX_ANGULAR}
 
+    def estop(self):
+        self.tele_armed = False     # the bridge disarms manual driving first thing; Studio stops sending at once
+        self.estop_until = time.time() + 15.0
+        out = {'ok': False}
+        try:
+            r = self.bridge.request({'cmd': 'estop'}, 8)
+            out['bridge'] = r
+            out['ok'] = bool(r.get('ok'))
+        except BridgeError as e:
+            out['bridge'] = {'ok': False, 'error': str(e)}
+        if not out['ok']:
+            out['fallback'] = self._estop_fallback()
+            out['ok'] = bool(out['fallback'].get('ok'))
+        self.log('warn' if out['ok'] else 'error', 'E-stop requested: %s' % ('sent' if out['ok'] else 'FAILED, check the robot!'))
+        return out
+
+    def _estop_fallback(self):
+        if self.fake:
+            return {'ok': False, 'error': 'no robot in fake mode'}
+        host = self.bridge.host or self.settings.get('last_host') or self.args.host_override
+        ssh = find_exe('ssh')
+        if not host or not ssh or not valid_host(host):
+            return {'ok': False, 'error': 'no known robot address or no ssh'}
+        cmd = ("touch ~/STOP; pkill -INT -f '%s'; source /etc/turtlebot4/setup.bash >/dev/null 2>&1; "
+               "timeout 5 ros2 service call /e_stop irobot_create_msgs/srv/EStop '{e_stop_on: true}'" % MOTION_PKILL_REGEX)
+        try:
+            argv = build_ssh_argv(ssh, host, self.key_path(create=False), self.known_hosts, cmd, connect_timeout=5,
+                                  user=self.user())
+            r = subprocess.run(argv, capture_output=True, text=True, timeout=15, **({'creationflags': subprocess.CREATE_NO_WINDOW} if IS_WIN else {}))
+        except (OSError, subprocess.TimeoutExpired, BridgeError) as e:
+            return {'ok': False, 'error': str(e)}
+        # pkill finds nothing -> exit 1 is normal; success means ssh reached the robot and the service call ran.
+        reached = r.returncode != 255
+        return {'ok': reached and 'success' in (r.stdout or '').lower(), 'reached': reached, 'exit': r.returncode,
+                'stdout': (r.stdout or '')[-400:], 'stderr': (r.stderr or '')[-300:]}
+
+# ================================================================================================
+# desktop/telemetry.py
+# What Studio learns from the robot: event tap, status bookkeeping (history, alerts, known
+# addresses) and the diagnostics report.
+# ================================================================================================
+
+
+class TelemetryMixin:
     def _tap(self, ev):
         """Every published event passes here: raises alerts for connection, driving and program events."""
         kind = ev.get('ev')
@@ -2588,42 +2547,108 @@ class Studio:
                 self.alerts.raise_alert('program_failed', 'warn', '%s exited with an error%s.' % (
                     name, '' if code is None else ' (code %s)' % code))
 
-    def estop(self):
-        self.tele_armed = False     # the bridge disarms manual driving first thing; Studio stops sending at once
-        self.estop_until = time.time() + 15.0
-        out = {'ok': False}
+    def on_status(self, ev):
+        """Record metrics and raise alerts, then remember the robot's Wi-Fi address per SSID (client mode only)."""
         try:
-            r = self.bridge.request({'cmd': 'estop'}, 8)
-            out['bridge'] = r
-            out['ok'] = bool(r.get('ok'))
-        except BridgeError as e:
-            out['bridge'] = {'ok': False, 'error': str(e)}
-        if not out['ok']:
-            out['fallback'] = self._estop_fallback()
-            out['ok'] = bool(out['fallback'].get('ok'))
-        self.log('warn' if out['ok'] else 'error', 'E-stop requested: %s' % ('sent' if out['ok'] else 'FAILED, check the robot!'))
-        return out
+            self.history.add(ev)
+            self.alerts.check_status(ev, is_status_moving(ev, self.tele_armed))
+        except Exception as e:
+            self.log('warn', 'status bookkeeping failed: %s' % e)
+        try:
+            net = ev.get('net') or {}
+            ssid, ip = net.get('ssid'), (net.get('addresses') or {}).get('wlan0')
+            if net.get('wifi_mode') != 'client' or not ssid or not ip or not valid_host(ip):
+                return
+            known = self.settings.setdefault('known_addresses', {})
+            old = known.get(ssid) or {}
+            if old.get('ip') != ip or time.time() - old.get('seen', 0) > 3600:
+                known[ssid] = {'ip': ip, 'seen': int(time.time())}
+                self.save_settings()
+        except Exception:
+            pass
 
-    def _estop_fallback(self):
-        if self.fake:
-            return {'ok': False, 'error': 'no robot in fake mode'}
-        host = self.bridge.host or self.settings.get('last_host') or self.args.host_override
+    # ---------------------------------------------------------------- v1.3: diagnostics
+    def diagnostics(self):
+        """Plain text for a bug report. Everything goes through redact(); no password or token is ever collected."""
+        s, L = self.settings, []
+
+        def sec(title):
+            L.extend(['', '== %s ==' % title])
+
+        def kv(k, v):
+            L.append('%s: %s' % (k, v if v not in (None, '') else '-'))
+        L.append('TurtleBot Studio diagnostics (%s)' % time.strftime('%Y-%m-%d %H:%M:%S'))
+        sec('Studio')
+        kv('Version', VERSION)
+        kv('Running as', 'built app' if FROZEN else 'source (python studio.py)')
+        kv('Fake robot mode', 'yes' if self.fake else 'no')
+        sec('This computer')
+        kv('Operating system', platform.platform())
+        kv('Python', sys.version.split()[0])
         ssh = find_exe('ssh')
-        if not host or not ssh or not valid_host(host):
-            return {'ok': False, 'error': 'no known robot address or no ssh'}
-        cmd = ("touch ~/STOP; pkill -INT -f '%s'; source /etc/turtlebot4/setup.bash >/dev/null 2>&1; "
-               "timeout 5 ros2 service call /e_stop irobot_create_msgs/srv/EStop '{e_stop_on: true}'" % MOTION_PKILL_REGEX)
-        try:
-            argv = build_ssh_argv(ssh, host, self.key_path(create=False), self.known_hosts, cmd, connect_timeout=5,
-                                  user=self.user())
-            r = subprocess.run(argv, capture_output=True, text=True, timeout=15, **({'creationflags': subprocess.CREATE_NO_WINDOW} if IS_WIN else {}))
-        except (OSError, subprocess.TimeoutExpired, BridgeError) as e:
-            return {'ok': False, 'error': str(e)}
-        # pkill finds nothing -> exit 1 is normal; success means ssh reached the robot and the service call ran.
-        reached = r.returncode != 255
-        return {'ok': reached and 'success' in (r.stdout or '').lower(), 'reached': reached, 'exit': r.returncode,
-                'stdout': (r.stdout or '')[-400:], 'stderr': (r.stderr or '')[-300:]}
+        kv('ssh -V', (self.ssh_version(ssh) or 'ssh found, version unknown') if ssh else 'ssh NOT FOUND')
+        kv('Config folder', self.cfg)
+        if self.fake:
+            kv('Wi-Fi / wired', 'not queried (fake mode)')
+        else:
+            try:
+                ln = self.laptop_net()
+                wifi = ln.get('wifi') or {}
+                kv('Wi-Fi name', wifi.get('ssid') if wifi else 'not connected / no Wi-Fi')
+                kv('Wired connection up', 'yes' if any(w.get('up') for w in ln.get('wired') or []) else 'no')
+            except Exception as e:
+                kv('Wi-Fi / wired', 'could not read (%s)' % e)
+        sec('Settings')
+        for k in ('robot_hostname', 'robot_user', 'last_host', 'last_via', 'hotspot_ssid', 'hotspot_addr', 'cable_addr'):
+            kv(k, route_words(s.get(k)) if k == 'last_via' else s.get(k))
+        ki = self.key_info()
+        kv('ssh key file present', 'yes' if ki['exists'] else 'no')
+        kv('ssh key fingerprint (public)', ki['fingerprint'])
+        tl = self.trusted_list()
+        kv('Trusted robots', '%d (%s)' % (sum(1 for t in tl if t['enabled']),
+                                          ', '.join(t['label'] for t in tl if t['enabled']) or 'none'))
+        kv('Built-in lab key', 'on' if s.get('builtin_host_key', True) else 'off')
+        kv('auto_reconnect', 'on' if s.get('auto_reconnect', True) else 'off')
+        kv('update_check', 'on' if s.get('update_check', True) else 'off')
+        kv('window_mode', s.get('window_mode', DEFAULT_WINDOW_MODE))
+        sec('Connection')
+        c = self.bus.last_conn
+        kv('State', c.get('state'))
+        kv('Host', c.get('host'))
+        kv('Reached over', route_words(c.get('via')))
+        kv('Last error', c.get('error'))
+        if c.get('state') == 'reconnecting':
+            kv('Reconnect attempt', c.get('attempt'))
+        sec('Last robot search')
+        if not self.last_cands:
+            L.append('(none yet)')
+        for cd in self.last_cands:
+            L.append('%s  reachable=%s  %s ms%s' % (cd.get('host'), 'yes' if cd.get('reachable') else 'no', cd.get('ms'),
+                                                     '  identity=' + cd['identity'] if cd.get('identity') else ''))
+        sec('Robot status')
+        st = self.bus.last_status if self.bridge.connected else None
+        if not st:
+            L.append('(not connected)')
+        else:
+            net = st.get('net') or {}
+            kv('Battery %', (st.get('battery') or {}).get('percent'))
+            kv('Robot Wi-Fi mode', net.get('wifi_mode'))
+            kv('Robot Wi-Fi name', net.get('ssid'))
+            kv('Robot IP addresses', ', '.join('%s=%s' % (k, v) for k, v in (net.get('addresses') or {}).items()))
+        sec('Last 60 log lines')
+        with self.bus.lock:
+            logs = list(self.bus.logs)[-60:]
+        for e in logs:
+            L.append('%s %s %s' % (time.strftime('%H:%M:%S', time.localtime(e.get('t') or time.time())), e.get('level'), e.get('text')))
+        return {'ok': True, 'text': redact('\n'.join(L) + '\n', secrets=(self.token,))}
 
+# ================================================================================================
+# desktop/file_sync.py
+# Sync of a laptop folder with the robot (upload, download, delete) and the local file list.
+# ================================================================================================
+
+
+class FileSyncMixin:
     # ---------------------------------------------------------------- sync
     def _remote_exec_argv(self, shell_cmd, fake_args):
         """Argv for a command on the robot (ssh) or, in fake mode, the local helper standing in for it."""
@@ -2773,6 +2798,21 @@ class Studio:
         if code != 0:
             raise BridgeError('delete failed: ' + err.strip()[-200:])
 
+    def local_files(self, req):
+        d = req.get('dir') or self.settings.get('local_dir')
+        if not d or not os.path.isdir(os.path.expanduser(d)):
+            return {'ok': False, 'error': 'folder not found: %s' % d}
+        files = scan_local(os.path.expanduser(d))
+        items = [{'name': k, 'size': v['size'], 'mtime': v['mtime'], 'sha1': v['sha1']} for k, v in sorted(files.items())][:5000]
+        return {'ok': True, 'dir': os.path.abspath(os.path.expanduser(d)), 'files': items}
+
+# ================================================================================================
+# desktop/terminals.py
+# Opens a terminal or VS Code on the laptop, connected to the robot.
+# ================================================================================================
+
+
+class TerminalMixin:
     # ---------------------------------------------------------------- terminals / vscode
     def _terminal_argv(self, inner_argv):
         """Returns argv that opens a system terminal running inner_argv."""
@@ -2874,22 +2914,113 @@ class Studio:
             return {'ok': False, 'error': str(e)}
         return {'ok': True, 'config': action}
 
-    # ---------------------------------------------------------------- settings api / local files
-    def trusted_list(self):
-        out = [{'key': LAB_HOST_KEY, 'label': 'Built-in robot key', 'builtin': True,
-                'enabled': bool(self.settings.get('builtin_host_key', True)), 'fingerprint': key_fingerprint(LAB_HOST_KEY),
-                'added': None}]
-        for e in self.settings.get('trusted_host_keys') or []:
-            out.append({'key': e['key'], 'label': e.get('label') or 'Robot', 'builtin': False, 'enabled': True,
-                        'fingerprint': key_fingerprint(e['key']), 'added': e.get('added')})
-        return out
+# ================================================================================================
+# desktop/settings.py
+# Loading and saving settings, logging, connection state, and the settings page API.
+# ================================================================================================
 
-    def trusted_label(self, key):
-        """Label of a trusted key (built-in key counts only while it is switched on), else None."""
-        for e in self.trusted_list():
-            if e['key'] == key and e['enabled']:
-                return e['label']
-        return None
+
+class SettingsMixin:
+    # ---------------------------------------------------------------- settings / logging
+    def _load_settings(self):
+        s = {'last_host': None, 'last_via': None, 'key_path': None, 'local_dir': None,
+             'remote_dir': DEFAULT_REMOTE_DIR, 'motion_files': [], 'trust_host_key': None, 'known_addresses': {},
+             'builtin_host_key': True, 'trusted_host_keys': [], 'setup_done': False,
+             'auto_reconnect': True, 'update_check': True, 'update_last': {}, 'update_dismissed': None,
+             'window_mode': DEFAULT_WINDOW_MODE, 'ui': 'v2', 'teleop_linear': TELEOP_DEFAULT_LINEAR,
+             'teleop_angular': TELEOP_DEFAULT_ANGULAR}
+        s.update(DEFAULT_SETTINGS)
+        d = {}
+        try:
+            with open(os.path.join(self.cfg, 'settings.json'), encoding='utf-8') as f:
+                d = json.load(f)
+            if not isinstance(d, dict):
+                d = {}
+            for k in s:
+                if k in d:
+                    s[k] = d[k]
+        except (OSError, ValueError):
+            d = {}
+        # keep the file's values only when they pass the same checks as POST /api/settings, else the default
+        if not (isinstance(s['robot_hostname'], str) and DNS_LABEL_RE.match(s['robot_hostname'])):
+            s['robot_hostname'] = DEFAULT_SETTINGS['robot_hostname']
+        if not (isinstance(s['robot_user'], str) and USER_RE.match(s['robot_user'])):
+            s['robot_user'] = DEFAULT_SETTINGS['robot_user']
+        if not valid_ssid(s['hotspot_ssid']):
+            s['hotspot_ssid'] = DEFAULT_SETTINGS['hotspot_ssid']
+        for k in ('hotspot_addr', 'cable_addr'):
+            if not (isinstance(s[k], str) and valid_host(s[k]) and '@' not in s[k]):
+                s[k] = DEFAULT_SETTINGS[k]
+        s['builtin_host_key'] = bool(s['builtin_host_key'])
+        s['auto_reconnect'] = bool(s['auto_reconnect'])
+        s['update_check'] = bool(s['update_check'])
+        s['window_mode'] = s['window_mode'] if s['window_mode'] in WINDOW_MODES else DEFAULT_WINDOW_MODE
+        s['ui'] = s['ui'] if s['ui'] in UI_CHOICES else 'v2'
+        s['teleop_linear'] = limit_value(s['teleop_linear'], TELEOP_DEFAULT_LINEAR, TELEOP_MIN_LINEAR, TELEOP_MAX_LINEAR)
+        s['teleop_angular'] = limit_value(s['teleop_angular'], TELEOP_DEFAULT_ANGULAR, TELEOP_MIN_ANGULAR, TELEOP_MAX_ANGULAR)
+        ul = s['update_last'] if isinstance(s['update_last'], dict) else {}
+        s['update_last'] = ({'t': float(ul['t']), 'latest': ul['latest']} if isinstance(ul.get('t'), (int, float))
+                            and isinstance(ul.get('latest'), str) and VERSION_RE.match(ul['latest']) else {})
+        ud = s['update_dismissed']
+        s['update_dismissed'] = ud if isinstance(ud, str) and VERSION_RE.match(ud) else None
+        tk = []
+        for e in (s['trusted_host_keys'] if isinstance(s['trusted_host_keys'], list) else []):
+            if isinstance(e, dict) and isinstance(e.get('key'), str) and KEY_LINE_RE.match(e['key']) \
+                    and e['key'] not in [x['key'] for x in tk]:
+                tk.append({'key': e['key'], 'label': str(e.get('label') or 'Robot')[:60], 'added': e.get('added')})
+        old = s.get('trust_host_key')  # one-slot setting of v1.0/1.1: migrate into the list
+        if isinstance(old, str) and KEY_LINE_RE.match(old.strip()):
+            old = ' '.join(old.split()[:2])
+            if old != LAB_HOST_KEY and old not in [x['key'] for x in tk]:
+                tk.append({'key': old, 'label': LEGACY_TRUST_LABEL, 'added': int(time.time())})
+        s['trust_host_key'] = None
+        s['trusted_host_keys'] = tk
+        # a config that already knows a robot has been set up before: no wizard for existing users
+        s['setup_done'] = bool(d['setup_done']) if 'setup_done' in d else bool(d.get('last_host'))
+        return s
+
+    def save_settings(self):
+        tmp = os.path.join(self.cfg, 'settings.json.tmp')
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(self.settings, f, indent=2)
+        os.replace(tmp, os.path.join(self.cfg, 'settings.json'))
+
+    def user(self):
+        return self.settings.get('robot_user') or ROBOT_USER
+
+    def trusted_keys(self):
+        """Every key ssh may accept for the robot alias: the built-in one (unless switched off) + the user's own list."""
+        keys = [LAB_HOST_KEY] if self.settings.get('builtin_host_key', True) else []
+        for e in self.settings.get('trusted_host_keys') or []:
+            if e['key'] not in keys:
+                keys.append(e['key'])
+        return keys
+
+    def write_known_hosts(self):
+        want = ''.join('%s %s\n' % (PIN_ALIAS, k) for k in self.trusted_keys())
+        try:
+            with open(self.known_hosts, encoding='utf-8') as f:
+                if f.read() == want:
+                    return
+        except OSError:
+            pass
+        with open(self.known_hosts, 'w', encoding='utf-8', newline='\n') as f:
+            f.write(want)
+
+    def log(self, level, text):
+        self.bus.publish({'ev': 'log', 'level': level, 'text': text, 't': time.time()})
+        try:
+            with open(self.log_path, 'a', encoding='utf-8') as f:
+                f.write('%s %s %s\n' % (time.strftime('%Y-%m-%d %H:%M:%S'), level, text))
+        except OSError:
+            pass
+
+    def conn(self, state, host=None, via=None, error=None, **extra):
+        if self.reconn is not None and state in ('connecting', 'error', 'disconnected'):
+            return  # an automatic reconnect is running: the banner shows it, not every failed try
+        ev = {'ev': 'conn', 'state': state, 'host': host, 'via': via, 'error': error}
+        ev.update(extra)
+        self.bus.publish(ev)
 
     def get_settings(self):
         s = dict(self.settings)
@@ -2962,6 +3093,63 @@ class Studio:
         if trust_add:
             self.log('warn', 'a different robot host key is trusted (settings): only do this for another TurtleBot')
         return self.get_settings()
+
+# ================================================================================================
+# desktop/trust.py
+# The ssh key, the trusted host keys and the first-run setup wizard.
+# ================================================================================================
+
+
+class TrustMixin:
+    # ---------------------------------------------------------------- keys / executables
+    def default_key(self):
+        std = os.path.expanduser('~/.ssh/turtlebot4_ed25519')
+        return std if os.path.isfile(std) else os.path.join(self.cfg, 'id_ed25519')
+
+    def key_path(self, create=True):
+        k = self.settings.get('key_path') or self.default_key()
+        k = os.path.expanduser(k)
+        if create and not os.path.isfile(k):
+            if k != os.path.join(self.cfg, 'id_ed25519') and self.settings.get('key_path'):
+                raise BridgeError('key file not found: ' + k)
+            kg = find_exe('ssh-keygen')
+            if not kg:
+                raise BridgeError('ssh-keygen not found (install the OpenSSH client)')
+            r = subprocess.run([kg, '-t', 'ed25519', '-N', '', '-f', k, '-C', 'turtlebot-studio'],
+                               capture_output=True, text=True, timeout=30, **({'creationflags': subprocess.CREATE_NO_WINDOW} if IS_WIN else {}))
+            if r.returncode != 0:
+                raise BridgeError('ssh-keygen failed: ' + (r.stderr or r.stdout).strip()[-200:])
+            self.log('info', 'created a new ssh key for this app: ' + k)
+        return k
+
+    def public_key_line(self):
+        k = self.key_path()
+        try:
+            with open(k + '.pub', encoding='utf-8') as f:
+                line = f.read().strip()
+        except OSError:
+            kg = find_exe('ssh-keygen')
+            r = subprocess.run([kg, '-y', '-f', k], capture_output=True, text=True, timeout=15, **hide_flags()) if kg else None
+            line = (r.stdout.strip() if r and r.returncode == 0 else '')
+        if not PUB_LINE_RE.match(line):
+            raise BridgeError('public key file missing or not understood: ' + k + '.pub')
+        return line
+
+    def trusted_list(self):
+        out = [{'key': LAB_HOST_KEY, 'label': 'Built-in robot key', 'builtin': True,
+                'enabled': bool(self.settings.get('builtin_host_key', True)), 'fingerprint': key_fingerprint(LAB_HOST_KEY),
+                'added': None}]
+        for e in self.settings.get('trusted_host_keys') or []:
+            out.append({'key': e['key'], 'label': e.get('label') or 'Robot', 'builtin': False, 'enabled': True,
+                        'fingerprint': key_fingerprint(e['key']), 'added': e.get('added')})
+        return out
+
+    def trusted_label(self, key):
+        """Label of a trusted key (built-in key counts only while it is switched on), else None."""
+        for e in self.trusted_list():
+            if e['key'] == key and e['enabled']:
+                return e['label']
+        return None
 
     def _add_trusted(self, key, label):
         """Caller holds set_lock. The built-in key is switched on instead of being listed twice."""
@@ -3108,65 +3296,13 @@ class Studio:
         kind, msg = map_ssh_error(r.stderr, r.returncode)
         return {'ok': False, 'kind': kind, 'error': msg}
 
-    def local_files(self, req):
-        d = req.get('dir') or self.settings.get('local_dir')
-        if not d or not os.path.isdir(os.path.expanduser(d)):
-            return {'ok': False, 'error': 'folder not found: %s' % d}
-        files = scan_local(os.path.expanduser(d))
-        items = [{'name': k, 'size': v['size'], 'mtime': v['mtime'], 'sha1': v['sha1']} for k, v in sorted(files.items())][:5000]
-        return {'ok': True, 'dir': os.path.abspath(os.path.expanduser(d)), 'files': items}
+# ================================================================================================
+# desktop/map_api.py
+# Mapping features of the app: map events, previews, map download and route upload.
+# ================================================================================================
 
-    # ---------------------------------------------------------------- v1.1: catalog, templates, motion decision
-    def catalog(self):
-        return load_catalog(self.catalog_path, self.templates_dir)
 
-    def template_text(self, name):
-        if not TEMPLATE_NAME_RE.match(name or '') or name not in list_templates(self.templates_dir):
-            return None
-        try:
-            with open(os.path.join(self.templates_dir, name), 'rb') as f:
-                return f.read().decode('utf-8')
-        except (OSError, UnicodeDecodeError):
-            return None
-
-    def motion_for_run(self, cmd):
-        """Sets cmd['motion'] (never lowers an explicit True) and returns the reasons."""
-        path = str(cmd.get('path', ''))
-        base = os.path.basename(path)
-        cat = self.catalog()['programs']
-        reasons_known = decide_motion(base, cat, self.settings.get('motion_files'), None)
-        if reasons_known[0] or cmd.get('motion'):
-            cmd['motion'] = True
-            return reasons_known[1] or ['requested']
-        described = None
-        try:
-            r = self.bridge.request({'cmd': 'describe', 'dir': cmd.get('dir') or DEFAULT_REMOTE_DIR}, 10)
-            if r.get('ok'):
-                described = next((p for p in r.get('programs', []) if p.get('name') == path or p.get('name') == base), None)
-            else:
-                described = 'unavailable'
-        except BridgeError:
-            described = 'unavailable'
-        motion, reasons = decide_motion(base, cat, self.settings.get('motion_files'), described)
-        cmd['motion'] = bool(motion)
-        return reasons
-
-    # ---------------------------------------------------------------- v1.1: laptop network, known addresses
-    def laptop_net(self):
-        osname = 'windows' if IS_WIN else ('macos' if sys.platform == 'darwin' else 'linux')
-        if self.fake and not os.environ.get('STUDIO_REAL_LAPTOP_NET'):
-            # the simulated robot gets a simulated computer network too, so screenshots and tests never show the real one
-            return {'ok': True, 'wifi': {'ssid': 'HomeNet', 'signal_pct': 80, 'state': 'connected', 'interface': 'Wi-Fi'},
-                    'wired': [], 'os': osname, 'fake': True}
-        box = {}
-        ths = [threading.Thread(target=lambda: box.__setitem__('wifi', laptop_wifi()), daemon=True),
-               threading.Thread(target=lambda: box.__setitem__('wired', laptop_wired()), daemon=True)]
-        for t in ths:
-            t.start()
-        for t in ths:
-            t.join(8)
-        return {'ok': True, 'wifi': box.get('wifi'), 'wired': box.get('wired') or [], 'os': osname}
-
+class MappingMixin:
     # ---------------------------------------------------------------- mapping (2.1)
     def on_map(self, ev):
         """A bridge `map` event: keep the picture, publish the same event without its data."""
@@ -3281,101 +3417,13 @@ class Studio:
         except Exception:
             pass
 
-    def on_status(self, ev):
-        """Record metrics and raise alerts, then remember the robot's Wi-Fi address per SSID (client mode only)."""
-        try:
-            self.history.add(ev)
-            self.alerts.check_status(ev, is_status_moving(ev, self.tele_armed))
-        except Exception as e:
-            self.log('warn', 'status bookkeeping failed: %s' % e)
-        try:
-            net = ev.get('net') or {}
-            ssid, ip = net.get('ssid'), (net.get('addresses') or {}).get('wlan0')
-            if net.get('wifi_mode') != 'client' or not ssid or not ip or not valid_host(ip):
-                return
-            known = self.settings.setdefault('known_addresses', {})
-            old = known.get(ssid) or {}
-            if old.get('ip') != ip or time.time() - old.get('seen', 0) > 3600:
-                known[ssid] = {'ip': ip, 'seen': int(time.time())}
-                self.save_settings()
-        except Exception:
-            pass
+# ================================================================================================
+# desktop/updates.py
+# The update notice: asks GitHub whether a newer Studio exists.
+# ================================================================================================
 
-    # ---------------------------------------------------------------- v1.3: diagnostics
-    def diagnostics(self):
-        """Plain text for a bug report. Everything goes through redact(); no password or token is ever collected."""
-        s, L = self.settings, []
 
-        def sec(title):
-            L.extend(['', '== %s ==' % title])
-
-        def kv(k, v):
-            L.append('%s: %s' % (k, v if v not in (None, '') else '-'))
-        L.append('TurtleBot Studio diagnostics (%s)' % time.strftime('%Y-%m-%d %H:%M:%S'))
-        sec('Studio')
-        kv('Version', VERSION)
-        kv('Running as', 'built app' if FROZEN else 'source (python studio.py)')
-        kv('Fake robot mode', 'yes' if self.fake else 'no')
-        sec('This computer')
-        kv('Operating system', platform.platform())
-        kv('Python', sys.version.split()[0])
-        ssh = find_exe('ssh')
-        kv('ssh -V', (self.ssh_version(ssh) or 'ssh found, version unknown') if ssh else 'ssh NOT FOUND')
-        kv('Config folder', self.cfg)
-        if self.fake:
-            kv('Wi-Fi / wired', 'not queried (fake mode)')
-        else:
-            try:
-                ln = self.laptop_net()
-                wifi = ln.get('wifi') or {}
-                kv('Wi-Fi name', wifi.get('ssid') if wifi else 'not connected / no Wi-Fi')
-                kv('Wired connection up', 'yes' if any(w.get('up') for w in ln.get('wired') or []) else 'no')
-            except Exception as e:
-                kv('Wi-Fi / wired', 'could not read (%s)' % e)
-        sec('Settings')
-        for k in ('robot_hostname', 'robot_user', 'last_host', 'last_via', 'hotspot_ssid', 'hotspot_addr', 'cable_addr'):
-            kv(k, route_words(s.get(k)) if k == 'last_via' else s.get(k))
-        ki = self.key_info()
-        kv('ssh key file present', 'yes' if ki['exists'] else 'no')
-        kv('ssh key fingerprint (public)', ki['fingerprint'])
-        tl = self.trusted_list()
-        kv('Trusted robots', '%d (%s)' % (sum(1 for t in tl if t['enabled']),
-                                          ', '.join(t['label'] for t in tl if t['enabled']) or 'none'))
-        kv('Built-in lab key', 'on' if s.get('builtin_host_key', True) else 'off')
-        kv('auto_reconnect', 'on' if s.get('auto_reconnect', True) else 'off')
-        kv('update_check', 'on' if s.get('update_check', True) else 'off')
-        kv('window_mode', s.get('window_mode', DEFAULT_WINDOW_MODE))
-        sec('Connection')
-        c = self.bus.last_conn
-        kv('State', c.get('state'))
-        kv('Host', c.get('host'))
-        kv('Reached over', route_words(c.get('via')))
-        kv('Last error', c.get('error'))
-        if c.get('state') == 'reconnecting':
-            kv('Reconnect attempt', c.get('attempt'))
-        sec('Last robot search')
-        if not self.last_cands:
-            L.append('(none yet)')
-        for cd in self.last_cands:
-            L.append('%s  reachable=%s  %s ms%s' % (cd.get('host'), 'yes' if cd.get('reachable') else 'no', cd.get('ms'),
-                                                     '  identity=' + cd['identity'] if cd.get('identity') else ''))
-        sec('Robot status')
-        st = self.bus.last_status if self.bridge.connected else None
-        if not st:
-            L.append('(not connected)')
-        else:
-            net = st.get('net') or {}
-            kv('Battery %', (st.get('battery') or {}).get('percent'))
-            kv('Robot Wi-Fi mode', net.get('wifi_mode'))
-            kv('Robot Wi-Fi name', net.get('ssid'))
-            kv('Robot IP addresses', ', '.join('%s=%s' % (k, v) for k, v in (net.get('addresses') or {}).items()))
-        sec('Last 60 log lines')
-        with self.bus.lock:
-            logs = list(self.bus.logs)[-60:]
-        for e in logs:
-            L.append('%s %s %s' % (time.strftime('%H:%M:%S', time.localtime(e.get('t') or time.time())), e.get('level'), e.get('text')))
-        return {'ok': True, 'text': redact('\n'.join(L) + '\n', secrets=(self.token,))}
-
+class UpdatesMixin:
     # ---------------------------------------------------------------- v1.3: update notice
     def update_status(self):
         with self.update_lock:
@@ -3436,6 +3484,14 @@ class Studio:
         t.daemon = True
         t.start()
 
+# ================================================================================================
+# desktop/wifi.py
+# Wi-Fi features: saving, joining and removing networks on the robot, the laptop's own network
+# and the robot hotspot.
+# ================================================================================================
+
+
+class WifiMixin:
     # ---------------------------------------------------------------- v1.1: Wi-Fi help
     def _robot_script_terminal(self, script, args):
         ssh = find_exe('ssh')
@@ -3599,6 +3655,84 @@ class Studio:
         return {'ok': r.returncode == 0, 'warning': warn, 'detail': out[-200:],
                 'error': None if r.returncode == 0 else (out or 'netsh failed')}
 
+    # ---------------------------------------------------------------- v1.1: laptop network, known addresses
+    def laptop_net(self):
+        osname = 'windows' if IS_WIN else ('macos' if sys.platform == 'darwin' else 'linux')
+        if self.fake and not os.environ.get('STUDIO_REAL_LAPTOP_NET'):
+            # the simulated robot gets a simulated computer network too, so screenshots and tests never show the real one
+            return {'ok': True, 'wifi': {'ssid': 'HomeNet', 'signal_pct': 80, 'state': 'connected', 'interface': 'Wi-Fi'},
+                    'wired': [], 'os': osname, 'fake': True}
+        box = {}
+        ths = [threading.Thread(target=lambda: box.__setitem__('wifi', laptop_wifi()), daemon=True),
+               threading.Thread(target=lambda: box.__setitem__('wired', laptop_wired()), daemon=True)]
+        for t in ths:
+            t.start()
+        for t in ths:
+            t.join(8)
+        return {'ok': True, 'wifi': box.get('wifi'), 'wired': box.get('wired') or [], 'os': osname}
+
+# ================================================================================================
+# desktop/app.py
+# The Studio application object: state, start-up and shutdown. Its features come from the mixins
+# of the modules above; this class only lists them.
+# ================================================================================================
+
+
+class Studio(ProgramsMixin, ConnectionMixin, ForwardingMixin, TelemetryMixin, FileSyncMixin, TerminalMixin, SettingsMixin, TrustMixin, MappingMixin, UpdatesMixin, WifiMixin):
+    def __init__(self, args):
+        self.args = args
+        self.fake = bool(args.fake)
+        self.cfg = args.config_dir or config_dir()
+        os.makedirs(self.cfg, exist_ok=True)
+        self.token = secrets.token_urlsafe(24)
+        self.heartbeat = getattr(args, 'heartbeat', 15.0)
+        self.port = None
+        self.bus = Bus()
+        self.maps = MapStore()
+        self.bridge = Bridge(self)
+        self.set_lock = threading.Lock()
+        self.settings = self._load_settings()
+        self.known_hosts = os.path.join(self.cfg, 'known_hosts')
+        # the fake robot's home: --fake-home, else STUDIO_BRIDGE_HOME (tests), else in the config folder. The fake bridge and
+        # the fake tar helper must use the same folder.
+        self.fake_home = args.fake_home or os.environ.get('STUDIO_BRIDGE_HOME') or os.path.join(self.cfg, 'fake_home')
+        self.bridge_script = args.bridge_script or os.path.join(HERE, 'robot_bridge.py')
+        self.catalog_path = getattr(args, 'catalog', None) or os.path.join(HERE, 'programs.json')
+        self.templates_dir = getattr(args, 'templates_dir', None) or os.path.join(HERE, 'templates')
+        self.log_path = os.path.join(self.cfg, 'studio.log')
+        try:
+            if os.path.getsize(self.log_path) > 1_000_000:
+                os.replace(self.log_path, self.log_path + '.old')
+        except OSError:
+            pass
+        self.write_known_hosts()
+        self.sync_lock = threading.Lock()
+        self._ssh_ver = None
+        self.wifi_jobs = collections.OrderedDict()  # nonce -> ssid of the Wi-Fi joins started from this process
+        self.closing = False
+        self.stop_cb = None             # v1.3: set by main(); stops the server (Quit Studio, exit when closed)
+        self.reconn = None              # v1.3: state of a running automatic reconnect, else None
+        self.reconn_lock = threading.Lock()
+        self.reconnect_delays = RECONNECT_DELAYS
+        self.reconnect_give_up = RECONNECT_GIVE_UP
+        self.last_cands = []            # newest discover result (diagnostics)
+        self.deep_lock = threading.Lock()
+        self.update_delay = getattr(args, 'update_delay', 5.0)
+        self.update = {'checked': None, 'latest': None, 'page': None, 'notes': '', 'error': None}
+        self.update_lock = threading.Lock()
+        self._update_logged = False
+        # 2.0
+        self.web_dir = getattr(args, 'web_dir', None) or WEB_DIR
+        self.history = History()
+        self.alerts = AlertCenter(os.path.join(self.cfg, 'events.jsonl'), self.bus.publish)
+        self.tele_armed = False         # what Studio believes (from the bridge's teleop events and replies)
+        self.tele_gen = None            # bridge generation the arm belongs to: motion is never sent to another process
+        self.conn_lost = False
+        self.run_names = {}
+        self.run_stopped = set()       # run ids the user stopped (a stopped program ends with a non-zero code: not an error)
+        self.estop_until = 0.0         # runs that end shortly after an e-stop or Stop all were stopped by it
+        self.bus.tap = self._tap
+
     def quit(self):
         """Quit Studio button: answer first, then stop cleanly (the page shows 'Studio has stopped')."""
         self.log('info', 'Quit requested from the page')
@@ -3619,8 +3753,11 @@ class Studio:
             pass
         self.bus.close_all()
 
-
-# ============================================================================ discovery helpers
+# ================================================================================================
+# desktop/discovery.py
+# Laptop-side network discovery: cable IPv6, neighbour tables, and the port-22 sweep behind
+# "Search the whole network".
+# ================================================================================================
 
 
 def has_cable_v4():
@@ -3775,8 +3912,11 @@ def deep_scan(trusted_keys, progress=None):
                                'Raspberry Pi with ssh' if pi else 'Other device with ssh'})
     return order_deep(cands), None
 
+# ================================================================================================
+# desktop/http_server.py
+# The local HTTP server: request handler (make_handler), Server and serve().
+# ================================================================================================
 
-# ============================================================================ HTTP server
 
 PLACEHOLDER = (b'<!doctype html><meta charset="utf-8"><title>TurtleBot Studio</title>'
                b'<body style="font-family:sans-serif;max-width:40em;margin:3em auto"><h1>TurtleBot Studio</h1>'
@@ -4050,6 +4190,11 @@ def serve(app, port, tries=1):
         except OSError as e:
             last = e
     raise SystemExit('cannot bind 127.0.0.1:%d (%s)' % (port, last))
+
+# ================================================================================================
+# desktop/main.py
+# Command line, the hidden --fake tar helper and main().
+# ================================================================================================
 
 
 def fake_tar_main(argv):

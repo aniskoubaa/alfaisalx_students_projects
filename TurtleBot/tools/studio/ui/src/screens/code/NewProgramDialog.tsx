@@ -17,6 +17,7 @@ export function NewProgramDialog({ open, onClose }: { open: boolean; onClose: ()
   const [tmpl, setTmpl] = useState<string>(list[0]?.name ?? EMPTY);
   const [file, setFile] = useState(() => nameFromTemplate(list[0]));
   const [replace, setReplace] = useState(false);
+  const [created, setCreated] = useState(false);
 
   const current = list.find((t) => t.name === tmpl);
   const validName = NEW_NAME_RE.test(file.trim());
@@ -29,7 +30,11 @@ export function NewProgramDialog({ open, onClose }: { open: boolean; onClose: ()
       file: file.trim(),
       replace,
     });
-    if (ok) onClose();
+    if (ok) {
+      // The robot's file list now has the new file: do not warn about it while the dialog closes.
+      setCreated(true);
+      onClose();
+    }
   });
 
   return (
@@ -106,7 +111,7 @@ export function NewProgramDialog({ open, onClose }: { open: boolean; onClose: ()
             />
           )}
         </Field>
-        {validName && exists ? (
+        {validName && exists && !created && !create.pending ? (
           <div className="note note-warn">
             <strong>{file.trim()}</strong> already exists on the robot.
             <Checkbox

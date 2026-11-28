@@ -487,6 +487,8 @@ export interface ProgramDescription {
   mtime?: number;
   docstring?: string;
   usage?: string[];
+  /** Arguments from the "Run it on the robot:" line of the docstring (Studio 2.2). */
+  example?: string;
   moves_detected?: boolean;
   moves_reasons?: string[];
 }

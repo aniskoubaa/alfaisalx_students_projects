@@ -8,7 +8,7 @@ Guides: [First connection](FIRST-CONNECTION.md) | [Everyday use](EVERYDAY-USE.md
 
 ## Ask for help with one click
 
-1. Open **Tools** and press **Show diagnostics** (or **Show diagnostics** next to a connection error). The command list (**Ctrl+K**) also has **Copy diagnostics**.
+1. Open **Settings and help** (called **Tools** before 2.2) and press **Show diagnostics** (or **Show diagnostics** next to a connection error). The command list (**Ctrl+K**) also has **Copy diagnostics**.
 2. Press **Copy**, or **Save as file** (`studio-diagnostics.txt`).
 3. Send the text to the lab maintainer.
 
@@ -31,7 +31,7 @@ The text has the Studio version, your system, the connection state and the last 
 
 | What you see | What to do |
 |---|---|
-| Discover finds nothing | Check that the robot is on, and that your computer is on the same Wi-Fi or on the cable. Read the address on the robot's screen and type it. Or press **Search the whole network**. See [Find the robot](FIND-THE-ROBOT.md) |
+| Find my robot (Discover) finds nothing | Check that the robot is on, and that your computer is on the same Wi-Fi or on the cable. Read the address on the robot's screen and type it. Or press **Search the whole network** (under **Other ways to connect** on **Home**). See [Find the robot](FIND-THE-ROBOT.md) |
 | `turtlebot4.local` does not work | Normal on some networks. Use the address on the robot's screen |
 | The robot address changed | Read the new one on the robot's screen, or search the whole network |
 | Search the whole network finds only "Other device with ssh" | The robot may be on another network, or the network blocks device-to-device traffic. Use the address on the screen, or the cable |
@@ -44,7 +44,7 @@ The text has the Studio version, your system, the connection state and the last 
 |---|---|
 | "key not set up" | Do the [first connection](FIRST-CONNECTION.md) on this computer, or open the **Setup wizard** and repeat steps 4 to 6 |
 | "robot key does not match" | Stop. It may be a different or reinstalled robot, or another device at the same address. Ask the lab maintainer. Do not trust it just to get in |
-| "robot not reachable" | No route, or the robot is off. Check the cable or the Wi-Fi and press Discover. On the cable, wait about 20 seconds after plugging in |
+| "robot not reachable" | No route, or the robot is off. Check the cable or the Wi-Fi and press **Find my robot** (or **Connect**). On the cable, wait about 20 seconds after plugging in |
 | The terminal window asks for a password and nothing appears as you type | Normal. Type the robot password and press Enter |
 | "Permission denied" after the password | The password is wrong. It is `turtlebot4`, all lower case. If that fails, ask the lab maintainer whether it was changed |
 | The connection drops now and then | Studio reconnects by itself and shows a banner. If the Wi-Fi keeps dropping, use the cable, or ask the lab maintainer |
@@ -57,14 +57,14 @@ The text has the Studio version, your system, the connection state and the last 
 | Join fails | Check the network name and password. The robot returns to its previous network by itself, which can take about 1.5 minutes. Try again |
 | The network is not in the list | The robot cannot scan while it runs its own hotspot. Type the name |
 | Network not supported | Studio supports WPA or WPA2 personal only. It does not support enterprise networks (for example `eduroam`), open networks, WPA3-only networks or networks with a login page |
-| Your computer lost the connection after the robot switched | Expected if you were using the robot's hotspot. Join your computer to the new network and press **Discover** |
+| Your computer lost the connection after the robot switched | Expected if you were using the robot's hotspot. Join your computer to the new network and press **Find my robot** |
 
 ## Running programs
 
 | What you see | What to do |
 |---|---|
 | "motion needs confirmation" | Tick the motion confirmation. Read the warning first |
-| "no /scan" | Press **Start lidar motor** on **Overview** |
+| "no /scan" | Press **Start lidar motor** on **Home** |
 | The robot does not move | Check that it is undocked and that no red e-stop banner is showing. If there is one, press **Release e-stop** only when it is safe |
 | The program stops when the odometry pauses | Known base behaviour. See [Known issues](../../../MAINTENANCE.md#known-issues) |
 | The robot clock is wrong | The robot has no internet on the cable, so its clock can drift. The health check flags it |
@@ -75,20 +75,29 @@ Driving was tested only with the simulated robot so far. More detail: [Live view
 
 | What you see | What to do |
 |---|---|
-| The map says "No lidar data" | While the robot is docked the lidar is off. That is normal. Undock, or press **Start lidar motor** on **Overview**. If the robot is undocked and it stays, tell the lab maintainer |
-| **Arm driving** is refused: "The robot is docked. Undock first." | Undock from **Overview** |
+| The map says "No lidar data" | While the robot is docked the lidar is off. That is normal. Undock, or press **Start lidar motor** on **Home**. If the robot is undocked and it stays, tell the lab maintainer |
+| **Arm driving** is refused: "The robot is docked. Undock first." | Undock from **Home** |
 | Arm refused: "The e-stop is on." | Press **Release e-stop** only when it is safe, then arm again |
 | Arm refused: "A motion program is running." | Stop it in **Programs** |
 | Arm refused: "Battery below 10 %" | Dock the robot and charge it |
 | Arm refused: "The robot state is not known yet" | Wait a few seconds and try again |
-| Driving switched off by itself | Normal in several cases: 60 s idle, you left **Live**, the window was hidden, the connection dropped, E-STOP, battery below 8 %. Arm again. See [When driving switches off](LIVE-AND-DRIVING.md#when-driving-switches-off) |
+| Driving switched off by itself | Normal in several cases: 60 s idle, you left **Drive** (called Live before 2.2), the window was hidden, the connection dropped, E-STOP, battery below 8 %. Arm again. See [When driving switches off](LIVE-AND-DRIVING.md#when-driving-switches-off) |
 | The robot does not move when you hold W | Check the amber bar and the **Armed** label. Check that no slider or box has the keyboard focus, and that no dialog is open. Use the joystick instead |
 | Charts are empty | They fill while the robot reports. Wait a minute after you connect. **Reload history** loads the values again |
 | Logs says the log cannot be read | Ask the lab maintainer. Do not try sudo from Studio |
-| The old (1.3) interface is needed | **Tools, Settings, Use the classic interface**, or add `/classic/` to the address |
+| The old (1.3) interface is needed | **Settings and help, Settings, Use the classic interface**, or add `/classic/` to the address |
 
 ## Start over
 
 Delete Studio's settings folder to run the wizard again. The folder is listed in [INSTALL.md](../INSTALL.md#reset-or-remove-studio). Your key on the robot stays until the lab maintainer removes it.
 
 More technical detail: [README, Troubleshooting](../README.md#troubleshooting).
+
+## Studio 2.2
+
+Some screens have new names: Overview is Home, Live is Drive, Tools is Settings and help.
+
+| What you see | What to do |
+|---|---|
+| "The robot is on its dock. Undock it first." when you start a moving program | Press the **Undock** button in the message, or use **Undock** on **Home**, then start the program again |
+| No **Discover** button before you connect | Press **Connect** (address known) or **Find my robot**. Discover, **Setup wizard** and **Search the whole network** are under **Other ways to connect** (click it to open) |

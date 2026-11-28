@@ -58,7 +58,7 @@ export function Wifi() {
         <ul className="plain">
           <li>
             Robot not found on Wi-Fi: read its address on the robot&apos;s display and type it into
-            the address box on the Overview screen.
+            the address box on the Home screen.
           </li>
           <li>
             <code>{host}.local</code> often fails on shared Wi-Fi, so Studio does not rely on it.

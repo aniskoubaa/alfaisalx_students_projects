@@ -28,7 +28,7 @@ describe('App shell', () => {
     const nav = screen.getByRole('navigation', { name: 'Sections' });
     for (const r of ROUTES.filter((x) => x.nav !== false))
       expect(within(nav).getByRole('link', { name: r.label })).toBeInTheDocument();
-    expect(within(nav).getByRole('link', { name: 'Overview' })).toHaveAttribute(
+    expect(within(nav).getByRole('link', { name: 'Home' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -161,7 +161,7 @@ describe('Overview', () => {
         : { ok: true },
     );
     render(<App runtime={false} />);
-    await userEvent.click(screen.getByRole('button', { name: 'Discover' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Find my robot' }));
     expect(await screen.findByText('Your robot (identity confirmed)')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Connect to 192.168.185.3' })).toBeInTheDocument();
   });
@@ -176,7 +176,9 @@ describe('Overview', () => {
     render(<App runtime={false} />);
     connectedStatus();
     act(() => useStudio.getState().dispatch({ ev: 'status', dock: { is_docked: true } }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Undock' }));
+    // Home has an Undock button, and so does the Dock card.
+    const undock = await screen.findAllByRole('button', { name: 'Undock' });
+    await userEvent.click(undock[0] as HTMLElement);
     expect(
       await screen.findByRole('dialog', { name: 'Confirm robot movement' }),
     ).toBeInTheDocument();

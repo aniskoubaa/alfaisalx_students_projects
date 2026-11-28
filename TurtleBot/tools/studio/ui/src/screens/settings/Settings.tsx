@@ -147,7 +147,7 @@ export function Settings() {
       <div className="page-head">
         <h1 className="page-title">Settings</h1>
         <Button variant="ghost" size="sm" onClick={() => navigate('/tools')}>
-          Back to Tools
+          Back to Settings and help
         </Button>
       </div>
       <form

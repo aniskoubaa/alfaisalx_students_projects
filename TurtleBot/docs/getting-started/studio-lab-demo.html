@@ -300,7 +300,7 @@
   <details class="step" data-step="1" open><summary><span class="num">1</span><h3>Install Studio</h3><label class="donebox"><input type="checkbox" aria-label="Step 1 done"> done</label><span class="chev" aria-hidden="true">&#9656;</span></summary>
   <div class="stepbody">
     <ol>
-      <li>Download: <a href="../../Download/README.md">Download page</a>, or directly <a href="https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.1.1.exe">TurtleBotStudio-Setup-2.1.1.exe</a> (Windows 10 and 11, 8.9 MB, no administrator rights).</li>
+      <li>Download: <a href="../../Download/README.md">Download page</a>, or directly <a href="https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.2.0.exe">TurtleBotStudio-Setup-2.2.0.exe</a> (Windows 10 and 11, 8.9 MB, no administrator rights).</li>
       <li>Open the file. If Windows says "Windows protected your PC", click <b>More info</b>, then <b>Run anyway</b> (the app is not signed by a company).</li>
       <li>Click <b>Next</b>, <b>Install</b>, <b>Finish</b>. You get <b>TurtleBot Studio</b> and <b>TurtleBot Studio (simulated robot)</b>, a practice copy where nothing real moves.</li>
     </ol>
@@ -312,7 +312,7 @@
     <ol>
       <li>Switch the robot on. It joins the campus Wi-Fi <b>Students</b> by itself and shows its address on its screen (starts with <code>10.87.</code>). The address can change: read it each time. Example 2026-11-25: <code>10.87.11.67</code>.</li>
       <li>Put your laptop on the same network.</li>
-      <li>Start Studio. On <b>Overview</b> press <b>Discover</b>, pick the robot, press <b>Connect</b>. If it is not listed, type the address from the robot's screen. <code>turtlebot4.local</code> sometimes fails on campus. See <a href="../../tools/studio/docs/FIND-THE-ROBOT.md">Find the robot</a>.</li>
+      <li>Start Studio. On <b>Home</b> press <b>Connect</b> (or <b>Find my robot</b> if Studio does not know an address yet), pick the robot, press <b>Connect</b>. If it is not listed, type the address from the robot's screen. <code>turtlebot4.local</code> sometimes fails on campus. See <a href="../../tools/studio/docs/FIND-THE-ROBOT.md">Find the robot</a>.</li>
       <li>First time on a computer: run the setup wizard once (<a href="../../tools/studio/docs/FIRST-CONNECTION.md">First connection</a>). It uses the Ethernet cable and asks for the robot's password in a terminal window; see <a href="../../HOW-TO-CONNECT.md">How to connect</a> or ask the lab maintainer. Then unplug the cable.</li>
     </ol>
     <p><span class="chip ok">Verified 2026-11-25</span> robot joined Students at boot; a laptop on Students reached it with no cable. <span class="chip untested">Not verified</span> the one-time key setup over Wi-Fi without the cable.</p>
@@ -320,7 +320,7 @@
 
   <details class="step" data-step="3"><summary><span class="num">3</span><h3>Look around Studio</h3><label class="donebox"><input type="checkbox" aria-label="Step 3 done"> done</label><span class="chev" aria-hidden="true">&#9656;</span></summary>
   <div class="stepbody">
-    <p>Spend two minutes on the <a href="#tour">screen tour</a> below. You need Overview, Maps, Routes and Tools.</p>
+    <p>Spend two minutes on the <a href="#tour">screen tour</a> below. You need Home, Maps, Routes and Settings and help (called Overview and Tools before Studio 2.2).</p>
   </div></details>
 
   <details class="step" data-step="4"><summary><span class="num">4</span><h3>Map a room</h3><label class="donebox"><input type="checkbox" aria-label="Step 4 done"> done</label><span class="chev" aria-hidden="true">&#9656;</span></summary>
@@ -328,11 +328,11 @@
     <p>Needs: robot docked, no navigation program running, delivery package on the robot (it is). Detail: <a href="../../tools/studio/docs/MAPS-AND-ROUTES.md#map-a-place-from-studio">Maps and routes</a>.</p>
     <ol>
       <li><b>Maps</b>, press <b>Start mapping</b>. Wait for <b>Mapping</b> (6 to 10 s on 2026-11-14).</li>
-      <li><b>Overview</b>, press <b>Undock</b>, confirm. Check the robot is clear of the dock. Back to <b>Maps</b>.</li>
+      <li><b>Home</b>, press <b>Undock</b>, confirm. Check the robot is clear of the dock. Back to <b>Maps</b>.</li>
       <li>Drive slowly (drive panel armed, or the controller). Cable unplugged, person beside the robot.</li>
       <li>Close the loop: drive back along the same wall to where you started.</li>
       <li><b>Save map</b>, type a name (letters, digits, hyphens, underscores), confirm (about 18 s).</li>
-      <li>Dock the robot (<b>Overview</b>, <b>Dock</b>).</li>
+      <li>Dock the robot (<b>Home</b>, <b>Dock</b>).</li>
       <li><b>Stop mapping</b> and answer the question.</li>
     </ol>
     <p>Starting mapping stops the robot's camera container until the next reboot. Check the map scale against one measured distance: if it is more than about 3 % short, map again.</p>
@@ -367,7 +367,7 @@
     <p class="note"><b>Studio 2.1 cannot do this.</b> It starts mapping and shows on <b>Routes</b> whether navigation is running, but a trip needs the navigation stack started from a terminal on the robot first (<a href="../../delivery/README.md#9-phase-2-supervised-runs">delivery README section 9</a>).</p>
     <ol>
       <li>Robot on the dock, battery above 40 %.</li>
-      <li>Open a terminal on the robot: Studio, <b>Tools</b>, the button for a terminal on the robot. Or <code>ssh ubuntu@&lt;address on the robot's screen&gt;</code> from your computer's terminal (needs the first-connection key or the password, see <a href="../../HOW-TO-CONNECT.md">How to connect</a>).</li>
+      <li>Open a terminal on the robot: Studio, <b>Settings and help</b>, the button for a terminal on the robot. Or <code>ssh ubuntu@&lt;address on the robot's screen&gt;</code> from your computer's terminal (needs the first-connection key or the password, see <a href="../../HOW-TO-CONNECT.md">How to connect</a>).</li>
       <li>On the robot (replace <code>my_route</code>): <pre><code>bash ~/robot_code/delivery/robot/start_stack.sh nav --route-dir ~/robot_code/routes/my_route --dry-run
 bash ~/robot_code/delivery/robot/start_stack.sh nav --route-dir ~/robot_code/routes/my_route</code></pre></li>
       <li>Wait about 2 minutes, then: <pre><code>grep -i "Managed nodes are active" ~/robot_code/logs/delivery/latest/stack.log | tail</code></pre> No line: run <code>bash ~/robot_code/delivery/robot/stop_stack.sh</code> and read the log.</li>
@@ -427,19 +427,19 @@ bash ~/robot_code/delivery/robot/start_stack.sh nav --route-dir ~/robot_code/rou
   <p class="hint" id="qcount" role="status" aria-live="polite"></p>
   <div id="symptoms">
     <div class="symptom" data-k="windows protected smartscreen install"><h3>"Windows protected your PC"</h3><p>Click <b>More info</b>, then <b>Run anyway</b>. The installer is not signed.</p></div>
-    <div class="symptom" data-k="discover finds nothing address list network"><h3>Discover finds nothing</h3><p>Check the robot and the laptop are both on Students. Type the address from the robot's screen. See <a href="../../tools/studio/docs/FIND-THE-ROBOT.md">Find the robot</a>.</p></div>
+    <div class="symptom" data-k="discover finds nothing address list network"><h3>Find my robot (Discover) finds nothing</h3><p>Check the robot and the laptop are both on Students. Type the address from the robot's screen. See <a href="../../tools/studio/docs/FIND-THE-ROBOT.md">Find the robot</a>.</p></div>
     <div class="symptom" data-k="local turtlebot4.local name address"><h3><code>turtlebot4.local</code> does not work</h3><p>Normal on campus at times. Use the address on the robot's screen.</p></div>
     <div class="symptom" data-k="key not set up wizard login"><h3>"key not set up"</h3><p>Run the setup wizard once on this computer: <a href="../../tools/studio/docs/FIRST-CONNECTION.md">First connection</a>.</p></div>
     <div class="symptom" data-k="hotspot turtlebot4 wifi students own network 10.42.0.1"><h3>The robot shows its own Wi-Fi <code>Turtlebot4</code></h3><p>It could not find Students. Join <code>Turtlebot4</code> from your computer; the robot is at <code>10.42.0.1</code>.</p></div>
     <div class="symptom" data-k="start mapping grey disabled navigation scripts missing"><h3>Start mapping is grey</h3><p>A navigation program is running (stop it with <code>stop_stack.sh</code>) or the mapping scripts are missing (copy the delivery package with <code>delivery/tools/deploy.py</code>).</p></div>
-    <div class="symptom" data-k="drive driving grey disabled docked estop battery"><h3>Driving is grey or refused</h3><p>The robot is docked, e-stopped, starting or saving a map, a motion program runs, or the battery is under 10 %. Undock on <b>Overview</b>.</p></div>
-    <div class="symptom" data-k="map does not grow lidar docked empty"><h3>The map does not grow</h3><p>The lidar motor is off while docked. Undock or start the lidar on <b>Overview</b>, then drive a little.</p></div>
+    <div class="symptom" data-k="drive driving grey disabled docked estop battery"><h3>Driving is grey or refused</h3><p>The robot is docked, e-stopped, starting or saving a map, a motion program runs, or the battery is under 10 %. Undock on <b>Home</b>.</p></div>
+    <div class="symptom" data-k="map does not grow lidar docked empty"><h3>The map does not grow</h3><p>The lidar motor is off while docked. Undock or start the lidar on <b>Home</b>, then drive a little.</p></div>
     <div class="symptom" data-k="upload missing file route folder subfolder"><h3>Upload says a file is missing</h3><p>The four route files must sit directly in the folder, not in a subfolder. Run the planner again.</p></div>
     <div class="symptom" data-k="use this route grey disabled current trip"><h3>Use this route is grey</h3><p>The route is incomplete, already current, or a trip or navigation program is running.</p></div>
     <div class="symptom" data-k="not on the map screen navigation stack trip refuses"><h3>The screen says "Not on the map"</h3><p>Navigation is not running. Do step 7 and wait about 2 minutes.</p></div>
     <div class="symptom" data-k="no route saved screen route.yaml current"><h3>The screen says "No route saved"</h3><p>The current route folder has no <code>route.yaml</code>. Make your route current (step 6).</p></div>
     <div class="symptom" data-k="camera oak stopped mapping reboot"><h3>The camera stopped after mapping</h3><p>Known side effect of starting mapping. It comes back after the next reboot.</p></div>
-    <div class="symptom" data-k="anything else help maintainer diagnostics"><h3>Anything else</h3><p><a href="../../tools/studio/docs/TROUBLESHOOTING.md">Studio troubleshooting</a>, or ask the lab maintainer. <b>Tools</b>, <b>Show diagnostics</b> makes a text to send.</p></div>
+    <div class="symptom" data-k="anything else help maintainer diagnostics"><h3>Anything else</h3><p><a href="../../tools/studio/docs/TROUBLESHOOTING.md">Studio troubleshooting</a>, or ask the lab maintainer. <b>Settings and help</b>, <b>Show diagnostics</b> makes a text to send.</p></div>
   </div>
 </section>
 
@@ -497,8 +497,8 @@ bash ~/robot_code/delivery/robot/start_stack.sh nav --route-dir ~/robot_code/rou
 
   var I='../tools/studio/docs/img/';
   var T=[
-   ['Overview','v2-overview.png','Battery, docked or not, lidar, Wi-Fi, CPU, temperature.','Connect and disconnect. Undock and Dock. Start the lidar motor. Run the health check.','Used in steps 2 and 4.'],
-   ['Live','v2-live-armed.png','The lidar map and the robot path.','Drive by hand. Arm first. 0.15 m/s default, 0.30 m/s max, stops 0.3 s after the last command. Refused when docked, under e-stop or below 10 % battery.','Driving was tested only in part: see the Studio README.'],
+   ['Home (was Overview)','v2-overview.png','Battery, docked or not, lidar, Wi-Fi, CPU, temperature.','Connect and disconnect. Undock and Dock. Start the lidar motor. Run the health check.','Used in steps 2 and 4.'],
+   ['Drive (was Live)','v2-live-armed.png','The lidar map and the robot path.','Drive by hand. Arm first. 0.15 m/s default, 0.30 m/s max, stops 0.3 s after the last command. Refused when docked, under e-stop or below 10 % battery.','Driving was tested only in part: see the Studio README.'],
    ['Maps','','A map being built, and the saved maps.','Start mapping, Save map, Stop mapping. Preview, rename, download or delete saved maps.','Verified docked 2026-11-14. Mapping while driving not verified. No screenshot yet.'],
    ['Routes','','Routes on the robot, the current route, trip status.','Upload a planned route folder. Press Use this route. Read whether a trip or navigation is running.','Upload not verified. No screenshot yet.'],
    ['Robot menu','','The entries on the robot’s front panel.','Hide built-in entries, add your own program entries, check with the robot, save.','Not needed for the demo. Saving a changed menu is not verified. No screenshot yet.'],
@@ -509,7 +509,7 @@ bash ~/robot_code/delivery/robot/start_stack.sh nav --route-dir ~/robot_code/rou
    ['Logs','v2-logs.png','The robot’s service log, read only.','Look for errors.','Optional.'],
    ['Wi-Fi','v2-wifi.png','Where your computer and the robot are connected.','Put the robot on another network.','Not needed on campus: the robot joins Students by itself.'],
    ['Topics','','ROS topics.','Watch up to four live.','Optional. No screenshot yet.'],
-   ['Tools','v2-tools.png','Utilities.','Open a terminal on the robot (step 7), the setup wizard, diagnostics, Settings.','Used in step 7.']
+   ['Settings and help (was Tools)','v2-tools.png','Utilities.','Open a terminal on the robot (step 7), the setup wizard, diagnostics, Settings.','Used in step 7.']
   ];
   var tabs=document.getElementById('tabs'), panel=document.getElementById('tourpanel');
   function show(i){

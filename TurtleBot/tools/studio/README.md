@@ -41,6 +41,20 @@ From version 1.2 Studio is also built as a single file per system, so no Python 
 
 Running from source (`python studio.py`, steps above) still works and does the same.
 
+## What's new in 2.2
+
+Version 2.2.0 (2026-11-28) makes Studio easier to find your way around, and its code easier to read. The review behind it is in [docs/DESIGN-2.2-USABILITY.md](docs/DESIGN-2.2-USABILITY.md).
+
+- **Home asks what you want to do.** After connecting, six buttons: Drive the robot, Run a program, Write your own program, Make a map, Change the robot's menu, Copy a folder to the robot. If the robot is on its dock, a line above them says so, with an Undock button. The detailed numbers are below, under "Robot status".
+- **The menu on the left is grouped in plain words:** Use the robot, Make your own, Check on it, Set up. Overview is now Home, Live is Drive, Tools is Settings and help. The addresses (`#/live` and so on) did not change.
+- **Programs and Code link to each other.** Each program has an Edit code button; each file in Code has a Run button that asks the same movement question as Programs.
+- **One clear way to connect:** Connect when the address is known, otherwise Find my robot. The other ways are under "Other ways to connect".
+- **The arguments box shows the program's own example** (from the program list, or from the "Run it on the robot:" line of its description, which the robot now sends as `example`). It no longer suggests `--turns 1` for every program.
+- **Starting a moving program on the dock** now says "The robot is on its dock. Undock it first." with an Undock button.
+- **Code:** the Python source is now small modules in `desktop/` and `bridge/`, one job each; `bundle.py` joins them into the same `studio.py` and `robot_bridge.py` as before ([ADR-0008](docs/adr/0008-small-source-modules-joined-into-single-files.md)). A checker proved every function moved without a change. Which file holds what: [docs/CODE-MAP.md](docs/CODE-MAP.md). The design with diagrams: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+Status: offline, unit and browser tests against the simulated robot. **Not tried on the real robot yet.**
+
 ## What's new in 2.1.1
 
 Version 2.1.1 (2026-11-26) is a small fix on the Programs screen. Pressing **Run** with an empty arguments box on a program that needs an argument (for example `motion_shapes.py` and `more_shapes.py` need a shape) used to start the program, which then stopped with "the following arguments are required: shape". Now the box shows what the program needs ("needs: shape (see examples below)"), and Run does not start anything while the box is empty: Studio puts the first safe example (a dry run, nothing moves) into the box and says so in a short message. Change the text if you like, then press **Run** again. Boxes with text, programs whose arguments are all optional, and the confirmation before a moving program starts are unchanged. Status: unit tested (vitest) only; **not tried on the real robot or in the installed app**. The 2.1.1 Windows installer is not built yet.
@@ -576,6 +590,8 @@ login": a terminal opens, you type the robot password there (the app never sees 
 added to the robot. Then press Connect again.
 
 ## Architecture
+
+*Updated 2026-11-28.* The full design, with diagrams of the parts and of each flow (connect, run a program, E-STOP, mapping, menu), is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Which file holds what: [docs/CODE-MAP.md](docs/CODE-MAP.md). The Python source is in `desktop/` and `bridge/`; `bundle.py` joins it into `studio.py` and `robot_bridge.py` ([ADR-0008](docs/adr/0008-small-source-modules-joined-into-single-files.md)). The overview below is from 2.0 and still holds.
 
 *Added 2026-11-28.* Design records and test strategy: the [architecture decision records](docs/adr/README.md) explain why the main choices were made (one ROS participant, the streamed bridge, mapping through the delivery scripts, maps as PNG, the robot-owned menu checker, atomic writes, the simulated robot); [docs/TESTING.md](docs/TESTING.md) describes every test layer, how to run it and how to measure coverage; [docs/README.md](docs/README.md) lists all Studio guides; the whole TurtleBot system is in [../../ARCHITECTURE.md](../../ARCHITECTURE.md).
 

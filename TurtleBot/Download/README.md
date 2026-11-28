@@ -4,17 +4,19 @@ TurtleBot Studio is the app for the lab's TurtleBot 4. It finds the robot, shows
 
 ## Windows 10 and 11
 
-**[Download TurtleBot Studio for Windows](https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.1.1.exe)**
+**[Download TurtleBot Studio for Windows](https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.2.0.exe)**
 
 | | |
 |---|---|
-| File | [TurtleBotStudio-Setup-2.1.1.exe](TurtleBotStudio-Setup-2.1.1.exe) |
-| Version | <!-- studio-version -->2.1.1<!-- /studio-version --> |
+| File | [TurtleBotStudio-Setup-2.2.0.exe](TurtleBotStudio-Setup-2.2.0.exe) |
+| Version | <!-- studio-version -->2.2.0<!-- /studio-version --> |
 | Size | <!-- studio-size -->8.9 MB<!-- /studio-size --> |
-| SHA-256 | <!-- studio-sha256 -->2D05ACAA2C83ABA6F035B159BAADF8DED610B2E031242112F029E754EB0E810D<!-- /studio-sha256 --> |
+| SHA-256 | <!-- studio-sha256 -->D7506D8C4C50384BD5CD526049BA45598C13EBF76772FB293A33200073793EB8<!-- /studio-sha256 --> |
 | Needs | Windows 10 or 11. No administrator rights |
 
-> **Version 2.1.1** (2026-11-26) is a small fix: on the Programs screen, pressing Run with an empty arguments box for a program that needs one (for example `motion_shapes.py`, which needs a shape) no longer starts it; Studio fills in a safe dry-run example and says why. Install it over 2.1; your settings stay.
+> **Version 2.2.0** (2026-11-28) is easier to find your way around: Home asks what you want to do, the menu on the left is grouped in plain words, Programs and Code link to each other, the arguments box shows each program's own example, and Studio warns before a moving program starts on the dock. Install it over 2.1.1; your settings stay. Not tried on the real robot yet.
+>
+> Earlier, **version 2.1.1** (2026-11-26) was a small fix: on the Programs screen, pressing Run with an empty arguments box for a program that needs one (for example `motion_shapes.py`, which needs a shape) no longer starts it; Studio fills in a safe dry-run example and says why. Install it over 2.1; your settings stay.
 >
 > **Version 2.1** adds the Maps, Routes and Robot menu screens. The installer above is version 2.1 (built 2026-11-14). It replaces the 2.0 installer (2026-10-30), which is still in the repository history. What has and has not been tested on the robot: [Studio README, "Tested on the robot 2026-11-14 (2.1)"](../tools/studio/README.md).
 >

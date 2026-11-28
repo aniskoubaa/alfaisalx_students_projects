@@ -20,3 +20,13 @@ export function missingArgsMessage(name: string, required: string[], filled: boo
     ? `${name} needs ${need} first. Studio put a safe example in the box (a dry run: nothing moves). Change it if you like, then press Run.`
     : `${name} needs ${need} first. Type it in the arguments box, then press Run.`;
 }
+
+/** Text for an empty arguments box: the program's own example, or "Optional" when it has none. */
+export function argsPlaceholder(
+  entry: CatalogEntry | undefined,
+  desc: { example?: string } | undefined,
+): string {
+  // desc.example: the robot reads it from the "Run it on the robot:" line of the program's docstring
+  const example = safeExample(entry) || (desc?.example ?? '').trim();
+  return example ? `for example ${example}` : 'Optional';
+}

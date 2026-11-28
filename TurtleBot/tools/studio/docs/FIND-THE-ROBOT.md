@@ -6,6 +6,8 @@ Guides: [First connection](FIRST-CONNECTION.md) | [Everyday use](EVERYDAY-USE.md
 
 > Status (2026-10-30): version 2.0 was tested offline, in the simulated robot and with automated browser tests. (Earlier status, version 1.3: tested offline and against the simulated robot only.) Open real-robot checks: README [Not verified yet](../README.md#not-verified-yet).
 
+> Studio 2.2: before you connect, **Home** shows one main button: **Connect** when an address is known, otherwise **Find my robot** (this does what Discover did). **Search the whole network**, the setup wizard and Discover itself are under **Other ways to connect**. Click that line to open it. Below, "Discover" means **Find my robot** or the Discover button there.
+
 ## Which way to use
 
 | Situation | Use |
@@ -24,7 +26,7 @@ The address `10.42.0.1` means the robot is running its own hotspot.
 
 ## 2. Discover
 
-Press **Discover** on **Overview**, in the wizard, or in the **Ctrl+K** command list. Studio checks the places where the robot is usually found:
+Press **Find my robot** (or **Discover** under **Other ways to connect**) on **Home**, in the wizard, or in the **Ctrl+K** command list. Studio checks the places where the robot is usually found:
 
 - the address it used last time on this network,
 - `turtlebot4.local`,
@@ -37,7 +39,7 @@ Pick a reachable result and press **Connect**. Discover is quick and sends only 
 
 Use this when Discover finds nothing but the robot and your computer are on the same Wi-Fi.
 
-1. Press **Search the whole network** (in the Discover results, or in wizard step 2).
+1. Press **Search the whole network** (under **Other ways to connect** on **Home**, in the Discover results, or in wizard step 2).
 2. Wait about 15 seconds. A progress bar shows how far it is.
 3. Studio checks every address in the one local network your computer is on (a /24, at most 1024 addresses) for an open ssh port. It then asks the devices it found for their identity.
 4. A result marked **Your robot (identity confirmed)** has the robot's known key. Press **Connect**.
@@ -56,7 +58,7 @@ When no known Wi-Fi is in range, the robot starts its own network:
 | Internet | None |
 
 1. Join `Turtlebot4` from your computer. Ask the lab maintainer for the password if you do not have it.
-2. In Studio press **Discover**, or type `10.42.0.1`.
+2. In Studio press **Find my robot** (or **Discover**), or type `10.42.0.1`.
 
 More about this mode: [HOW-TO-CONNECT.md, Step 2](../../../HOW-TO-CONNECT.md#step-2-find-out-which-network-the-robot-is-on-and-its-address).
 

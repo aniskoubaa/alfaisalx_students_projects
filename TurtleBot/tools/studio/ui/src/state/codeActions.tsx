@@ -3,8 +3,10 @@ import { SKELETON } from '../lib/templates';
 import { loadDescribe, loadPrograms, report, runProgram } from './actions';
 import { isCodeDirty, useCode } from './code';
 import { confirm, notify } from './feedback';
+import { navigate } from './router';
 import { remoteDir } from './selectors';
 import { useStudio } from './store';
+import { useUi } from './ui';
 
 const code = () => useCode.getState();
 const nowStr = () => new Date().toTimeString().slice(0, 8);
@@ -53,7 +55,8 @@ export function setCodeText(text: string): void {
 }
 
 /** Save the editor text to the robot. Returns true when the robot has the text afterwards. */
-export async function saveCode(): Promise<boolean> {
+/** `forRun`: the save is only the first half of Save and run, so an unchanged file says nothing. */
+export async function saveCode(forRun = false): Promise<boolean> {
   const c = code();
   if (!c.name || useStudio.getState().conn.state !== 'connected' || c.saving) return false;
   useCode.setState({ saving: true });
@@ -82,6 +85,7 @@ export async function saveCode(): Promise<boolean> {
     }
     useCode.setState({ sha1: r.sha1 ?? code().sha1, orig: text });
     if (r.unchanged) {
+      if (forRun) return true;
       useCode.setState({ status: 'No changes to save' });
       notify('info', 'No changes to save.');
       return true;
@@ -96,10 +100,13 @@ export async function saveCode(): Promise<boolean> {
 }
 
 export async function saveAndRun(argStr: string): Promise<boolean> {
-  if (!(await saveCode())) return false;
+  if (!(await saveCode(true))) return false;
   await loadDescribe();
   const name = code().name;
-  return name ? runProgram(name, argStr) : false;
+  if (!name) return false;
+  const started = await runProgram(name, argStr);
+  if (started) useCode.setState({ status: 'Running ' + name });
+  return started;
 }
 
 export async function revertCode(): Promise<void> {
@@ -145,4 +152,15 @@ export async function createProgram(req: NewProgramRequest): Promise<boolean> {
   await loadPrograms();
   // Opening asks first when the editor has unsaved changes, like opening any other file.
   return openFile(req.file);
+}
+
+/** Go to the Code screen and open the New program dialog there. */
+export function startNewProgram(): void {
+  useUi.getState().setNewProgramAsked(true);
+  navigate('/code');
+}
+
+/** Open a program in the Code screen. Stays where it is if the person keeps their unsaved changes. */
+export async function editProgram(name: string): Promise<void> {
+  if (await openFile(name)) navigate('/code');
 }

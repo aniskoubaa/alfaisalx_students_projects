@@ -21,6 +21,8 @@ export function EventsToggle() {
         icon={<PanelRight size={18} aria-hidden="true" />}
         onClick={toggle}
         aria-pressed={open}
+        title={base}
+        noTooltip
       />
       {unread > 0 ? (
         <span className="count-badge num" aria-hidden="true">
@@ -41,6 +43,8 @@ export function PaletteButton() {
         icon={<Command size={18} aria-hidden="true" />}
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
+        title="Command palette (Ctrl+K)"
+        noTooltip
       />
     </span>
   );

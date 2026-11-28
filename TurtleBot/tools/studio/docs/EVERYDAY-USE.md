@@ -6,7 +6,9 @@ Guides: [First connection](FIRST-CONNECTION.md) | [Everyday use](EVERYDAY-USE.md
 
 > Status (2026-10-30): version 2.0 was tested offline, in the simulated robot and with automated browser tests. Open real-robot checks: README [Not verified yet](../README.md#not-verified-yet). The screenshots come from the simulated robot. (Earlier status, version 1.3: tested offline and against the simulated robot only.)
 
-This guide describes the 2.0 interface. The earlier 1.3 interface is still available as the "classic" interface: **Tools, Settings, Use the classic interface**, or open the address of Studio with `/classic/` after the port.
+> Studio 2.2: some screens have new names. Overview is now **Home**, Live is **Drive**, Tools is **Settings and help**. Wherever this guide says the old name, use the new one. The menu is now in four groups (Use the robot, Make your own, Check on it, Set up). See [the layout](#3-the-layout).
+
+This guide describes the 2.0 interface. The earlier 1.3 interface is still available as the "classic" interface: **Settings and help (called Tools before 2.2), Settings, Use the classic interface**, or open the address of Studio with `/classic/` after the port.
 
 ## Safety first
 
@@ -31,8 +33,8 @@ The address of the page contains a private token. Do not share it.
 ## 2. Connect
 
 1. Make sure your computer is on the same network as the robot, or plugged into it with the cable.
-2. Open **Overview**. Press **Discover**, pick the robot and press **Connect**. When you are connected, **Overview** shows a short summary (robot, how it is reached, since when). To use another robot, press **Change robot**.
-3. If the robot is not listed, see [Find the robot](FIND-THE-ROBOT.md).
+2. Open **Home**. Press **Connect** if Studio knows an address. If it does not, press **Find my robot**, pick the robot and press **Connect**. When you are connected, **Home** shows "What do you want to do?" with six buttons (Drive the robot, Run a program, Write your own program, Make a map, Change the robot's menu, Copy a folder to the robot), then a summary under **Robot status** (robot, how it is reached, since when). To use another robot, press **Change robot**.
+3. If the robot is not listed, see [Find the robot](FIND-THE-ROBOT.md). **Setup wizard**, **Search the whole network** and Discover are under **Other ways to connect** (click it to open).
 
 You do not need a password. If Studio says "key not set up", you have not done the [first connection](FIRST-CONNECTION.md) on this computer.
 
@@ -40,16 +42,16 @@ If the connection drops, Studio tries to reconnect by itself. See [When the conn
 
 ![Studio Overview, connected to the robot](img/v2-overview.png)
 
-*Screenshot from the simulated robot.*
+*Screenshot from the simulated robot (from 2.1: this screen is now called Home).*
 
 ## 3. The layout
 
-The menu is on the left. The top bar shows the connection, battery, Wi-Fi signal, the **Ctrl+K** command button, the **Events** button and the **E-STOP**.
+The menu is on the left. Since 2.2 it has four groups: **Use the robot** (Home, Drive, Programs, Maps, Routes), **Make your own** (Code, Robot menu, Files), **Check on it** (Charts, Logs, Topics) and **Set up** (Wi-Fi, Settings and help). The table below uses the 2.0 names, with the 2.2 name in brackets. The top bar shows the connection, battery, Wi-Fi signal, the **Ctrl+K** command button, the **Events** button and the **E-STOP**.
 
 | Menu item | Use it to |
 |---|---|
-| Overview | See battery, docked or not, lidar, Wi-Fi, CPU and temperature. Connect and Disconnect. Undock and Dock. **Start lidar motor** if programs report "no /scan". Run the health check. (This was called Dashboard in 1.3) |
-| Live | See the lidar map and the robot's path, and drive the robot by hand. See [Live view and driving](LIVE-AND-DRIVING.md) |
+| Overview (now **Home**) | See battery, docked or not, lidar, Wi-Fi, CPU and temperature. Connect and Disconnect. Undock and Dock. **Start lidar motor** if programs report "no /scan". Run the health check. (This was called Dashboard in 1.3) |
+| Live (now **Drive**) | See the lidar map and the robot's path, and drive the robot by hand. See [Live view and driving](LIVE-AND-DRIVING.md) |
 | Programs | Run one of the lab's example programs and see its live log. Each card explains what the program does and whether it moves the robot |
 | Code | Write and run your own program on the robot |
 | Files | Copy a folder from your computer to the robot and back. **Sync and run** copies and starts a program in one step |
@@ -57,7 +59,7 @@ The menu is on the left. The top bar shows the connection, battery, Wi-Fi signal
 | Logs | Read the robot's service log (read-only) |
 | Wi-Fi | See where your computer and the robot are connected. Put the robot on another network ([First connection, step 3](FIRST-CONNECTION.md#3-put-the-robot-on-the-network-you-will-use)) |
 | Topics | List the ROS topics and watch up to four live |
-| Tools | Open a terminal on the robot, open the robot in VS Code, the setup wizard, key login, the app log, copy diagnostics, check for updates, **Settings**, quit Studio |
+| Tools (now **Settings and help**) | Open a terminal on the robot, open the robot in VS Code, the setup wizard, key login, the app log, copy diagnostics, check for updates, **Settings**, quit Studio |
 
 Quit Studio is also at the bottom of the menu. **Collapse menu** makes the menu narrow. On a phone the menu opens as a drawer.
 
@@ -71,9 +73,9 @@ Other helpers:
 ## 4. Run a program
 
 1. Open **Programs** in the menu.
-2. Read the card. A badge tells you if it moves the robot, whether it is safe on the dock, and whether it needs an undock.
+2. Read the card. Each card has an **Edit code** button that opens the program's file in **Code**. A badge tells you if it moves the robot, whether it is safe on the dock, and whether it needs an undock.
 3. Press **What does it do?** to see its arguments and how it stops.
-4. If the robot has to undock first, go to **Overview** and press **Undock**, then confirm.
+4. If the robot has to undock first, go to **Home** and press **Undock**, then confirm. (Since 2.2, if you start a moving program while the robot is on its dock, Studio says "The robot is on its dock. Undock it first." and shows an **Undock** button.)
 5. Set the arguments, tick the motion confirmation if the program moves the robot, and press **Run**.
 6. Watch the live log. Press **Stop** to end the program.
 
@@ -85,7 +87,7 @@ If you do not tick the motion confirmation for a motion program, Studio refuses 
 
 ## 5. Edit and run your own code
 
-1. Open **Code** in the menu. Press **New program** and choose a template, or open a file from `~/robot_code`.
+1. Open **Code** in the menu. Press **New program** and choose a template, or open a file from `~/robot_code`. Since 2.2 each file in the list has a **Run** button, and the arguments box shows the selected program's own example (or "Optional").
 2. Edit it. Tab indents and Ctrl+S saves.
 3. Press **Save to robot**. If Studio says "No changes to save", nothing was different from the file on the robot and no backup was made. Otherwise the save keeps one `.bak` copy of the old file and warns you if the file changed on the robot since you opened it.
 4. Press **Save and Run** to save and start it. A program that moves the robot needs the motion confirmation. **Stop** ends it.
@@ -123,7 +125,7 @@ If the connection ends without you pressing Disconnect (for example the Wi-Fi bl
 
 ## Updates
 
-Studio checks once a day whether a newer version exists and shows a banner "Version X is available. How to update". The check sends no identifiers. Dismiss the banner and it stays away for that version. **Tools, Check for updates** checks now. Switch the check off with the `update_check` setting.
+Studio checks once a day whether a newer version exists and shows a banner "Version X is available. How to update". The check sends no identifiers. Dismiss the banner and it stays away for that version. **Settings and help, Check for updates** checks now. Switch the check off with the `update_check` setting.
 
 ![Banner saying a new version is available](img/update-banner.png)
 
@@ -131,14 +133,14 @@ Studio checks once a day whether a newer version exists and shows a banner "Vers
 
 ## Quit
 
-- Press **Quit Studio** (bottom of the menu, or **Tools**) and confirm. The page then says "Studio has stopped. You can close this window."
+- Press **Quit Studio** (bottom of the menu, or **Settings and help**) and confirm. The page then says "Studio has stopped. You can close this window."
 - The installed app also stops by itself after you close its window and no page is open for about 45 seconds. When run from source, Studio stays open until you quit it.
 - If you want to log out of the robot as well, press **Disconnect** first.
 
-![Tools screen with Diagnostics, Updates, Settings and Quit](img/v2-tools.png)
+![Tools screen with Diagnostics, Updates, Settings and Quit (screenshot from 2.1; now Settings and help)](img/v2-tools.png)
 
 *Screenshot from the simulated robot.*
 
 ## Something wrong
 
-See [Troubleshooting](TROUBLESHOOTING.md). To ask for help, press **Show diagnostics** (Tools), then **Copy**, and send the text to the lab maintainer.
+See [Troubleshooting](TROUBLESHOOTING.md). To ask for help, press **Show diagnostics** (Settings and help), then **Copy**, and send the text to the lab maintainer.

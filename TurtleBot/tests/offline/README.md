@@ -18,6 +18,7 @@ Each script prints PASS or FAIL and exits non-zero on a failure. Some need PyYAM
 | Studio (browser, Playwright) | `test_studio_e2e.py`, `test_studio_e2e_maps.py`, `test_studio_e2e_menu.py`, `test_studio_e2e_routes.py` | laptop, CI |
 | Examples and shapes | `test_pure.py`, `test_sim_runs.py` | laptop, CI |
 | Simulator | `sim.py` (stub ROS and virtual-clock robot used by the tests; not a test itself) | laptop, CI |
+| Studio code split | `check_split_equivalence.py` (proves `studio.py` and `robot_bridge.py` hold the same code after being split into modules, ADR-0008; a tool, not a test) | laptop |
 | Setup scripts and timing | `test_lidar_restart.py`, `test_wifi_retry.py`, `test_timing.py` | laptop, CI |
 
 Passing these tests does not prove a program works on the robot.

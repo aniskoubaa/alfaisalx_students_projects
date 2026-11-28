@@ -170,6 +170,27 @@ check('describe: docstring is the first paragraph only', rb.extract_docstring(PY
 check('describe: usage lines with option strings and help', rb.extract_usage(PYSRC) == ['--turns: how many turns', 'shape: square or circle', '-s, --speed'], str(rb.extract_usage(PYSRC)))
 check('describe: usage capped at 12', len(rb.extract_usage('ap.add_argument("--a")\n' * 30)) == 12)
 check('describe: leading # block for scripts without docstring', rb.extract_docstring('#!/bin/bash\n# Run the thing.\n# More text.\n\necho hi\n', '.sh') == 'Run the thing.\nMore text.')
+RUNDOC = ('"""Drive a circle.\n\nMOVES THE ROBOT: yes.\n'
+          'Run it on the robot:      python3 drive_circle.py --radius 0.3 --dry-run     (checks only, never moves)\n'
+          '                          python3 drive_circle.py --radius 0.3 --laps 1\n"""\nprint(1)\n')
+check('describe: run example from the same line as "Run it on the robot", bracket note removed',
+      rb.extract_run_example(RUNDOC, '.py') == '--radius 0.3 --dry-run', repr(rb.extract_run_example(RUNDOC, '.py')))
+check('describe: run example on the next line, any program name (a copy keeps the template name)',
+      rb.extract_run_example('"""X.\n\nRun it on the robot:\n    python3 other_name.py --count 5   # five times\n"""\n',
+                             '.py') == '--count 5')
+check('describe: no arguments, no section, or no command gives an empty example',
+      rb.extract_run_example('"""X.\n\nRun it on the robot:      python3 a.py\n"""\n', '.py') == ''
+      and rb.extract_run_example(PYSRC, '.py') == ''
+      and rb.extract_run_example('"""X.\n\nRun it on the robot: ask a lab member.\n"""\n', '.py') == '')
+check('describe: prose that mentions running it on the robot is skipped; the "Run it on the robot:" line counts',
+      rb.extract_run_example('"""To run it on the robot, connect first.\n\nRun it on the robot:  python3 a.py --x 1\n"""\n',
+                             '.py') == '--x 1')
+check('describe: run example from the leading # block of a shell script',
+      rb.extract_run_example('#!/bin/bash\n# Run it on the robot:  bash go.sh --fast\necho hi\n', '.sh') == '--fast')
+_dtmp = os.path.join(tmp, 'rundoc.py')
+with open(_dtmp, 'w', encoding='utf-8') as _f:
+    _f.write(RUNDOC)
+check('describe_file: carries the run example', (rb.describe_file(_dtmp) or {}).get('example') == '--radius 0.3 --dry-run')
 check('describe: docstring limited to 600 chars', len(rb.extract_docstring('"""' + 'x' * 2000 + '"""\n', '.py')) == 600)
 
 

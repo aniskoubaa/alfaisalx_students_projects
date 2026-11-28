@@ -146,8 +146,8 @@ export function WizardSteps({ w, candidates, deep, hostname, platform }: WizardS
   return (
     <>
       <p className="dim small">
-        Six steps to your first connection. You can stop at any time and come back from the Overview
-        or Tools screen.
+        Six steps to your first connection. You can stop at any time and come back from the Home
+        or Settings and help screen.
       </p>
       <ol className="wiz">
         <Step
