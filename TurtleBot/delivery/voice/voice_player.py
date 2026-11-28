@@ -11,7 +11,7 @@ Usage:
 Switch it off without stopping it: create the file ~/robot_code/voice/SILENT (or use --silent): events are only logged.
 Player command: the first of "aplay -q -D <device> <file>" and "ffplay -nodisp -autoexit -loglevel quiet <file>" that is
 installed (ffplay has no device option); --player-cmd overrides the choice.
-Design and open questions: TurtleBot/docs/SPOKEN-MESSAGES.md, sections 3 to 8.
+Design and open questions: TurtleBot/docs/reference/spoken-messages.md, sections 3 to 8.
 """
 import argparse
 import glob

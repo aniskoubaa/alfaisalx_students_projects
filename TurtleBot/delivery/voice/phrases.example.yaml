@@ -1,6 +1,6 @@
 # Phrase list and event rules of the voice player (TurtleBot/delivery/voice/voice_player.py).
 # Copy to ~/robot_code/voice/phrases.yaml on the robot; clip file names are relative to this file (or to clips_dir).
-# Texts are from TurtleBot/docs/SPOKEN-MESSAGES.md, section 4. Arabic lines are DRAFTS for a native speaker to correct.
+# Texts are from TurtleBot/docs/reference/spoken-messages.md, section 4. Arabic lines are DRAFTS for a native speaker to correct.
 
 # Sound device for aplay -D (the Pi's own jack is usually plughw:0,0; check with aplay -l). Leave it out to use the default
 # device. ffplay, the fallback player, has no device option.

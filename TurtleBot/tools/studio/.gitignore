@@ -1,0 +1,4 @@
+# coverage.py data files (see docs/TESTING.md)
+.coverage
+.coverage.*
+htmlcov/

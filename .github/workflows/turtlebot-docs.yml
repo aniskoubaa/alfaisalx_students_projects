@@ -1,0 +1,71 @@
+# Documentation checks for the TurtleBot folder: relative links and #anchors in every Markdown and HTML file,
+# and a cheap sanity check that every HTML page parses and has a <title>. No robot needed.
+name: TurtleBot docs
+
+on:
+  push:
+    paths:
+      - 'TurtleBot/**'   # not only .md and .html: a moved or deleted file can break a link
+      - '.github/workflows/turtlebot-docs.yml'
+  pull_request:
+    paths:
+      - 'TurtleBot/**'
+      - '.github/workflows/turtlebot-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: turtlebot-docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Documentation links
+        run: python TurtleBot/tests/check_links.py .
+      - name: HTML pages parse and have a title
+        run: |
+          python - <<'PY'
+          import pathlib, sys
+          from html.parser import HTMLParser
+
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.in_title = False
+                  self.title = ''
+              def handle_starttag(self, tag, attrs):
+                  if tag == 'title':
+                      self.in_title = True
+              def handle_endtag(self, tag):
+                  if tag == 'title':
+                      self.in_title = False
+              def handle_data(self, data):
+                  if self.in_title:
+                      self.title += data
+
+          bad = []
+          files = sorted(p for p in pathlib.Path('TurtleBot').rglob('*.html') if 'node_modules' not in p.parts)
+          for f in files:
+              try:
+                  p = P()
+                  p.feed(f.read_text(encoding='utf-8'))
+                  p.close()
+              except Exception as e:
+                  bad.append(f'{f}: does not parse ({e})')
+                  continue
+              if not p.title.strip():
+                  bad.append(f'{f}: no <title>')
+          print(f'checked {len(files)} HTML files')
+          for b in bad:
+              print('FAIL', b)
+          sys.exit(1 if bad else 0)
+          PY

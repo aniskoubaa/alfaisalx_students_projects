@@ -40,6 +40,14 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./src/test/setup.ts'],
       css: false,
       restoreMocks: true,
+      coverage: {
+        provider: 'v8',
+        reporter: ['text-summary', 'json-summary'],
+        // Git-ignored folder (see .gitignore); override with STUDIO_UI_COVERAGE_DIR to write outside the repository.
+        reportsDirectory: process.env.STUDIO_UI_COVERAGE_DIR || './.coverage-ui',
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/**/*.d.ts'],
+      },
     },
   };
 });

@@ -217,7 +217,7 @@ On 2026-10-04 at about 15:42 (robot time) and on 2026-10-05 (laptop time) the ro
 | About 11:44 | Robot boot | User | Lidar detected (CP210x, `/dev/RPLIDAR`), base talking, clock correct |
 | 11:48 | Dock power saver stops the lidar (`turtlebot4_node`: "RPLIDAR stopped") | Automatic | No `/scan` while docked, as designed |
 | About 12:09 | Undock (`ros2 action send_goal /undock`, sent detached) | From a laptop over SSH | SUCCEEDED; "RPLIDAR started" at 12:09:54 |
-| After 12:09 | `motion_shapes.py` runs and short diagnostic moves | From a laptop over SSH, detached | See [docs/test-results.html](docs/test-results.html) |
+| After 12:09 | `motion_shapes.py` runs and short diagnostic moves | From a laptop over SSH, detached | See [docs/reference/test-results.html](docs/reference/test-results.html) |
 | Between the sessions (time not recorded) | Robot off the network for about 1.5 hours | n/a | It was powered off between sessions; the cause of the drop is not confirmed |
 | About 15:38 (derived: uptime 4 min at about 15:42) | Robot switched on | User | Answered SSH once at about 15:42 (address `10.87.10.205`, clock correct, lidar on USB), then dropped off the Wi-Fi and did not come back during about 25 minutes of watching. See the [Wi-Fi incident](#incident-robot-drops-off-the-wi-fi-2026-10-04-and-2026-10-05) |
 | _To be completed_ | Further undock and dock actions during the test campaign | Test campaign | _Placeholder_ |
@@ -497,7 +497,7 @@ Why the clock is not fixed for good (answer given on 2026-10-24): the Pi 4 has n
 | Date | Found 2026-10-03 at about 20:31 (UTC+3); resolved 2026-10-04 before the 11:44 boot (robot time, EDT) |
 | Status | **Resolved** 2026-10-04 |
 | Changes involved | None in software. Physical: lidar USB cable reseated (same cable, same port) |
-| Illustrated version | [docs/lidar-diagnosis.html](docs/lidar-diagnosis.html); Markdown version [docs/LIDAR-FINDINGS.md](docs/LIDAR-FINDINGS.md) |
+| Illustrated version | [docs/findings/lidar-diagnosis.html](docs/findings/lidar-diagnosis.html); Markdown version [docs/findings/lidar-findings.md](docs/findings/lidar-findings.md) |
 
 ### Summary
 
@@ -545,7 +545,7 @@ A loose USB connection between the lidar and the Pi. The lidar's motor is powere
 | Date | 2026-10-04 (robot time) |
 | Status | Worked around in `motion_shapes.py`. **Updated 2026-10-24:** cause located in the Create 3 base, triggered when it starts to move; why it stalls is still open ([ROADMAP.md, TB-15](ROADMAP.md#tb-15-characterise-the-odom-pauses-at-motion-start), [TB-25](ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving)) |
 | Affects | Any program that stops when `/odom` is late, in particular `motion_shapes.py` |
-| Illustrated version | [docs/motion-program-design.html](docs/motion-program-design.html#odom-pause) |
+| Illustrated version | [docs/explanations/motion-program-design.html](docs/explanations/motion-program-design.html#odom-pause) |
 
 ### Summary
 
@@ -746,7 +746,7 @@ Files: `tests/logs/2026-10-24_timing_tb25_joins_after_r19.jsonl.gz` and `tests/l
 | Status on 2026-10-10 | **Open. Fix proposed, not applied.** The cause is a diagnosis, not confirmed |
 | Status on 2026-10-24 | **Fix applied as R14 (power saving off in the `Students` profile); effect not verified.** It needs the robot on campus: TB-20 steps 5 and 6 |
 | Changes involved | None so far. Proposed: turn Wi-Fi power saving off in the `Students` profile ([ROADMAP.md, TB-20](ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving)) |
-| Illustrated version | [docs/network-and-connectivity.html](docs/network-and-connectivity.html); Markdown version [docs/NETWORK-FINDINGS.md](docs/NETWORK-FINDINGS.md) |
+| Illustrated version | [docs/explanations/network-and-connectivity.html](docs/explanations/network-and-connectivity.html); Markdown version [docs/findings/network-findings.md](docs/findings/network-findings.md) |
 
 ### Summary
 
@@ -937,8 +937,8 @@ Lessons:
 - [General Tasks/TurtleBot4 - lidar check and motion programs.txt](../General%20Tasks/TurtleBot4%20-%20lidar%20check%20and%20motion%20programs.txt): log of the 2026-10-04 lidar check and motion program work, including failures.
 - [General Tasks/TurtleBot4 - Ethernet, Wi-Fi power save and odometry timing.txt](../General%20Tasks/TurtleBot4%20-%20Ethernet%2C%20Wi-Fi%20power%20save%20and%20odometry%20timing.txt): log of 2026-10-24 (Ethernet access, the Wi-Fi power-save change R14, the supervised motion test with the timing recorder), including what failed.
 - [General Tasks/TurtleBot4 - network and connectivity.txt](../General%20Tasks/TurtleBot4%20-%20network%20and%20connectivity.txt): log of the Wi-Fi drops, the lab router and the repository incident (2026-10-04 evening to 2026-10-10), including failures.
-- [docs/](docs/index.html): illustrated pages on the lidar diagnosis, the motion program design, the test results and the network and connectivity findings ([docs/network-and-connectivity.html](docs/network-and-connectivity.html)).
+- [docs/](docs/index.html): illustrated pages on the lidar diagnosis, the motion program design, the test results and the network and connectivity findings ([docs/explanations/network-and-connectivity.html](docs/explanations/network-and-connectivity.html)).
 - [examples/README.md](examples/README.md) and [tests/](tests/): how to run the example programs, and the test campaign.
 - [`setup/`](setup/) and [`examples/`](examples/): copies of the scripts and programs installed on the robot.
-- [turtlebot4-field-guide.html](turtlebot4-field-guide.html): general TurtleBot 4 background.
+- [docs/getting-started/field-guide.html](docs/getting-started/field-guide.html): general TurtleBot 4 background.
 - Official TurtleBot 4 user manual: https://turtlebot.github.io/turtlebot4-user-manual/

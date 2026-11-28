@@ -2,7 +2,7 @@
 
 Small ROS 2 Jazzy programs for the lab's TurtleBot 4 Standard (Raspberry Pi 4 on an iRobot Create 3 base). They run **on the robot**, not on your computer. Every command below works from Windows, macOS or Linux.
 
-To understand the lidar programs, read the [lidar user guide](../docs/lidar-guide.html) ([Markdown](../docs/LIDAR-GUIDE.md)). To see how `motion_shapes.py` drives before you run it, try the [motion simulator](../docs/motion-simulator.html) in a browser.
+To understand the lidar programs, read the [lidar user guide](../docs/guides/lidar-guide.html) ([Markdown](../docs/guides/lidar-guide.md)). To see how `motion_shapes.py` drives before you run it, try the [motion simulator](../docs/explanations/motion-simulator.html) in a browser.
 
 New to the robot? First follow [HOW-TO-CONNECT.md](../HOW-TO-CONNECT.md) to join the robot's network and log in with `ssh ubuntu@turtlebot4.local` (or `ssh ubuntu@` followed by the address on the robot's display).
 
@@ -127,7 +127,7 @@ timeout 60 ros2 topic echo --once /dock_status
 > **Status: tested on the robot on 2026-10-04** (odometry errors, not floor measurements): square 0.9 cm / +0.8 deg, rotate 0.1 cm / +0.7 deg,
 > back_and_forth 0.6 cm / +0.9 deg, triangle 1.0 cm / +2.2 deg (held still three times through odometry gaps). figure_eight completed its
 > first circle, then aborted on a 2.0 s odometry gap with the robot standing still. Logs: [../tests/logs/](../tests/logs/); results:
-> [../docs/test-results.html](../docs/test-results.html).
+> [../docs/reference/test-results.html](../docs/reference/test-results.html).
 
 `motion_shapes.py` **moves the robot.** It plans a shape as a list of segments (drive straight, turn in place, drive a full circle), then drives each one using wheel odometry (`/odom`): straight segments stop when the robot has moved the planned distance, turns stop when the summed heading change reaches the planned angle. It sends velocity on `/cmd_vel` as `TwistStamped`.
 

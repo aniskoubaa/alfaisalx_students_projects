@@ -1,5 +1,11 @@
-# Offline checks for the TurtleBot 4 example programs. No robot and no ROS needed: the tests stub ROS and
-# drive a simulated robot (TurtleBot/tests/offline/sim.py). Runs only when files under TurtleBot/ change.
+# Offline checks for the TurtleBot 4 programs, tools and Studio. No robot and no ROS needed: the tests stub ROS and
+# drive a simulated robot (TurtleBot/tests/offline/sim.py). Runs when files under TurtleBot/ change.
+#   lint            syntax errors and undefined names (ruff, pinned), shellcheck (errors only), bash -n, node --check
+#   offline-tests   every TurtleBot/tests/offline/test_*.py except the Playwright ones (they print PASS/FAIL and exit
+#                   with the number of failures; they are not pytest). Python 3.12 is the robot's version.
+#   studio-ui       Studio 2.0 interface: lint, type check, unit tests, coverage (if the script exists), build,
+#                   web/v2 must match the source, then the browser (Playwright) tests test_studio_e2e*.py
+# Documentation links and HTML checks live in turtlebot-docs.yml.
 name: TurtleBot offline tests
 
 on:
@@ -16,57 +22,135 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: turtlebot-tests-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  offline-tests:
+  lint:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'   # same as the robot (Ubuntu 24.04)
-      - name: Install PyYAML (delivery route and Nav2 config files)
-        run: python -m pip install pyyaml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install the linters (pinned)
+        run: python -m pip install ruff==0.17.3 shellcheck-py==0.11.0.1
       - name: Compile every Python file
-        run: python -m py_compile TurtleBot/examples/*.py TurtleBot/tests/*.py TurtleBot/tests/offline/*.py TurtleBot/tools/timing/*.py TurtleBot/tools/studio/*.py TurtleBot/tools/studio/templates/*.py TurtleBot/delivery/*.py TurtleBot/delivery/tools/*.py TurtleBot/delivery/launch/*.py TurtleBot/delivery/sim/*.py
-      - name: Check shell scripts
         run: |
-          for f in TurtleBot/examples/*.sh TurtleBot/tools/connect/*.sh TurtleBot/tools/studio/*.sh TurtleBot/delivery/robot/*.sh TurtleBot/delivery/phase0/*.sh TurtleBot/delivery/sim/*.sh; do
-            if [ -f "$f" ]; then bash -n "$f"; echo "ok $f"; fi
-          done
-      - name: Documentation links
-        run: python TurtleBot/tests/check_links.py .
-      - name: Logic tests
-        run: python TurtleBot/tests/offline/test_pure.py
-      - name: Simulated robot runs
-        run: python TurtleBot/tests/offline/test_sim_runs.py
-      - name: Timing tools
-        run: python TurtleBot/tests/offline/test_timing.py
-      - name: TurtleBot Studio robot bridge (fake mode)
-        run: python TurtleBot/tests/offline/test_studio_bridge.py
-      - name: TurtleBot Studio desktop app (fake robot)
-        run: python TurtleBot/tests/offline/test_studio_desktop.py
-      - name: TurtleBot Studio templates and program catalog (simulated robot)
-        run: python TurtleBot/tests/offline/test_studio_templates.py
-      - name: Delivery program (fake robot)
-        run: python TurtleBot/tests/offline/test_delivery_mission.py
-      - name: Delivery route planner and masks (synthetic maps)
-        run: python TurtleBot/tests/offline/test_plan_route.py
-      - name: Delivery Nav2 settings, launch file and robot scripts
-        run: python TurtleBot/tests/offline/test_delivery_config.py
-      - name: Delivery deploy tool (fake ssh and scp)
-        run: python TurtleBot/tests/offline/test_delivery_deploy.py
-      - name: Delivery simulator (pure parts, no ROS)
+          find TurtleBot -name '*.py' -not -path '*/node_modules/*' -print0 | xargs -0 python -m py_compile
+          echo "compiled $(find TurtleBot -name '*.py' -not -path '*/node_modules/*' | wc -l) files"
+      - name: ruff (syntax errors and undefined names only)
+        run: python -m ruff check --isolated --select E9,F63,F7,F82 --extend-exclude node_modules TurtleBot
+      - name: shellcheck (errors only)
+        run: find TurtleBot -name '*.sh' -not -path '*/node_modules/*' -print0 | xargs -0 python -m shellcheck -S error
+      - name: bash -n on every shell script
         run: |
-          python -m pip install numpy
-          python TurtleBot/tests/offline/test_delivery_sim.py
-      - name: Delivery front-panel menu and menu file
-        run: |
-          python TurtleBot/tests/offline/test_delivery_menu.py
-          python TurtleBot/tests/offline/test_delivery_menu_config.py
-      - name: Delivery voice player (no ROS)
-        run: python TurtleBot/tests/offline/test_delivery_voice.py
-      - name: TurtleBot Studio web files
+          fail=0
+          while IFS= read -r f; do
+            if bash -n "$f"; then echo "ok $f"; else echo "SYNTAX ERROR $f"; fail=1; fi
+          done < <(find TurtleBot -name '*.sh' -not -path '*/node_modules/*' | sort)
+          exit $fail
+      - name: TurtleBot Studio web files (node --check)
         run: |
           node --check TurtleBot/tools/studio/web/app.js
           node --check TurtleBot/tools/studio/web/mock.js
+
+  offline-tests:
+    name: offline-tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12']
+        experimental: [false]
+        include:
+          - python-version: '3.10'   # older interpreter: informational only, the robot runs 3.12
+            experimental: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install PyYAML and numpy (route and Nav2 config files, delivery simulator)
+        run: python -m pip install pyyaml numpy
+      - name: Run every offline test script
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONUNBUFFERED: '1'
+        run: |
+          # Browser (Playwright) tests are run by the studio-ui job.
+          out="$(mktemp)"
+          failed=()
+          passed=0
+          while IFS= read -r f; do
+            case "$(basename "$f")" in test_studio_e2e*) continue;; esac
+            echo "::group::$f"
+            if timeout 600 python "$f" > "$out" 2>&1; then rc=0; else rc=$?; fi
+            tail -n 25 "$out"
+            echo "::endgroup::"
+            if [ "$rc" -eq 0 ]; then
+              passed=$((passed + 1)); echo "ok     $f"
+            else
+              failed+=("$f"); echo "::error file=$f::$f exited with $rc"
+            fi
+          done < <(ls TurtleBot/tests/offline/test_*.py | sort)
+          echo
+          echo "scripts passed: $passed, failed: ${#failed[@]}"
+          if [ "${#failed[@]}" -ne 0 ]; then
+            printf 'FAILED: %s\n' "${failed[@]}"
+            exit 1
+          fi
+
+  studio-ui:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: TurtleBot/tools/studio/ui/package-lock.json
+      - name: Interface (install, lint, type check, test, coverage, build)
+        working-directory: TurtleBot/tools/studio/ui
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm test
+          npm run coverage --if-present
+          npm run build
+      - name: The committed web/v2 build must match the source
+        run: |
+          git diff --exit-code -- TurtleBot/tools/studio/web/v2
+          test -z "$(git status --porcelain -- TurtleBot/tools/studio/web/v2)" || { git status --short -- TurtleBot/tools/studio/web/v2; echo "web/v2 is not committed or not up to date: run npm run build in TurtleBot/tools/studio/ui and commit web/v2"; exit 1; }
+      - name: Install PyYAML, Playwright and the browser
+        run: |
+          python -m pip install pyyaml playwright
+          python -m playwright install --with-deps chromium
+      - name: Browser tests (test_studio_e2e*.py)
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONUNBUFFERED: '1'
+        run: |
+          out="$(mktemp)"
+          failed=()
+          while IFS= read -r f; do
+            echo "::group::$f"
+            if timeout 600 python "$f" > "$out" 2>&1; then rc=0; else rc=$?; fi
+            tail -n 25 "$out"
+            echo "::endgroup::"
+            if [ "$rc" -eq 0 ]; then echo "ok     $f"; else failed+=("$f"); echo "::error file=$f::$f exited with $rc"; fi
+          done < <(ls TurtleBot/tests/offline/test_studio_e2e*.py | sort)
+          if [ "${#failed[@]}" -ne 0 ]; then printf 'FAILED: %s\n' "${failed[@]}"; exit 1; fi

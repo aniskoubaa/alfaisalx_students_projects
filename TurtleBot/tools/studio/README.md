@@ -577,6 +577,8 @@ added to the robot. Then press Connect again.
 
 ## Architecture
 
+*Added 2026-11-28.* Design records and test strategy: the [architecture decision records](docs/adr/README.md) explain why the main choices were made (one ROS participant, the streamed bridge, mapping through the delivery scripts, maps as PNG, the robot-owned menu checker, atomic writes, the simulated robot); [docs/TESTING.md](docs/TESTING.md) describes every test layer, how to run it and how to measure coverage; [docs/README.md](docs/README.md) lists all Studio guides; the whole TurtleBot system is in [../../ARCHITECTURE.md](../../ARCHITECTURE.md).
+
 ```
  Browser: 2.0 interface (web/v2, built from ui/) at "/"; 1.3 interface (web/index.html, app.js, style.css) at "/classic/"
     |  HTTP + JSON (POST), Server-Sent Events (GET /api/events)

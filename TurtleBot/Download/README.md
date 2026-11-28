@@ -30,7 +30,7 @@ You now have **TurtleBot Studio** on your desktop and in the Start menu. The Sta
 
 Next: [connect to the robot for the first time](../tools/studio/docs/FIRST-CONNECTION.md).
 
-Short on time in the lab? The [Studio quick guide for a lab demo](../docs/STUDIO-LAB-DEMO.md) goes from install to mapping and a delivery demo on one page ([interactive version](../docs/studio-lab-demo.html)).
+Short on time in the lab? The [Studio quick guide for a lab demo](../docs/getting-started/studio-lab-demo.md) goes from install to mapping and a delivery demo on one page ([interactive version](../docs/getting-started/studio-lab-demo.html)).
 
 ## macOS and Linux
 

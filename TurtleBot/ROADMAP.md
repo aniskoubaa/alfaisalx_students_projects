@@ -85,7 +85,7 @@ The robot joined a home Wi-Fi network (MAINTENANCE.md R16), the cable was unplug
 
 ## State on 2026-10-10
 
-No change was made to the robot after 2026-10-04 (details in [MAINTENANCE.md](MAINTENANCE.md#state-on-2026-10-10)). Times: 2026-10-04 entries are robot time (EDT), 2026-10-05 entries are laptop time (UTC+3). Evidence: [docs/network-and-connectivity.html](docs/network-and-connectivity.html) and the [network log](../General%20Tasks/TurtleBot4%20-%20network%20and%20connectivity.txt).
+No change was made to the robot after 2026-10-04 (details in [MAINTENANCE.md](MAINTENANCE.md#state-on-2026-10-10)). Times: 2026-10-04 entries are robot time (EDT), 2026-10-05 entries are laptop time (UTC+3). Evidence: [docs/explanations/network-and-connectivity.html](docs/explanations/network-and-connectivity.html) and the [network log](../General%20Tasks/TurtleBot4%20-%20network%20and%20connectivity.txt).
 
 | Item | State on 2026-10-10 | Tasks |
 |---|---|---|
@@ -95,7 +95,7 @@ No change was made to the robot after 2026-10-04 (details in [MAINTENANCE.md](MA
 | New example programs | Written 2026-10-04 and tested offline (101 logic checks, 38 simulated runs, rerun 2026-10-10). Not copied to the robot (R12 not applied) | [TB-23](#tb-23-first-robot-run-of-the-new-programs-and-the-connect-tool) (new) |
 | `health_check.py` | Written 2026-10-04, tested offline; first robot run pending | [TB-19](#tb-19-read-only-health-check-script) (now Prepared), TB-23 |
 | Connect tool | `TurtleBotConnect.exe` (Windows) and `connect-turtlebot.sh` (macOS, Linux) in [tools/connect/](tools/connect/README.md). Work in progress was committed on 2026-10-05 (7007f51; its exe is v1.0.0 and does not match its source); the final design is v1.1.0. Not yet used with the real robot | TB-23 |
-| Motion programs | No runs since 2026-10-04. On 2026-10-04 square, rotate, back-and-forth and triangle completed; the figure eight aborted on a 2.0 s odometry gap with the robot held still ([test results](docs/test-results.html)) | [TB-16](#tb-16-motion-program-test-campaign-and-demo-shapes), [TB-03](#tb-03-complete-the-movement-test-with-the-lidar) |
+| Motion programs | No runs since 2026-10-04. On 2026-10-04 square, rotate, back-and-forth and triangle completed; the figure eight aborted on a 2.0 s odometry gap with the robot held still ([test results](docs/reference/test-results.html)) | [TB-16](#tb-16-motion-program-test-campaign-and-demo-shapes), [TB-03](#tb-03-complete-the-movement-test-with-the-lidar) |
 | Way of working | An hour-long unattended test campaign run by an AI subagent on 2026-10-04 was blocked by the AI tool's safety guard. Motion tests are run supervised, in short batches, with a person next to the robot | TB-16 |
 | `/odom` pauses | Cause not known; `motion_shapes.py` holds still through them | [TB-15](#tb-15-characterise-the-odom-pauses-at-motion-start) |
 | Clock fix | Still installed as last seen on 2026-10-04; decision open. The clock was also correct at 15:42 on 2026-10-04 after a power-on | [TB-17](#tb-17-decide-whether-to-keep-or-remove-the-clock-fix), [TB-01](#tb-01-restore-create-3-base-communication) |
@@ -298,7 +298,7 @@ Previous order (2026-10-04): TB-17 (decide on the clock fix), which closes TB-01
 
 **Priority:** P0 | **Status:** **Done** 2026-10-04 | **Depends on:** None
 
-**Outcome (2026-10-04).** Root cause: a loose USB connection. The user reseated the lidar USB cable (same cable, same port) before booting the robot at about 11:44 robot time; no software change was needed and steps 2 to 11 below were not required. Evidence: `lsusb` shows `10c4:ea60` Silicon Labs CP210x; `/dev/RPLIDAR` points to `ttyUSB0`; the driver reported firmware 1.29, hardware revision 7, health 0; after undocking `/scan` ran at 7.75 Hz with 720 beams (519 valid, median 1.44 m); `clearance_check.py 0.6` printed "nearest in front 1.73 m" and exited 0. Full record: [MAINTENANCE.md](MAINTENANCE.md#incident-lidar-not-detected-2026-10-03-resolved-2026-10-04), [docs/lidar-diagnosis.html](docs/lidar-diagnosis.html), [docs/LIDAR-FINDINGS.md](docs/LIDAR-FINDINGS.md). Follow-up: [TB-18](#tb-18-lidar-cable-strain-relief-and-label). The steps are kept for the next time the lidar disappears.
+**Outcome (2026-10-04).** Root cause: a loose USB connection. The user reseated the lidar USB cable (same cable, same port) before booting the robot at about 11:44 robot time; no software change was needed and steps 2 to 11 below were not required. Evidence: `lsusb` shows `10c4:ea60` Silicon Labs CP210x; `/dev/RPLIDAR` points to `ttyUSB0`; the driver reported firmware 1.29, hardware revision 7, health 0; after undocking `/scan` ran at 7.75 Hz with 720 beams (519 valid, median 1.44 m); `clearance_check.py 0.6` printed "nearest in front 1.73 m" and exited 0. Full record: [MAINTENANCE.md](MAINTENANCE.md#incident-lidar-not-detected-2026-10-03-resolved-2026-10-04), [docs/findings/lidar-diagnosis.html](docs/findings/lidar-diagnosis.html), [docs/findings/lidar-findings.md](docs/findings/lidar-findings.md). Follow-up: [TB-18](#tb-18-lidar-cable-strain-relief-and-label). The steps are kept for the next time the lidar disappears.
 
 **Goal.** The Raspberry Pi detects the lidar on USB (`/dev/RPLIDAR` exists) and `/scan` publishes when the robot is off the dock.
 
@@ -412,7 +412,7 @@ Previous order (2026-10-04): TB-17 (decide on the clock fix), which closes TB-01
 
    Repeat on a second day.
 6. Reboot test: `sudo reboot`, wait 2 minutes, then repeat step 4 and a shorter step 5. The setting is stored in the profile, so it should survive.
-7. Record the change in [MAINTENANCE.md](MAINTENANCE.md) as R14 (location `/etc/NetworkManager/system-connections/Students.nmconnection`, verify and undo as below), set the incident and Known issues rows to the new status, and update the troubleshooting in HOW-TO-CONNECT.md and the [network page](docs/network-and-connectivity.html).
+7. Record the change in [MAINTENANCE.md](MAINTENANCE.md) as R14 (location `/etc/NetworkManager/system-connections/Students.nmconnection`, verify and undo as below), set the incident and Known issues rows to the new status, and update the troubleshooting in HOW-TO-CONNECT.md and the [network page](docs/explanations/network-and-connectivity.html).
 8. If the drops continue with power saving off: record that the first cause is ruled out, then look at the others listed in the incident record (mDNS on campus, roaming), at the NetworkManager log during a drop, and at the lab network option (TB-21).
 
 **Acceptance criteria.**
@@ -437,7 +437,7 @@ Previous order (2026-10-04): TB-17 (decide on the clock fix), which closes TB-01
 
 **Priority:** P1 | **Status:** In progress (2026-10-04) | **Depends on:** TB-01, TB-02
 
-**Progress 2026-10-04.** TB-02 is done and the base talks, so the preconditions hold in practice (TB-01 is formally open only for the clock decision). `motion_test.sh` itself has **not** been rerun. Forward driving with the lidar active has been shown by [examples/motion_shapes.py](examples/motion_shapes.py), which stops if anything is within 0.25 m and ±30 degrees in front while driving forward: square, rotate and back-and-forth completed. Undock succeeded at about 12:09. Still to do: one end-to-end `motion_test.sh` run, the blocked-path run (step 5) and recording the dock result. Results go to [docs/test-results.html](docs/test-results.html).
+**Progress 2026-10-04.** TB-02 is done and the base talks, so the preconditions hold in practice (TB-01 is formally open only for the clock decision). `motion_test.sh` itself has **not** been rerun. Forward driving with the lidar active has been shown by [examples/motion_shapes.py](examples/motion_shapes.py), which stops if anything is within 0.25 m and ±30 degrees in front while driving forward: square, rotate and back-and-forth completed. Undock succeeded at about 12:09. Still to do: one end-to-end `motion_test.sh` run, the blocked-path run (step 5) and recording the dock result. Results go to [docs/reference/test-results.html](docs/reference/test-results.html).
 
 **Goal.** Run `motion_test.sh` end to end: undock, lidar clearance check, 20 cm forward drive, 360° spin, dock.
 
@@ -862,7 +862,7 @@ Proposal (needs approval from the lab supervisor; nothing applied):
    ```
 
    Reboot and check that the robot comes back on the lab network by itself. Then switch the router off and check that the robot returns to `Students` (priority 10). **[to verify]**
-8. Record the profile and the reservation in MAINTENANCE.md as new change-register rows (R14 onward) with verify and undo, and update HOW-TO-CONNECT.md (which Wi-Fi to join, the fixed address), README.md and the [network page](docs/network-and-connectivity.html).
+8. Record the profile and the reservation in MAINTENANCE.md as new change-register rows (R14 onward) with verify and undo, and update HOW-TO-CONNECT.md (which Wi-Fi to join, the fixed address), README.md and the [network page](docs/explanations/network-and-connectivity.html).
 
 **Verify (option B).**
 
@@ -947,7 +947,7 @@ Part A, the programs:
 2. On the dock (read only): `python3 health_check.py`, and compare each row with a manual run of the [verification checklist](MAINTENANCE.md#verification-checklist) (TB-19). Then `python3 sensor_report.py --seconds 60` and `python3 lightring_status.py --seconds 30`.
 3. Off the dock (undock detached, see [examples/README.md](examples/README.md#undock-and-dock)): `python3 health_check.py` again (it checks `/scan` off the dock), `python3 lidar_snapshot.py`, then `scan_plot_html.py` on the laptop.
 4. Moving programs, one at a time, `--dry-run` first, then one real run detached with `--yes`: `motion_shapes.py figure_eight`, `more_shapes.py star`, `wall_approach.py`, `keep_distance.py --duration 30`, and a short `campaign.sh` list.
-5. Record the results in [docs/test-results.html](docs/test-results.html), the status lines in [examples/README.md](examples/README.md) and the step log.
+5. Record the results in [docs/reference/test-results.html](docs/reference/test-results.html), the status lines in [examples/README.md](examples/README.md) and the step log.
 
 Part B, the connect tool (v1.1.0):
 
@@ -961,7 +961,7 @@ Part B, the connect tool (v1.1.0):
 - [ ] R12 is recorded as applied in MAINTENANCE.md, with the date and file list.
 - [ ] `health_check.py` ran on and off the dock, and its rows match a manual checklist run (TB-19).
 - [ ] Each new program ran once on the robot, or its failure is recorded with the log.
-- [ ] One complete figure eight is recorded in docs/test-results.html.
+- [ ] One complete figure eight is recorded in docs/reference/test-results.html.
 - [ ] The connect tool connected to the real robot from Windows and from macOS or Linux; option 7 stopped a running motion program; the pinning refused a different device.
 - [ ] "Not yet tested on the robot" is removed from the status lines of the programs that ran.
 
@@ -1017,7 +1017,7 @@ Part B, the connect tool (v1.1.0):
 3. Read the `create3_republisher` configuration on the robot (which base topics it republishes and at what rate) and compare it with the TurtleBot 4 Jazzy defaults. Read only. **[to verify]**
 4. Read the iRobot Create 3 release notes and known issues for firmware `I.0.0.FastDDS` and for later versions. Do not update the firmware in this task.
 5. Only with the user's explicit OK: run the base with the Pi's ROS stopped and drive it by its own interface or a minimal client, to see whether the stall exists without the Pi's ROS load. This changes what runs on the robot; record it in MAINTENANCE.md with how to restore.
-6. Record gap length and frequency per condition in MAINTENANCE.md and [docs/test-results.html](docs/test-results.html). Choose a mitigation (for example a program-side start-up pause before checking `/odom`, or a changed republisher setting) and propose it here before applying it.
+6. Record gap length and frequency per condition in MAINTENANCE.md and [docs/reference/test-results.html](docs/reference/test-results.html). Choose a mitigation (for example a program-side start-up pause before checking `/odom`, or a changed republisher setting) and propose it here before applying it.
 
 **Acceptance criteria.**
 - [ ] The cause is found, or "unknown" with the conditions ruled out and the numbers.
@@ -1380,9 +1380,11 @@ Non-motion checks on the real robot, 2026-11-06: `delivery_mission.py --dry-run`
 
 **Progress 2026-11-14, deploy and menu file (UTC+3).** At 15:45 the delivery package was deployed to the robot (home Wi-Fi, `ubuntu@192.168.100.31`, Ethernet cable out) with `deploy.py deploy`: release `20261114T124530Z-7388942` (clean, git 7388942), manifest matches, the menu service was restarted by the deploy. The previous release was `20261106T145551Z-465d3ff`. The full offline suite `delivery/tools/verify_all.py` gave 19 passed, 0 failed before the deploy. New files outside the release folder: `~/robot_code/menu/menu.yaml` with one own entry `hello` (label `Hello demo`, `after: dock`, nothing hidden) and `~/robot_code/programs/hello.py` (20 s countdown, no ROS, never moves). `menu_config.py --check` on the robot: OK, order Go to food court, Dock, Hello demo, Undock, EStop, Wall Follow Left, Wall Follow Right, Power, Help; the same check with `--json --home /home/ubuntu` (as TurtleBot Studio 2.1 calls it) returned ok true, so the Studio page's checker is available on the robot. `menu.log` 15:45:44: menu file loaded (1 own entries, hidden: none). Menu start after a reboot is now verified: the service started by itself after the boots of 2026-11-12 and 2026-11-14 *(this supersedes the "menu start after a reboot" item in the untested lists above, dated 2026-11-14)*. The robot did not move. Record: [MAINTENANCE.md, R25](MAINTENANCE.md). **Still NOT verified, for a person at the robot:** select Hello demo on the screen and stop it with button 2; a deliberately broken menu file (expect the standard menu and a note on the screen); Studio 2.1 saving the menu file, and mapping and route changes from Studio, with a person next to the robot; the trip on campus.
 
-**Progress 2026-11-14, voice player (UTC+3).** The optional spoken-messages player is written: [delivery/voice/](delivery/voice/README.md), with phrase list, clip maker and a systemd user unit. It follows the mission's event file and plays clips with `aplay` or `ffplay`, no ROS, no extra participant (TB-25); `~/robot_code/voice/SILENT` mutes it. Test `tests/offline/test_delivery_voice.py`: 66 checks on Windows, 67 on Linux (real SIGTERM test, WSL Ubuntu), in CI and `verify_all.py`. Design: [docs/SPOKEN-MESSAGES.md](docs/SPOKEN-MESSAGES.md). **NOT verified:** never run on the robot; no USB speaker yet; Arabic lines need native review; the service is not installed (it would need a MAINTENANCE.md row first).
+**Progress 2026-11-14, voice player (UTC+3).** The optional spoken-messages player is written: [delivery/voice/](delivery/voice/README.md), with phrase list, clip maker and a systemd user unit. It follows the mission's event file and plays clips with `aplay` or `ffplay`, no ROS, no extra participant (TB-25); `~/robot_code/voice/SILENT` mutes it. Test `tests/offline/test_delivery_voice.py`: 66 checks on Windows, 67 on Linux (real SIGTERM test, WSL Ubuntu), in CI and `verify_all.py`. Design: [docs/reference/spoken-messages.md](docs/reference/spoken-messages.md). **NOT verified:** never run on the robot; no USB speaker yet; Arabic lines need native review; the service is not installed (it would need a MAINTENANCE.md row first).
 
 **Progress 2026-11-14, Studio 2.1 test (UTC+3).** From 22:22 to 22:32, with the robot docked, Studio 2.1 (from source, through its own API) mapped twice on the real robot and saved, stopped, previewed, downloaded (zip), renamed and deleted a test map; it also read the routes and the trip status, set the current route to the same route `home`, and checked and saved the menu file with the same text (`menu.yaml.bak` kept). Starting mapping stops the OAK-D camera container until the next reboot, as documented for `start_stack.sh`. Not verified: mapping while driving, a changed menu on the robot's screen, the route upload over ssh. Details in TB-27 and the [Studio README](tools/studio/README.md#tested-on-the-robot-2026-11-14-21).
+
+**Progress 2026-11-26, first map made while driving, from Studio (UTC+3, about 11:30 to 11:45, a campus classroom, robot on the Ethernet cable to the laptop, Ibrahim next to it).** Studio 2.1 (from source) started mapping from the Maps screen (about 15 s to "Mapping"), then the robot was driven through Studio's own driving interface by a supervised script: undock, turns on the spot with net zero rotation (+170, -340, +170 degrees, so the cable could not wrap), 0.5 m forward, a +-120 degree sweep. The live map, the robot pose and the lidar overlay showed in Studio as it grew; the map was saved from the interface as `classroom_2026-11-26` (6.45 x 7.95 m, all four files, about 25 s). Findings: (1) driving backwards through teleop stops after about 0.12 m: the Create 3 limits reversing (no rear cliff sensors), so plans must turn and drive forwards instead; (2) during the dock action the Ethernet cable came out at the laptop and Studio lost the robot: **the robot was left with mapping (slam_toolbox) probably still running and its dock result unknown**. Next time: check it is docked, then press **Stop mapping** in Studio (it finds the running mapping by itself) or run `stop_stack.sh`. Use Wi-Fi for driving: on that day the laptop on campus Wi-Fi could not reach the robot's Wi-Fi address (10.87.11.67), which is why the cable was used. Not verified: whether the robot docked.
 
 **Estimated effort:** 2 to 3 weeks part-time.
 
@@ -1595,7 +1597,7 @@ The factory image from the official manual remains the last-resort restore, but 
 
 **Priority:** P2 | **Status:** In progress (2026-10-03; docs updated 2026-10-10; hands-on and lidar guides added 2026-10-10) | **Depends on:** None
 
-**Update 2026-10-10 (later).** Added guides written for any lab member: [docs/do-it-yourself.html](docs/do-it-yourself.html) ([Markdown](docs/DO-IT-YOURSELF.md)), [docs/lidar-guide.html](docs/lidar-guide.html) ([Markdown](docs/LIDAR-GUIDE.md)), and the interactive [motion simulator](docs/motion-simulator.html) and [docking explainer](docs/docking-explained.html). They are linked from README.md, HOW-TO-CONNECT.md and the docs index.
+**Update 2026-10-10 (later).** Added guides written for any lab member: [docs/getting-started/do-it-yourself.html](docs/getting-started/do-it-yourself.html) ([Markdown](docs/getting-started/do-it-yourself.md)), [docs/guides/lidar-guide.html](docs/guides/lidar-guide.html) ([Markdown](docs/guides/lidar-guide.md)), and the interactive [motion simulator](docs/explanations/motion-simulator.html) and [docking explainer](docs/explanations/docking-explained.html). They are linked from README.md, HOW-TO-CONNECT.md and the docs index.
 
 **Goal.** Documentation that any lab member can follow on any laptop, with the configuration and change history kept separately.
 
@@ -1665,7 +1667,7 @@ The factory image from the official manual remains the last-resort restore, but 
 1. Log `/odom` arrival time and header stamp during repeated short moves (start, stop, turn), with and without the camera running, and note the Pi load (`uptime`).
 2. Check whether other base topics (for example `/imu`, `/wheel_vels`) pause at the same moments. **[to verify]** topic names on this robot.
 3. Look for known reports in the Create 3 and TurtleBot 4 issue trackers and release notes.
-4. Record gap length, frequency and conditions in [docs/test-results.html](docs/test-results.html) and MAINTENANCE.md.
+4. Record gap length, frequency and conditions in [docs/reference/test-results.html](docs/reference/test-results.html) and MAINTENANCE.md.
 5. Keep the program-side handling (hold at 0.3 s, abort at 2.0 s) unless the data shows a better threshold.
 
 **Acceptance criteria.**
@@ -1695,7 +1697,7 @@ The factory image from the official manual remains the last-resort restore, but 
 
 1. Run each shape at least three times, detached, from the same taped start mark. Record duration, odometry end error and the measured floor error.
 2. Exercise each safety stop once: obstacle in front, `~/STOP`, Ctrl+C, `pkill -INT`, lift (wheel drop), and a dry run on the dock (must refuse a real run).
-3. Fill the runs table in [docs/test-results.html](docs/test-results.html) and update the status block in [examples/README.md](examples/README.md).
+3. Fill the runs table in [docs/reference/test-results.html](docs/reference/test-results.html) and update the status block in [examples/README.md](examples/README.md).
 4. Pick one or two shapes as the standard lab demo and write the exact command in HOW-TO-CONNECT.md.
 
 **Acceptance criteria.**
@@ -1742,7 +1744,7 @@ The factory image from the official manual remains the last-resort restore, but 
 
 **Priority:** P3 | **Status:** Open (command-line driving documented 2026-10-10; keyboard teleop not yet) | **Depends on:** TB-01
 
-**Update 2026-10-10.** Step 8 of [docs/do-it-yourself.html](docs/do-it-yourself.html) now documents driving by hand from the command line (`ros2 topic pub` with `TwistStamped`, and the `drive_distance` and `rotate_angle` actions, with a speed-capped command builder). Those commands are not yet tested on this robot. Keyboard teleop (this task) is still to do.
+**Update 2026-10-10.** Step 8 of [docs/getting-started/do-it-yourself.html](docs/getting-started/do-it-yourself.html) now documents driving by hand from the command line (`ros2 topic pub` with `TwistStamped`, and the `drive_distance` and `rotate_angle` actions, with a speed-capped command builder). Those commands are not yet tested on this robot. Keyboard teleop (this task) is still to do.
 
 **Note 2026-10-24.** Keyboard teleoperation could become a tab in [TurtleBot Studio](tools/studio/README.md) (TB-27), with its E-STOP always within reach. Not planned yet.
 
@@ -1784,7 +1786,7 @@ The factory image from the official manual remains the last-resort restore, but 
 
 **Priority:** P3 | **Status:** In progress (do-it-yourself guide written 2026-10-10; not yet tried by a new member) | **Depends on:** TB-05, TB-11
 
-**Update 2026-10-10.** [docs/do-it-yourself.html](docs/do-it-yourself.html) ([Markdown](docs/DO-IT-YOURSELF.md)) covers most of the suggested items as eleven steps with progress checkboxes, and README.md's quick start links to it. Still open: access to the password manager entries and the rule for recording changes (step 1 items), and step 2 (a new member follows it and gives feedback).
+**Update 2026-10-10.** [docs/getting-started/do-it-yourself.html](docs/getting-started/do-it-yourself.html) ([Markdown](docs/getting-started/do-it-yourself.md)) covers most of the suggested items as eleven steps with progress checkboxes, and README.md's quick start links to it. Still open: access to the password manager entries and the rule for recording changes (step 1 items), and step 2 (a new member follows it and gives feedback).
 
 **Goal.** A one-page checklist that takes a new lab member from nothing to running their first program safely.
 
@@ -1851,10 +1853,10 @@ A change to the robot, a laptop setup used by the lab, or a shared account is do
 | [2026-10-24 log](../General%20Tasks/TurtleBot4%20-%20Ethernet%2C%20Wi-Fi%20power%20save%20and%20odometry%20timing.txt) | Ethernet access, the Wi-Fi power-save change (R14), the supervised motion test with the timing recorder, including what failed |
 | [Network log](../General%20Tasks/TurtleBot4%20-%20network%20and%20connectivity.txt) | Wi-Fi drops, lab router and repository incident, 2026-10-04 evening to 2026-10-10, including what failed |
 | [docs/](docs/index.html) | Illustrated pages: lidar diagnosis, motion program design, test results, network and connectivity |
-| [docs/network-and-connectivity.html](docs/network-and-connectivity.html) | The Wi-Fi drops, likely causes, fix and workarounds, the lab router and the proposal (TB-20 to TB-22). Markdown version: [docs/NETWORK-FINDINGS.md](docs/NETWORK-FINDINGS.md) |
+| [docs/explanations/network-and-connectivity.html](docs/explanations/network-and-connectivity.html) | The Wi-Fi drops, likely causes, fix and workarounds, the lab router and the proposal (TB-20 to TB-22). Markdown version: [docs/findings/network-findings.md](docs/findings/network-findings.md) |
 | [examples/README.md](examples/README.md) | How to run the example programs safely, including `motion_shapes.py` |
 | [tests/](tests/) | Test campaign for the example programs |
 | [setup/](setup/) | Scripts used to configure the robot, including `undo-clock.sh` |
 | [examples/](examples/) | Example programs and `motion_test.sh` |
-| [turtlebot4-field-guide.html](turtlebot4-field-guide.html) | Background on the platform, ROS 2 concepts and commands |
+| [docs/getting-started/field-guide.html](docs/getting-started/field-guide.html) | Background on the platform, ROS 2 concepts and commands |
 | [Official TurtleBot 4 user manual](https://turtlebot.github.io/turtlebot4-user-manual/) | Vendor documentation, including powering off and setup |

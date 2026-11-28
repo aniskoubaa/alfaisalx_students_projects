@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio Lab Demo</title>
+<meta name="description" content="Quick guide to TurtleBot Studio 2.1 with the lab's TurtleBot 4: install, connect over campus Wi-Fi, tour of the screens, map a room, put a route on the robot and run the front-panel delivery demo.">
+<style>
+  /* Shared style for TurtleBot/docs pages. Tokens match docs/getting-started/field-guide.html. */
+  :root{
+    --bg:#EEF2F4; --panel:#FFFFFF; --panel-alt:#E3EAED; --text:#16232F; --text-dim:#54636F;
+    --border:#C6D2D7; --accent:#0C8C82; --accent-strong:#075F58; --warn:#B85B26; --code-bg:#DDE6E9;
+    --ok:#2E7D32; --bad:#B3261E; --ok-bg:#E3F1E4; --bad-bg:#F8E4E2; --warn-bg:#F7E9DE;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+      --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+      --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1316; --panel:#111C20; --panel-alt:#16232A; --text:#E4EDEE; --text-dim:#8FA3A9;
+    --border:#233238; --accent:#3BDCC9; --accent-strong:#7CF0E1; --warn:#E2985D; --code-bg:#0E191C;
+    --ok:#7CCF83; --bad:#F2867C; --ok-bg:#12261A; --bad-bg:#2A1515; --warn-bg:#2A1E14;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text);
+    font-family:"IBM Plex Serif", Georgia, "Times New Roman", serif; line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.label-font,.eyebrow,th,.chip,.tile .k,figcaption,nav.toc a{
+    font-family:"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;}
+  code,pre,.mono{font-family:"IBM Plex Mono", Consolas, "Courier New", monospace;}
+  code{background:var(--code-bg); padding:1px 5px; border-radius:3px; font-size:0.88em; overflow-wrap:anywhere;}
+  pre{background:var(--code-bg); padding:12px 14px; border-radius:4px; overflow-x:auto; font-size:0.84rem; line-height:1.5; margin:0 0 16px;}
+  pre code{background:none; padding:0;}
+  h1,h2,h3{text-wrap:balance; margin:0;}
+  a{color:var(--accent-strong);}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+
+  .page{display:grid; grid-template-columns:220px minmax(0,1fr); gap:0 44px; max-width:1220px; margin:0 auto; padding:0 28px 80px;}
+  nav.toc{position:sticky; top:0; align-self:start; padding-top:48px; max-height:100vh; overflow-y:auto;}
+  nav.toc .eyebrow{color:var(--text-dim); font-size:0.7rem;}
+  nav.toc ul{list-style:none; margin:0 0 24px; padding:0; display:flex; flex-direction:column; gap:2px;}
+  nav.toc a{display:block; padding:6px 10px; border-radius:3px; color:var(--text-dim); text-decoration:none; font-size:0.86rem; font-weight:500;}
+  nav.toc a:hover{color:var(--text); background:var(--panel-alt);}
+  main{min-width:0; padding-top:48px;}
+  header.hero{margin-bottom:36px;}
+  .eyebrow{font-size:0.72rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-strong); margin:0 0 12px;}
+  h1.title{font-size:clamp(2rem,5vw,3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+  p.dek{font-size:1.08rem; color:var(--text-dim); max-width:66ch; margin:0 0 20px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; font-size:0.84rem; color:var(--text-dim);}
+  .meta b{color:var(--text); font-weight:600;}
+
+  section{max-width:860px; padding:40px 0; border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none; padding-top:0;}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .section-tag{font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.72rem; color:var(--text-dim); white-space:nowrap;}
+  h2{font-size:1.5rem; font-weight:600;}
+  h3{font-size:1.05rem; font-weight:600; margin:24px 0 8px;}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin:3px 0;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .table-wrap{overflow-x:auto; margin:0 0 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  table{width:100%; border-collapse:collapse; font-size:0.9rem;}
+  th,td{text-align:left; padding:9px 12px; border-top:1px solid var(--border); vertical-align:top;}
+  thead th{border-top:none; font-size:0.76rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-dim); background:var(--panel-alt); white-space:nowrap;}
+  tbody th{font-weight:600; color:var(--text-dim); white-space:nowrap;}
+  td.notes{min-width:230px;}
+  td.nowrap{white-space:nowrap;}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+
+  .chip{display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.74rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap;}
+  .chip.ok{color:var(--ok); background:var(--ok-bg);}
+  .chip.bad{color:var(--bad); background:var(--bad-bg);}
+  .chip.warn{color:var(--warn); background:var(--warn-bg);}
+  .chip.info{color:var(--accent-strong); background:var(--panel-alt);}
+  .chip.todo{color:var(--text-dim); background:transparent; border-style:dashed;}
+
+  .note{padding:12px 16px; background:var(--panel-alt); border-left:3px solid var(--warn); border-radius:0 4px 4px 0; font-size:0.92rem; margin:18px 0;}
+  .note b{color:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .placeholder{border:2px dashed var(--warn); border-radius:6px; padding:14px 16px; margin:16px 0; background:var(--warn-bg);}
+  .placeholder > b:first-child{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; color:var(--warn); text-transform:uppercase; letter-spacing:0.06em; font-size:0.78rem; display:block; margin-bottom:4px;}
+  tr.ph td{color:var(--text-dim); font-style:italic; background:repeating-linear-gradient(135deg, transparent 0 8px, var(--warn-bg) 8px 10px);}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin:0 0 16px;}
+  .card{padding:14px 16px; background:var(--panel); border:1px solid var(--border); border-radius:6px; break-inside:avoid;}
+  .card h3{margin:0 0 8px; font-size:0.98rem; display:flex; justify-content:space-between; gap:8px; align-items:baseline;}
+  .card p{margin:0 0 6px; font-size:0.9rem; color:var(--text-dim);}
+  .card dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:0.86rem;}
+  .card dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .card dd{margin:0; font-family:"IBM Plex Mono", Consolas, monospace; font-size:0.82rem; overflow-wrap:anywhere;}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 0 18px;}
+  .tile{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:12px 14px;}
+  .tile .k{font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);}
+  .tile .v{font-size:1.6rem; font-weight:600; font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; line-height:1.2;}
+  .tile .s{font-size:0.8rem; color:var(--text-dim);}
+
+  /* step flow */
+  ol.flow{list-style:none; padding:0; margin:0 0 16px; counter-reset:f;}
+  ol.flow > li{counter-increment:f; position:relative; padding:0 0 22px 52px; margin:0;}
+  ol.flow > li::before{content:counter(f); position:absolute; left:0; top:0; width:34px; height:34px; border-radius:50%; background:var(--panel); border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono", Consolas, monospace; font-weight:600;}
+  ol.flow > li::after{content:""; position:absolute; left:16px; top:36px; bottom:2px; width:2px; background:var(--border);}
+  ol.flow > li:last-child::after{display:none;}
+  ol.flow h3{margin:4px 0 6px;}
+
+  .verdict{border:2px solid var(--ok); background:var(--ok-bg); border-radius:8px; padding:16px 20px; margin:0 0 24px;}
+  .verdict h2{color:var(--ok); font-size:1.25rem; margin-bottom:6px;}
+  .verdict p:last-child{margin-bottom:0;}
+
+  .layers{display:flex; flex-direction:column; gap:6px; margin:0 0 16px;}
+  .layer{display:grid; grid-template-columns:34px minmax(0,1.3fr) minmax(0,1fr) 110px; gap:12px; align-items:center; padding:9px 12px; background:var(--panel); border:1px solid var(--border); border-left:5px solid var(--accent); border-radius:4px; font-size:0.88rem;}
+  .layer .n{font-family:"IBM Plex Mono", Consolas, monospace; color:var(--text-dim);}
+  .layer b{font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif;}
+  .layer .when{color:var(--text-dim); font-size:0.84rem;}
+  .layer.pre{border-left-color:var(--text-dim);}
+  .layer.run{border-left-color:var(--warn);}
+  .layer.last{border-left-color:var(--bad);}
+
+  figure{margin:0 0 18px;}
+  figure.diagram{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px;}
+  figure svg{width:100%; height:auto; display:block;}
+  figcaption{font-size:0.82rem; color:var(--text-dim); margin-top:10px; max-width:70ch;}
+  figure.narrow svg{max-width:560px; margin:0 auto;}
+  td:first-child code{white-space:nowrap;}
+  .shapes{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .shapes figure{margin:0;}
+
+  /* SVG classes (themeable) */
+  .sv-line{stroke:var(--text-dim); fill:none; stroke-width:1.5;}
+  .sv-thin{stroke:var(--border); fill:none; stroke-width:1;}
+  .sv-path{stroke:var(--accent); fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .sv-accent{stroke:var(--accent-strong); fill:none; stroke-width:2;}
+  .sv-warn{stroke:var(--warn); fill:none; stroke-width:2;}
+  .sv-bad{stroke:var(--bad); fill:none; stroke-width:2;}
+  .sv-dash{stroke-dasharray:5 4;}
+  .sv-fill-panel{fill:var(--panel); stroke:var(--text-dim); stroke-width:1.5;}
+  .sv-fill-alt{fill:var(--panel-alt); stroke:var(--border); stroke-width:1;}
+  .sv-fill-accent{fill:var(--accent); opacity:0.18; stroke:var(--accent); stroke-width:1.5;}
+  .sv-fill-warn{fill:var(--warn); opacity:0.16;}
+  .sv-fill-bad{fill:var(--bad); opacity:0.14;}
+  .sv-dot{fill:var(--accent-strong);}
+  .sv-dot-warn{fill:var(--warn);}
+  .sv-text{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:13px;}
+  .sv-small{fill:var(--text-dim); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:11px;}
+  .sv-mono{fill:var(--text-dim); font-family:"IBM Plex Mono", Consolas, monospace; font-size:10.5px;}
+  .sv-title{fill:var(--text); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:14px; font-weight:600;}
+  .sv-acc-text{fill:var(--accent-strong); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-warn-text{fill:var(--warn); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .sv-bad-text{fill:var(--bad); font-family:"IBM Plex Sans Condensed", "Arial Narrow", sans-serif; font-size:12px; font-weight:600;}
+  .arrowhead{fill:var(--text-dim);}
+  .arrowhead-acc{fill:var(--accent-strong);}
+
+  footer{max-width:860px; margin-top:30px; padding-top:18px; border-top:1px solid var(--border); font-size:0.84rem; color:var(--text-dim);}
+
+  @media (max-width:900px){
+    .page{grid-template-columns:minmax(0,1fr); padding:0 16px 60px;}
+    nav.toc{min-width:0;}
+    nav.toc{position:sticky; top:0; z-index:5; padding-top:0; background:var(--bg); max-height:none; border-bottom:1px solid var(--border);}
+    nav.toc .eyebrow{display:none;}
+    nav.toc ul{flex-direction:row; overflow-x:auto; gap:4px; padding:12px 0; margin:0;}
+    nav.toc a{white-space:nowrap;}
+    main{padding-top:20px;}
+    .layer{grid-template-columns:28px 1fr; }
+    .layer .when,.layer .act{grid-column:2;}
+  }
+  @media print{
+    :root{--bg:#fff; --panel:#fff; --panel-alt:#f2f2f2; --text:#000; --text-dim:#333; --border:#bbb; --code-bg:#f2f2f2;}
+    body{background:#fff; font-size:10.5pt;}
+    nav.toc{display:none;}
+    .page{display:block; padding:0; max-width:none;}
+    main{padding-top:0;}
+    section{padding:18px 0; max-width:none; break-inside:auto;}
+    .card,.tile,figure,.layer,tr,.verdict,.placeholder{break-inside:avoid;}
+    h2,h3{break-after:avoid;}
+    a{color:#000;}
+    a[href^="http"]::after{content:" (" attr(href) ")"; font-size:0.8em;}
+    pre{white-space:pre-wrap;}
+  }
+
+  /* page: studio-lab-demo */
+  .btn:focus-visible,input:focus-visible,summary:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .btn{font:inherit; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.84rem; font-weight:600; padding:5px 12px; border:1px solid var(--border); border-radius:5px; background:var(--panel); color:var(--accent-strong); cursor:pointer; min-height:36px;}
+  .btn:hover{background:var(--panel-alt);}
+  .toolbar{display:flex; flex-wrap:wrap; gap:12px 22px; align-items:center; padding:12px 16px; margin:0 0 22px; background:var(--panel); border:1px solid var(--border); border-radius:6px;}
+  .bar{flex:1 1 140px; min-width:100px; height:8px; border-radius:4px; background:var(--panel-alt); border:1px solid var(--border); overflow:hidden;}
+  .bar i{display:block; height:100%; width:0; background:var(--accent); transition:width .25s;}
+  @media (prefers-reduced-motion: reduce){ .bar i{transition:none;} }
+  .rules{margin:0 0 22px; padding:14px 18px; border:2px solid var(--warn); background:var(--warn-bg); border-radius:8px;}
+  .rules h2{font-size:1.1rem; color:var(--warn); margin-bottom:6px;}
+  .rules ul{margin:0; padding-left:20px;}
+  details.step{background:var(--panel); border:1px solid var(--border); border-radius:6px; margin:0 0 12px;}
+  details.step > summary{list-style:none; cursor:pointer; display:flex; align-items:center; gap:12px; padding:10px 14px; min-height:52px;}
+  details.step > summary::-webkit-details-marker{display:none;}
+  details.step > summary .num{flex:0 0 34px; width:34px; height:34px; border-radius:50%; border:2px solid var(--accent); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono",Consolas,monospace; font-weight:600;}
+  details.step.done > summary .num{background:var(--accent); color:#fff;}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) details.step.done > summary .num{color:#06201D;} }
+  details.step > summary h3{margin:0; flex:1 1 auto; font-size:1.05rem;}
+  details.step > summary .chev{flex:0 0 auto; color:var(--text-dim); transition:transform .15s;}
+  details.step[open] > summary .chev{transform:rotate(90deg);}
+  @media (prefers-reduced-motion: reduce){ details.step > summary .chev{transition:none;} }
+  .donebox{display:inline-flex; align-items:center; gap:6px; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.82rem; color:var(--text-dim); white-space:nowrap; flex:0 0 auto; cursor:pointer; min-height:36px;}
+  .donebox input,.chk input{width:20px; height:20px; accent-color:var(--accent);}
+  .stepbody{padding:4px 18px 16px; border-top:1px solid var(--border);}
+  .stepbody h4{font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-size:0.78rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent-strong); margin:16px 0 6px;}
+  .chk{display:flex; gap:10px; align-items:flex-start; padding:8px 12px; margin:0 0 6px; background:var(--panel); border:1px solid var(--border); border-radius:5px; cursor:pointer;}
+  .chk input{flex:0 0 20px; margin-top:3px;}
+  .chk.on{background:var(--ok-bg); border-color:var(--ok);}
+  .tour{display:grid; grid-template-columns:200px minmax(0,1fr); gap:16px; align-items:start;}
+  .tour > *{min-width:0;}
+  .tabs{display:flex; flex-direction:column; gap:4px;}
+  .tabs button{font:inherit; font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif; font-weight:600; font-size:0.92rem; text-align:left; padding:8px 12px; border:1px solid var(--border); border-radius:5px; background:var(--panel); color:var(--text-dim); cursor:pointer; min-height:40px;}
+  .tabs button[aria-pressed="true"]{background:var(--accent); color:#fff; border-color:var(--accent);}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .tabs button[aria-pressed="true"]{color:#06201D;} }
+  .tourpanel{background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:14px 16px;}
+  .tourpanel h3{margin:0 0 8px;}
+  .tourpanel img{max-width:100%; height:auto; border:1px solid var(--border); border-radius:4px; display:block; margin:10px 0 4px;}
+  .tourpanel dl{margin:0 0 8px; display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:0.92rem;}
+  .tourpanel dt{color:var(--text-dim); font-family:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;}
+  .tourpanel dd{margin:0;}
+  @media (max-width:760px){
+    .tour{grid-template-columns:minmax(0,1fr);}
+    .tabs{flex-direction:row; flex-wrap:wrap;}
+  }
+  .finder input[type=search]{font:inherit; width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:5px; background:var(--code-bg); color:var(--text); min-height:40px;}
+  .symptom{margin:10px 0 0; padding:12px 16px; background:var(--panel); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:0 6px 6px 0;}
+  .symptom h3{margin:0 0 4px; font-size:1rem;}
+  .symptom p{margin:0;}
+  .symptom[hidden]{display:none;}
+  .vgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px;}
+  .vgrid .card h3{display:block;}
+  .vgrid ul{margin:0; padding-left:18px; font-size:0.9rem;}
+  .btnrow{display:flex; gap:8px; flex-wrap:wrap;}
+  table.keys td:first-child,table.keys th:first-child{white-space:nowrap;}
+  @media (max-width:520px){ details.step > summary{flex-wrap:wrap;} .stepbody{padding:4px 12px 14px;} }
+  @media print{
+    .toolbar .btn,.btnrow,.finder input,.tabs{display:none;}
+    .tour{display:block;}
+    .symptom{break-inside:avoid;}
+    #tourall{display:block !important;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="eyebrow">Contents</p>
+  <ul>
+    <li><a href="#safety">Safety</a></li>
+    <li><a href="#steps">Steps 1 to 8</a></li>
+    <li><a href="#tour">Screen tour</a></li>
+    <li><a href="#before">Before it moves</a></li>
+    <li><a href="#trouble">Troubleshooting</a></li>
+    <li><a href="#verified">Verified or not</a></li>
+  </ul>
+  <p class="eyebrow">Other pages</p>
+  <ul>
+    <li><a href="../index.html">Docs index</a></li>
+    <li><a href="studio-lab-demo.md">Markdown version</a></li>
+    <li><a href="../../Download/README.md">Download Studio</a></li>
+    <li><a href="../../tools/studio/docs/MAPS-AND-ROUTES.md">Maps and routes</a></li>
+    <li><a href="../../delivery/README.md">Delivery README</a></li>
+    <li><a href="../../HOW-TO-CONNECT.md">How to connect</a></li>
+  </ul>
+</nav>
+<main>
+<p class="backlink" style="margin:0 0 14px; font-size:0.88rem; font-family:'IBM Plex Sans Condensed','Arial Narrow','Segoe UI',sans-serif;"><a href="../index.html">&larr; All guides</a></p>
+
+<header class="hero">
+  <p class="eyebrow">TurtleBot 4 &middot; Studio 2.1</p>
+  <h1 class="title">Studio lab demo</h1>
+  <p class="dek">From install to the front-panel delivery demo in eight steps: install, connect over campus Wi-Fi, map a room, plan a route, put it on the robot, start navigation and run the trip. Each step says what was verified on the real robot and what was not.</p>
+  <div class="meta"><span><b>Robot</b> TurtleBot 4, ROS 2 Jazzy</span><span><b>Studio</b> 2.1</span><span><b>Facts as of</b> 2026-11-25</span></div>
+</header>
+
+<section id="safety">
+  <div class="rules">
+    <h2>Safety first</h2>
+    <ul>
+      <li><b>Unplug the Ethernet cable before the robot moves.</b> It must never drive with the cable plugged in.</li>
+      <li>A person stands next to the robot while it moves, with <b>E-STOP</b> in reach (top right of every Studio screen; <kbd>Esc</kbd> or <kbd>Space</kbd> too, not while typing in a box).</li>
+      <li>Keep about 1 m of clear floor. The lidar does not see glass: stop the robot before glass doors and glass rooms.</li>
+      <li>Battery above 40 % for a trip. Studio refuses to drive below 10 %.</li>
+    </ul>
+  </div>
+  <p class="note info"><b>Not verified yet.</b> Mapping while driving, route upload, and a trip in the lab or on campus have not been done on the real robot. Stay beside the robot for all of them.</p>
+</section>
+
+<section id="steps">
+  <div class="section-head"><span class="section-tag">01</span><h2>Steps</h2></div>
+  <div class="toolbar">
+    <span id="progtext" role="status" aria-live="polite">0 of 8 steps done</span>
+    <div class="bar" aria-hidden="true"><i id="progbar"></i></div>
+    <button class="btn" type="button" id="resetall">Reset checklist</button>
+  </div>
+
+  <details class="step" data-step="1" open><summary><span class="num">1</span><h3>Install Studio</h3><label class="donebox"><input type="checkbox" aria-label="Step 1 done"> done</label><span class="chev" aria-hidden="true">&#9656;</span></summary>
+  <div class="stepbody">
+    <ol>
+      <li>Download: <a href="../../Download/README.md">Download page</a>, or directly <a href="https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.1.1.exe">TurtleBotStudio-Setup-2.1.1.exe</a> (Windows 10 and 11, 8.9 MB, no administrator rights).</li>
+      <li>Open the file. If Windows says "Windows protected your PC", click <b>More info</b>, then <b>Run anyway</b> (the app is not signed by a company).</li>
+      <li>Click <b>Next</b>, <b>Install</b>, <b>Finish</b>. You get <b>TurtleBot Studio</b> and <b>TurtleBot Studio (simulated robot)</b>, a practice copy where nothing real moves.</li>
+    </ol>
+    <p>macOS and Linux: <a href="../../tools/studio/INSTALL.md#option-b-run-it-with-python">INSTALL.md, option B</a>. <span class="chip untested">Not verified</span> the 2.1 installer on a clean computer.</p>
+  </div></details>
+
+  <details class="step" data-step="2"><summary><span class="num">2</span><h3>Connect over campus Wi-Fi</h3><label class="donebox"><input type="checkbox" aria-label="Step 2 done"> done</label><span class="chev" aria-hidden="true">&#9656;</span></summary>
+  <div class="stepbody">
+    <ol>
+      <li>Switch the robot on. It joins the campus Wi-Fi <b>Students</b> by itself and shows its address on its screen (starts with <code>10.87.</code>). The address can change: read it each time. Example 2026-11-25: <code>10.87.11.67</code>.</li>
+      <li>Put your laptop on the same network.</li>
+      <li>Start Studio. On <b>Overview</b> press <b>Discover</b>, pick the robot, press <b>Connect</b>. If it is not listed, type the address from the robot's screen. <code>turtlebot4.local</code> sometimes fails on campus. See <a href="../../tools/studio/docs/FIND-THE-ROBOT.md">Find the robot</a>.</li>
+      <li>First time on a computer: run the setup wizard once (<a href="../../tools/studio/docs/FIRST-CONNECTION.md">First connection</a>). It uses the Ethernet cable and asks for the robot's password in a terminal window; see <a href="../../HOW-TO-CONNECT.md">How to connect</a> or ask the lab maintainer. Then unplug the cable.</li>
+    </ol>
+    <p><span class="chip ok">Verified 2026-11-25</span> robot joined Students at boot; a laptop on Students reached it with no cable. <span class="chip untested">Not verified</span> the one-time key setup over Wi-Fi without the cable.</p>
+  </div></details>
+
+  <details class="step" data-step="3"><summary><span class="num">3</span><h3>Look around Studio</h3><label class="donebox"><input type="checkbox" aria-label="Step 3 done"> done</label><span class="chev" aria-hidden="true">&#9656;</span></summary>
+  <div class="stepbody">
+    <p>Spend two minutes on the <a href="#tour">screen tour</a> below. You need Overview, Maps, Routes and Tools.</p>
+  </div></details>
+
+  <details class="step" data-step="4"><summary><span class="num">4</span><h3>Map a room</h3><label class="donebox"><input type="checkbox" aria-label="Step 4 done"> done</label><span class="chev" aria-hidden="true">&#9656;</span></summary>
+  <div class="stepbody">
+    <p>Needs: robot docked, no navigation program running, delivery package on the robot (it is). Detail: <a href="../../tools/studio/docs/MAPS-AND-ROUTES.md#map-a-place-from-studio">Maps and routes</a>.</p>
+    <ol>
+      <li><b>Maps</b>, press <b>Start mapping</b>. Wait for <b>Mapping</b> (6 to 10 s on 2026-11-14).</li>
+      <li><b>Overview</b>, press <b>Undock</b>, confirm. Check the robot is clear of the dock. Back to <b>Maps</b>.</li>
+      <li>Drive slowly (drive panel armed, or the controller). Cable unplugged, person beside the robot.</li>
+      <li>Close the loop: drive back along the same wall to where you started.</li>
+      <li><b>Save map</b>, type a name (letters, digits, hyphens, underscores), confirm (about 18 s).</li>
+      <li>Dock the robot (<b>Overview</b>, <b>Dock</b>).</li>
+      <li><b>Stop mapping</b> and answer the question.</li>
+    </ol>
+    <p>Starting mapping stops the robot's camera container until the next reboot. Check the map scale against one measured distance: if it is more than about 3 % short, map again.</p>
+    <p><span class="chip ok">Verified 2026-11-14</span> start, live map, save, stop, preview, download, rename, delete, with the robot docked. <span class="chip untested">Not verified</span> mapping while driving.</p>
+  </div></details>
+
+  <details class="step" data-step="5"><summary><span class="num">5</span><h3>Plan a route on your computer</h3><label class="donebox"><input type="checkbox" aria-label="Step 5 done"> done</label><span class="chev" aria-hidden="true">&#9656;</span></summary>
+  <div class="stepbody">
+    <p>Studio does not plan routes. Detail: <a href="../../delivery/README.md#8-plan-the-route-on-your-computer">delivery README section 8</a>.</p>
+    <ol>
+      <li>In <b>Maps</b> download your saved map (a zip) and unzip it.</li>
+      <li>Python 3.10 or newer and PyYAML: <code>python -m pip install pyyaml</code> (<code>python3</code> on macOS and Linux).</li>
+      <li>From the repository root: <pre><code>python TurtleBot/delivery/tools/plan_route.py --map &lt;your-map&gt;.yaml --info</code></pre></li>
+      <li>Copy <a href="../../delivery/tools/route_spec.example.yaml">route_spec.example.yaml</a>, replace the made-up numbers (dock pose, goal, glass keep-out lines), then: <pre><code>python TurtleBot/delivery/tools/plan_route.py --map &lt;your-map&gt;.yaml --spec my_spec.yaml --out my_route</code></pre></li>
+      <li>Open <code>my_route/preview.html</code> and read every warning. The folder needs <code>route.yaml</code>, <code>map.yaml</code>, <code>keepout_mask.yaml</code>, <code>speed_mask.yaml</code>.</li>
+    </ol>
+  </div></details>
+
+  <details class="step" data-step="6"><summary><span class="num">6</span><h3>Put the route on the robot</h3><label class="donebox"><input type="checkbox" aria-label="Step 6 done"> done</label><span class="chev" aria-hidden="true">&#9656;</span></summary>
+  <div class="stepbody">
+    <ol>
+      <li><b>Routes</b>, <b>Choose a route folder</b>, pick <code>my_route</code>.</li>
+      <li>Check <b>Name on the robot</b> (new name; <code>current</code> is reserved). Press <b>Upload</b>. Nothing moves.</li>
+      <li>In <b>Routes on the robot</b> press <b>Use this route</b> in your row and confirm. <b>Current route</b> must show your name.</li>
+    </ol>
+    <p class="note"><b>Important.</b> The current route is <code>home</code>, a 1.1 m test route from a room at home. Change it before any trip in the lab. <b>Use this route</b> is refused while a trip or the navigation program runs.</p>
+    <p><span class="chip untested">Not verified</span> route upload, and <b>Use this route</b> with a different route.</p>
+  </div></details>
+
+  <details class="step" data-step="7"><summary><span class="num">7</span><h3>Start the navigation program</h3><label class="donebox"><input type="checkbox" aria-label="Step 7 done"> done</label><span class="chev" aria-hidden="true">&#9656;</span></summary>
+  <div class="stepbody">
+    <p class="note"><b>Studio 2.1 cannot do this.</b> It starts mapping and shows on <b>Routes</b> whether navigation is running, but a trip needs the navigation stack started from a terminal on the robot first (<a href="../../delivery/README.md#9-phase-2-supervised-runs">delivery README section 9</a>).</p>
+    <ol>
+      <li>Robot on the dock, battery above 40 %.</li>
+      <li>Open a terminal on the robot: Studio, <b>Tools</b>, the button for a terminal on the robot. Or <code>ssh ubuntu@&lt;address on the robot's screen&gt;</code> from your computer's terminal (needs the first-connection key or the password, see <a href="../../HOW-TO-CONNECT.md">How to connect</a>).</li>
+      <li>On the robot (replace <code>my_route</code>): <pre><code>bash ~/robot_code/delivery/robot/start_stack.sh nav --route-dir ~/robot_code/routes/my_route --dry-run
+bash ~/robot_code/delivery/robot/start_stack.sh nav --route-dir ~/robot_code/routes/my_route</code></pre></li>
+      <li>Wait about 2 minutes, then: <pre><code>grep -i "Managed nodes are active" ~/robot_code/logs/delivery/latest/stack.log | tail</code></pre> No line: run <code>bash ~/robot_code/delivery/robot/stop_stack.sh</code> and read the log.</li>
+      <li>When finished: <code>bash ~/robot_code/delivery/robot/stop_stack.sh</code>.</li>
+    </ol>
+    <p>Does the stack keep running if you close that terminal? <span class="chip untested">to verify</span>. Keep it open during the demo.</p>
+  </div></details>
+
+  <details class="step" data-step="8"><summary><span class="num">8</span><h3>Run the demo from the front panel</h3><label class="donebox"><input type="checkbox" aria-label="Step 8 done"> done</label><span class="chev" aria-hidden="true">&#9656;</span></summary>
+  <div class="stepbody">
+    <p>Cable unplugged, robot docked, navigation running, a person ready to walk behind the robot.</p>
+    <div class="table-wrap"><table class="keys"><thead><tr><th>Button</th><th>In the menu</th></tr></thead><tbody>
+      <tr><td>1</td><td>Select the highlighted entry</td></tr>
+      <tr><td>2</td><td>Back. During a trip it is <b>Stop</b></td></tr>
+      <tr><td>3</td><td>Up</td></tr>
+      <tr><td>4</td><td>Down</td></tr></tbody></table></div>
+    <ol>
+      <li>The first entry is <code>&gt;Go to food court</code> when docked. Others: Dock, Undock, EStop, Wall Follow Left and Right, Power, Help, and <code>Hello demo</code> (a 20 s countdown that never moves).</li>
+      <li>Select <b>Go to food court</b> (1), then answer <code>1 = Yes / 2 = No</code> with 1. The first movement comes about 1 min 15 s later (measured at home, 2026-11-06).</li>
+      <li>Walk behind the robot. Button 2 stops it at any time.</li>
+      <li>At the food court: <code>Food placed?</code>, press 1 for <b>Back to the lab</b>.</li>
+      <li>At the lab: <code>Your food is here</code>, press 1 for <b>Done, thank you</b>. The robot docks.</li>
+    </ol>
+    <p><span class="chip ok">Verified at home 2026-11-06</span> a whole delivery on a 1.1 m route, Stop, Back to the lab, physical buttons. <span class="chip untested">Not verified</span> a trip on a lab or campus route; selecting <code>Hello demo</code> on the screen.</p>
+  </div></details>
+</section>
+
+<section id="tour">
+  <div class="section-head"><span class="section-tag">02</span><h2>Screen tour</h2></div>
+  <p>Pick a screen in the left menu of Studio. Screenshots come from the simulated robot.</p>
+  <div class="tour">
+    <div class="tabs" id="tabs" role="group" aria-label="Studio screens"></div>
+    <div class="tourpanel" id="tourpanel" aria-live="polite"></div>
+  </div>
+  <noscript><p class="note">JavaScript is off. The same list is in the <a href="studio-lab-demo.md#3-tour-of-studios-screens">Markdown version</a>.</p></noscript>
+</section>
+
+<section id="before">
+  <div class="section-head"><span class="section-tag">03</span><h2>Before the robot moves</h2></div>
+  <p>Tick each item every time. Your ticks are kept in this browser only.</p>
+  <div id="safelist">
+    <label class="chk"><input type="checkbox"><span>Ethernet cable unplugged from the robot.</span></label>
+    <label class="chk"><input type="checkbox"><span>A person is next to the robot with E-STOP in reach (Studio top right, <kbd>Esc</kbd>, <kbd>Space</kbd>, or the controller).</span></label>
+    <label class="chk"><input type="checkbox"><span>About 1 m of clear floor, no cables, bags or feet. No glass doors or drop-offs ahead.</span></label>
+    <label class="chk"><input type="checkbox"><span>Battery above 40 % for a trip (Studio refuses to drive below 10 %).</span></label>
+    <label class="chk"><input type="checkbox"><span>For a trip: the current route is the route for this room, not <code>home</code>.</span></label>
+    <label class="chk"><input type="checkbox"><span>For a trip: navigation is running (step 7) and the robot is on the dock.</span></label>
+    <label class="chk"><input type="checkbox"><span>Not during lunch hours in the corridor. You know where the dock is and how to stop the robot.</span></label>
+  </div>
+  <div class="btnrow"><button class="btn" type="button" id="resetsafe">Clear ticks</button> <a href="../../examples/README.md#safety-checklist-before-anything-moves">Full safety checklist</a></div>
+</section>
+
+<section id="trouble" class="finder">
+  <div class="section-head"><span class="section-tag">04</span><h2>Troubleshooting finder</h2></div>
+  <label for="q">Type a word from what you see (for example: grey, address, upload)</label>
+  <input type="search" id="q" autocomplete="off">
+  <p class="hint" id="qcount" role="status" aria-live="polite"></p>
+  <div id="symptoms">
+    <div class="symptom" data-k="windows protected smartscreen install"><h3>"Windows protected your PC"</h3><p>Click <b>More info</b>, then <b>Run anyway</b>. The installer is not signed.</p></div>
+    <div class="symptom" data-k="discover finds nothing address list network"><h3>Discover finds nothing</h3><p>Check the robot and the laptop are both on Students. Type the address from the robot's screen. See <a href="../../tools/studio/docs/FIND-THE-ROBOT.md">Find the robot</a>.</p></div>
+    <div class="symptom" data-k="local turtlebot4.local name address"><h3><code>turtlebot4.local</code> does not work</h3><p>Normal on campus at times. Use the address on the robot's screen.</p></div>
+    <div class="symptom" data-k="key not set up wizard login"><h3>"key not set up"</h3><p>Run the setup wizard once on this computer: <a href="../../tools/studio/docs/FIRST-CONNECTION.md">First connection</a>.</p></div>
+    <div class="symptom" data-k="hotspot turtlebot4 wifi students own network 10.42.0.1"><h3>The robot shows its own Wi-Fi <code>Turtlebot4</code></h3><p>It could not find Students. Join <code>Turtlebot4</code> from your computer; the robot is at <code>10.42.0.1</code>.</p></div>
+    <div class="symptom" data-k="start mapping grey disabled navigation scripts missing"><h3>Start mapping is grey</h3><p>A navigation program is running (stop it with <code>stop_stack.sh</code>) or the mapping scripts are missing (copy the delivery package with <code>delivery/tools/deploy.py</code>).</p></div>
+    <div class="symptom" data-k="drive driving grey disabled docked estop battery"><h3>Driving is grey or refused</h3><p>The robot is docked, e-stopped, starting or saving a map, a motion program runs, or the battery is under 10 %. Undock on <b>Overview</b>.</p></div>
+    <div class="symptom" data-k="map does not grow lidar docked empty"><h3>The map does not grow</h3><p>The lidar motor is off while docked. Undock or start the lidar on <b>Overview</b>, then drive a little.</p></div>
+    <div class="symptom" data-k="upload missing file route folder subfolder"><h3>Upload says a file is missing</h3><p>The four route files must sit directly in the folder, not in a subfolder. Run the planner again.</p></div>
+    <div class="symptom" data-k="use this route grey disabled current trip"><h3>Use this route is grey</h3><p>The route is incomplete, already current, or a trip or navigation program is running.</p></div>
+    <div class="symptom" data-k="not on the map screen navigation stack trip refuses"><h3>The screen says "Not on the map"</h3><p>Navigation is not running. Do step 7 and wait about 2 minutes.</p></div>
+    <div class="symptom" data-k="no route saved screen route.yaml current"><h3>The screen says "No route saved"</h3><p>The current route folder has no <code>route.yaml</code>. Make your route current (step 6).</p></div>
+    <div class="symptom" data-k="camera oak stopped mapping reboot"><h3>The camera stopped after mapping</h3><p>Known side effect of starting mapping. It comes back after the next reboot.</p></div>
+    <div class="symptom" data-k="anything else help maintainer diagnostics"><h3>Anything else</h3><p><a href="../../tools/studio/docs/TROUBLESHOOTING.md">Studio troubleshooting</a>, or ask the lab maintainer. <b>Tools</b>, <b>Show diagnostics</b> makes a text to send.</p></div>
+  </div>
+</section>
+
+<section id="verified">
+  <div class="section-head"><span class="section-tag">05</span><h2>Verified or not</h2></div>
+  <div class="vgrid">
+    <div class="card"><h3>Verified <span class="chip ok">real robot</span></h3><ul>
+      <li>2026-11-25: robot joins Students at boot; laptop on Students reaches it by Wi-Fi; robot has internet; menu service runs after boot; delivery release <code>20261114T124530Z-7388942</code>.</li>
+      <li>2026-11-14, docked, not driven: start mapping, live map, save, stop, preview, download, rename, delete; <b>Use this route</b> with the route already current.</li>
+      <li>2026-11-06, at home, 1.1 m route: a whole delivery, Stop, Back to the lab, physical buttons.</li></ul></div>
+    <div class="card"><h3>Not verified yet <span class="chip untested">open</span></h3><ul>
+      <li>Mapping while driving, in the lab or on campus.</li>
+      <li>Route upload; <b>Use this route</b> with a different route.</li>
+      <li>A trip in the lab or on campus; map scale on long walls; localization on campus.</li>
+      <li>Selecting <code>Hello demo</code> on the screen.</li>
+      <li>The 2.1 installer on a clean computer; macOS and Linux.</li>
+      <li>Starting navigation from Studio (not possible in 2.1).</li></ul></div>
+  </div>
+  <p class="hint">Sources: <a href="../../tools/studio/README.md#tested-on-the-robot-2026-11-14-21">Studio README, tested 2026-11-14</a>, <a href="../../delivery/README.md#13-not-verified-yet">delivery README section 13</a>.</p>
+</section>
+
+<footer>Quick guide, not a manual. Detail: <a href="../../tools/studio/docs/MAPS-AND-ROUTES.md">Maps and routes</a>, <a href="../../tools/studio/docs/ROBOT-MENU.md">Robot menu</a>, <a href="../../tools/studio/docs/TROUBLESHOOTING.md">Troubleshooting</a>. Plain Markdown version: <a href="studio-lab-demo.md">studio-lab-demo.md</a>.</footer>
+</main>
+</div>
+<script>
+(function(){
+  var KEY='studioLabDemo.v1';
+  var state={steps:{},safe:{}};
+  try{var s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s&&s.steps&&s.safe) state=s;}catch(e){}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+  var steps=[].slice.call(document.querySelectorAll('details.step'));
+  function paint(){
+    var n=0;
+    steps.forEach(function(d){
+      var id=d.getAttribute('data-step'), on=!!state.steps[id];
+      d.classList.toggle('done',on); d.querySelector('.donebox input').checked=on; if(on)n++;
+    });
+    document.getElementById('progtext').textContent=n+' of '+steps.length+' steps done';
+    document.getElementById('progbar').style.width=(100*n/steps.length)+'%';
+  }
+  steps.forEach(function(d){
+    var cb=d.querySelector('.donebox input');
+    cb.addEventListener('click',function(e){e.stopPropagation();});
+    cb.addEventListener('change',function(){
+      state.steps[d.getAttribute('data-step')]=cb.checked; save(); paint();
+      if(cb.checked){var nx=steps[steps.indexOf(d)+1]; if(nx) nx.open=true;}
+    });
+  });
+  document.getElementById('resetall').addEventListener('click',function(){state.steps={};save();paint();});
+  var safe=[].slice.call(document.querySelectorAll('#safelist .chk'));
+  function paintSafe(){safe.forEach(function(l,i){var on=!!state.safe[i]; l.classList.toggle('on',on); l.querySelector('input').checked=on;});}
+  safe.forEach(function(l,i){l.querySelector('input').addEventListener('change',function(e){state.safe[i]=e.target.checked;save();paintSafe();});});
+  document.getElementById('resetsafe').addEventListener('click',function(){state.safe={};save();paintSafe();});
+  paint(); paintSafe();
+
+  var I='../tools/studio/docs/img/';
+  var T=[
+   ['Overview','v2-overview.png','Battery, docked or not, lidar, Wi-Fi, CPU, temperature.','Connect and disconnect. Undock and Dock. Start the lidar motor. Run the health check.','Used in steps 2 and 4.'],
+   ['Live','v2-live-armed.png','The lidar map and the robot path.','Drive by hand. Arm first. 0.15 m/s default, 0.30 m/s max, stops 0.3 s after the last command. Refused when docked, under e-stop or below 10 % battery.','Driving was tested only in part: see the Studio README.'],
+   ['Maps','','A map being built, and the saved maps.','Start mapping, Save map, Stop mapping. Preview, rename, download or delete saved maps.','Verified docked 2026-11-14. Mapping while driving not verified. No screenshot yet.'],
+   ['Routes','','Routes on the robot, the current route, trip status.','Upload a planned route folder. Press Use this route. Read whether a trip or navigation is running.','Upload not verified. No screenshot yet.'],
+   ['Robot menu','','The entries on the robot’s front panel.','Hide built-in entries, add your own program entries, check with the robot, save.','Not needed for the demo. Saving a changed menu is not verified. No screenshot yet.'],
+   ['Programs','v2-programs.png','The lab’s example programs.','Run one and read its live log. Each card says if it moves the robot.','Not needed for the demo.'],
+   ['Code','v2-code.png','An editor.','Write and run your own program on the robot.','Not needed for the demo.'],
+   ['Files','v2-files.png','Folders on your computer and on the robot.','Copy files to the robot and back.','Not needed for the demo.'],
+   ['Charts','v2-charts.png','Battery, speed, CPU, temperature and Wi-Fi over 5 to 30 minutes.','See trends, for example battery during a trip.','Optional.'],
+   ['Logs','v2-logs.png','The robot’s service log, read only.','Look for errors.','Optional.'],
+   ['Wi-Fi','v2-wifi.png','Where your computer and the robot are connected.','Put the robot on another network.','Not needed on campus: the robot joins Students by itself.'],
+   ['Topics','','ROS topics.','Watch up to four live.','Optional. No screenshot yet.'],
+   ['Tools','v2-tools.png','Utilities.','Open a terminal on the robot (step 7), the setup wizard, diagnostics, Settings.','Used in step 7.']
+  ];
+  var tabs=document.getElementById('tabs'), panel=document.getElementById('tourpanel');
+  function show(i){
+    var t=T[i];
+    [].forEach.call(tabs.children,function(b,j){b.setAttribute('aria-pressed',j===i?'true':'false');});
+    panel.textContent='';
+    function el(tag,txt){var e=document.createElement(tag); if(txt) e.textContent=txt; return e;}
+    panel.appendChild(el('h3',t[0]));
+    var dl=el('dl'); [['Shows',t[2]],['Use it to',t[3]],['Note',t[4]]].forEach(function(r){dl.appendChild(el('dt',r[0]));dl.appendChild(el('dd',r[1]));});
+    panel.appendChild(dl);
+    if(t[1]){var im=el('img'); im.src=I+t[1]; im.alt='Studio '+t[0]+' screen (simulated robot)'; im.loading='lazy'; im.onerror=function(){im.remove();}; panel.appendChild(im); panel.appendChild(el('p','Screenshot from the simulated robot.')).className='hint';}
+  }
+  T.forEach(function(t,i){var b=document.createElement('button'); b.type='button'; b.textContent=t[0]; b.setAttribute('aria-pressed','false'); b.addEventListener('click',function(){show(i);}); tabs.appendChild(b);});
+  show(0);
+
+  var q=document.getElementById('q'), sy=[].slice.call(document.querySelectorAll('#symptoms .symptom')), qc=document.getElementById('qcount');
+  q.addEventListener('input',function(){
+    var w=q.value.toLowerCase().split(/\s+/).filter(Boolean), n=0;
+    sy.forEach(function(s){var h=(s.getAttribute('data-k')+' '+s.textContent).toLowerCase(); var ok=w.every(function(x){return h.indexOf(x)>-1;}); s.hidden=!ok; if(ok)n++;});
+    qc.textContent=w.length?(n+' of '+sy.length+' shown'):'';
+  });
+  window.addEventListener('beforeprint',function(){steps.forEach(function(d){d.open=true;});});
+})();
+</script>
+</body>
+</html>

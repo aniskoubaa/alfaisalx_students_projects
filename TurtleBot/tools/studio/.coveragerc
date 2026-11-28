@@ -1,0 +1,15 @@
+# Coverage settings for the Studio offline tests (see docs/TESTING.md).
+[run]
+branch = True
+parallel = True
+include =
+    */tools/studio/studio.py
+    */tools/studio/robot_bridge.py
+data_file = ${STUDIO_COV_DIR-.}/.coverage
+disable_warnings = module-not-imported, no-data-collected
+
+[report]
+show_missing = False
+precision = 1
+exclude_also =
+    if __name__ == .__main__.:

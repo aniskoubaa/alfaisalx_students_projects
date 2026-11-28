@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: turtlebot-studio-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     strategy:
@@ -34,7 +38,7 @@ jobs:
           cache: npm
           cache-dependency-path: TurtleBot/tools/studio/ui/package-lock.json
       - name: Install PyInstaller and Playwright
-        run: python -m pip install pyinstaller==6.20.0 playwright
+        run: python -m pip install pyinstaller==6.20.0 playwright pyyaml
       - name: Browser for the end-to-end test (Linux)
         if: runner.os == 'Linux'
         run: python -m playwright install --with-deps chromium
@@ -47,6 +51,7 @@ jobs:
           npm run lint
           npm run typecheck
           npm test
+          npm run coverage --if-present
           npm run build
       - name: The committed web/v2 build must match the source (Linux)
         if: runner.os == 'Linux'
@@ -62,8 +67,17 @@ jobs:
           python TurtleBot/tests/offline/test_studio_setup.py
           python TurtleBot/tests/offline/test_studio_upgrades.py
           python TurtleBot/tests/offline/test_studio_window.py
+          python TurtleBot/tests/offline/test_studio_mapping.py
+          python TurtleBot/tests/offline/test_studio_mapping_desktop.py
+          python TurtleBot/tests/offline/test_studio_routes.py
+          python TurtleBot/tests/offline/test_studio_routes_unit.py
+          python TurtleBot/tests/offline/test_studio_menu.py
+          python TurtleBot/tests/offline/test_studio_menu_unit.py
           python TurtleBot/tests/offline/test_studio_v2_backend.py
           python TurtleBot/tests/offline/test_studio_e2e.py
+          python TurtleBot/tests/offline/test_studio_e2e_maps.py
+          python TurtleBot/tests/offline/test_studio_e2e_routes.py
+          python TurtleBot/tests/offline/test_studio_e2e_menu.py
       - name: Install NSIS (Windows installer)
         if: runner.os == 'Windows'
         run: choco install nsis -y

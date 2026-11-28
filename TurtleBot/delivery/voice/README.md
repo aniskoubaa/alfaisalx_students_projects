@@ -1,6 +1,6 @@
 # Voice player for the campus delivery (TB-29)
 
-A small separate program that follows the delivery mission's event file (`delivery_*.jsonl` in `~/robot_code/logs`) and plays prerecorded WAV clips: English, then Arabic, for each moment (arrival at the food court, food here, thank you, help). Design and reasons: [docs/SPOKEN-MESSAGES.md](../../docs/SPOKEN-MESSAGES.md), sections 3 to 8.
+A small separate program that follows the delivery mission's event file (`delivery_*.jsonl` in `~/robot_code/logs`) and plays prerecorded WAV clips: English, then Arabic, for each moment (arrival at the food court, food here, thank you, help). Design and reasons: [docs/reference/spoken-messages.md](../../docs/reference/spoken-messages.md), sections 3 to 8.
 
 It is plain Python (standard library and PyYAML). It creates **no ROS node** and imports nothing from ROS, and it never changes the mission, so it cannot stall the base (TB-25). If it crashes or is stopped, the delivery carries on.
 

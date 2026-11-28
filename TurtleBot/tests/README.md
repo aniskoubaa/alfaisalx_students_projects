@@ -1,12 +1,37 @@
 # TurtleBot 4 tests
 
-Raw logs and diagnostic scripts from the lidar check and the first motion-program runs on 2026-10-04. Times in the logs are robot time (EDT). The write-up is in [../docs/test-results.html](../docs/test-results.html) and [../MAINTENANCE.md](../MAINTENANCE.md).
+Raw logs and diagnostic scripts from the lidar check and the first motion-program runs on 2026-10-04. Times in the logs are robot time (EDT). The write-up is in [../docs/reference/test-results.html](../docs/reference/test-results.html) and [../MAINTENANCE.md](../MAINTENANCE.md).
+
+## Layout (updated 2026-11-28)
+
+| Folder or file | What it holds | Needs a robot? |
+|---|---|---|
+| [offline/](offline/) | The offline tests (`test_*.py`) and `sim.py`, the simulated robot they use. Run on any computer with Python 3.10 or newer | No |
+| [robot/](robot/) | Diagnostic scripts that run **on the robot**: `gapprobe.py`, `gapprobe0.py`, `odomprobe.py`, `opensectors.py` | Yes |
+| [logs/](logs/) | Evidence from real runs: robot logs, timing recordings and Wi-Fi journals, dated 2026-10-04 and 2026-10-24 | Recorded on the robot |
+| [opensectors.py](robot/opensectors.py) | Lidar sector printout, runs on the robot (see the table under "Diagnostic scripts") | Yes |
+| [check_links.py](check_links.py) | Documentation link check for everything under `TurtleBot/` | No |
+
+The scripts that were first in this folder are now in `robot/`; the sections below keep their earlier wording. Copy them to the robot to run them; they expect `motion_shapes.py` in `~/robot_code`. The folder move on 2026-11-28 was a documentation change only; the scripts were not run again.
+
+### Run everything offline
+
+From the repository root (the `TurtleBot/` folder's parent), no robot and no ROS:
+
+```bash
+python TurtleBot/tests/check_links.py
+python TurtleBot/delivery/tools/verify_all.py
+```
+
+`verify_all.py` runs the linters (when installed), syntax checks, the link check and the offline tests that CI runs, and prints a PASS, FAIL or SKIP table. To run one test, run its file, for example `python TurtleBot/tests/offline/test_pure.py`. The delivery tests need PyYAML (`python -m pip install pyyaml`). The Studio interface has its own tests: `npm ci` then `npm test` in `TurtleBot/tools/studio/ui/` (see [the Studio README](../tools/studio/README.md#tests)). The browser tests (`test_studio_e2e*.py`) skip with exit 0 when Playwright is not installed.
+
+Offline tests pass or fail on simulated robots only. A pass says nothing about the real robot. Real runs go in [logs/](logs/) and in [../MAINTENANCE.md](../MAINTENANCE.md).
 
 Status on 2026-10-24: new robot logs from a session over a direct Ethernet cable (rows dated 2026-10-24 below). Times inside them are robot time, and the robot clock read 2024-10-28 that day, so the timing tools use seconds since the start of the recording instead.
 
 Update 2026-10-24, evening: three more logs from the same day, recorded over the robot's home Wi-Fi with the robot clock correct (robot time = laptop time minus 7 hours). They are the last three rows of the table below.
 
-Status on 2026-10-10: no robot runs since 2026-10-04 (the robot has been dropping off the Wi-Fi, see [../docs/network-and-connectivity.html](../docs/network-and-connectivity.html)), so there are no new logs. The offline tests below were rerun on 2026-10-10: 101 checks and 38 scenarios, 0 failures.
+Status on 2026-10-10: no robot runs since 2026-10-04 (the robot has been dropping off the Wi-Fi, see [../docs/explanations/network-and-connectivity.html](../docs/explanations/network-and-connectivity.html)), so there are no new logs. The offline tests below were rerun on 2026-10-10: 101 checks and 38 scenarios, 0 failures.
 
 ## Logs (`logs/`)
 
