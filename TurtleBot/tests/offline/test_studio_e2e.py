@@ -228,7 +228,10 @@ def steps(page, ctx, browser):
                 body = r.text()[:80]
             except Exception:
                 body = '?'
-            errors.append('http %d %s %s (%s) %s' % (r.status, r.request.method, r.url.split('?')[0][-40:], r.headers.get('server', '?'), body))
+            # enough detail to tell which branch of the server answered: content type, the page that asked, the body
+            errors.append('http %d %s %s (%s, %s, from page %s) %r' % (
+                r.status, r.request.method, r.url.split('?')[0][-60:], r.headers.get('server', '?'),
+                r.headers.get('content-type', '?'), page.url.split('?')[0][-40:], body))
 
     page.on('response', on_response)
 
