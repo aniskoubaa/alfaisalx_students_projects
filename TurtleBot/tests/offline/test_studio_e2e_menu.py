@@ -170,7 +170,11 @@ class section:
         import traceback
         mine = [f for f in traceback.extract_tb(tb) if f.filename == __file__]
         line = mine[-1].lineno if mine else 0
-        check('section completed: ' + self.name, False, ('line %d: ' % line) + str(ev).strip().splitlines()[0][:160])
+        msg = str(ev).strip().splitlines()
+        # Playwright's call log says why an action was refused (not visible, not enabled, covered by another element)
+        why = [s.strip(' -') for s in msg[1:] if s.strip().startswith('-')][-3:]
+        check('section completed: ' + self.name, False, ('line %d: ' % line) + msg[0][:160]
+              + ((' (' + ' | '.join(why)[:300] + ')') if why else ''))
         try:
             if section.page is not None and os.environ.get('STUDIO_E2E_SHOTS'):
                 section.page.screenshot(path=os.path.join(os.environ['STUDIO_E2E_SHOTS'], 'FAILED-%s.png' % re.sub(r'\W+', '-', self.name)))
