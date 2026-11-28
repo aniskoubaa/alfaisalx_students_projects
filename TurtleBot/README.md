@@ -69,7 +69,7 @@ Details and dates are in [ROADMAP.md](ROADMAP.md) and [MAINTENANCE.md](MAINTENAN
 
 | Area | State | Task |
 |---|---|---|
-| TurtleBot Studio | Version 2.2.0 installer for Windows in [Download/](Download/README.md). Tested on the real robot in part (a first map made while driving, from the Maps screen, on 2026-11-26); the open checks are under [Not verified yet](tools/studio/README.md#not-verified-yet) in the Studio README | [TB-27](ROADMAP.md#tb-27-desktop-control-app-for-connecting-file-sync-and-running-programs) |
+| TurtleBot Studio | Version 2.2.1 installer for Windows in [Download/](Download/README.md). Tested on the real robot in part (a first map made while driving, from the Maps screen, on 2026-11-26); the open checks are under [Not verified yet](tools/studio/README.md#not-verified-yet) in the Studio README | [TB-27](ROADMAP.md#tb-27-desktop-control-app-for-connecting-file-sync-and-running-programs) |
 | Campus delivery | Full deliveries have run on the real robot at home from the front-panel menu (2026-11-06). The campus route has not been driven | [TB-29](ROADMAP.md#tb-29-campus-food-delivery-along-the-wall-supervised-demo) |
 | Wi-Fi drops | Wi-Fi power saving was switched off (R14, R17, 2026-10-24). Whether that ends the drops can only be checked on campus | [TB-20](ROADMAP.md#tb-20-fix-the-robot-wi-fi-drops-wi-fi-power-saving) |
 | Base stalls at motion start | Open. Located in the Create 3 base; a new ROS participant can trigger a stall. Studio and the delivery stack keep to one participant | [TB-25](ROADMAP.md#tb-25-find-why-the-create-3-base-stalls-when-it-starts-moving) |
@@ -103,7 +103,7 @@ More: [emergency stop paths](ARCHITECTURE.md#emergency-stop-paths) and [safety b
 
 TurtleBot Studio is a desktop app. It finds the robot, shows what the robot sees, runs programs, lets you drive it and has an emergency stop. You do not need Python, ROS or a terminal.
 
-**[Download TurtleBot Studio for Windows](https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.2.0.exe)** (version <!-- studio-version -->2.2.0<!-- /studio-version -->, <!-- studio-size -->8.9 MB<!-- /studio-size -->). More about the download, and macOS and Linux: [Download/](Download/README.md).
+**[Download TurtleBot Studio for Windows](https://github.com/aniskoubaa/alfaisalx_students_projects/raw/main/TurtleBot/Download/TurtleBotStudio-Setup-2.2.1.exe)** (version <!-- studio-version -->2.2.1<!-- /studio-version -->, <!-- studio-size -->8.9 MB<!-- /studio-size -->). More about the download, and macOS and Linux: [Download/](Download/README.md).
 
 | Step | What to do |
 |---|---|

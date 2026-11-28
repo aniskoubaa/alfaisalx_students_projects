@@ -41,6 +41,10 @@ From version 1.2 Studio is also built as a single file per system, so no Python 
 
 Running from source (`python studio.py`, steps above) still works and does the same.
 
+## What's new in 2.2.1
+
+Version 2.2.1 (2026-11-28) fixes a bug that was in every earlier version. When Studio served a file of the interface (anything under `/v2/` or `/classic/`), it sent the file and then a second, stray "404 not found". The browser reuses its connection, so that stray answer became the reply to its next request: a button, a list or a page step could fail at random, more often on slower computers. Found by the browser tests on GitHub's Linux machine; `test_studio_v2_backend.py` now checks that one connection gets exactly one answer per request.
+
 ## What's new in 2.2
 
 Version 2.2.0 (2026-11-28) makes Studio easier to find your way around, and its code easier to read. The review behind it is in [docs/DESIGN-2.2-USABILITY.md](docs/DESIGN-2.2-USABILITY.md).

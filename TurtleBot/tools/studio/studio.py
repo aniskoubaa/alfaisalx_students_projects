@@ -47,7 +47,7 @@ import zlib
 import http.client
 
 sys.dont_write_bytecode = True
-VERSION = '2.2.0'
+VERSION = '2.2.1'
 FROZEN = bool(getattr(sys, 'frozen', False))  # PyInstaller one-file build
 HERE = getattr(sys, '_MEIPASS', None) if FROZEN else None
 HERE = HERE or os.path.dirname(os.path.abspath(__file__))
@@ -4041,13 +4041,18 @@ def make_handler(app):
             self._static(u.path, u.query)
 
         def _file(self, base, rel, html_ok=True):
+            """Send the file and return True, or return None (nothing sent) when it does not exist.
+
+            The callers send their own 404 on None, so this must never return None after sending: a second answer
+            on a reused connection becomes the answer to the browser's NEXT request."""
             full = safe_member_path(base, rel)
             if full and os.path.isfile(full):
                 with open(full, 'rb') as f:
                     body = f.read()
                 ext = os.path.splitext(full)[1].lower()
-                return self._send(200, body, CTYPES.get(ext, 'application/octet-stream'),
-                                  {'Content-Security-Policy': CSP} if ext == '.html' else None)
+                self._send(200, body, CTYPES.get(ext, 'application/octet-stream'),
+                           {'Content-Security-Policy': CSP} if ext == '.html' else None)
+                return True
             return None
 
         def _redirect(self, where):

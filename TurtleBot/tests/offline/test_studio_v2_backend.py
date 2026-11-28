@@ -663,7 +663,7 @@ check('limit_value caps and defaults', st.limit_value(5, 0.15, 0.02, 0.3) == 0.3
 # ================================================================ Studio in-process: on_status, teleop_off, quit
 cfgd = os.path.join(OUT, 'inproc_cfg')
 app = st.Studio(st.parse_args(['--fake', '--config-dir', cfgd, '--fake-home', os.path.join(cfgd, 'home')]))
-check('Studio 2.0: VERSION and settings defaults', st.VERSION == '2.2.0' and app.settings['ui'] == 'v2' and app.settings['teleop_linear'] == 0.15
+check('Studio 2.0: VERSION and settings defaults', st.VERSION == '2.2.1' and app.settings['ui'] == 'v2' and app.settings['teleop_linear'] == 0.15
       and app.settings['teleop_angular'] == 0.6)
 app.on_status(status(battery={'percent': 12}))
 check('on_status feeds history and alerts', app.history.query(15)['series']['battery_pct'][-1] == 12 and 'battery_low' in [x['code'] for x in app.alerts.since(0)[0]])
@@ -851,6 +851,25 @@ try:
     code, body, hd = call_raw('GET', '/v2/assets/f.woff2')
     check('fonts get a font type', code == 200 and hd['content-type'] == 'font/woff2')
     check('GET /v2/missing.js is 404', call_raw('GET', '/v2/missing.js')[0] == 404)
+    # One connection, several requests, as a browser reuses it: every file must get exactly one answer. A served file
+    # used to be followed by a stray "404 not found" that became the answer to the NEXT request on the connection.
+    import socket as _socket
+    _s = _socket.create_connection(('127.0.0.1', PORT), timeout=5)
+    _reqs = ['/v2/assets/app.js', '/classic/', '/api/alerts?token=' + TOKEN]
+    _s.sendall(b''.join(('GET %s HTTP/1.1\r\nHost: 127.0.0.1:%d\r\n\r\n' % (p, PORT)).encode() for p in _reqs))
+    _got, _deadline = b'', time.time() + 5
+    while _got.count(b'HTTP/1.1 ') < len(_reqs) + 1 and time.time() < _deadline:
+        try:
+            _chunk = _s.recv(65536)
+        except _socket.timeout:
+            break
+        if not _chunk:
+            break
+        _got += _chunk
+    _s.close()
+    _status = re.findall(rb'HTTP/1\.1 (\d{3})', _got)
+    check('keep-alive: each request gets exactly one answer (200 file, 200 classic page, 200 alerts)',
+          _status == [b'200', b'200', b'200'], str(_status))
     code, body, hd = call_raw('GET', '/classic/')
     check('/classic/ is still the 1.3 page next to v2', code == 200 and body == classic_html)
     r = call('POST', '/api/settings', {'ui': 'neon'})
@@ -863,7 +882,7 @@ try:
     call('POST', '/api/settings', {'ui': 'v2'})
     check('with ui=v2 GET / serves the new page again', b'v2 marker' in call_raw('GET', '/')[1])
     gs = call('GET', '/api/settings')
-    check('settings carry version 2.2, ui and the teleop limits', gs['version'] == '2.2.0' and gs['ui'] == 'v2' and gs['teleop_linear'] == 0.15 and gs['teleop_angular'] == 0.6)
+    check('settings carry version 2.2, ui and the teleop limits', gs['version'] == '2.2.1' and gs['ui'] == 'v2' and gs['teleop_linear'] == 0.15 and gs['teleop_angular'] == 0.6)
 
     # ---- teleop_limits
     r = call('GET', '/api/teleop_limits')
@@ -985,7 +1004,7 @@ for fn in (os.path.join(STUDIO_DIR, 'studio.py'), BRIDGE):
         check('LF line endings: ' + os.path.basename(fn), b'\r' not in f.read())
 with open(os.path.join(STUDIO_DIR, 'version.json'), encoding='utf-8') as f:
     vj = json.load(f)
-check('version.json is 2.2.0 and matches studio.VERSION', vj['version'] == '2.2.0' == st.VERSION)
+check('version.json is 2.2.1 and matches studio.VERSION', vj['version'] == '2.2.1' == st.VERSION)
 with open(os.path.join(STUDIO_DIR, 'packaging', 'studio.spec'), encoding='utf-8') as f:
     spec_txt = f.read()
 check("packaging/studio.spec bundles everything under web/ (including web/v2)", "tree('web')" in spec_txt)
