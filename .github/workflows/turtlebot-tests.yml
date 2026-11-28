@@ -47,7 +47,7 @@ jobs:
       - name: ruff (syntax errors and undefined names only)
         run: python -m ruff check --isolated --select E9,F63,F7,F82 --extend-exclude node_modules TurtleBot
       - name: shellcheck (errors only)
-        run: find TurtleBot -name '*.sh' -not -path '*/node_modules/*' -print0 | xargs -0 python -m shellcheck -S error
+        run: find TurtleBot -name '*.sh' -not -path '*/node_modules/*' -print0 | xargs -0 shellcheck -S error
       - name: bash -n on every shell script
         run: |
           fail=0

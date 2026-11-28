@@ -212,6 +212,7 @@ check('set_current: "current" is a reserved name', e == 'current is a reserved n
 e = err(lib.set_current, '.upload-good', True)
 check('set_current: a dot name is reserved', e is not None and 'reserved' in e, str(e))
 check('_folder: "current" is refused even when routes/current exists', err(lib._folder, 'current') == 'current is a reserved name')
+pr.on = set()   # no trip and no navigation stack for the checks below
 if LINKS:
     lib.set_current('good', True)
     check('set_current "current": the link still points to good, not to itself', err(lib.set_current, 'current', True) is not None and lib.list()['current'] == 'good')

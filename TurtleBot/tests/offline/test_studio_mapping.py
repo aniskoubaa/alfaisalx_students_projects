@@ -401,6 +401,8 @@ esac
         f.write(ROS2_STUB)
     with open(os.path.join(stubs, 'pgrep'), 'w', newline='\n') as f:
         f.write('#!/bin/bash\nexit 1\n')
+    for stub in ('ros2', 'pgrep'):
+        os.chmod(os.path.join(stubs, stub), 0o755)   # Linux needs the execute bit; Windows ignores it
     old_path = os.environ['PATH']
     os.environ['PATH'] = stubs + os.pathsep + old_path
     try:
