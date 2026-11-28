@@ -632,6 +632,8 @@ def steps(page, ctx, browser):
         go('logs')
         page.get_by_role('button', name='Fetch log').click()
         expect(page.locator('main')).to_contain_text('turtlebot4.service', timeout=15000)
+        # the unit name is in the picker before the answer arrives: wait for the placeholder to go (slow runners)
+        expect(page.locator('main')).not_to_contain_text('Nothing fetched yet', timeout=15000)
         check('Logs: fetch shows lines', 'Nothing fetched yet' not in text('main'))
         axe('Logs')
         shot('logs')

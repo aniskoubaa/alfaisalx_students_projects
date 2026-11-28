@@ -511,7 +511,7 @@ Everything in 2.1 ran only in tests and in the simulated robot. Not verified on 
 - The `/map` and `/pose` data with the real slam_toolbox: data decode, CPU cost, and the map pose source "slam" (creating the subscriptions on the real robot was checked on 2026-11-14, without SLAM). Whether slam_toolbox on this robot publishes `/pose` is not checked: without it the robot is drawn at its odometry pose. The odometry used to move the slam pose forward is the one at the moment the pose arrives, not at the scan time (a few centimetres off while driving).
 - The map pose composition (slam_toolbox pose moved forward by the odometry) and the lidar overlay on the real map.
 - The tar download of real maps (the real `.posegraph` and `.data` files are several MB). (Update 2026-11-14: the download is a zip, not a tar; a zip of about 36 KB for a tiny docked map was fetched on the real robot. A large map from driving is not verified.)
-- The `current` link replace with a real symbolic link: only the fake fallback ran, on Windows.
+- The `current` link replace with a real symbolic link: only the fake fallback ran, on Windows. *Update 2026-11-28:* the real link replace now runs on Linux in CI (`test_studio_routes_unit.py`, offline tests on GitHub) and in WSL Ubuntu; it has not run on the robot itself.
 - `pgrep` detection of the menu, the mission and the navigation and mapping stacks.
 - The route upload over real ssh.
 - The menu checker on the robot ran through Studio on 2026-11-14 (read-only, `menu_get`). Saving a menu from Studio on the robot is not verified.

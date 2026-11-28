@@ -99,7 +99,7 @@ Limitations:
 
 - A child process that is killed (for example by a test that stops Studio hard) may lose its data. The totals can therefore be a little low, never high.
 - `test_studio_bridge.py` has timing checks. While the computer is busy (for example vitest running at the same time) it failed one check twice during the first measurements; alone, and in the final run, it passed. Do not run other heavy jobs during a coverage run.
-- Windows without developer mode cannot create symbolic links, so the real-link branches of `write_current` and the link cases of the upload clean up are not run there (the checks print a NOTE and use the fake file). On Linux and macOS they run.
+- Windows without developer mode cannot create symbolic links, so the real-link branches of `write_current` and the link cases of the upload clean up are not run there (the checks print a NOTE and use the fake file). They do run on Linux: in GitHub Actions (`turtlebot-tests.yml`, offline tests on Ubuntu with Python 3.12 and 3.10) and in WSL Ubuntu; both passed on 2026-11-28. On Linux and macOS they run.
 
 ### Interface
 
