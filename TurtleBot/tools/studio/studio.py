@@ -111,6 +111,10 @@ ALERT_EDGE_DEDUP_S = 2.0        # state changes (e-stop, dock, connection, progr
 ALERT_EDGE_CODES = frozenset({'estop_on', 'estop_off', 'docked', 'undocked', 'teleop_armed', 'teleop_disarmed',
                               'conn_connected', 'conn_lost', 'conn_restored', 'conn_disconnected', 'program_started',
                               'program_exited', 'program_failed'})
+# Program alerts name the program, so two different programs are two events: these codes are de-duplicated by code
+# AND text (only an exact repeat inside the window is dropped). Found 2026-11-28 on a fast Linux runner, where
+# "drive_test.py was stopped." came 1.8 s after "hello.py finished." and was lost.
+ALERT_PER_TEXT_CODES = frozenset({'program_started', 'program_exited', 'program_failed'})
 ALERT_SEVERITIES = ('info', 'warn', 'critical')
 EVENTS_MAX_BYTES = 1_000_000    # events.jsonl rotates to events.jsonl.old at this size
 
@@ -1522,14 +1526,16 @@ class AlertCenter:
                 pass
 
     def raise_alert(self, code, severity, text):
-        """Returns the alert dict, or None when the same code was already raised recently."""
+        """Returns the alert dict, or None when the same code (for program alerts: the same code and text) was already
+        raised recently."""
         now = self.clock()
         window = ALERT_EDGE_DEDUP_S if code in ALERT_EDGE_CODES else ALERT_DEDUP_S
+        key = (code, str(text)) if code in ALERT_PER_TEXT_CODES else code
         with self.lock:
-            last = self.last_t.get(code)
+            last = self.last_t.get(key)
             if last is not None and 0 <= now - last < window:
                 return None
-            self.last_t[code] = now
+            self.last_t[key] = now
             a = {'id': self.next_id, 't': round(now, 3), 'severity': severity if severity in ALERT_SEVERITIES else 'info',
                  'code': str(code), 'text': str(text)[:300]}
             self.next_id += 1

@@ -549,12 +549,23 @@ e2 = ac.raise_alert('estop_on', 'critical', 'b')
 clk[0] += 3
 e3 = ac.raise_alert('estop_on', 'critical', 'c')
 check('alerts: state changes (e-stop) only drop repeats inside 2 s', e1 and e2 is None and e3)
+# program alerts name the program: two programs ending within 2 s are two events (found on a fast Linux runner,
+# where "drive_test.py was stopped" was dropped 1.8 s after "hello.py finished.")
+p1 = ac.raise_alert('program_exited', 'info', 'hello.py finished.')
+clk[0] += 1.5
+p2 = ac.raise_alert('program_exited', 'info', 'drive_test.py was stopped.')
+p3 = ac.raise_alert('program_exited', 'info', 'drive_test.py was stopped.')
+clk[0] += 3
+p4 = ac.raise_alert('program_exited', 'info', 'drive_test.py was stopped.')
+check('alerts: two different programs exiting within 2 s are both reported', p1 is not None and p2 is not None, str((p1, p2)))
+check('alerts: the exact same program alert repeated inside 2 s is dropped, after 2 s it is reported', p3 is None and p4 is not None)
 items, last = ac.since(0)
 check('alerts since: all, then only newer ids', len(items) == last and [x['id'] for x in ac.since(items[-2]['id'])[0]] == [items[-1]['id']] and ac.since(last)[0] == [])
 for i in range(30):
     clk[0] += 100
     ac.raise_alert('c%d' % i, 'info', 'fill ' + 'x' * 40)
-check('events.jsonl rotates at the size limit and keeps one old file', os.path.isfile(ac.path + '.old') and os.path.getsize(ac.path) <= 700
+_longest = max(len(ln) for ln in open(ac.path, 'rb').read().splitlines()) + 1    # rotation is checked before an append
+check('events.jsonl rotates at the size limit and keeps one old file', os.path.isfile(ac.path + '.old') and os.path.getsize(ac.path) <= 600 + _longest
       and not os.path.exists(ac.path + '.old.old') and not os.path.exists(ac.path + '.1'), str(os.listdir(OUT)))
 ac2 = st.AlertCenter(ac.path, lambda ev: None, clock=lambda: clk[0], max_bytes=600)
 check('alerts survive a restart and ids continue', ac2.since(0)[0] and ac2.next_id == ac.next_id and ac2.raise_alert('after_restart', 'info', 'x')['id'] == ac.next_id)
