@@ -153,9 +153,6 @@ jobs:
             echo "::endgroup::"
             why="$(grep -E '^FAIL' "$out" | head -n 3 | tr '\n' ' ' | cut -c1-600)"
             if [ "$rc" -eq 0 ]; then echo "ok     $f"
-            elif [ "$(basename "$f")" = test_studio_e2e.py ]; then
-              # informational until its first Linux failure (2026-11-28) is understood; the newer browser tests block
-              echo "::warning file=$f::$f exited with $rc (informational on Linux for now): $why"
             else failed+=("$f"); echo "::error file=$f::$f exited with $rc: $why"; fi
           done < <(ls TurtleBot/tests/offline/test_studio_e2e*.py | sort)
           if [ "${#failed[@]}" -ne 0 ]; then printf 'FAILED: %s\n' "${failed[@]}"; exit 1; fi
